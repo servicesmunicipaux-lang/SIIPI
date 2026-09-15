@@ -9,6 +9,7 @@ export const communesRouter = Router();
 // GET /communes — annuaire complet (public en lecture : utilisé par le portail national et municipal)
 communesRouter.get(
   '/',
+  requireAuth,
   asyncHandler(async (req, res) => {
     const gouvernorat = typeof req.query.gouvernorat === 'string' ? req.query.gouvernorat : undefined;
     const rows = gouvernorat
@@ -20,6 +21,7 @@ communesRouter.get(
 
 communesRouter.get(
   '/stats',
+  requireAuth,
   asyncHandler(async (_req, res) => {
     const stats = await queryOne(`
       SELECT
@@ -43,6 +45,7 @@ communesRouter.get(
 // interpréterait "boundaries" comme un :id.
 communesRouter.get(
   '/boundaries',
+  requireAuth,
   asyncHandler(async (_req, res) => {
     const rows = await query(
       `SELECT id, name, ST_AsGeoJSON(boundary_geom)::json AS geometry
@@ -63,6 +66,7 @@ communesRouter.get(
 
 communesRouter.get(
   '/:id',
+  requireAuth,
   asyncHandler(async (req, res) => {
     const commune = await queryOne('SELECT * FROM communes WHERE id = $1', [req.params.id]);
     if (!commune) throw new ApiError(404, 'Commune introuvable.');
@@ -76,6 +80,7 @@ communesRouter.get(
 // n'a pas encore de frontière importée.
 communesRouter.get(
   '/:id/boundary',
+  requireAuth,
   asyncHandler(async (req, res) => {
     const row = await queryOne<{ id: string; geometry: any }>(
       `SELECT id, ST_AsGeoJSON(boundary_geom)::json AS geometry FROM communes WHERE id = $1`,

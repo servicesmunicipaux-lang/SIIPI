@@ -5,7 +5,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcryptjs';
-import { pool, withTransaction } from '../src/db.js';
+// Le seed écrit dans des tables cloisonnées par RLS : contexte FNCT (src/db.ts).
+process.env.SIIPI_DB_CONTEXT = 'server';
+const { pool, withTransaction } = await import('../src/db.js');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

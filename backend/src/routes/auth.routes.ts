@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { queryOne } from '../db.js';
-import { signToken } from '../middleware/auth.js';
+import { requireAuth, signToken, type UserRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 
 export const authRouter = Router();
@@ -17,7 +17,7 @@ interface UserRow {
   email: string;
   password_hash: string;
   full_name: string;
-  role: 'super_admin_fnct' | 'admin_commune' | 'gestionnaire_prestataire' | 'citoyen';
+  role: UserRole;
   commune_id: string | null;
   is_active: boolean;
 }
@@ -27,7 +27,11 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const { email, password } = loginSchema.parse(req.body);
 
-    const user = await queryOne<UserRow>('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
+    // La table users est cloisonnée par RLS et n'est donc pas lisible avant
+    // authentification. app.find_user_for_login est l'unique porte d'entrée
+    // prévue pour ce cas (fonction SECURITY DEFINER, migration 013).
+    const user = await queryOne<UserRow>('SELECT * FROM app.find_user_for_login($1)', [email]);
+
     if (!user || !user.is_active) {
       // Message volontairement identique pour email inconnu / mot de passe faux (anti-énumération de comptes)
       throw new ApiError(401, 'Identifiants incorrects.');
@@ -53,30 +57,24 @@ authRouter.post(
   })
 );
 
-// GET /auth/me — permet au front-end de restaurer une session à partir d'un token stocké
+// GET /auth/me — permet au front-end de restaurer une session à partir d'un token stocké.
+// Le jeton a déjà été vérifié par attachRequestContext ; requireAuth ne fait que
+// refuser les requêtes sans jeton valide.
 authRouter.get(
   '/me',
+  requireAuth,
   asyncHandler(async (req, res) => {
-    const header = req.headers.authorization;
-    if (!header?.startsWith('Bearer ')) throw new ApiError(401, 'Authentification requise.');
-    const jwt = await import('jsonwebtoken');
-    const { config } = await import('../config.js');
-    try {
-      const payload = jwt.default.verify(header.slice(7), config.jwtSecret) as { sub: string };
-      const user = await queryOne<UserRow>(
-        'SELECT id, email, full_name, role, commune_id FROM users WHERE id = $1',
-        [payload.sub]
-      );
-      if (!user) throw new ApiError(401, 'Utilisateur introuvable.');
-      res.json({
-        id: user.id,
-        email: user.email,
-        fullName: user.full_name,
-        role: user.role,
-        communeId: user.commune_id,
-      });
-    } catch {
-      throw new ApiError(401, 'Token invalide ou expiré.');
-    }
+    const user = await queryOne<UserRow>(
+      'SELECT id, email, full_name, role, commune_id FROM users WHERE id = $1',
+      [req.user!.sub]
+    );
+    if (!user) throw new ApiError(401, 'Utilisateur introuvable.');
+    res.json({
+      id: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      role: user.role,
+      communeId: user.commune_id,
+    });
   })
 );

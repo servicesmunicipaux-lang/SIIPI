@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { query, queryOne, withTransaction } from '../db.js';
+import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 
@@ -14,31 +14,29 @@ const registerSchema = z.object({
   phone: z.string().optional(),
 });
 
-// POST /citizens/register — inscription publique à l'application citoyenne
+// POST /citizens/register — inscription publique à l'application citoyenne.
+// users et citoyens sont cloisonnés par RLS : aucune écriture n'est possible
+// sans authentification. app.register_citizen (fonction SECURITY DEFINER,
+// migration 013) est l'unique porte d'entrée prévue pour ce cas, et crée le
+// compte et son profil citoyen dans une seule transaction.
 citizensRouter.post(
   '/register',
   asyncHandler(async (req, res) => {
     const data = registerSchema.parse(req.body);
-    const existing = await queryOne('SELECT id FROM users WHERE email = $1', [data.email.toLowerCase()]);
-    if (existing) throw new ApiError(409, 'Un compte existe déjà avec cet email.');
-
     const passwordHash = await bcrypt.hash(data.password, 12);
 
-    const citizen = await withTransaction(async (client) => {
-      const { rows: userRows } = await client.query(
-        `INSERT INTO users (email, password_hash, full_name, phone, role)
-         VALUES ($1,$2,$3,$4,'citoyen') RETURNING id, email, full_name, role`,
+    try {
+      const created = await queryOne(
+        'SELECT * FROM app.register_citizen($1, $2, $3, $4)',
         [data.email.toLowerCase(), passwordHash, data.fullName, data.phone ?? null]
       );
-      const user = userRows[0];
-      const { rows: citizenRows } = await client.query(
-        `INSERT INTO citoyens (user_id) VALUES ($1) RETURNING *`,
-        [user.id]
-      );
-      return { user, citizen: citizenRows[0] };
-    });
-
-    res.status(201).json(citizen);
+      res.status(201).json(created);
+    } catch (err: any) {
+      if (err?.code === '23505' || err?.message?.includes('EMAIL_DEJA_UTILISE')) {
+        throw new ApiError(409, 'Un compte existe déjà avec cet email.');
+      }
+      throw err;
+    }
   })
 );
 

@@ -17,6 +17,7 @@ const nationalKpiSchema = z.object({
 // (utilisé par le simulateur d'investissement flotte).
 kpiRouter.post(
   '/national',
+  requireAuth,
   asyncHandler(async (req, res) => {
     const input = nationalKpiSchema.parse(req.body);
     res.json(calculateNationalKpi(input));
@@ -61,6 +62,7 @@ kpiRouter.post(
 // GET /kpi/five-axis/:communeId — dernière évaluation connue pour une commune
 kpiRouter.get(
   '/five-axis/:communeId',
+  requireAuth,
   asyncHandler(async (req, res) => {
     const row = await queryOne(
       'SELECT * FROM five_axis_scores WHERE commune_id = $1 ORDER BY computed_at DESC LIMIT 1',

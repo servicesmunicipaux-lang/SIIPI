@@ -12,7 +12,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pool } from '../src/db.js';
+// Import géographique : contexte FNCT (tables cloisonnées par RLS, src/db.ts).
+process.env.SIIPI_DB_CONTEXT = 'server';
+const { pool } = await import('../src/db.js');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

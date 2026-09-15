@@ -4,7 +4,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pool } from './db.js';
+// Les migrations écrivent dans des tables cloisonnées par RLS : elles
+// s'exécutent avec le contexte FNCT (voir src/db.ts).
+process.env.SIIPI_DB_CONTEXT = 'server';
+const { pool } = await import('./db.js');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.resolve(__dirname, '..', 'migrations');
