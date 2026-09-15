@@ -13,7 +13,8 @@
     "import:boundaries": "tsx seed/importBoundaries.ts",
     "lint": "tsc --noEmit",
     "migrate:prod": "node dist/src/migrate.js",
-    "seed:prod": "node dist/seed/seed.js"
+    "seed:prod": "node dist/seed/seed.js",
+    "test:cloisonnement": "bash tests/cloisonnement.sh"
   },
   "dependencies": {
     "express": "^4.21.2",
