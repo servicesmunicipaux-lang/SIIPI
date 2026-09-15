@@ -1,0 +1,22 @@
+# --- Dépendances et artefacts de build ---
+node_modules/
+build/
+dist/
+coverage/
+
+# --- Secrets : ne JAMAIS versionner (cf. décret-loi 2022-54) ---
+.env*
+!.env.example
+*.pem
+*.key
+
+# --- Fichiers temporaires / système ---
+.DS_Store
+Thumbs.db
+*.log
+*.tar.gz
+_to_delete/
+
+# --- Éditeurs ---
+.vscode/
+.idea/

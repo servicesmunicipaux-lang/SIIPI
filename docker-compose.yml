@@ -1,0 +1,39 @@
+version: '3.8'
+
+# Environnement de développement local pour SIIPI.
+# Démarrage : docker compose up -d
+# La base est initialisée automatiquement (extension PostGIS incluse dans l'image).
+# Il reste ensuite à exécuter, une seule fois : cd backend && npm run migrate && npm run seed
+
+services:
+  siipi-postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: siipi_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: siipi_national
+      POSTGRES_USER: siipi_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_strong_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - siipi_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U siipi_admin -d siipi_national"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  siipi-adminer:
+    image: adminer:4
+    container_name: siipi_adminer
+    restart: unless-stopped
+    depends_on:
+      - siipi-postgres
+    ports:
+      - "8081:8080"
+    # Interface web simple pour inspecter la base pendant le développement
+    # (http://localhost:8081 — Système: PostgreSQL, Serveur: siipi-postgres, Utilisateur: siipi_admin)
+
+volumes:
+  siipi_postgres_data:

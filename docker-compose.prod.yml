@@ -1,0 +1,51 @@
+version: '3.8'
+
+# Déploiement complet (base + API), à utiliser une fois le front-end également prêt
+# à être conteneurisé. Nécessite un fichier .env à la racine avec DB_PASSWORD et
+# JWT_SECRET définis (voir backend/.env.example pour la liste complète).
+
+services:
+  siipi-postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: siipi_db
+    restart: always
+    environment:
+      POSTGRES_DB: siipi_national
+      POSTGRES_USER: siipi_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - siipi_postgres_data:/var/lib/postgresql/data
+    networks:
+      - siipi-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U siipi_admin -d siipi_national"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  siipi-api:
+    build:
+      context: ./backend
+    container_name: siipi_backend
+    restart: always
+    environment:
+      DATABASE_URL: postgres://siipi_admin:${DB_PASSWORD}@siipi-postgres:5432/siipi_national
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 8h
+      PORT: 4000
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      NODE_ENV: production
+    depends_on:
+      siipi-postgres:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+    networks:
+      - siipi-net
+
+volumes:
+  siipi_postgres_data:
+
+networks:
+  siipi-net:
+    driver: bridge

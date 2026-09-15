@@ -1,0 +1,6 @@
+{
+  "name": "SIIPI - Système d'Information Intelligent pour la Propreté Intercommunale",
+  "description": "Plateforme nationale FNCT/ANGeD de gestion intelligente des déchets, portails municipaux, applications mobiles citoyenne & terrain, KPI 5 axes et traçabilité.",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
