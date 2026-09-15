@@ -8,6 +8,10 @@
 #
 #   docker compose run --rm api npm run test:audit
 #
+# Note : l'API limite les tentatives de connexion à 20 par quart d'heure et par
+# adresse IP (anti-bruteforce). Pour rejouer plusieurs campagnes d'affilée,
+# démarrer l'API avec AUTH_RATE_LIMIT_MAX=200 — jamais en production.
+#
 # Variables : API_URL (défaut http://localhost:4000)
 #             ADMIN_PSQL (commande psql d'administration, défaut ci-dessous)
 # =============================================================================

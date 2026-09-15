@@ -16,6 +16,10 @@
 #   docker compose run --rm api npm run seed
 #   docker compose run --rm api npm run test:cloisonnement
 #
+# Note : l'API limite les tentatives de connexion à 20 par quart d'heure et par
+# adresse IP (anti-bruteforce). Pour rejouer plusieurs campagnes d'affilée,
+# démarrer l'API avec AUTH_RATE_LIMIT_MAX=200 — jamais en production.
+#
 # Variables : API_URL (défaut http://localhost:4000)
 # Les comptes utilisés sont ceux créés par le seed de démonstration.
 # =============================================================================
@@ -57,6 +61,12 @@ TICKET=$(curl -s -X POST "$API/tickets" -H "Authorization: Bearer $T_CITOYEN" \
   | python3 -c "import sys,json;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
 [ -n "$TICKET" ] || { echo "Échec de la création de la réclamation de test." >&2; exit 1; }
 
+# Les compteurs sont relevés avant, pour que la campagne puisse être rejouée
+# sans base vierge : ce sont les ÉCARTS qui sont vérifiés, pas des valeurs
+# absolues qui dépendraient de l'historique.
+PREST_AVANT=$(code "$API/tickets?assignedToMe=true" -H "Authorization: Bearer $T_PREST_MARSA" >/dev/null; len)
+PREST_COMMUNE_AVANT=$(code "$API/tickets?communeId=tunis_la_marsa" -H "Authorization: Bearer $T_PREST_MARSA" >/dev/null; len)
+
 echo
 echo "1. Étanchéité entre communes"
 c=$(code "$API/tickets?communeId=tunis_la_marsa" -H "Authorization: Bearer $T_SFAX")
@@ -77,7 +87,7 @@ chk "La Marsa ne peut pas noter la commune de Sfax" 500 "$c"
 echo
 echo "2. Périmètre des prestataires privés (TDR §3.2.11)"
 c=$(code "$API/tickets?communeId=tunis_la_marsa" -H "Authorization: Bearer $T_PREST_MARSA")
-chk "un prestataire ne voit pas les réclamations non transférées" 0 "$(len)"
+chk "un prestataire ne voit pas la réclamation qu'on vient de déposer" "$PREST_COMMUNE_AVANT" "$(len)"
 c=$(code "$API/trucks?communeId=tunis_la_marsa" -H "Authorization: Bearer $T_PREST_MARSA")
 chk "un prestataire sans zone ne voit aucun engin" 0 "$(len)"
 c=$(code "$API/zones?communeId=medenine_djerba_houmt_souk" -H "Authorization: Bearer $T_PREST_HS")
@@ -131,7 +141,7 @@ c=$(code -X PATCH "$API/tickets/$TICKET/assign" -H "Authorization: Bearer $T_MAR
       -H 'Content-Type: application/json' -d "{\"prestataireUserId\":\"$PRESTATAIRE\"}")
 chk "transfert au prestataire" 200 "$c"
 c=$(code "$API/tickets?assignedToMe=true" -H "Authorization: Bearer $T_PREST_MARSA")
-chk "le prestataire voit la réclamation qui lui est transférée" 1 "$(len)"
+chk "le prestataire voit la réclamation qui lui est transférée" "$((PREST_AVANT+1))" "$(len)"
 c=$(code -X PATCH "$API/tickets/$TICKET/treat" -H "Authorization: Bearer $T_PREST_MARSA" \
       -H 'Content-Type: application/json' -d '{"status":"resolu","resolutionNote":"traite par test automatise"}')
 chk "le prestataire traite la réclamation" 200 "$c"

@@ -38,7 +38,12 @@ app.use(attachRequestContext);
 // verrouillait aussi GET /auth/me, que le front-end appelle à chaque
 // chargement de page, et bloquait donc tout le service municipal au bout de
 // 20 ouvertures de page.
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false });
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: config.authRateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 app.use('/auth/login', authLimiter);
 app.use('/citizens/register', authLimiter);
 

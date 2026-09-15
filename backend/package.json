@@ -16,7 +16,8 @@
     "seed:prod": "node dist/seed/seed.js",
     "test:cloisonnement": "bash tests/cloisonnement.sh",
     "test:audit": "bash tests/audit.sh",
-    "test": "bash tests/cloisonnement.sh && bash tests/audit.sh"
+    "test": "bash tests/cloisonnement.sh && bash tests/audit.sh && bash tests/suppression.sh",
+    "test:suppression": "bash tests/suppression.sh"
   },
   "dependencies": {
     "express": "^4.21.2",
