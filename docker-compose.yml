@@ -1,19 +1,33 @@
-version: '3.8'
-
-# Environnement de développement local pour SIIPI.
-# Démarrage : docker compose up -d
-# La base est initialisée automatiquement (extension PostGIS incluse dans l'image).
-# Il reste ensuite à exécuter, une seule fois : cd backend && npm run migrate && npm run seed
+# ---------------------------------------------------------------------------
+# SIIPI — environnement de développement local, tout en conteneurs.
+#
+#   docker compose up                 démarre base + API + front-end
+#   docker compose run --rm api npm run migrate     applique les migrations
+#   docker compose run --rm api npm run seed        importe les 350 communes
+#   docker compose run --rm api npm run import:boundaries   frontières réelles
+#   docker compose down               arrête tout (les données sont conservées)
+#   docker compose down -v            arrête ET efface la base
+#
+# Une fois démarré :
+#   Front-end        http://localhost:3000
+#   API              http://localhost:4000/health
+#   Adminer (base)   http://localhost:8081
+#
+# Note : les dépendances (node_modules) sont installées DANS les conteneurs,
+# dans des volumes nommés. C'est volontaire : les paquets natifs installés
+# sous Windows ne fonctionnent pas dans un conteneur Linux. Votre dossier
+# node_modules local n'est ni lu ni écrit par Docker.
+# ---------------------------------------------------------------------------
 
 services:
-  siipi-postgres:
+  db:
     image: postgis/postgis:16-3.4-alpine
     container_name: siipi_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: siipi_national
       POSTGRES_USER: siipi_admin
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_me_strong_password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-siipi_dev_password}
     ports:
       - "5432:5432"
     volumes:
@@ -24,16 +38,57 @@ services:
       timeout: 5s
       retries: 10
 
-  siipi-adminer:
+  api:
+    image: node:22-alpine
+    container_name: siipi_api
+    init: true
+    working_dir: /app
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
+    environment:
+      DATABASE_URL: postgres://siipi_admin:${DB_PASSWORD:-siipi_dev_password}@db:5432/siipi_national
+      JWT_SECRET: ${JWT_SECRET:-dev_only_change_me_before_any_real_deployment}
+      JWT_EXPIRES_IN: 8h
+      PORT: 4000
+      CORS_ORIGIN: http://localhost:3000
+      NODE_ENV: development
+    volumes:
+      - ./backend:/app
+      - api_node_modules:/app/node_modules
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: node:22-alpine
+    container_name: siipi_web
+    init: true
+    working_dir: /app
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
+    environment:
+      VITE_API_URL: http://localhost:4000
+    volumes:
+      - ./:/app
+      - web_node_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  adminer:
     image: adminer:4
     container_name: siipi_adminer
     restart: unless-stopped
-    depends_on:
-      - siipi-postgres
     ports:
       - "8081:8080"
-    # Interface web simple pour inspecter la base pendant le développement
-    # (http://localhost:8081 — Système: PostgreSQL, Serveur: siipi-postgres, Utilisateur: siipi_admin)
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   siipi_postgres_data:
+  api_node_modules:
+  web_node_modules:
