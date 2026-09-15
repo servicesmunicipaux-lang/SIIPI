@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { journaliserAccesCitoyens } from '../services/accessLog.js';
 
 export const ticketsRouter = Router();
 
@@ -18,11 +19,15 @@ ticketsRouter.get(
       const rows = await query('SELECT * FROM tickets WHERE assigned_prestataire_id = $1 ORDER BY created_at DESC', [
         req.user.sub,
       ]);
+      // Les réclamations portent le nom et le téléphone déclarés par le citoyen :
+      // toute consultation par un agent est journalisée (décret-loi 2022-54).
+      await journaliserAccesCitoyens('GET /tickets?assignedToMe', rows);
       return res.json(rows);
     }
     const rows = communeId
       ? await query('SELECT * FROM tickets WHERE commune_id = $1 ORDER BY created_at DESC', [communeId])
       : await query('SELECT * FROM tickets ORDER BY created_at DESC LIMIT 500');
+    await journaliserAccesCitoyens('GET /tickets', rows);
     res.json(rows);
   })
 );

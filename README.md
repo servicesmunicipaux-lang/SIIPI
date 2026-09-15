@@ -55,6 +55,37 @@ scripts/          outils de génération du référentiel des communes
 GUIDE_DEMARRAGE.md  historique détaillé des itérations et des tests
 ```
 
+## Journaux et conservation
+
+Toute écriture est tracée en base par des déclencheurs SQL (`audit_log`) :
+qui a modifié quoi, quand, et la valeur avant/après. Les consultations de
+données personnelles de citoyens par un agent sont tracées séparément
+(`access_log`). Les deux journaux sont en ajout seul : l'API peut les lire,
+jamais les modifier ni les effacer.
+
+Durées de conservation, définies dans la table `app_parametres` et donc
+modifiables sans redéploiement :
+
+| Journal | Durée | Motif |
+|---|---|---|
+| Écritures | 5 ans | Durée d'un mandat municipal : on peut toujours remonter à la mandature qui a pris une décision |
+| Accès aux données citoyennes | 1 an | Volumétrie élevée, utilité décroissante, principe de minimisation |
+
+La purge n'est pas automatique. À planifier une fois par jour sur le serveur :
+
+```bash
+docker compose -f docker-compose.prod.yml exec db \
+  psql -U siipi_admin -d siipi_national -c "SELECT * FROM app.purger_journaux();"
+```
+
+## Tests
+
+```bash
+docker compose run --rm api npm test                    # tout
+docker compose run --rm api npm run test:cloisonnement  # étanchéité entre communes
+docker compose run --rm api npm run test:audit          # journaux d'audit
+```
+
 ## Propriété et conformité
 
 Code source propriété de la FNCT. Données hébergées en Tunisie.

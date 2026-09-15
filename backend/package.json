@@ -14,7 +14,9 @@
     "lint": "tsc --noEmit",
     "migrate:prod": "node dist/src/migrate.js",
     "seed:prod": "node dist/seed/seed.js",
-    "test:cloisonnement": "bash tests/cloisonnement.sh"
+    "test:cloisonnement": "bash tests/cloisonnement.sh",
+    "test:audit": "bash tests/audit.sh",
+    "test": "bash tests/cloisonnement.sh && bash tests/audit.sh"
   },
   "dependencies": {
     "express": "^4.21.2",
