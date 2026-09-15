@@ -55,3 +55,10 @@ citizensRouter.get(
     res.json({ ...citizen, badges, rewards });
   })
 );
+
+// Schémas exposés à la documentation OpenAPI (src/openapi/document.ts).
+// La documentation importe les schémas de validation EUX-MÊMES : elle ne peut
+// donc pas décrire un format différent de celui réellement contrôlé à l'exécution.
+export {
+  registerSchema as citizenRegisterSchema,
+};

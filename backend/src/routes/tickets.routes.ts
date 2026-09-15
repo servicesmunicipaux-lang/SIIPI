@@ -253,3 +253,13 @@ ticketsRouter.patch(
     res.json(updated);
   })
 );
+
+// Schémas exposés à la documentation OpenAPI (src/openapi/document.ts).
+// La documentation importe les schémas de validation EUX-MÊMES : elle ne peut
+// donc pas décrire un format différent de celui réellement contrôlé à l'exécution.
+export {
+  createSchema as ticketCreateSchema,
+  refuseSchema as ticketRefuseSchema,
+  assignSchema as ticketAssignSchema,
+  treatSchema as ticketTreatSchema,
+};

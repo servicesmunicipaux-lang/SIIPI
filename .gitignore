@@ -10,6 +10,9 @@ coverage/
 *.pem
 *.key
 
+# --- Contrat d'API : généré à la demande, servi en direct sur /openapi.json ---
+backend/openapi.json
+
 # --- Fichiers temporaires / système ---
 .DS_Store
 Thumbs.db

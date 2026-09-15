@@ -37,6 +37,7 @@ Une fois démarré :
 |---|---|
 | Front-end | http://localhost:3000 |
 | API (état de santé) | http://localhost:4000/health |
+| Documentation de l'API | http://localhost:4000/docs |
 | Adminer (inspection de la base) | http://localhost:8081 |
 
 Comptes de démonstration créés par le seed : voir `GUIDE_DEMARRAGE.md`.
@@ -80,6 +81,27 @@ La purge n'est pas automatique. À planifier une fois par jour sur le serveur :
 ```bash
 docker compose -f docker-compose.prod.yml exec db \
   psql -U siipi_admin -d siipi_national -c "SELECT * FROM app.purger_journaux();"
+```
+
+## Contrat d'API
+
+L'API est décrite par un document OpenAPI 3.1 servi par la plateforme
+elle-même, sans dépendance à un service externe :
+
+| | Adresse |
+|---|---|
+| Documentation interactive | http://localhost:4000/docs |
+| Contrat brut (JSON) | http://localhost:4000/openapi.json |
+
+La documentation importe les schémas de validation utilisés à l'exécution :
+elle ne peut donc pas décrire un format différent de celui réellement
+contrôlé. Et `npm run verifier:contrat` compare les chemins déclarés aux
+routes réellement servies, pour qu'aucune route ne puisse être ajoutée ou
+retirée sans que la documentation suive.
+
+```bash
+docker compose run --rm api npm run verifier:contrat   # cohérence doc / code
+docker compose run --rm api npm run openapi:export     # écrire openapi.json
 ```
 
 ## Tests

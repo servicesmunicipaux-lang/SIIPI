@@ -202,3 +202,12 @@ zonesRouter.delete(
     res.status(204).send();
   })
 );
+
+// Schémas exposés à la documentation OpenAPI (src/openapi/document.ts).
+// La documentation importe les schémas de validation EUX-MÊMES : elle ne peut
+// donc pas décrire un format différent de celui réellement contrôlé à l'exécution.
+export {
+  createSchema as zoneCreateSchema,
+  updateSchema as zoneUpdateSchema,
+  geometrySchema as zoneGeometrySchema,
+};
