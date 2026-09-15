@@ -193,7 +193,12 @@ zonesRouter.delete(
     if (req.user!.role !== 'super_admin_fnct' && req.user!.communeId !== zone.commune_id) {
       throw new ApiError(403, "Vous n'êtes pas autorisé à supprimer les zones de cette commune.");
     }
-    await query('DELETE FROM zones_collecte WHERE id = $1', [req.params.id]);
+    // Suppression logique : la zone disparaît des écrans mais reste en base.
+    // Le TDR (§3.2.8, C2.6) demande un historique du découpage communal avec
+    // retour arrière possible, ce qu'un effacement rendrait impossible.
+    // app.supprimer horodate et attribue l'opération, qui est ensuite tracée
+    // par le journal d'audit.
+    await query('SELECT app.supprimer($1, $2)', ['zones_collecte', req.params.id]);
     res.status(204).send();
   })
 );

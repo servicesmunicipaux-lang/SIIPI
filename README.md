@@ -57,6 +57,10 @@ GUIDE_DEMARRAGE.md  historique détaillé des itérations et des tests
 
 ## Journaux et conservation
 
+Rien n'est jamais effacé de la base : une suppression positionne `deleted_at`,
+la ligne disparaît des écrans mais reste conservée et restaurable. Le privilège
+SQL `DELETE` est retiré à l'API.
+
 Toute écriture est tracée en base par des déclencheurs SQL (`audit_log`) :
 qui a modifié quoi, quand, et la valeur avant/après. Les consultations de
 données personnelles de citoyens par un agent sont tracées séparément
@@ -81,9 +85,10 @@ docker compose -f docker-compose.prod.yml exec db \
 ## Tests
 
 ```bash
-docker compose run --rm api npm test                    # tout
+docker compose run --rm api npm test                    # tout (60 tests)
 docker compose run --rm api npm run test:cloisonnement  # étanchéité entre communes
 docker compose run --rm api npm run test:audit          # journaux d'audit
+docker compose run --rm api npm run test:suppression    # suppression logique
 ```
 
 ## Propriété et conformité
