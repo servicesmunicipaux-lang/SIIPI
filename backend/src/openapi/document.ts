@@ -37,6 +37,7 @@ import { citizenRegisterSchema } from '../routes/citizens.routes.js';
 import { barbechaDeliverySchema } from '../routes/barbechas.routes.js';
 import { nationalKpiSchema, fiveAxisSchema } from '../routes/kpi.routes.js';
 import { zoneCreateSchema, zoneUpdateSchema } from '../routes/zones.routes.js';
+import { provenanceSchema } from '../routes/observatoire.routes.js';
 
 extendZodWithOpenApi(z);
 
@@ -745,6 +746,90 @@ registry.registerPath({
   responses: { 204: { description: 'Secteur supprimé.' }, ...REPONSES_COMMUNES },
 });
 
+// --- Observatoire national -------------------------------------------------
+
+const LigneGouvernorat = registry.register(
+  'LigneGouvernorat',
+  z
+    .object({
+      gouvernorat: z.string().openapi({ example: 'Sfax' }),
+      communes: z.number().int(),
+      communes_actives: z.number().int().openapi({ description: 'Communes où quelqu’un a saisi quelque chose.' }),
+      communes_incompletes: z.number().int().openapi({ description: 'Aucune saisie ni pesée importée (badge orange, TDR §3.1.2).' }),
+      communes_desactivees: z.number().int(),
+      population: z.number().int(),
+      tonnage_jour: z.number().nullable(),
+      production_kg_hab_jour: z.number().nullable().openapi({ description: 'Production spécifique, pondérée par la population.' }),
+      taux_collecte: z.number().nullable().openapi({ description: 'Moyenne pondérée par la population, non arithmétique.' }),
+      indice_proprete: z.number().nullable(),
+      pcgd_valides: z.number().int(),
+      reclamations_ouvertes: z.number().int(),
+      reclamations_30j: z.number().int(),
+      delai_traitement_jours: z.number().nullable(),
+      communes_donnees_mesurees: z.number().int(),
+      communes_donnees_estimees: z.number().int(),
+      derniere_activite: z.string().nullable(),
+    })
+    .openapi('LigneGouvernorat')
+);
+
+const StatutCommune = registry.register(
+  'StatutCommune',
+  z
+    .object({
+      commune_id: z.string(),
+      name: z.string(),
+      name_ar: z.string().nullable(),
+      gouvernorat: z.string(),
+      population: z.number().int(),
+      is_pilot: z.boolean(),
+      donnees_source: z.enum(['estime', 'declare', 'mesure']),
+      pcgd_status: z.string().nullable(),
+      statut: z.enum(['active', 'incomplete', 'desactivee']),
+      derniere_activite: z.string().nullable(),
+      ecritures_30j: z.number().int(),
+      a_des_pesees: z.boolean(),
+    })
+    .openapi('StatutCommune')
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/observatoire/gouvernorats',
+  tags: ['Observatoire national'],
+  summary: 'Tableau de bord par gouvernorat',
+  description:
+    'Une ligne par gouvernorat : déploiement, production et collecte, qualité de service. Les moyennes sont pondérées par la population — une moyenne arithmétique donnerait le même poids à une commune de 2 000 habitants qu’au Grand Tunis.',
+  security: SECURISE,
+  responses: { 200: json(z.array(LigneGouvernorat), 'Les 24 gouvernorats.'), 401: REPONSES_COMMUNES[401] },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/observatoire/deploiement',
+  tags: ['Observatoire national'],
+  summary: 'Statut de déploiement des 350 communes',
+  description:
+    'Le statut n’est pas saisi : il se déduit du journal d’audit et des pesées importées. Une commune est active dès que quelqu’un y a écrit quelque chose.',
+  security: SECURISE,
+  responses: { 200: json(z.array(StatutCommune), 'Les 350 communes.'), 401: REPONSES_COMMUNES[401] },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/observatoire/communes/{id}/provenance',
+  tags: ['Observatoire national'],
+  summary: 'Qualifier la provenance des données d’une commune',
+  description:
+    'estime (ordre de grandeur, à remplacer) | declare (saisi par la commune) | mesure (issu des pesées ANGeD). Toutes les communes sont « estime » par défaut : une donnée n’est réputée fiable que lorsque quelqu’un l’a attestée.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: provenanceSchema } } },
+  },
+  responses: { 200: json(z.any(), 'Provenance mise à jour.'), ...REPONSES_COMMUNES },
+});
+
 // ---------------------------------------------------------------------------
 // Génération
 // ---------------------------------------------------------------------------
@@ -793,6 +878,7 @@ export function genererDocumentOpenApi() {
       { name: 'Indicateurs', description: 'KPI nationaux et évaluation 5 Axes (TDR §3.2.10).' },
       { name: 'Citoyens', description: 'Comptes et profils de l’application citoyenne.' },
       { name: 'GDMA', description: 'Récupérateurs informels — périmètre à arbitrer.' },
+      { name: 'Observatoire national', description: 'Portail FNCT : déploiement et comparaison entre territoires.' },
       { name: 'Supervision', description: "État de santé de l'API." },
     ],
   });

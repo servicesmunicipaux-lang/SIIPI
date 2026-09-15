@@ -16,10 +16,11 @@
     "seed:prod": "node dist/seed/seed.js",
     "test:cloisonnement": "bash tests/cloisonnement.sh",
     "test:audit": "bash tests/audit.sh",
-    "test": "npm run verifier:contrat && bash tests/cloisonnement.sh && bash tests/audit.sh && bash tests/suppression.sh",
+    "test": "npm run verifier:contrat && bash tests/cloisonnement.sh && bash tests/audit.sh && bash tests/suppression.sh && bash tests/observatoire.sh",
     "test:suppression": "bash tests/suppression.sh",
     "verifier:contrat": "tsx src/openapi/verifierContrat.ts",
-    "openapi:export": "tsx src/openapi/exporter.ts"
+    "openapi:export": "tsx src/openapi/exporter.ts",
+    "test:observatoire": "bash tests/observatoire.sh"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.4",

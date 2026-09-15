@@ -22,6 +22,7 @@ import { citizensRouter } from './routes/citizens.routes.js';
 import { barbechasRouter } from './routes/barbechas.routes.js';
 import { kpiRouter } from './routes/kpi.routes.js';
 import { zonesRouter } from './routes/zones.routes.js';
+import { observatoireRouter } from './routes/observatoire.routes.js';
 import { genererDocumentOpenApi } from './openapi/document.js';
 
 
@@ -132,6 +133,7 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/barbechas', barbechasRouter],
   ['/kpi', kpiRouter],
   ['/zones', zonesRouter],
+  ['/observatoire', observatoireRouter],
 ];
 
 for (const [prefixe, routeur] of ROUTEURS) {

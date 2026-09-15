@@ -1,4 +1,13 @@
 import pg from 'pg';
+
+// PostgreSQL renvoie les entiers 64 bits (bigint, count(*), sum()) sous forme
+// de CHAÎNES, pour ne pas perdre de précision au-delà de 2^53. Sans cette
+// conversion, un total de population arrive au client en texte et « 12226852 »
+// se retrouve concaténé au lieu d'être additionné — une classe de bugs
+// silencieux dans tous les écrans d'agrégats.
+// Les valeurs manipulées ici (populations, tonnages, compteurs) restent très
+// en deçà de la limite de précision de JavaScript.
+pg.types.setTypeParser(pg.types.builtins.INT8, (valeur) => Number.parseInt(valeur, 10));
 import { config } from './config.js';
 import { currentContext } from './context.js';
 
