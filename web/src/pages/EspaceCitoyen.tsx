@@ -22,6 +22,7 @@ import { CartePublique } from '../composants/CartePublique';
 import { FormulaireSignalement } from '../composants/FormulaireSignalement';
 import { ProposerPoint } from '../composants/ProposerPoint';
 import { Enlevement } from '../composants/Enlevement';
+import { AbonnementPush } from '../composants/AbonnementPush';
 
 type Onglet = 'collecte' | 'signaler' | 'proposer' | 'enlevement' | 'carte';
 
@@ -66,6 +67,7 @@ export function EspaceCitoyen() {
         <Chargement />
       ) : (
         <>
+          <AbonnementPush />
           {onglet === 'collecte' && <MaCollecte adresse={adresse} onAdresseChangee={recharger} />}
           {onglet === 'signaler' && <FormulaireSignalement adresse={adresse} />}
           {onglet === 'proposer' && <ProposerPoint adresse={adresse} />}

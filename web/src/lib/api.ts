@@ -814,6 +814,22 @@ export const api = {
     requete<AnnonceCollecte>('/citoyen/annonces', { method: 'POST', body: JSON.stringify(saisie) }),
   supprimerAnnonce: (id: string) => requete<void>(`/citoyen/annonces/${id}`, { method: 'DELETE' }),
 
+  // --- Notifications push (Jalon 2, lot 1) ----------------------------------
+  //
+  // Le citoyen s'abonne lui-même : aucune commune n'a accès à ces routes, ni
+  // à la liste des abonnés (migration 044).
+  clePubliquePush: () => requete<{ clePublique: string | null }>('/citoyen/push/cle-publique'),
+  sabonnerPush: (saisie: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent?: string }) =>
+    requete<{ ok: boolean }>('/citoyen/push/souscriptions', {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  desabonnerPush: (endpoint: string) =>
+    requete<void>('/citoyen/push/souscriptions', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint }),
+    }),
+
   // --- Rapports et études (TDR §3.2.9) --------------------------------------
   //
   // La fiche seulement : le fichier est déposé d'abord par deposerFichier

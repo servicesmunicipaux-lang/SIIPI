@@ -4,6 +4,7 @@ import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { journaliserAccesCitoyens } from '../services/accessLog.js';
+import { notifierDecisionReclamation } from '../services/notifications.js';
 
 export const ticketsRouter = Router();
 
@@ -137,6 +138,16 @@ ticketsRouter.patch(
       `UPDATE tickets SET status = 'en_cours', accepted_at = now() WHERE id = $1 RETURNING *`,
       [req.params.id]
     );
+
+    // B5.1.2 : le citoyen apprend la décision. Un échec d'envoi ne défait pas
+    // l'acceptation déjà actée — même précédent que l'ouverture de la photo
+    // de traitement dans /treat, plus bas.
+    try {
+      await notifierDecisionReclamation(ticket.commune_id, ticket.citizen_id, ticket.id, 'acceptee');
+    } catch (err) {
+      console.error('[tickets] notification de décision (accept) non envoyée :', err);
+    }
+
     res.json(updated);
   })
 );
@@ -163,6 +174,15 @@ ticketsRouter.patch(
       `UPDATE tickets SET status = 'rejete', rejection_reason = $1 WHERE id = $2 RETURNING *`,
       [data.reason, req.params.id]
     );
+
+    // B5.1.2 : le motif fait partie du message, un refus muet ne se justifie
+    // pas plus ici que pour une proposition de point citoyen.
+    try {
+      await notifierDecisionReclamation(ticket.commune_id, ticket.citizen_id, ticket.id, 'refusee', data.reason);
+    } catch (err) {
+      console.error('[tickets] notification de décision (refuse) non envoyée :', err);
+    }
+
     res.json(updated);
   })
 );

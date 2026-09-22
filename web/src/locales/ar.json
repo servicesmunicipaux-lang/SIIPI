@@ -300,6 +300,12 @@
       "autre": "أخرى",
       "ddc": "نفايات الهدم والبناء"
     },
+    "push": {
+      "proposition": "هل تريد تلقي إشعار عند معالجة تبليغك، أو عند توجيه استطلاع إليك؟",
+      "activer": "تفعيل",
+      "activationEnCours": "جارٍ التفعيل…",
+      "plusTard": "لاحقاً"
+    },
     "statutsEnlevement": {
       "recue": "مستلم",
       "planifiee": "مبرمج",

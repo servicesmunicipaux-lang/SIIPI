@@ -292,6 +292,12 @@
       "autre": "Autre",
       "ddc": "Démolition et construction (DDC)"
     },
+    "push": {
+      "proposition": "Recevoir une notification quand votre réclamation est traitée, ou qu’un sondage vous est adressé ?",
+      "activer": "Activer",
+      "activationEnCours": "Activation…",
+      "plusTard": "Plus tard"
+    },
     "statutsEnlevement": {
       "recue": "Reçue",
       "planifiee": "Planifiée",

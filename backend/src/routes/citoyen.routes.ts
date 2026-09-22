@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { config } from '../config.js';
 
 export const citoyenRouter = Router();
 
@@ -262,4 +263,66 @@ citoyenRouter.patch(
   })
 );
 
-export { adresseSchema, annonceSchema, majAnnonceSchema, photoSchema };
+// ---------------------------------------------------------------------------
+// Souscription aux notifications push (Jalon 2, lot 1).
+//
+// Le citoyen enregistre lui-même son navigateur — jamais une commune pour
+// lui. La clé publique VAPID n'est pas un secret (elle est faite pour être
+// distribuée aux navigateurs) ; elle n'est simplement pas codée en dur côté
+// front pour rester changeable sans nouvelle mise en production du portail.
+// ---------------------------------------------------------------------------
+
+citoyenRouter.get(
+  '/push/cle-publique',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (_req, res) => {
+    res.json({ clePublique: config.vapidPublicKey || null });
+  })
+);
+
+const souscriptionSchema = z.object({
+  endpoint: z.string().min(1).max(2000),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+  userAgent: z.string().max(300).optional(),
+});
+
+citoyenRouter.post(
+  '/push/souscriptions',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const d = souscriptionSchema.parse(req.body);
+    const citoyen = await queryOne<{ id: string }>('SELECT id FROM citoyens WHERE user_id = $1', [req.user!.sub]);
+    if (!citoyen) throw new ApiError(404, 'Aucun profil citoyen rattaché à ce compte.');
+
+    // Un même navigateur qui se réabonne (clés renouvelées par le
+    // navigateur lui-même) remplace sa fiche plutôt que d'en accumuler une
+    // seconde : la contrainte d'unicité (citoyen_id, endpoint) le permet
+    // directement via ON CONFLICT.
+    await query(
+      `INSERT INTO push_souscriptions (citoyen_id, endpoint, p256dh, auth, user_agent)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (citoyen_id, endpoint) DO UPDATE
+         SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, user_agent = EXCLUDED.user_agent`,
+      [citoyen.id, d.endpoint, d.keys.p256dh, d.keys.auth, d.userAgent ?? null]
+    );
+    res.status(201).json({ ok: true });
+  })
+);
+
+citoyenRouter.delete(
+  '/push/souscriptions',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const d = z.object({ endpoint: z.string().min(1) }).parse(req.body ?? {});
+    await query('DELETE FROM push_souscriptions WHERE endpoint = $1', [d.endpoint]);
+    res.status(204).end();
+  })
+);
+
+export { adresseSchema, annonceSchema, majAnnonceSchema, photoSchema, souscriptionSchema };

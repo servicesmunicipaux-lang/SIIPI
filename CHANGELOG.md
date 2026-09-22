@@ -5,6 +5,52 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.3.0] — 2026-09-22 — Jalon 2, lot 1 : le socle de notification (push)
+
+Décision retenue avec l'utilisateur : un seul canal pour ce lot, le **push
+web** (Web Push API + VAPID) — aucun fournisseur externe à payer ni à
+choisir. SMS et courriel restent enregistrables comme canal choisi mais
+n'émettent encore rien. Politique de retry : **une seule tentative**, un
+échec est consigné immédiatement, jamais réessayé en silence.
+
+### Ajouté
+- `B5.1.2` — le citoyen est notifié par push quand sa réclamation est
+  acceptée ou refusée (avec le motif).
+- `B5.2.3` — invitation push envoyée à chaque citoyen du périmètre quand un
+  sondage est publié et envoyé.
+- `B5.4.3` — le canal push d'une notification ciblée est réellement émis
+  (SMS et courriel restent enregistrables, non câblés).
+- Migration 044 : tables `push_souscriptions` (l'endpoint du navigateur d'un
+  citoyen, qu'il enregistre lui-même) et `notifications_envoyees` (une ligne
+  par tentative individuelle, lecture réservée à la FNCT et au citoyen
+  concerné — jamais à la commune, qui continue de lire l'agrégat de
+  `envois_notification`).
+- Deux fonctions SQL `app.souscriptions_citoyen`/`app.souscriptions_publication`
+  (SECURITY DEFINER), réservées au service d'émission : le ciblage d'une
+  publication reste entièrement en base, jamais exposé par une route — même
+  principe que `app.compter_destinataires` (035).
+- Service `backend/src/services/notifications.ts` : une tentative, un
+  résultat consigné, aucune reprise automatique.
+- Côté citoyen : bandeau d'abonnement (`AbonnementPush.tsx`), gestion des
+  évènements `push`/`notificationclick` dans le service worker.
+- Nouvelle campagne de tests `notifications` (16/16), incluse dans
+  `npm run test`.
+
+### Construit par nécessité, pas encore validé comme fait
+Le mécanisme d'abonnement du navigateur (`M6`) a dû être construit pour que
+ce lot soit testable — on ne peut pas émettre un push sans que quelqu'un
+puisse le recevoir. Restent ouverts avant de considérer `M6` clos : un
+historique « mes notifications » côté citoyen, des préférences par canal.
+Voir le rapport de lot.
+
+### État de l'art à la clôture de ce lot
+45 migrations rejouées sur base neuve · contrat OpenAPI conforme (147 routes
+servies, 147 documentées) · typage front et back sans erreur · campagne
+`notifications` : 16/16 · aucune régression sur `module5`, `citoyen`,
+`cloisonnement`.
+
+---
+
 ## [0.2.0] — 2026-09-22 — Jalon 1 : brancher les écrans
 
 ### Ajouté

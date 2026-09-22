@@ -4,6 +4,7 @@
 **Fédération Nationale des Communes Tunisiennes**
 Version au 22 septembre 2026 · établie à partir du cahier des charges SIIPI (MVP, phase 1)
 Mise à jour du 22 septembre 2026 : clôture du **Jalon 1** (§ 4) — huit lignes passées à Fait.
+Mise à jour du 22 septembre 2026 (suite) : **Jalon 2, lot 1** (B5.1.2, B5.2.3, B5.4.3) — le push web est réellement émis. Le mécanisme d'abonnement du citoyen (`M6`) a dû être construit avec, pour que l'envoi ait un destinataire à joindre — voir le rapport de lot avant de considérer `M6` clos.
 
 ---
 
@@ -39,9 +40,9 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 54 | 56 % |
-| 🟡 Partiel | 15 | 16 % |
-| ⬜ À faire | 25 | 26 % |
+| ✅ Fait et éprouvé | 56 | 58 % |
+| 🟡 Partiel | 14 | 15 % |
+| ⬜ À faire | 24 | 25 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
 
@@ -63,10 +64,10 @@ les tonnes et la masse salariale.
 | **3.2.2 Engins et maintenance** | 1 |  | 4 |  | L'inventaire est fait, la GMAO ne l'est pas du tout. |
 | **3.2.3 Données géolocalisées** | 2 | 1 | 3 |  | L'import et la carte sont faits ; l'exploitation par tags et l'export non. |
 | **3.2.4 Pesées** | 3 |  |  | 2 | Complète pour la part communale ; la part ANGeD est suspendue. |
-| **5.1 Réclamations** | 3 | 1 |  |  | Complète, hors notification au citoyen. |
-| **5.2 Sondages** | 2 | 2 |  |  | Le questionnaire et le ciblage sont faits ; push et export non. |
+| **5.1 Réclamations** | 4 |  |  |  | Complète. |
+| **5.2 Sondages** | 3 | 1 |  |  | Questionnaire, ciblage et invitation push faits ; l'export (B5.2.4) non. |
 | **5.3 Projets** | 4 |  |  |  | Complète. |
-| **5.4 Notifications ciblées** | 3 |  | 1 |  | Le ciblage est fait et éprouvé ; rien ne part réellement. |
+| **5.4 Notifications ciblées** | 3 | 1 |  |  | Le push est réellement émis ; SMS et courriel restent à câbler (décision de fournisseur). |
 | **5.5 Points citoyens** | 3 |  | 1 |  | Il reste les indicateurs de communication. |
 | **3.2.6 Paramètres** | 2 | 1 | 3 |  | Langue et mot de passe seulement. |
 | **3.2.7 Contacts** |  |  | 4 |  | Rien. CRUD simple, rapide à faire. |
@@ -155,7 +156,7 @@ les tonnes et la masse salariale.
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
 | `B5.1.1` | Tableau de bord et carte à code couleur | ✅ Fait | Reclamations.tsx · campagne citoyen |
-| `B5.1.2` | Acceptation / refus motivé | 🟡 Partiel | la décision et le motif : oui. La notification au citoyen : non |
+| `B5.1.2` | Acceptation / refus motivé | ✅ Fait | notifierDecisionReclamation (migration 044) · campagne notifications |
 | `B5.1.3` | Preuve de traitement (photo « après ») | ✅ Fait | migration 041 · campagnes fichiers et citoyen |
 | `B5.1.4` | Transfert au prestataire | ✅ Fait | tickets.routes.ts · campagne prestataires |
 
@@ -165,7 +166,7 @@ les tonnes et la masse salariale.
 |---|---|---|---|
 | `B5.2.1` | Création du questionnaire | ✅ Fait | migrations 035/037 · campagne module5 |
 | `B5.2.2` | Paramétrage et ciblage (géographique, type de foyer) | ✅ Fait | migration 035 · campagne module5 |
-| `B5.2.3` | Publication et notification push | 🟡 Partiel | la publication et la traçabilité de l'envoi : oui. L'envoi push réel : non |
+| `B5.2.3` | Publication et notification push | ✅ Fait | notifierPublication (migration 044) · campagne notifications |
 | `B5.2.4` | Résultats graphiques et export CSV / PDF | 🟡 Partiel | le dépouillement existe ; l'export non |
 
 ### 5.3 Projets
@@ -183,7 +184,7 @@ les tonnes et la masse salariale.
 |---|---|---|---|
 | `B5.4.1` | Création d'une notification par zone | ✅ Fait | migration 035 · campagne module5 |
 | `B5.4.2` | Ciblage sur les adresses citoyennes | ✅ Fait | app.destinataires_publication · campagne module5 |
-| `B5.4.3` | Canaux de diffusion (push, SMS, courriel) | ⬜ À faire | le canal est enregistré, aucun envoi réel n'est émis |
+| `B5.4.3` | Canaux de diffusion (push, SMS, courriel) | 🟡 Partiel | push réellement émis (migration 044) ; SMS et courriel enregistrables mais non câblés (décision de fournisseur, §7.2) |
 | `B5.4.4` | Historique des envois | ✅ Fait | envois_notification · campagne module5 |
 
 ### 5.5 Points citoyens
@@ -317,20 +318,42 @@ migrations rejouées sur base neuve, typage front et back sans erreur, campagne
 
 ### Jalon 2 — Le socle de notification *(un seul chantier, cinq lignes du TDR)*
 
-Rien ne part aujourd'hui. Le ciblage est fait, éprouvé, et ne rend que des
-nombres ; l'historique des envois est tenu. Il manque l'émission elle-même.
+**Lot 1 — `B5.1.2`, `B5.2.3`, `B5.4.3` : fait le 22 septembre 2026, en attente
+de validation avant `M6`.**
 
-Un seul chantier — un service d'émission avec ses tentatives, ses échecs et sa
-trace — ferme d'un coup `B5.1.2` (notification de décision), `B5.1.3` (preuve de
-traitement), `B5.2.3` (invitation au sondage), `B5.4.3` (canaux) et `M6`. C'est
-le meilleur rapport entre effort et couverture de tout ce qui reste.
+Décision retenue avec l'utilisateur : un seul canal pour ce lot, le **push
+web** (Web Push API + VAPID) — aucun fournisseur externe à payer ni à choisir.
+SMS et courriel restent enregistrables comme canal choisi mais n'émettent
+encore rien (décision de fournisseur distincte, liée à `M1`, § 7.2). Politique
+de retry retenue : **une seule tentative**, un échec est consigné
+immédiatement, jamais réessayé en silence.
 
-**Décision préalable :** quel fournisseur, et quels canaux (push seul, ou SMS pour
-les foyers sans application). Voir § 7.
+Construit dans ce lot (migration 044) :
+- `push_souscriptions` — l'endpoint du navigateur d'un citoyen, qu'il
+  enregistre lui-même (aucune commune n'y a accès).
+- `notifications_envoyees` — une ligne par tentative individuelle, avec son
+  issue (`livre`/`echec`/`non_abonne`/`sans_souscription`) ; lecture réservée
+  à la FNCT et au citoyen concerné, jamais à la commune — qui continue de lire
+  l'agrégat de `envois_notification` (campagne module5), jamais qui a reçu
+  quoi.
+- Le ciblage d'une publication reste entièrement en SQL (fonctions
+  `app.souscriptions_*`, SECURITY DEFINER), reproduisant le principe déjà posé
+  par `app.compter_destinataires` (035) : la commune sait combien, jamais qui.
+- Côté citoyen : bandeau d'abonnement (`AbonnementPush.tsx`), gestion `push` /
+  `notificationclick` dans le service worker (`web/public/sw.js`).
 
-**Test de validation.** Campagne dédiée : un envoi vers un périmètre de trois
-foyers touche trois destinataires et pas un de plus ; un échec de livraison est
-consigné et non silencieux ; un désabonné ne reçoit rien.
+**Ce que ce lot a dû construire pour être testable : le mécanisme même de
+`M6`** (abonnement du navigateur, réception, clic vers l'application) — on ne
+peut pas émettre un push sans que quelqu'un puisse le recevoir. `M6` n'est
+donc pas coché ici : voir le rapport de lot pour ce qui reste ouvert
+(historique « mes notifications » côté citoyen, préférences par canal) avant
+de le considérer clos.
+
+**Test de validation retenu.** Campagne `notifications` (16/16) : un échec de
+livraison est consigné et non silencieux (endpoint injoignable → `echec` avec
+message) ; un désabonné ne reçoit rien (`non_abonne`) ; une commune ne peut
+pas lire le journal individuel (RLS vérifiée par émulation de rôle) ; le
+citoyen concerné voit ses propres envois.
 
 ### Jalon 3 — Rapports et études, puis Contacts *(deux CRUD simples)*
 
@@ -423,23 +446,25 @@ réclamées, et elles comptent dans ce que la FNCT reçoit.
 
 ### Niveau 1 — Les campagnes automatisées *(en place)*
 
-**Vingt campagnes rejouables**, lancées à chaque migration par `MIGRER.bat` :
+**Vingt et une campagnes rejouables**, lancées à chaque migration par
+`MIGRER.bat` :
 
 `module2` (circuits) · `module3` (parc) · `module4` (personnel) · `module5`
 (communication) · `module6` (pesées) · `fichiers` (stockage) · `suggestions`
-(points citoyens) · `rapports` (rapports et études) · `comptes` ·
-`cloisonnement` · `intercommunal` · `citoyen` · `prestataires` · `circuits` ·
-`decoupage` · `enlevements` · `observatoire` · `periode` · `audit` ·
-`suppression`
+(points citoyens) · `rapports` (rapports et études) · `notifications` (socle
+de notification) · `comptes` · `cloisonnement` · `intercommunal` · `citoyen` ·
+`prestataires` · `circuits` · `decoupage` · `enlevements` · `observatoire` ·
+`periode` · `audit` · `suppression`
 
 **Leur principe :** elles commencent par ce que la plateforme **refuse**. Le
 module 4 vérifie d'abord qu'aucune colonne de salaire, de CIN ou de santé
 n'existe ; le stockage de fichiers, qu'un exécutable renommé « photo.jpg »
 n'entre pas. Un module se juge d'abord à ce qu'il a refusé de stocker.
 
-S'y ajoutent, à chaque passage : la chaîne des **44 migrations rejouée sur une
+S'y ajoutent, à chaque passage : la chaîne des **45 migrations rejouée sur une
 base neuve**, le contrôle du **contrat d'API** (toute route servie est
-documentée), et le **typage du front** comparé au contrat réellement servi.
+documentée — 147 routes), et le **typage du front** comparé au contrat
+réellement servi.
 
 ### Niveau 2 — La recette terrain *(à organiser)*
 
@@ -498,8 +523,10 @@ mot de passe. En Tunisie, l'argument du TDR est solide : le téléphone est le
 seul identifiant que tout le monde possède.
 
 Cela suppose un fournisseur de SMS, un coût par message, et un mécanisme
-anti-abus. **Cette décision se prend avec celle du jalon 2** : le même fournisseur
-sert aux deux.
+anti-abus. **Le Jalon 2 (lot 1) a tranché la sienne sans SMS** — push web
+seul, aucun fournisseur à choisir. La décision ci-dessus reste donc entière et
+indépendante : elle ne peut plus s'appuyer sur un fournisseur déjà retenu pour
+les notifications.
 
 ### 7.3 L'interopérabilité ANGeD
 
@@ -542,7 +569,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **44 migrations**, rejouées sur base neuve à chaque livraison |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **45 migrations**, rejouées sur base neuve à chaque livraison |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

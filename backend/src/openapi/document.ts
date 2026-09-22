@@ -53,6 +53,7 @@ import {
   annonceSchema,
   majAnnonceSchema,
   photoSchema,
+  souscriptionSchema,
 } from '../routes/citoyen.routes.js';
 import { frontiereSchema } from '../routes/communes.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
@@ -2007,8 +2008,11 @@ registry.registerPath({
   path: '/communication/{id}/envoyer',
   tags: ['Communication'],
   summary: 'Envoyer la notification et l’inscrire à l’historique',
-  description:
+  description: [
     "Un envoi vers zéro destinataire est refusé : inscrire « 0 destinataires » à l’historique laisserait l’agent croire que c’est parti.",
+    '',
+    "Canal « push » : l’envoi est réel (Web Push), un par citoyen abonné du périmètre — voir migration 044. Canaux « sms » et « email » : le choix est enregistré, mais rien n’est encore émis derrière (décision de fournisseur en attente, feuille de route §7.2).",
+  ].join('\n'),
   security: SECURISE,
   request: {
     params: z.object({ id: idPublication }),
@@ -3192,6 +3196,46 @@ registry.registerPath({
   responses: { 200: json(z.any(), 'Statut de publication mis à jour.'), ...REPONSES_COMMUNES },
 });
 
+// --- Notifications push (Jalon 2, lot 1) ------------------------------------
+//
+// Le citoyen s'abonne lui-même : aucune de ces routes n'est ouverte à une
+// commune, qui n'a par ailleurs aucun moyen de lister les abonnés (voir le
+// tag Communication et la migration 044).
+
+registry.registerPath({
+  method: 'get',
+  path: '/citoyen/push/cle-publique',
+  tags: ['Espace citoyen'],
+  summary: 'Clé publique VAPID',
+  description:
+    "Publique par nature (elle est faite pour être distribuée aux navigateurs) : ne pas la coder en dur côté front permet de la faire tourner sans nouvelle mise en production. Rend `null` tant qu'aucune clé n'est configurée côté serveur — l'abonnement reste alors impossible, sans faire échouer le reste de l'application.",
+  security: SECURISE,
+  responses: { 200: json(z.object({ clePublique: z.string().nullable() }), 'Clé publique.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/citoyen/push/souscriptions',
+  tags: ['Espace citoyen'],
+  summary: 'Enregistrer ce navigateur pour les notifications push',
+  description:
+    "Un même navigateur qui se réabonne remplace sa fiche plutôt que d'en accumuler une seconde (contrainte d'unicité sur l'endpoint).",
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: souscriptionSchema } } } },
+  responses: { 201: json(z.object({ ok: z.boolean() }), 'Souscription enregistrée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/citoyen/push/souscriptions',
+  tags: ['Espace citoyen'],
+  summary: 'Retirer ce navigateur des notifications push',
+  security: SECURISE,
+  request: {
+    body: { content: { 'application/json': { schema: z.object({ endpoint: z.string() }) } } },
+  },
+  responses: { 204: { description: 'Souscription retirée.' }, ...REPONSES_COMMUNES },
+});
 
 // --- Flux occasionnels : déchets verts, DDC, encombrants ------------------
 //
@@ -3723,7 +3767,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.2.0',
+      version: '0.3.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

@@ -59,6 +59,12 @@ services:
       SIIPI_FICHIERS_DIR: /var/siipi/fichiers
       CORS_ORIGIN: http://localhost:3000
       NODE_ENV: development
+      # Notifications push (Jalon 2, lot 1) : paire de développement, comme un
+      # certificat auto-signé — rien à payer, rien à souscrire. À remplacer
+      # avant tout déploiement réel avec `npm run vapid:generer` (backend/.env.example).
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-BOM754xPkQeWDMf-RTg7bZ8cACy-SlN2yEO54w-W-lHpT0hlkpkY6BHD1UO7fufpFf0UqOEamqWzL5r1qSrKvOM}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-z55dT82Eu7bdDSK7kLCLM-4wccgUi2I-CF0xaVF1cN8}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:contact@fnct.tn}
     volumes:
       - ./backend:/app
       - api_node_modules:/app/node_modules
