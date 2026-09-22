@@ -25,20 +25,21 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
 import {
-  TAILLE_MAX_OCTETS,
   cheminRelatif,
   ecrire,
   empreinte,
   lire,
   nettoyer,
   reconnaitreType,
+  tailleMaxPour,
 } from '../services/fichiers.js';
 
 export const fichiersRouter = Router();
 
 const USAGES = [
   'reclamation', 'preuve_traitement', 'constat_terrain', 'passage',
-  'incident', 'suggestion_point', 'document_projet', 'enlevement', 'autre',
+  'incident', 'suggestion_point', 'document_projet', 'enlevement',
+  'rapport_etude', 'autre',
 ] as const;
 
 const FICHE = `
@@ -79,10 +80,11 @@ fichiersRouter.post(
       throw new ApiError(400, 'Contenu illisible : un encodage base64 est attendu.');
     }
     if (octets.length === 0) throw new ApiError(400, 'Fichier vide.');
-    if (octets.length > TAILLE_MAX_OCTETS) {
+    const tailleMax = tailleMaxPour(d.usage);
+    if (octets.length > tailleMax) {
       throw new ApiError(
         413,
-        `Fichier trop volumineux : ${Math.round(octets.length / 1024 / 1024 * 10) / 10} Mo pour un maximum de ${TAILLE_MAX_OCTETS / 1024 / 1024} Mo. Réduire la définition de la photo avant l'envoi.`
+        `Fichier trop volumineux : ${Math.round(octets.length / 1024 / 1024 * 10) / 10} Mo pour un maximum de ${tailleMax / 1024 / 1024} Mo. Réduire la définition de la photo avant l'envoi.`
       );
     }
 
@@ -92,7 +94,19 @@ fichiersRouter.post(
     if (!type) {
       throw new ApiError(
         415,
-        "Format non reconnu. Seules les images JPEG, PNG et WebP et les documents PDF sont acceptés — d'après le contenu du fichier, non d'après son nom."
+        d.usage === 'rapport_etude'
+          ? "Format non reconnu. Seuls les images JPEG, PNG et WebP, les PDF, et les documents Word, Excel ou PowerPoint (.docx, .xlsx, .pptx) sont acceptés — d'après le contenu du fichier, non d'après son nom."
+          : "Format non reconnu. Seules les images JPEG, PNG et WebP et les documents PDF sont acceptés — d'après le contenu du fichier, non d'après son nom."
+      );
+    }
+    // Les documents Office ne sont ouverts que pour un rapport ou une étude :
+    // une preuve de traitement de réclamation en .pptx n'aurait pas de sens,
+    // et élargir l'acceptation à tout usage aurait ouvert cette porte partout.
+    if (type !== 'image/jpeg' && type !== 'image/png' && type !== 'image/webp' &&
+        type !== 'application/pdf' && d.usage !== 'rapport_etude') {
+      throw new ApiError(
+        415,
+        "Les documents Word, Excel et PowerPoint ne sont acceptés que pour un rapport ou une étude (usage « rapport_etude »)."
       );
     }
 

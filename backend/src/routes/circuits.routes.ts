@@ -287,6 +287,10 @@ const controleSchema = z.object({
   etat: z.enum(['fait', 'partiel', 'non_fait']),
   remarque: z.string().optional(),
   photoUrl: z.string().optional(),
+  // Un circuit à un seul voyage garde 1, comme avant que la migration 029
+  // n'ouvre plusieurs rotations par jour : le constat quotidien n'a pas à
+  // choisir un voyage tant qu'il n'y en a qu'un.
+  voyage: z.number().int().min(1).max(6).optional(),
 });
 
 circuitsRouter.post(
@@ -302,13 +306,15 @@ circuitsRouter.post(
     );
     if (!circuit) throw new ApiError(404, 'Circuit introuvable.');
 
-    // Un seul constat par circuit et par jour : deux agents qui contrôlent le
-    // même circuit doivent se corriger, pas empiler deux vérités.
+    // Un seul constat par circuit, par jour ET par voyage (migration 029) :
+    // deux agents qui contrôlent le même voyage doivent se corriger, pas
+    // empiler deux vérités — mais un premier voyage fait et un second manqué
+    // restent deux constats distincts.
     const enregistre = await queryOne(
       `INSERT INTO controles_terrain
-         (circuit_id, commune_id, date_controle, etat, remarque, photo_url, controle_par)
-       VALUES ($1, $2, COALESCE($3::date, CURRENT_DATE), $4, $5, $6, $7)
-       ON CONFLICT (circuit_id, date_controle) DO UPDATE
+         (circuit_id, commune_id, date_controle, etat, remarque, photo_url, controle_par, voyage)
+       VALUES ($1, $2, COALESCE($3::date, CURRENT_DATE), $4, $5, $6, $7, COALESCE($8, 1))
+       ON CONFLICT (circuit_id, date_controle, voyage) DO UPDATE
          SET etat = EXCLUDED.etat,
              remarque = EXCLUDED.remarque,
              photo_url = EXCLUDED.photo_url,
@@ -323,6 +329,7 @@ circuitsRouter.post(
         d.remarque ?? null,
         d.photoUrl ?? null,
         req.user!.sub,
+        d.voyage ?? null,
       ]
     );
     res.status(201).json(enregistre);
@@ -338,7 +345,7 @@ circuitsRouter.get(
 
     const lignes = await query(
       `SELECT ct.id, ct.circuit_id, c.nom AS circuit_nom, ct.commune_id,
-              ct.date_controle, ct.etat, ct.remarque, ct.photo_url,
+              ct.date_controle, ct.voyage, ct.etat, ct.remarque, ct.photo_url,
               ct.controle_par, u.full_name AS controle_par_nom, ct.created_at
          FROM controles_terrain ct
          JOIN circuits c ON c.id = ct.circuit_id

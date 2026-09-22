@@ -31,24 +31,84 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
 
-export type TypeFichier = 'image/jpeg' | 'image/png' | 'image/webp' | 'application/pdf';
+export type TypeFichier =
+  | 'image/jpeg'
+  | 'image/png'
+  | 'image/webp'
+  | 'application/pdf'
+  | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  | 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
 
-/** Plafond appliqué au fichier DÉCODÉ. La base porte la même valeur. */
+/** Plafond appliqué au fichier DÉCODÉ, pour un usage sans plafond particulier. */
 export const TAILLE_MAX_OCTETS = 8 * 1024 * 1024;
+
+/**
+ * Un rapport ou une étude (C3.2) pèse davantage qu'une photo de téléphone —
+ * une présentation avec des images intégrées franchit vite les huit mégaoctets
+ * du plafond général. La base porte la même valeur (contrainte
+ * `fichiers_taille_plausible`, migration 043).
+ */
+const TAILLE_MAX_RAPPORT_OCTETS = 50 * 1024 * 1024;
+
+/** Le plafond applicable, selon l'usage déclaré au dépôt. */
+export function tailleMaxPour(usage?: string | null): number {
+  return usage === 'rapport_etude' ? TAILLE_MAX_RAPPORT_OCTETS : TAILLE_MAX_OCTETS;
+}
 
 const EXTENSIONS: Record<TypeFichier, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
   'application/pdf': 'pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
 };
+
+/**
+ * Les noms d'entrées d'une archive ZIP, lus dans son répertoire central —
+ * jamais en décompressant les données, qui n'intéressent personne ici.
+ *
+ * POURQUOI PAS UNE DÉPENDANCE. Un docx, un xlsx et un pptx sont tous les trois
+ * des ZIP : seul le nom d'une entrée précise (« word/document.xml »,
+ * « xl/workbook.xml », « ppt/presentation.xml ») les distingue l'un de
+ * l'autre et d'une archive quelconque. Le répertoire central tient dans
+ * quelques centaines d'octets même pour un gros fichier : le lire à la main
+ * évite une dépendance entière pour un renseignement aussi étroit.
+ */
+function nomsZip(o: Buffer): string[] {
+  // Le répertoire central se retrouve depuis la fin : on cherche la signature
+  // « End Of Central Directory » (PK\x05\x06) dans les deux derniers kilooctets
+  // — au-delà, ce n'est plus un commentaire d'archive plausible.
+  const debut = Math.max(0, o.length - 66_000);
+  let finEocd = -1;
+  for (let i = o.length - 22; i >= debut; i--) {
+    if (o.readUInt32LE(i) === 0x06054b50) { finEocd = i; break; }
+  }
+  if (finEocd === -1) return [];
+
+  const nbEntrees = o.readUInt16LE(finEocd + 10);
+  let offset = o.readUInt32LE(finEocd + 16);
+  const noms: string[] = [];
+  for (let i = 0; i < nbEntrees; i++) {
+    if (offset + 46 > o.length || o.readUInt32LE(offset) !== 0x02014b50) break;
+    const tailleNom = o.readUInt16LE(offset + 28);
+    const tailleExtra = o.readUInt16LE(offset + 30);
+    const tailleCommentaire = o.readUInt16LE(offset + 32);
+    noms.push(o.subarray(offset + 46, offset + 46 + tailleNom).toString('utf8'));
+    offset += 46 + tailleNom + tailleExtra + tailleCommentaire;
+  }
+  return noms;
+}
 
 /**
  * Le type réel, d'après les premiers octets.
  *
  * Renvoie null pour tout ce qui n'est pas explicitement reconnu — y compris un
  * SVG, qui est un document exécutable déguisé en image et n'a rien à faire
- * dans un stockage servi aux navigateurs.
+ * dans un stockage servi aux navigateurs, et y compris une archive ZIP
+ * quelconque, qui n'est ni un document Office ni rien d'accepté ici.
  */
 export function reconnaitreType(o: Buffer): TypeFichier | null {
   if (o.length < 12) return null;
@@ -62,6 +122,18 @@ export function reconnaitreType(o: Buffer): TypeFichier | null {
   if (o.subarray(0, 4).toString('latin1') === 'RIFF' && o.subarray(8, 12).toString('latin1') === 'WEBP')
     return 'image/webp';
   if (o.subarray(0, 5).toString('latin1') === '%PDF-') return 'application/pdf';
+  // ZIP local-file signature : docx, xlsx et pptx en sont, une archive
+  // quelconque aussi. Seul le contenu du répertoire central les distingue.
+  if (o.readUInt32LE(0) === 0x04034b50) {
+    const noms = nomsZip(o);
+    if (noms.includes('word/document.xml'))
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (noms.includes('xl/workbook.xml'))
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    if (noms.includes('ppt/presentation.xml'))
+      return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    return null;
+  }
   return null;
 }
 
@@ -157,9 +229,9 @@ function lirePositionExif(exif: Buffer): PositionPhoto | null {
  *
  * PNG et WebP : seuls les blocs indispensables au rendu sont conservés.
  *
- * PDF : laissé intact. Ce sont des documents déposés par la commune, non des
- * photos de téléphone, et réécrire un PDF à l'aveugle c'est risquer de le
- * casser pour un bénéfice nul.
+ * PDF et documents Office (docx/xlsx/pptx) : laissés intacts. Ce sont des
+ * documents déposés par la commune, non des photos de téléphone, et réécrire
+ * une archive ZIP à l'aveugle c'est risquer de la casser pour un bénéfice nul.
  */
 export function nettoyer(octets: Buffer, type: TypeFichier): { octets: Buffer; position: PositionPhoto | null } {
   if (type === 'image/jpeg') return nettoyerJpeg(octets);

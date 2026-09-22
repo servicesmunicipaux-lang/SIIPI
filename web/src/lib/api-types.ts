@@ -3403,81 +3403,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/fichiers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Déposer une photo ou un document */
-        post: {
-            parameters: {
-                query?: {
-                    communeId?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        nomFichier: string;
-                        contenu: string;
-                        usage?: "reclamation" | "preuve_traitement" | "constat_terrain" | "passage" | "incident" | "suggestion_point" | "document_projet" | "enlevement" | "autre";
-                        destinataireCitoyenId?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Fichier déposé. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["FichierDepose"];
-                    };
-                };
-            };
-        };
-    };
-    "/fichiers/occupation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Ce que le volume porte pour une commune */
-        get: {
-            parameters: {
-                query?: {
-                    communeId?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Occupation. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            usage: string;
-                            nombre: number;
-                            octets: number;
-                        }[];
-                    };
-                };
-            };
-        };
-    };
     "/personnel/equipes": {
         parameters: {
             query?: never;
@@ -7477,6 +7402,7 @@ export interface paths {
                         etat: "fait" | "partiel" | "non_fait";
                         remarque?: string;
                         photoUrl?: string;
+                        voyage?: number;
                     };
                 };
             };
@@ -7663,6 +7589,7 @@ export interface paths {
                         agentNom?: string;
                         photoUrl?: string;
                         remarque?: string;
+                        voyage?: number;
                     };
                 };
             };
@@ -9235,6 +9162,1023 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fichiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Déposer une photo ou un document
+         * @description Le fichier voyage en base64, comme le relevé KML du module 2 : une seule façon de poster dans toute l'API, et un appel qui se rejoue à la main.
+         *
+         *     Le type est déterminé par les OCTETS, jamais par le nom ni par l'en-tête annoncé (415 sinon). Les métadonnées EXIF des photos — position GPS, modèle de l'appareil, nom du propriétaire — sont retirées avant écriture ; la position trouvée est rendue dans la réponse, à proposer à la personne plutôt qu'à enregistrer à son insu (décret-loi n° 2022-54).
+         *
+         *     Plafond : 8 Mo une fois décodé (413 au-delà), 50 Mo pour un rapport ou une étude (usage « rapport_etude », seul à accepter aussi les documents Word, Excel et PowerPoint). Un citoyen dépose pour sa propre commune ; un agent, pour une commune où il écrit.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomFichier: string;
+                        contenu: string;
+                        /** @enum {string} */
+                        usage?: "reclamation" | "preuve_traitement" | "constat_terrain" | "passage" | "incident" | "suggestion_point" | "document_projet" | "enlevement" | "rapport_etude" | "autre";
+                        /** Format: uuid */
+                        destinataireCitoyenId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Fichier déposé. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FichierDepose"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fichiers/occupation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ce que le volume porte pour une commune
+         * @description Par usage. Un stockage de fichiers sans moyen de savoir ce qu'il contient devient, en deux ans, un disque plein que personne n'ose toucher.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Occupation. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            usage: string;
+                            nombre: number;
+                            octets: number;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fichiers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lire les octets
+         * @description Servi avec le type réel et « nosniff » : un fichier déposé par un utilisateur ne doit jamais pouvoir être pris pour du HTML par un navigateur. Un fichier hors du périmètre de l'appelant est INTROUVABLE (404) et non refusé — un refus renseignerait sur son existence.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les octets. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/jpeg": string;
+                        "image/png": string;
+                        "image/webp": string;
+                        "application/pdf": string;
+                    };
+                };
+                /** @description Inchangé depuis la dernière lecture (ETag). */
+                304: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description La fiche existe, les octets sont introuvables sur le volume. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un fichier
+         * @description Retrait LOGIQUE. Les octets restent sur le volume : les effacer relève d'une purge datée, pas du geste d'un utilisateur. Tant qu'elle n'existe pas, mieux vaut un disque qui grossit qu'une pièce justificative qui disparaît d'un clic.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Fichier retiré. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Changer la visibilité
+         * @description Rendre une photo publique, ou l'en retirer. Décision de la commune, jamais du déposant : un citoyen ne peut pas rendre sa propre photo publique.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        visibilite: "commune" | "citoyen" | "publique";
+                        /** Format: uuid */
+                        destinataireCitoyenId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Visibilité modifiée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Fichier"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/rapports-etudes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liste des rapports et études d'une commune */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    categorie?: "etude_technique" | "rapport_activite" | "audit" | "plan_action" | "autre";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Rapports et études. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RapportEtude"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Enregistrer un rapport ou une étude
+         * @description N'enregistre que la fiche : le fichier lui-même est déposé d'abord par POST /fichiers (usage « rapport_etude », jusqu'à 50 Mo, PDF ou document Word/Excel/PowerPoint), et son URL est celle qu'on donne ici.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        titre: string;
+                        /** @enum {string} */
+                        categorie?: "etude_technique" | "rapport_activite" | "audit" | "plan_action" | "autre";
+                        auteur?: string;
+                        dateDocument?: string;
+                        fichierUrl: string;
+                        nomFichier: string;
+                        typeMime?: string;
+                        tailleOctets?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Fiche enregistrée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RapportEtude"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rapports-etudes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un rapport ou une étude
+         * @description Retrait LOGIQUE, comme partout : le fichier déposé reste sur le volume, seule la fiche disparaît de la liste.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Rapport retiré. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/citoyen/points-suggeres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mes propositions et ce qu’elles sont devenues
+         * @description La moitié qui manque le plus souvent aux dispositifs de participation : on peut proposer, on ne peut pas savoir. Le statut, le motif de refus s'il y en a un, et le point créé s'il y en a un.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Propositions. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PointSuggere"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Proposer un point de collecte manquant
+         * @description Géolocalisation, photo facultative, et le nom que le citoyen donne à l'endroit. La proposition naît « en attente » : personne ne dépose une demande déjà validée par elle-même.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        communeId: string;
+                        nom?: string;
+                        commentaire?: string;
+                        lat: number;
+                        lng: number;
+                        precisionM?: number;
+                        photoUrl?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Proposition enregistrée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PointSuggere"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/points-suggeres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Propositions citoyennes à instruire
+         * @description Les demandes en attente d'abord, et les plus anciennes en tête : une proposition vieille de trois mois est celle qui a le plus abîmé la confiance. Chaque ligne porte la distance au point existant le plus proche.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    statut?: "en_attente" | "valide" | "refuse";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Propositions. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PointSuggere"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/points-suggeres/{id}/valider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Retenir une proposition et la rattacher à une tournée
+         * @description Crée l'arrêt dans le circuit choisi, avec sa provenance inscrite (source « suggestion_citoyen ») : un arrêt proposé par un habitant n'a pas la même valeur de preuve qu'un relevé GPS du service.
+         *
+         *     Sans « ordre », le rang est DÉDUIT du point voisin le plus proche, et la déduction est écrite dans l'observation de l'arrêt. Ajouter l'arrêt en fin de tournée prétendrait que le camion y passe en dernier — faux dès que le point est au milieu du secteur, et les horaires annoncés aux habitants s'en trouvent aussitôt faussés. La réponse porte « ordreDeduit » pour que l'écran le dise plutôt que de laisser croire à un choix.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        circuitId: string;
+                        voyage?: number;
+                        ordre?: number;
+                        nom?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Proposition retenue. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/points-suggeres/{id}/refuser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Refuser une proposition, avec motif
+         * @description Le motif est obligatoire, côté API comme en base. Un refus sans motif transforme un outil de participation en boîte noire, et la fois suivante plus personne ne propose rien.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Proposition refusée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PointSuggere"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -9636,42 +10580,6 @@ export interface components {
             /** @description Pointé présent, pointé absent, ou pas encore pointé — trois états distincts. Nul ne veut pas dire absent. */
             present: boolean | null;
         };
-        Fichier: {
-            /** Format: uuid */
-            id: string;
-            commune_id: string;
-            /** @description Le nom tel que la personne l'a donné. Sert à proposer un nom au téléchargement ; ne construit jamais un chemin. */
-            nom_original: string;
-            /**
-             * @description Déduit de la SIGNATURE BINAIRE au dépôt, jamais de ce que le client annonce.
-             * @enum {string}
-             */
-            type_mime: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
-            /** @description Taille APRÈS nettoyage des métadonnées, donc parfois inférieure au fichier envoyé. */
-            taille_octets: number;
-            sha256: string;
-            /**
-             * @description commune | citoyen | publique.
-             * @enum {string}
-             */
-            visibilite: "commune" | "citoyen" | "publique";
-            /** Format: uuid */
-            destinataire_citoyen_id: string | null;
-            /** @enum {string|null} */
-            usage: "reclamation" | "preuve_traitement" | "constat_terrain" | "passage" | "incident" | "suggestion_point" | "document_projet" | "enlevement" | "autre" | null;
-            /** Format: uuid */
-            televerse_par: string | null;
-            created_at: string;
-        };
-        FichierDepose: components["schemas"]["Fichier"] & {
-            /** @description Chemin de lecture des octets, à ranger dans la colonne photo_url du registre concerné. */
-            url: string;
-            /** @description Position que l'appareil avait écrite dans la photo. Rendue mais jamais conservée. */
-            positionPhoto: {
-                lat: number;
-                lng: number;
-            } | null;
-        };
         EquipeDuJour: {
             /** Format: uuid */
             circuit_id: string;
@@ -9996,6 +10904,8 @@ export interface components {
             circuit_nom?: string;
             commune_id: string;
             date_controle: string;
+            /** @description Rang de la rotation contrôlée. Un circuit à voyage unique garde toujours 1 (migration 029). */
+            voyage: number;
             /** @enum {string} */
             etat: "fait" | "partiel" | "non_fait";
             remarque: string | null;
@@ -10031,6 +10941,8 @@ export interface components {
             circuit_nom?: string;
             commune_id: string;
             date_passage: string;
+            /** @description Rang de la rotation déclarée. Un circuit à voyage unique garde toujours 1 (migration 029). */
+            voyage: number;
             /** @enum {string} */
             statut: "effectue" | "partiel" | "impossible";
             heure_debut: string | null;
@@ -10211,6 +11123,88 @@ export interface components {
             /** @enum {string|null} */
             paiement_mode?: "espece" | "en_ligne" | "virement" | "autre" | null;
             created_at?: string;
+        };
+        Fichier: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            /** @description Le nom tel que la personne l'a donné. Sert à proposer un nom au téléchargement ; ne construit jamais un chemin. */
+            nom_original: string;
+            /**
+             * @description Déduit de la SIGNATURE BINAIRE au dépôt, jamais de ce que le client annonce. Un exécutable renommé « photo.jpg » est refusé (415). Les types Word/Excel/PowerPoint ne sont acceptés que pour l'usage « rapport_etude ».
+             * @enum {string}
+             */
+            type_mime: "image/jpeg" | "image/png" | "image/webp" | "application/pdf" | "application/vnd.openxmlformats-officedocument.wordprocessingml.document" | "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" | "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+            /** @description Taille APRÈS nettoyage des métadonnées, donc parfois inférieure au fichier envoyé. */
+            taille_octets: number;
+            sha256: string;
+            /**
+             * @description commune : le service, ses prestataires rattachés, la FNCT. citoyen : les mêmes, plus un citoyen nommément désigné — c'est ainsi que l'auteur d'une réclamation voit la photo « après traitement ». publique : tout le monde, sur décision de la commune uniquement.
+             * @enum {string}
+             */
+            visibilite: "commune" | "citoyen" | "publique";
+            /** Format: uuid */
+            destinataire_citoyen_id: string | null;
+            /** @enum {string|null} */
+            usage: "reclamation" | "preuve_traitement" | "constat_terrain" | "passage" | "incident" | "suggestion_point" | "document_projet" | "enlevement" | "rapport_etude" | "autre" | null;
+            /** Format: uuid */
+            televerse_par: string | null;
+            created_at: string;
+        };
+        FichierDepose: components["schemas"]["Fichier"] & {
+            /** @description Chemin de lecture des octets, à ranger dans la colonne photo_url du registre concerné. */
+            url: string;
+            /** @description Position que l'appareil avait écrite dans la photo. Elle est RENDUE mais jamais conservée : l'écran peut la proposer (« utiliser la position de la photo ? ») et ne l'enregistrer que si la personne accepte. La différence entre une donnée fournie et une donnée prélevée tient tout entière dans cette question posée. */
+            positionPhoto: {
+                lat: number;
+                lng: number;
+            } | null;
+        };
+        RapportEtude: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            titre: string;
+            /** @enum {string} */
+            categorie: "etude_technique" | "rapport_activite" | "audit" | "plan_action" | "autre";
+            /** @description Déclaré en texte libre : un bureau d'études externe ou une direction régionale n'a pas de compte sur la plateforme. */
+            auteur: string | null;
+            date_document: string | null;
+            /** @description Chemin de lecture des octets, rendu par POST /fichiers au dépôt. */
+            fichier_url: string;
+            nom_fichier: string;
+            type_mime: string | null;
+            taille_octets: number | null;
+            /** Format: uuid */
+            depose_par: string | null;
+            created_at: string;
+        };
+        PointSuggere: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            /** @description Ce que le citoyen appelle l'endroit, dans ses mots — « en face de la mosquée ». Non normalisé : c'est ainsi qu'un agent le retrouvera. */
+            nom: string | null;
+            commentaire: string | null;
+            lat: number;
+            lng: number;
+            /** @description Précision du relevé du téléphone, en mètres. À 5 m on désigne une porte, à 60 m un quartier. */
+            precision_m: number | null;
+            photo_url: string | null;
+            /** @enum {string} */
+            statut: "en_attente" | "valide" | "refuse";
+            motif_refus: string | null;
+            decide_le: string | null;
+            /**
+             * Format: uuid
+             * @description Le point réellement créé lorsque la proposition a été retenue — ce qui permet de répondre, six mois plus tard, à « qu'est devenue ma proposition ? ».
+             */
+            point_collecte_id: string | null;
+            created_at: string;
+            voisin_nom: string | null;
+            voisin_circuit: string | null;
+            /** @description Distance au point de collecte actif le plus proche. Une proposition à quinze mètres d'un arrêt déjà desservi est un doublon, et le citoyen ne peut pas le savoir — il ne voit pas la tournée. Ce chiffre le dit en une seconde. Il mesure, il ne conclut pas. */
+            voisin_distance_m: number | null;
         };
     };
     responses: never;

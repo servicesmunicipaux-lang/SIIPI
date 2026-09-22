@@ -99,9 +99,17 @@ type ReponseCreee<C extends keyof paths, M extends keyof paths[C]> = paths[C][M]
  *
  * À employer pour les nouvelles entrées, et à étendre aux anciennes au fil des
  * passages.
+ *
+ * « requestBody » PLUTÔT QUE « requestBody? » : aucune route de ce contrat ne
+ * pose `required: true` sur son corps — l'OpenAPI 3.1 généré ne le porte pas,
+ * et openapi-typescript en déduit un `requestBody?:` optionnel pour toutes,
+ * y compris celles qui l'exigent réellement en pratique (POST /fichiers en
+ * tête). Matcher sur la version optionnelle est donc la seule qui extrait
+ * quelque chose ; matcher sur la version obligatoire rendrait `never` pour
+ * chaque route et romprait le typage en silence à la moindre régénération.
  */
 type Corps<C extends keyof paths, M extends keyof paths[C]> = paths[C][M] extends {
-  requestBody: { content: { 'application/json': infer B } };
+  requestBody?: { content: { 'application/json': infer B } };
 }
   ? B
   : never;
@@ -143,6 +151,9 @@ export type PerformancePrestataire = Reponse<'/circuits/performance', 'get'>[num
 export type LigneConfrontation = Reponse<'/passages/confrontation', 'get'>[number];
 export type IncidentPrestataire = Reponse<'/passages/incidents', 'get'>[number];
 export type Reclamation = Reponse<'/tickets', 'get'>[number];
+export type PointSuggere = Reponse<'/points-suggeres', 'get'>[number];
+export type PublicationDocument = Reponse<'/communication/{id}/documents', 'get'>[number];
+export type RapportEtude = Reponse<'/rapports-etudes', 'get'>[number];
 
 // --- Découpage communal ----------------------------------------------------
 export interface FrontiereCommune {
@@ -179,6 +190,7 @@ export interface SaisiePassage {
   lng?: number;
   positionSource?: 'appareil' | 'saisie' | 'absente';
   remarque?: string;
+  voyage?: number;
 }
 
 export type EtatControle = 'fait' | 'partiel' | 'non_fait';
@@ -482,6 +494,7 @@ export const api = {
     dateControle?: string;
     etat: EtatControle;
     remarque?: string;
+    photoUrl?: string;
   }) =>
     requete<ControleTerrain>('/circuits/controles', {
       method: 'POST',
@@ -529,6 +542,36 @@ export const api = {
     requete<unknown>(`/citoyen/signalements/${id}/photo`, {
       method: 'PATCH',
       body: JSON.stringify({ photoPublique }),
+    }),
+
+  // --- Points de collecte proposés par les citoyens (M3.1 / B5.5.2) --------
+  //
+  // Deux publics, deux chemins : le citoyen propose et suit les siennes, la
+  // commune instruit celles de son périmètre. Ils ne voient jamais la même
+  // liste.
+  proposerPoint: (saisie: Corps<'/citoyen/points-suggeres', 'post'>) =>
+    requete<PointSuggere>('/citoyen/points-suggeres', {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  mesPointsSuggeres: () => requete<PointSuggere[]>('/citoyen/points-suggeres'),
+  pointsSuggeres: (communeId: string, statut?: string) =>
+    requete<PointSuggere[]>(
+      `/points-suggeres?communeId=${encodeURIComponent(communeId)}` +
+        (statut ? `&statut=${encodeURIComponent(statut)}` : '')
+    ),
+  validerPointSuggere: (
+    id: string,
+    saisie: { circuitId: string; voyage?: number; ordre?: number; nom?: string }
+  ) =>
+    requete<PointSuggere & { circuit: string; voyage: number; ordre: number; ordreDeduit: boolean }>(
+      `/points-suggeres/${encodeURIComponent(id)}/valider`,
+      { method: 'PATCH', body: JSON.stringify(saisie) }
+    ),
+  refuserPointSuggere: (id: string, motif: string) =>
+    requete<PointSuggere>(`/points-suggeres/${encodeURIComponent(id)}/refuser`, {
+      method: 'PATCH',
+      body: JSON.stringify({ motif }),
     }),
 
   // --- Espace prestataire --------------------------------------------------
@@ -709,6 +752,16 @@ export const api = {
     }),
   depouillement: (id: string) =>
     requete<LigneDepouillement[]>(`/communication/${encodeURIComponent(id)}/depouillement`),
+  documentsProjet: (id: string) =>
+    requete<PublicationDocument[]>(`/communication/${encodeURIComponent(id)}/documents`),
+  ajouterDocumentProjet: (
+    id: string,
+    saisie: { nom: string; url: string; typeMime?: string | null; tailleOctets?: number | null }
+  ) =>
+    requete<PublicationDocument>(`/communication/${encodeURIComponent(id)}/documents`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
 
   // --- Rubrique 4 : pesées et traçabilité, saisie communale -------------------
   //
@@ -760,4 +813,21 @@ export const api = {
   creerAnnonce: (saisie: Record<string, unknown>) =>
     requete<AnnonceCollecte>('/citoyen/annonces', { method: 'POST', body: JSON.stringify(saisie) }),
   supprimerAnnonce: (id: string) => requete<void>(`/citoyen/annonces/${id}`, { method: 'DELETE' }),
+
+  // --- Rapports et études (TDR §3.2.9) --------------------------------------
+  //
+  // La fiche seulement : le fichier est déposé d'abord par deposerFichier
+  // (usage « rapport_etude »), et son URL est celle qu'on donne ici.
+  rapportsEtudes: (communeId: string, categorie?: string) =>
+    requete<RapportEtude[]>(
+      `/rapports-etudes?communeId=${encodeURIComponent(communeId)}` +
+        (categorie ? `&categorie=${encodeURIComponent(categorie)}` : '')
+    ),
+  enregistrerRapportEtude: (communeId: string, saisie: Corps<'/rapports-etudes', 'post'>) =>
+    requete<RapportEtude>(`/rapports-etudes?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  retirerRapportEtude: (id: string) =>
+    requete<void>(`/rapports-etudes/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };
