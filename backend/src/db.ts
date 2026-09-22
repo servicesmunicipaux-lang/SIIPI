@@ -8,6 +8,18 @@ import pg from 'pg';
 // Les valeurs manipulées ici (populations, tonnages, compteurs) restent très
 // en deçà de la limite de précision de JavaScript.
 pg.types.setTypeParser(pg.types.builtins.INT8, (valeur) => Number.parseInt(valeur, 10));
+
+// Les colonnes DATE (sans heure) sont transmises telles quelles, en texte.
+//
+// Par défaut, le pilote en fait un objet Date placé à MINUIT HEURE LOCALE du
+// serveur. JSON.stringify le convertit ensuite en UTC : à Tunis (UTC+1), le
+// 1er septembre devient « 2026-08-31T23:00:00Z », et le client affiche la
+// veille. Un contrôle terrain daté du lundi apparaîtrait le dimanche, un
+// passage déclaré le 1er serait compté sur le mois précédent.
+//
+// Le bug est invisible sur un serveur réglé en UTC — donc invisible en
+// développement, et bien réel une fois déployé en Tunisie.
+pg.types.setTypeParser(pg.types.builtins.DATE, (valeur) => valeur);
 import { config } from './config.js';
 import { currentContext } from './context.js';
 

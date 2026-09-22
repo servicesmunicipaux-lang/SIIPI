@@ -46,8 +46,14 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET doit être défini dans .env}
       JWT_EXPIRES_IN: 8h
       PORT: 4000
+      SIIPI_FICHIERS_DIR: /var/siipi/fichiers
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       NODE_ENV: production
+    volumes:
+      # Les octets des photos et documents. Volume nommé : ils survivent à la
+      # reconstruction du conteneur, et une sauvegarde du volume suffit à les
+      # emporter — ils ne sont pas en base, volontairement.
+      - siipi_fichiers:/var/siipi/fichiers
     depends_on:
       db:
         condition: service_healthy
@@ -57,6 +63,7 @@ services:
 
 volumes:
   siipi_postgres_data:
+  siipi_fichiers:
 
 networks:
   siipi-net:

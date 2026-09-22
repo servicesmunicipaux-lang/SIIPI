@@ -82,7 +82,7 @@ c=$(code -X PATCH "$API/communes/sfax_sfax_ville_medina" -H "Authorization: Bear
 chk "La Marsa ne peut pas modifier la fiche de Sfax" 403 "$c"
 c=$(code -X POST "$API/kpi/five-axis" -H "Authorization: Bearer $T_MARSA" -H 'Content-Type: application/json' \
       -d '{"communeId":"sfax_sfax_ville_medina","efficaciteOperationnelle":10,"qualiteService":10,"performanceEnvironnementale":10,"performanceEconomique":10,"securiteRh":10}')
-chk "La Marsa ne peut pas noter la commune de Sfax" 500 "$c"
+chk "La Marsa ne peut pas noter la commune de Sfax" 403 "$c"
 
 echo
 echo "2. Périmètre des prestataires privés (TDR §3.2.11)"

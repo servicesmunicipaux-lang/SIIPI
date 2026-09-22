@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { queryOne } from '../db.js';
+import { query, queryOne } from '../db.js';
 import { requireAuth, signToken, type UserRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 
@@ -20,6 +20,7 @@ interface UserRow {
   role: UserRole;
   commune_id: string | null;
   is_active: boolean;
+  mot_de_passe_provisoire?: boolean;
 }
 
 authRouter.post(
@@ -43,6 +44,9 @@ authRouter.post(
     }
 
     const token = signToken({ sub: user.id, role: user.role, communeId: user.commune_id });
+    // Un compte ouvert il y a six mois et jamais utilisé se ferme ; encore
+    // faut-il pouvoir le voir.
+    await query('SELECT app.enregistrer_connexion($1)', [user.id]);
 
     res.json({
       token,
@@ -52,6 +56,7 @@ authRouter.post(
         fullName: user.full_name,
         role: user.role,
         communeId: user.commune_id,
+        motDePasseProvisoire: user.mot_de_passe_provisoire === true,
       },
     });
   })
@@ -65,7 +70,7 @@ authRouter.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const user = await queryOne<UserRow>(
-      'SELECT id, email, full_name, role, commune_id FROM users WHERE id = $1',
+      'SELECT id, email, full_name, role, commune_id, mot_de_passe_provisoire FROM users WHERE id = $1',
       [req.user!.sub]
     );
     if (!user) throw new ApiError(401, 'Utilisateur introuvable.');
@@ -75,6 +80,7 @@ authRouter.get(
       fullName: user.full_name,
       role: user.role,
       communeId: user.commune_id,
+      motDePasseProvisoire: user.mot_de_passe_provisoire === true,
     });
   })
 );

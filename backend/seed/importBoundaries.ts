@@ -1,3 +1,7 @@
+// SUPERSÉDÉ par seed/importDecoupage.ts : cet import appariait les communes
+// par proximité de nom sur des données OpenStreetMap et laissait la plupart
+// d'entre elles sans frontière. Conservé pour mémoire, plus appelé.
+
 // Script d'import des frontières administratives réelles des communes.
 //
 // Source : extrait OpenStreetMap (relations "boundary=municipality") fourni par

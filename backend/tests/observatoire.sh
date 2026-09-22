@@ -44,8 +44,12 @@ chk "le total des communes fait bien 350" 350 \
     "$(py "import json;print(sum(g['communes'] for g in json.load(open('/tmp/siipi_gouv.json'))))")"
 chk "la population totale correspond à la base" "$(sql "SELECT sum(population) FROM communes")" \
     "$(py "import json;print(sum(g['population'] for g in json.load(open('/tmp/siipi_gouv.json'))))")"
-chk "les nombres arrivent comme nombres, pas comme texte" "int" \
+chk "les entiers arrivent comme nombres, pas comme texte" "int" \
     "$(py "import json;print(type(json.load(open('/tmp/siipi_gouv.json'))[0]['population']).__name__)")"
+# Les décimaux aussi : NUMERIC traverse JSON en chaîne, ce qui casse le tri et
+# les additions côté interface sans lever la moindre erreur.
+chk "les décimaux arrivent comme nombres, pas comme texte" "f" \
+    "$(py "import json;d=json.load(open('/tmp/siipi_gouv.json'));print('f' if all(isinstance(g['taux_collecte'],(int,float)) or g['taux_collecte'] is None for g in d) else 'chaine')")"
 
 echo
 echo "2. Moyennes pondérées par la population"

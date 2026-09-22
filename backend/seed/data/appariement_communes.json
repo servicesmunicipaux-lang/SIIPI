@@ -1,0 +1,1398 @@
+{
+ "1111": {
+  "commune_id": "tunis_tunis_capitale",
+  "nom_source": "Tunis Ville"
+ },
+ "1112": {
+  "commune_id": "tunis_le_bardo",
+  "nom_source": "Le Bardo"
+ },
+ "1113": {
+  "commune_id": "tunis_le_kram",
+  "nom_source": "EL kram"
+ },
+ "1114": {
+  "commune_id": "tunis_la_goulette",
+  "nom_source": "La Goulette"
+ },
+ "1115": {
+  "commune_id": "tunis_carthage",
+  "nom_source": "Carthage"
+ },
+ "1116": {
+  "commune_id": "tunis_sidi_bou_said",
+  "nom_source": "Sidi Bou Said"
+ },
+ "1117": {
+  "commune_id": "tunis_la_marsa",
+  "nom_source": "La Marsa"
+ },
+ "1118": {
+  "commune_id": "tunis_sidi_hassine",
+  "nom_source": "Sidi Hassine"
+ },
+ "1211": {
+  "commune_id": "ariana_ariana_ville",
+  "nom_source": "Ariana"
+ },
+ "1212": {
+  "commune_id": "ariana_la_soukra",
+  "nom_source": "Soukra"
+ },
+ "1213": {
+  "commune_id": "ariana_raoued",
+  "nom_source": "Raoued"
+ },
+ "1214": {
+  "commune_id": "ariana_kalaat_el_andalous",
+  "nom_source": "Kalaat El Andalos"
+ },
+ "1215": {
+  "commune_id": "ariana_sidi_thabet",
+  "nom_source": "Sidi Thabet"
+ },
+ "1216": {
+  "commune_id": "ariana_ettadhamen",
+  "nom_source": "Ettadhamen"
+ },
+ "1217": {
+  "commune_id": "ariana_mnihla",
+  "nom_source": "El Mnihla"
+ },
+ "1311": {
+  "commune_id": "ben_arous_ben_arous",
+  "nom_source": "Ben Arous"
+ },
+ "1312": {
+  "commune_id": "ben_arous_el_mourouj",
+  "nom_source": "El Mourouj"
+ },
+ "1313": {
+  "commune_id": "ben_arous_hammam_lif",
+  "nom_source": "Hammam Lif"
+ },
+ "1314": {
+  "commune_id": "ben_arous_hammam_chott",
+  "nom_source": "Hammam Chott"
+ },
+ "1315": {
+  "commune_id": "ben_arous_boumhel_el_bassatine",
+  "nom_source": "Bou Mhel El Bassatine"
+ },
+ "1316": {
+  "commune_id": "ben_arous_ezzahra",
+  "nom_source": "Ez-Zahra"
+ },
+ "1317": {
+  "commune_id": "ben_arous_rades",
+  "nom_source": "Rades"
+ },
+ "1318": {
+  "commune_id": "ben_arous_megrine",
+  "nom_source": "Megrine"
+ },
+ "1319": {
+  "commune_id": "ben_arous_el_mhamedia",
+  "nom_source": "Mhamedia"
+ },
+ "1320": {
+  "commune_id": "ben_arous_mornag",
+  "nom_source": "Mornag"
+ },
+ "1321": {
+  "commune_id": "ben_arous_khledia",
+  "nom_source": "Khelidia"
+ },
+ "1322": {
+  "commune_id": "ben_arous_fouchana",
+  "nom_source": "Fouchana"
+ },
+ "1323": {
+  "commune_id": "ben_arous_naassen",
+  "nom_source": "Naassen"
+ },
+ "1411": {
+  "commune_id": "manouba_manouba",
+  "nom_source": "Mannouba"
+ },
+ "1412": {
+  "commune_id": "manouba_den_den",
+  "nom_source": "Denden"
+ },
+ "1413": {
+  "commune_id": "manouba_douar_hicher",
+  "nom_source": "Douar Hicher"
+ },
+ "1414": {
+  "commune_id": "manouba_oued_ellil",
+  "nom_source": "Oued Ellil"
+ },
+ "1415": {
+  "commune_id": "manouba_mornaguia",
+  "nom_source": "Mornaguia"
+ },
+ "1416": {
+  "commune_id": "manouba_borj_el_amri",
+  "nom_source": "Borj El Amri"
+ },
+ "1417": {
+  "commune_id": "manouba_jedeida",
+  "nom_source": "Djedaida"
+ },
+ "1418": {
+  "commune_id": "manouba_tebourba",
+  "nom_source": "Tebourba"
+ },
+ "1419": {
+  "commune_id": "manouba_el_battane",
+  "nom_source": "El Battan"
+ },
+ "1420": {
+  "commune_id": "manouba_el_bassatine",
+  "nom_source": "El Bassatine"
+ },
+ "1511": {
+  "commune_id": "nabeul_nabeul_ville",
+  "nom_source": "Nabeul"
+ },
+ "1512": {
+  "commune_id": "nabeul_dar_chaabane_el_fehri",
+  "nom_source": "Dar Chaabane El Fehri"
+ },
+ "1513": {
+  "commune_id": "nabeul_beni_khiar",
+  "nom_source": "Beni Khiar"
+ },
+ "1514": {
+  "commune_id": "nabeul_el_maamoura",
+  "nom_source": "El Mâamoura"
+ },
+ "1515": {
+  "commune_id": "nabeul_somaa",
+  "nom_source": "Somaâ"
+ },
+ "1516": {
+  "commune_id": "nabeul_korba",
+  "nom_source": "Korba"
+ },
+ "1517": {
+  "commune_id": "nabeul_tazarka",
+  "nom_source": "Tazarka"
+ },
+ "1518": {
+  "commune_id": "nabeul_menzel_temime",
+  "nom_source": "Menzel Temime"
+ },
+ "1519": {
+  "commune_id": "nabeul_menzel_horr",
+  "nom_source": "Menzel Horr"
+ },
+ "1520": {
+  "commune_id": "nabeul_el_mida",
+  "nom_source": "El Mida"
+ },
+ "1521": {
+  "commune_id": "nabeul_kelibia",
+  "nom_source": "Kelibia"
+ },
+ "1522": {
+  "commune_id": "nabeul_azmour",
+  "nom_source": "Azmour"
+ },
+ "1523": {
+  "commune_id": "nabeul_hammam_ghezaz",
+  "nom_source": "Hammam El Guezaz"
+ },
+ "1524": {
+  "commune_id": "nabeul_dar_allouche",
+  "nom_source": "Dar Allouch"
+ },
+ "1525": {
+  "commune_id": "nabeul_el_haouaria",
+  "nom_source": "El Haouaria"
+ },
+ "1526": {
+  "commune_id": "nabeul_takelsa",
+  "nom_source": "Takelsa"
+ },
+ "1527": {
+  "commune_id": "nabeul_soliman",
+  "nom_source": "Soliman"
+ },
+ "1528": {
+  "commune_id": "nabeul_korbous",
+  "nom_source": "Korbous"
+ },
+ "1529": {
+  "commune_id": "nabeul_menzel_bouzelfa",
+  "nom_source": "Menzel Bou Zelfa"
+ },
+ "1530": {
+  "commune_id": "nabeul_beni_khalled",
+  "nom_source": "Beni Khalled"
+ },
+ "1531": {
+  "commune_id": "nabeul_zaouiet_djedidi",
+  "nom_source": "Zaouiet Djedidi"
+ },
+ "1532": {
+  "commune_id": "nabeul_grombalia",
+  "nom_source": "Grombalia"
+ },
+ "1533": {
+  "commune_id": "nabeul_bouargoub",
+  "nom_source": "Bou Argoub"
+ },
+ "1534": {
+  "commune_id": "nabeul_hammamet",
+  "nom_source": "Hammamet"
+ },
+ "1535": {
+  "commune_id": "nabeul_fondouk_jedid_seltan",
+  "nom_source": "Fondek Ejedid - Es Selten"
+ },
+ "1536": {
+  "commune_id": "nabeul_tazghrane_boukrim_zaouiet_el_mgaiez",
+  "nom_source": "Tazegrane Boukrim Zaouiet Mgaiez"
+ },
+ "1537": {
+  "commune_id": "nabeul_sidi_jedidi",
+  "nom_source": "Sidi Jedidi"
+ },
+ "1538": {
+  "commune_id": "nabeul_boucharray_chrifet",
+  "nom_source": "Echerifet Boucharray"
+ },
+ "1611": {
+  "commune_id": "zaghouan_zaghouan_ville",
+  "nom_source": "Zaghouan"
+ },
+ "1612": {
+  "commune_id": "zaghouan_zriba",
+  "nom_source": "Ez-Zeriba"
+ },
+ "1613": {
+  "commune_id": "zaghouan_bir_mcherga",
+  "nom_source": "Bir Mchergua"
+ },
+ "1614": {
+  "commune_id": "zaghouan_djebel_oust",
+  "nom_source": "Jebel Oust"
+ },
+ "1615": {
+  "commune_id": "zaghouan_el_fahs",
+  "nom_source": "El Fahs"
+ },
+ "1616": {
+  "commune_id": "zaghouan_ennadhour",
+  "nom_source": "En-Nadhour"
+ },
+ "1617": {
+  "commune_id": "zaghouan_saouaf",
+  "nom_source": "Saouaf"
+ },
+ "1618": {
+  "commune_id": "zaghouan_el_amaiem",
+  "nom_source": "El Amaiem"
+ },
+ "1711": {
+  "commune_id": "bizerte_bizerte_nord_centre",
+  "nom_source": "Bizerte"
+ },
+ "1712": {
+  "commune_id": "bizerte_sejnane",
+  "nom_source": "Sedjnane"
+ },
+ "1713": {
+  "commune_id": "bizerte_mateur",
+  "nom_source": "Mateur"
+ },
+ "1714": {
+  "commune_id": "bizerte_menzel_bourguiba",
+  "nom_source": "Menzel Bourguiba"
+ },
+ "1715": {
+  "commune_id": "bizerte_tinja",
+  "nom_source": "Tinja"
+ },
+ "1716": {
+  "commune_id": "bizerte_ghar_el_melh",
+  "nom_source": "Ghar El Meleh"
+ },
+ "1717": {
+  "commune_id": "bizerte_aousja",
+  "nom_source": "Ousja"
+ },
+ "1718": {
+  "commune_id": "bizerte_menzel_jemil",
+  "nom_source": "Menzel Djemil"
+ },
+ "1719": {
+  "commune_id": "bizerte_menzel_abderrahmane",
+  "nom_source": "Menzel Abderrahmen"
+ },
+ "1720": {
+  "commune_id": "bizerte_el_alia",
+  "nom_source": "El Alia"
+ },
+ "1721": {
+  "commune_id": "bizerte_ras_jebel",
+  "nom_source": "Ras El Djebel"
+ },
+ "1722": {
+  "commune_id": "bizerte_metline",
+  "nom_source": "Metline"
+ },
+ "1723": {
+  "commune_id": "bizerte_raf_raf",
+  "nom_source": "Rafraf"
+ },
+ "1724": {
+  "commune_id": "bizerte_utique",
+  "nom_source": "Utique"
+ },
+ "1725": {
+  "commune_id": "bizerte_joumine",
+  "nom_source": "Joumine"
+ },
+ "1726": {
+  "commune_id": "bizerte_ghezala",
+  "nom_source": "Ghzala"
+ },
+ "2111": {
+  "commune_id": "beja_beja",
+  "nom_source": "Béja"
+ },
+ "2112": {
+  "commune_id": "beja_el_maagoula",
+  "nom_source": "El Mâagoula"
+ },
+ "2113": {
+  "commune_id": "beja_zahret_mediene",
+  "nom_source": "Zahret Medien"
+ },
+ "2114": {
+  "commune_id": "beja_nefza",
+  "nom_source": "Nefza"
+ },
+ "2115": {
+  "commune_id": "beja_teboursouk",
+  "nom_source": "Teboursouk"
+ },
+ "2116": {
+  "commune_id": "beja_testour",
+  "nom_source": "Testour"
+ },
+ "2117": {
+  "commune_id": "beja_goubellat",
+  "nom_source": "Goubellat"
+ },
+ "2118": {
+  "commune_id": "beja_medjez_el_bab",
+  "nom_source": "Medjez El Bab"
+ },
+ "2119": {
+  "commune_id": "beja_thibar",
+  "nom_source": "Tibar"
+ },
+ "2120": {
+  "commune_id": "beja_ouechtata_el_jamila",
+  "nom_source": "Ouechtata - El Jamila"
+ },
+ "2121": {
+  "commune_id": "beja_sidi_ismail",
+  "nom_source": "Sidi Ismail"
+ },
+ "2122": {
+  "commune_id": "beja_slouguia",
+  "nom_source": "Slouguia"
+ },
+ "2211": {
+  "commune_id": "jendouba_jendouba_ville",
+  "nom_source": "Jendouba"
+ },
+ "2212": {
+  "commune_id": "jendouba_bou_salem",
+  "nom_source": "Bou Salem"
+ },
+ "2213": {
+  "commune_id": "jendouba_tabarka",
+  "nom_source": "Tabarka"
+ },
+ "2214": {
+  "commune_id": "jendouba_ain_draham",
+  "nom_source": "Ain Draham"
+ },
+ "2215": {
+  "commune_id": "jendouba_fernana",
+  "nom_source": "Fernana"
+ },
+ "2216": {
+  "commune_id": "jendouba_beni_m_tir",
+  "nom_source": "Beni Mtir"
+ },
+ "2217": {
+  "commune_id": "jendouba_ghardimaou",
+  "nom_source": "Ghardimaou"
+ },
+ "2218": {
+  "commune_id": "jendouba_oued_meliz",
+  "nom_source": "Oued Meliz"
+ },
+ "2219": {
+  "commune_id": "jendouba_balta_bou_aouane",
+  "nom_source": "Balta -Bouaouene"
+ },
+ "2220": {
+  "commune_id": "jendouba_souk_essebt",
+  "nom_source": "Souk Es-Sabet"
+ },
+ "2221": {
+  "commune_id": "jendouba_kalaa_el_maaden_ferksan",
+  "nom_source": "El Golaa - El Maaden -Forgassen"
+ },
+ "2222": {
+  "commune_id": "jendouba_el_jaouada",
+  "nom_source": "Jaouaouada"
+ },
+ "2223": {
+  "commune_id": "jendouba_tabarka_el_jadida",
+  "nom_source": "Tabarka Nouvelle"
+ },
+ "2224": {
+  "commune_id": "jendouba_hammam_bourguiba",
+  "nom_source": "Hammem Bourguiba"
+ },
+ "2311": {
+  "commune_id": "le_kef_le_kef_ville",
+  "nom_source": "Le Kef"
+ },
+ "2312": {
+  "commune_id": "le_kef_nebeur",
+  "nom_source": "Nebeur"
+ },
+ "2313": {
+  "commune_id": "le_kef_touiref",
+  "nom_source": "Touiref"
+ },
+ "2314": {
+  "commune_id": "le_kef_sakiet_sidi_youssef",
+  "nom_source": "Sakiet Sidi Youssef"
+ },
+ "2315": {
+  "commune_id": "le_kef_tajerouine",
+  "nom_source": "Tajerouine"
+ },
+ "2316": {
+  "commune_id": "le_kef_menzel_salem",
+  "nom_source": "Menzel Salem"
+ },
+ "2317": {
+  "commune_id": "le_kef_kalaat_senan",
+  "nom_source": "Kalâat Snan"
+ },
+ "2318": {
+  "commune_id": "le_kef_kalaat_khasba",
+  "nom_source": "Kalâat Khasba"
+ },
+ "2319": {
+  "commune_id": "le_kef_jerissa_bou_jerida",
+  "nom_source": "Djerissa"
+ },
+ "2320": {
+  "commune_id": "le_kef_el_kossour",
+  "nom_source": "El Ksour"
+ },
+ "2321": {
+  "commune_id": "le_kef_dahmani",
+  "nom_source": "Dahmani"
+ },
+ "2322": {
+  "commune_id": "le_kef_le_sers",
+  "nom_source": "Es-Sers"
+ },
+ "2323": {
+  "commune_id": "le_kef_zaafrane_dyr",
+  "nom_source": "Zâafrane - Dyr El Kef"
+ },
+ "2324": {
+  "commune_id": "le_kef_bahra",
+  "nom_source": "Bahra"
+ },
+ "2325": {
+  "commune_id": "le_kef_el_marja",
+  "nom_source": "El Marja"
+ },
+ "2411": {
+  "commune_id": "siliana_siliana_ville",
+  "nom_source": "Siliana"
+ },
+ "2412": {
+  "commune_id": "siliana_bou_arada",
+  "nom_source": "Bou Arada"
+ },
+ "2413": {
+  "commune_id": "siliana_gaafour",
+  "nom_source": "Gaâfour"
+ },
+ "2414": {
+  "commune_id": "siliana_el_krib",
+  "nom_source": "El Krib"
+ },
+ "2415": {
+  "commune_id": "siliana_sidi_bou_rouis",
+  "nom_source": "Sidi Bourouis"
+ },
+ "2416": {
+  "commune_id": "siliana_makthar",
+  "nom_source": "Makthar"
+ },
+ "2417": {
+  "commune_id": "siliana_rohia",
+  "nom_source": "Er-Rouhia"
+ },
+ "2418": {
+  "commune_id": "siliana_kesra",
+  "nom_source": "Kesra"
+ },
+ "2419": {
+  "commune_id": "siliana_bargou",
+  "nom_source": "Bargou"
+ },
+ "2420": {
+  "commune_id": "siliana_el_aroussa",
+  "nom_source": "El Aroussa"
+ },
+ "2421": {
+  "commune_id": "siliana_sidi_morched",
+  "nom_source": "Sidi Morched"
+ },
+ "2422": {
+  "commune_id": "siliana_el_hbebsa",
+  "nom_source": "El Hababsa"
+ },
+ "3111": {
+  "commune_id": "sousse_sousse_ville_medina_corniche",
+  "nom_source": "Sousse"
+ },
+ "3112": {
+  "commune_id": "sousse_ksibet_thrayet",
+  "nom_source": "Ksibet Sousse et Thrayet"
+ },
+ "3113": {
+  "commune_id": "sousse_ezzouhour",
+  "nom_source": "Ezzouhour"
+ },
+ "3114": {
+  "commune_id": "sousse_zaouiet_sousse",
+  "nom_source": "Zaouiet Sousse"
+ },
+ "3115": {
+  "commune_id": "sousse_hammam_sousse",
+  "nom_source": "Hammam Sousse"
+ },
+ "3116": {
+  "commune_id": "sousse_akouda",
+  "nom_source": "Akouda"
+ },
+ "3117": {
+  "commune_id": "sousse_kalaa_kebira",
+  "nom_source": "Kalâa Kébira"
+ },
+ "3118": {
+  "commune_id": "sousse_sidi_bou_ali",
+  "nom_source": "Sidi Bou Ali"
+ },
+ "3119": {
+  "commune_id": "sousse_hergla",
+  "nom_source": "Hergla"
+ },
+ "3120": {
+  "commune_id": "sousse_enfidha",
+  "nom_source": "Enfidha"
+ },
+ "3121": {
+  "commune_id": "sousse_bouficha",
+  "nom_source": "Bouficha"
+ },
+ "3122": {
+  "commune_id": "sousse_sidi_el_hani",
+  "nom_source": "Sidi El Heni"
+ },
+ "3123": {
+  "commune_id": "sousse_m_saken",
+  "nom_source": "MSaken"
+ },
+ "3124": {
+  "commune_id": "sousse_kalaa_seghira",
+  "nom_source": "Kalâa Seghira"
+ },
+ "3125": {
+  "commune_id": "sousse_messadine",
+  "nom_source": "Messâdine"
+ },
+ "3126": {
+  "commune_id": "sousse_kondar",
+  "nom_source": "Kandar"
+ },
+ "3127": {
+  "commune_id": "sousse_grymet_hicher",
+  "nom_source": "Gerimet Hicher"
+ },
+ "3128": {
+  "commune_id": "sousse_chott_meriem",
+  "nom_source": "Chott Meriam"
+ },
+ "3211": {
+  "commune_id": "monastir_monastir_ville",
+  "nom_source": "Monastir"
+ },
+ "3212": {
+  "commune_id": "monastir_khniss",
+  "nom_source": "Khenis"
+ },
+ "3213": {
+  "commune_id": "monastir_ouerdanine",
+  "nom_source": "Ouerdanine"
+ },
+ "3214": {
+  "commune_id": "monastir_sahline_moatmar",
+  "nom_source": "Sahline Môotmar"
+ },
+ "3215": {
+  "commune_id": "monastir_sidi_ameur_masjed_aissa",
+  "nom_source": "Sidi Ameur Mesjed Issa"
+ },
+ "3216": {
+  "commune_id": "monastir_zeramdine",
+  "nom_source": "Zermadine"
+ },
+ "3217": {
+  "commune_id": "monastir_beni_hassen",
+  "nom_source": "Beni Hassen"
+ },
+ "3218": {
+  "commune_id": "monastir_ghenada",
+  "nom_source": "Ghnada"
+ },
+ "3219": {
+  "commune_id": "monastir_jemmal",
+  "nom_source": "Djammel"
+ },
+ "3220": {
+  "commune_id": "monastir_menzel_kamel",
+  "nom_source": "Menzel Kamel"
+ },
+ "3221": {
+  "commune_id": "monastir_zaouiet_kontoch",
+  "nom_source": "Zouiet Kontoch"
+ },
+ "3222": {
+  "commune_id": "monastir_bembla_el_mnara",
+  "nom_source": "Bembla Manara"
+ },
+ "3223": {
+  "commune_id": "monastir_menzel_ennour",
+  "nom_source": "Menzel En-Nour"
+ },
+ "3224": {
+  "commune_id": "monastir_el_masdour_menzel_harb",
+  "nom_source": "EL Masdour"
+ },
+ "3225": {
+  "commune_id": "monastir_moknine",
+  "nom_source": "Moknine"
+ },
+ "3226": {
+  "commune_id": "monastir_sidi_bennour",
+  "nom_source": "Sidi Bennour"
+ },
+ "3227": {
+  "commune_id": "monastir_menzel_fersi",
+  "nom_source": "Menzel Farsi"
+ },
+ "3228": {
+  "commune_id": "monastir_amiret_el_fhoul",
+  "nom_source": "Amiret El Fhoul"
+ },
+ "3229": {
+  "commune_id": "monastir_amiret_touazra",
+  "nom_source": "Amiret Touazra"
+ },
+ "3230": {
+  "commune_id": "monastir_amiret_el_hojjej",
+  "nom_source": "Amirat Hojjaj"
+ },
+ "3231": {
+  "commune_id": "monastir_cherahil",
+  "nom_source": "Cherahil"
+ },
+ "3232": {
+  "commune_id": "monastir_bekalta",
+  "nom_source": "Bekalta"
+ },
+ "3233": {
+  "commune_id": "monastir_teboulba",
+  "nom_source": "Teboulba"
+ },
+ "3234": {
+  "commune_id": "monastir_ksar_hellal",
+  "nom_source": "Ksar Helal"
+ },
+ "3235": {
+  "commune_id": "monastir_ksibet_el_mediouni",
+  "nom_source": "Ksibt El Mediouni"
+ },
+ "3236": {
+  "commune_id": "monastir_bennane_bodheur",
+  "nom_source": "Benen Bodher"
+ },
+ "3237": {
+  "commune_id": "monastir_touza",
+  "nom_source": "Touza"
+ },
+ "3238": {
+  "commune_id": "monastir_sayada",
+  "nom_source": "Sayada"
+ },
+ "3239": {
+  "commune_id": "monastir_lamta",
+  "nom_source": "Lamta"
+ },
+ "3240": {
+  "commune_id": "monastir_bouhjar",
+  "nom_source": "Bou-Hajar"
+ },
+ "3241": {
+  "commune_id": "monastir_menzel_hayet",
+  "nom_source": "Menzel Hayet"
+ },
+ "3311": {
+  "commune_id": "mahdia_mahdia_ville_cap_afrique",
+  "nom_source": "Mahdia"
+ },
+ "3312": {
+  "commune_id": "mahdia_rejiche",
+  "nom_source": "Réjiche"
+ },
+ "3313": {
+  "commune_id": "mahdia_bou_merdes",
+  "nom_source": "Bou Merdes"
+ },
+ "3314": {
+  "commune_id": "mahdia_ouled_chamekh",
+  "nom_source": "Ouled Chamekh"
+ },
+ "3315": {
+  "commune_id": "mahdia_chorbane",
+  "nom_source": "Chorbane"
+ },
+ "3316": {
+  "commune_id": "mahdia_hebira",
+  "nom_source": "Hebira"
+ },
+ "3317": {
+  "commune_id": "mahdia_essouassi",
+  "nom_source": "Essouassi"
+ },
+ "3318": {
+  "commune_id": "mahdia_el_jem",
+  "nom_source": "El Djem"
+ },
+ "3319": {
+  "commune_id": "mahdia_kerker",
+  "nom_source": "Kerker"
+ },
+ "3320": {
+  "commune_id": "mahdia_chebba",
+  "nom_source": "Chebba"
+ },
+ "3321": {
+  "commune_id": "mahdia_mellouleche",
+  "nom_source": "Melloulech"
+ },
+ "3322": {
+  "commune_id": "mahdia_sidi_alouane",
+  "nom_source": "Sidi Alouane"
+ },
+ "3323": {
+  "commune_id": "mahdia_ksour_essef",
+  "nom_source": "Ksour Essef"
+ },
+ "3324": {
+  "commune_id": "mahdia_bradaa",
+  "nom_source": "El Bradâa"
+ },
+ "3325": {
+  "commune_id": "mahdia_sidi_zid_ouled_moulahem",
+  "nom_source": "Sidi Zid-Ouled Moulahem"
+ },
+ "3326": {
+  "commune_id": "mahdia_el_hkaima",
+  "nom_source": "El Hekaima"
+ },
+ "3327": {
+  "commune_id": "mahdia_tlelsa",
+  "nom_source": "Talalsa"
+ },
+ "3328": {
+  "commune_id": "mahdia_zelba",
+  "nom_source": "Zalba"
+ },
+ "3411": {
+  "commune_id": "sfax_sfax_ville_medina",
+  "nom_source": "Sfax"
+ },
+ "3412": {
+  "commune_id": "sfax_sakiet_ezzit",
+  "nom_source": "Sakiet Ezzit"
+ },
+ "3413": {
+  "commune_id": "sfax_chihia",
+  "nom_source": "Chihia"
+ },
+ "3414": {
+  "commune_id": "sfax_sakiet_eddaier",
+  "nom_source": "Sakiet Eddaier"
+ },
+ "3415": {
+  "commune_id": "sfax_gremda",
+  "nom_source": "Gremda"
+ },
+ "3416": {
+  "commune_id": "sfax_el_ain",
+  "nom_source": "El ain"
+ },
+ "3417": {
+  "commune_id": "sfax_thyna",
+  "nom_source": "Tina"
+ },
+ "3418": {
+  "commune_id": "sfax_agareb",
+  "nom_source": "Agareb"
+ },
+ "3419": {
+  "commune_id": "sfax_jebiniana",
+  "nom_source": "Djebeniana"
+ },
+ "3420": {
+  "commune_id": "sfax_el_hencha",
+  "nom_source": "El Hencha"
+ },
+ "3421": {
+  "commune_id": "sfax_menzel_chaker",
+  "nom_source": "Menzel Chaker"
+ },
+ "3422": {
+  "commune_id": "sfax_ghraiba",
+  "nom_source": "El Gheraiba"
+ },
+ "3423": {
+  "commune_id": "sfax_bir_ali_ben_khalifa",
+  "nom_source": "Bir Ali Ben Khelifa"
+ },
+ "3424": {
+  "commune_id": "sfax_skhira",
+  "nom_source": "Skhira"
+ },
+ "3425": {
+  "commune_id": "sfax_mahares",
+  "nom_source": "Mahrès"
+ },
+ "3426": {
+  "commune_id": "sfax_kerkennah_iles",
+  "nom_source": "Kerkennah"
+ },
+ "3427": {
+  "commune_id": "sfax_el_amra",
+  "nom_source": "El Amra"
+ },
+ "3428": {
+  "commune_id": "sfax_el_aouabed_khazzanet",
+  "nom_source": "El Aouabed-Khazanet"
+ },
+ "3429": {
+  "commune_id": "sfax_ennadhour_sidi_ali_belabed",
+  "nom_source": "Bir Ali Nord"
+ },
+ "3430": {
+  "commune_id": "sfax_el_hajeb",
+  "nom_source": "El Hajeb"
+ },
+ "3431": {
+  "commune_id": "sfax_hazeg_el_louza",
+  "nom_source": "Hzag-Ellouza"
+ },
+ "3432": {
+  "commune_id": "sfax_ennour",
+  "nom_source": "Ennour - Sfax"
+ },
+ "3433": {
+  "commune_id": "sfax_ennasr",
+  "nom_source": "En-Nacer"
+ },
+ "4111": {
+  "commune_id": "kairouan_kairouan_ville_aghlabides",
+  "nom_source": "Kairouan"
+ },
+ "4112": {
+  "commune_id": "kairouan_chebika",
+  "nom_source": "Echbika"
+ },
+ "4113": {
+  "commune_id": "kairouan_sbikha",
+  "nom_source": "Sbikha"
+ },
+ "4114": {
+  "commune_id": "kairouan_oueslatia",
+  "nom_source": "El Oueslatia"
+ },
+ "4115": {
+  "commune_id": "kairouan_ain_jloula",
+  "nom_source": "Ain Djeloula"
+ },
+ "4116": {
+  "commune_id": "kairouan_haffouz",
+  "nom_source": "Haffouz"
+ },
+ "4117": {
+  "commune_id": "kairouan_el_alaa",
+  "nom_source": "El Alâa"
+ },
+ "4118": {
+  "commune_id": "kairouan_hajeb_el_ayoun",
+  "nom_source": "Hajeb El Ayoun"
+ },
+ "4119": {
+  "commune_id": "kairouan_nasrallah",
+  "nom_source": "Nasrallah"
+ },
+ "4120": {
+  "commune_id": "kairouan_menzel_mhiri",
+  "nom_source": "Menzel Mehiri"
+ },
+ "4121": {
+  "commune_id": "kairouan_cherarda",
+  "nom_source": "Echrarda"
+ },
+ "4122": {
+  "commune_id": "kairouan_bouhajla",
+  "nom_source": "Bouhajla"
+ },
+ "4123": {
+  "commune_id": "kairouan_sisseb_driaat",
+  "nom_source": "Sisseb-Ed-Dheriaat"
+ },
+ "4124": {
+  "commune_id": "kairouan_jehhina",
+  "nom_source": "Jehina"
+ },
+ "4125": {
+  "commune_id": "kairouan_rakkada",
+  "nom_source": "Rakada"
+ },
+ "4126": {
+  "commune_id": "kairouan_abida",
+  "nom_source": "Abida"
+ },
+ "4127": {
+  "commune_id": "kairouan_chouayhia",
+  "nom_source": "Chwayhia"
+ },
+ "4128": {
+  "commune_id": "kairouan_ain_el_beidha",
+  "nom_source": "El Aîn El Beidha"
+ },
+ "4129": {
+  "commune_id": "kairouan_chouachi",
+  "nom_source": "Chaouachi"
+ },
+ "4211": {
+  "commune_id": "kasserine_kasserine_ville",
+  "nom_source": "Kasserine"
+ },
+ "4212": {
+  "commune_id": "kasserine_sbeitla",
+  "nom_source": "Sbeitla"
+ },
+ "4213": {
+  "commune_id": "kasserine_sbiba",
+  "nom_source": "Sbiba"
+ },
+ "4214": {
+  "commune_id": "kasserine_jedliane",
+  "nom_source": "Djedeliane"
+ },
+ "4215": {
+  "commune_id": "kasserine_thala",
+  "nom_source": "Thala"
+ },
+ "4216": {
+  "commune_id": "kasserine_haidra",
+  "nom_source": "Hidra"
+ },
+ "4217": {
+  "commune_id": "kasserine_foussana",
+  "nom_source": "Foussana"
+ },
+ "4218": {
+  "commune_id": "kasserine_feriana",
+  "nom_source": "Feriana"
+ },
+ "4219": {
+  "commune_id": "kasserine_thelepte",
+  "nom_source": "Telept"
+ },
+ "4220": {
+  "commune_id": "kasserine_majel_belabbes",
+  "nom_source": "Majel Bel Abbes"
+ },
+ "4221": {
+  "commune_id": "kasserine_el_ayoun",
+  "nom_source": "El Ayoun"
+ },
+ "4222": {
+  "commune_id": "kasserine_hassi_el_ferid",
+  "nom_source": "Hassi El Farid"
+ },
+ "4223": {
+  "commune_id": "kasserine_ezzouhour",
+  "nom_source": "Ez-Zouhour"
+ },
+ "4224": {
+  "commune_id": "kasserine_ennour",
+  "nom_source": "En-Nour - Kasserine"
+ },
+ "4225": {
+  "commune_id": "kasserine_chraia_machreg_ech_chems",
+  "nom_source": "Ech-Charayaa- Machrek Ech-Chams"
+ },
+ "4226": {
+  "commune_id": "kasserine_rekhmat",
+  "nom_source": "Er-Rakhmet"
+ },
+ "4227": {
+  "commune_id": "kasserine_ain_el_khemaysia",
+  "nom_source": "Ain El Khemaissia"
+ },
+ "4228": {
+  "commune_id": "kasserine_khamouda",
+  "nom_source": "Khmouda"
+ },
+ "4229": {
+  "commune_id": "kasserine_bouzgam",
+  "nom_source": "Bouzguam"
+ },
+ "4311": {
+  "commune_id": "sidi_bouzid_sidi_bouzid_ville",
+  "nom_source": "Sidi Bouzid"
+ },
+ "4312": {
+  "commune_id": "sidi_bouzid_jilma",
+  "nom_source": "Djelma"
+ },
+ "4313": {
+  "commune_id": "sidi_bouzid_cebbala_ouled_asker",
+  "nom_source": "Cebalet"
+ },
+ "4314": {
+  "commune_id": "sidi_bouzid_bir_el_hafey",
+  "nom_source": "Bir El Hafey"
+ },
+ "4315": {
+  "commune_id": "sidi_bouzid_sidi_ali_ben_aoun",
+  "nom_source": "Sidi Ali Ben Aoun"
+ },
+ "4316": {
+  "commune_id": "sidi_bouzid_menzel_bouzaiane",
+  "nom_source": "Menzel Bouzaine"
+ },
+ "4317": {
+  "commune_id": "sidi_bouzid_meknassy",
+  "nom_source": "Meknassy"
+ },
+ "4318": {
+  "commune_id": "sidi_bouzid_mezzouna",
+  "nom_source": "Mezzouna"
+ },
+ "4319": {
+  "commune_id": "sidi_bouzid_regueb",
+  "nom_source": "Regueb"
+ },
+ "4320": {
+  "commune_id": "sidi_bouzid_ouled_haffouz",
+  "nom_source": "Ouled Haffouz"
+ },
+ "4321": {
+  "commune_id": "sidi_bouzid_saida",
+  "nom_source": "Essaaida"
+ },
+ "4322": {
+  "commune_id": "sidi_bouzid_souk_jedid",
+  "nom_source": "Souk Jedid"
+ },
+ "4323": {
+  "commune_id": "sidi_bouzid_el_ahouaz_el_assouda",
+  "nom_source": "EL Assouada"
+ },
+ "4324": {
+  "commune_id": "sidi_bouzid_el_faidh_bennour",
+  "nom_source": "Faiedh Bennour"
+ },
+ "4325": {
+  "commune_id": "sidi_bouzid_baten_el_ghezal",
+  "nom_source": "Batten  El Ghézel"
+ },
+ "4326": {
+  "commune_id": "sidi_bouzid_rahal",
+  "nom_source": "Rahal"
+ },
+ "4327": {
+  "commune_id": "sidi_bouzid_el_mansoura",
+  "nom_source": "El Mansoura"
+ },
+ "5111": {
+  "commune_id": "gabes_gabes_ville_oasis_maritime",
+  "nom_source": "Gabes"
+ },
+ "5112": {
+  "commune_id": "gabes_chenini_nahal",
+  "nom_source": "Chenini Nahal"
+ },
+ "5113": {
+  "commune_id": "gabes_ghannouch",
+  "nom_source": "Ghanouch"
+ },
+ "5114": {
+  "commune_id": "gabes_metouia",
+  "nom_source": "El Metouia"
+ },
+ "5115": {
+  "commune_id": "gabes_oudref",
+  "nom_source": "Ouedhref"
+ },
+ "5116": {
+  "commune_id": "gabes_el_hamma",
+  "nom_source": "El Hamma"
+ },
+ "5117": {
+  "commune_id": "gabes_matmata",
+  "nom_source": "Matmata"
+ },
+ "5118": {
+  "commune_id": "gabes_nouvelle_matmata",
+  "nom_source": "Nouvelle Matmata"
+ },
+ "5119": {
+  "commune_id": "gabes_mareth",
+  "nom_source": "Mareth"
+ },
+ "5120": {
+  "commune_id": "gabes_zarat",
+  "nom_source": "Ezzarat"
+ },
+ "5121": {
+  "commune_id": "gabes_menzel_habib",
+  "nom_source": "Menzel El Habib"
+ },
+ "5122": {
+  "commune_id": "gabes_bouchemma",
+  "nom_source": "Bou-chemma"
+ },
+ "5123": {
+  "commune_id": "gabes_teboulbou",
+  "nom_source": "Teboulbou"
+ },
+ "5124": {
+  "commune_id": "gabes_el_hamma_ouest",
+  "nom_source": "Hamma Ouest"
+ },
+ "5125": {
+  "commune_id": "gabes_kettana",
+  "nom_source": "Kattana"
+ },
+ "5126": {
+  "commune_id": "gabes_dkhila_toujane",
+  "nom_source": "Dkhilet Toujane"
+ },
+ "5211": {
+  "commune_id": "medenine_medenine_ville_ksour",
+  "nom_source": "Mednine"
+ },
+ "5212": {
+  "commune_id": "medenine_beni_khedache",
+  "nom_source": "Beni Khedache"
+ },
+ "5213": {
+  "commune_id": "medenine_ben_guerdane",
+  "nom_source": "Ben Guerdane"
+ },
+ "5214": {
+  "commune_id": "medenine_zarzis",
+  "nom_source": "Zarzis"
+ },
+ "5215": {
+  "commune_id": "medenine_djerba_houmt_souk",
+  "nom_source": "Djerba Houmet Souk"
+ },
+ "5216": {
+  "commune_id": "medenine_djerba_midoun",
+  "nom_source": "Djerba Midoun"
+ },
+ "5217": {
+  "commune_id": "medenine_djerba_ajim",
+  "nom_source": "Djerba Ajim"
+ },
+ "5218": {
+  "commune_id": "medenine_sidi_makhlouf",
+  "nom_source": "Sidi Makhlouf"
+ },
+ "5219": {
+  "commune_id": "medenine_zarzis_nord",
+  "nom_source": "Zarzis Nord"
+ },
+ "5220": {
+  "commune_id": "medenine_boughrara",
+  "nom_source": "Bou-Ghrara"
+ },
+ "5311": {
+  "commune_id": "tataouine_tataouine_ville_ksour_sahariens",
+  "nom_source": "Tataouine"
+ },
+ "5312": {
+  "commune_id": "tataouine_bir_lahmar",
+  "nom_source": "Bir Lahmar"
+ },
+ "5313": {
+  "commune_id": "tataouine_ghomrassen",
+  "nom_source": "Ghomrassen"
+ },
+ "5314": {
+  "commune_id": "tataouine_dehiba",
+  "nom_source": "Dhehiba"
+ },
+ "5315": {
+  "commune_id": "tataouine_remada",
+  "nom_source": "Remada"
+ },
+ "5316": {
+  "commune_id": "tataouine_smar",
+  "nom_source": "Smar"
+ },
+ "5317": {
+  "commune_id": "tataouine_tataouine_sud",
+  "nom_source": "Tataouine Sud"
+ },
+ "6111": {
+  "commune_id": "gafsa_gafsa_ville_oasis",
+  "nom_source": "Gafsa"
+ },
+ "6112": {
+  "commune_id": "gafsa_el_ksar",
+  "nom_source": "El Ksar"
+ },
+ "6113": {
+  "commune_id": "gafsa_moulares_oum_el_araies",
+  "nom_source": "Moularès"
+ },
+ "6114": {
+  "commune_id": "gafsa_redeyef",
+  "nom_source": "Redeyef"
+ },
+ "6115": {
+  "commune_id": "gafsa_metlaoui",
+  "nom_source": "Metlaoui"
+ },
+ "6116": {
+  "commune_id": "gafsa_mdhilla",
+  "nom_source": "Mdhila"
+ },
+ "6117": {
+  "commune_id": "gafsa_el_guettar",
+  "nom_source": "Guetar"
+ },
+ "6118": {
+  "commune_id": "gafsa_sened",
+  "nom_source": "Sned"
+ },
+ "6119": {
+  "commune_id": "gafsa_belkhir",
+  "nom_source": "Belkhir"
+ },
+ "6120": {
+  "commune_id": "gafsa_sidi_aich",
+  "nom_source": "Sidi Aich"
+ },
+ "6121": {
+  "commune_id": "gafsa_lalla",
+  "nom_source": "Lala"
+ },
+ "6122": {
+  "commune_id": "gafsa_sidi_boubaker",
+  "nom_source": "Sidi Boubaker"
+ },
+ "6123": {
+  "commune_id": "gafsa_zannouch",
+  "nom_source": "Zanouch"
+ },
+ "6211": {
+  "commune_id": "tozeur_tozeur_ville_oasis",
+  "nom_source": "Tozeur"
+ },
+ "6212": {
+  "commune_id": "tozeur_degache",
+  "nom_source": "De guech"
+ },
+ "6213": {
+  "commune_id": "tozeur_hamet_jerid",
+  "nom_source": "Hamet Jerid"
+ },
+ "6214": {
+  "commune_id": "tozeur_nafta_nefta",
+  "nom_source": "Nefta"
+ },
+ "6215": {
+  "commune_id": "tozeur_tameghza",
+  "nom_source": "Tameghza"
+ },
+ "6216": {
+  "commune_id": "tozeur_hazoua",
+  "nom_source": "Hazoua"
+ },
+ "6311": {
+  "commune_id": "kebili_kebili_ville_nefzaoua",
+  "nom_source": "Kebili"
+ },
+ "6312": {
+  "commune_id": "kebili_djemna",
+  "nom_source": "Jemna"
+ },
+ "6313": {
+  "commune_id": "kebili_douz_porte_du_sahara",
+  "nom_source": "Douz"
+ },
+ "6314": {
+  "commune_id": "kebili_el_golaa",
+  "nom_source": "El Golâa"
+ },
+ "6315": {
+  "commune_id": "kebili_souk_lahad",
+  "nom_source": "Souk El Ahad"
+ },
+ "6316": {
+  "commune_id": "kebili_el_faouar",
+  "nom_source": "Faouar"
+ },
+ "6317": {
+  "commune_id": "kebili_rjim_maatoug",
+  "nom_source": "Rejim Maatoug"
+ },
+ "6318": {
+  "commune_id": "kebili_bechri_jersine_el_blidet",
+  "nom_source": "Bechelli-Jersine-El Blidete"
+ },
+ "6319": {
+  "commune_id": "kebili_bechni_fatnassa",
+  "nom_source": "Bèchri-Fatnassa"
+ }
+}

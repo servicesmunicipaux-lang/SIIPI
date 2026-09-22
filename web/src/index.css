@@ -1,0 +1,114 @@
+@import 'tailwindcss';
+
+/* ===========================================================================
+   Jetons de conception SIIPI
+   ---------------------------------------------------------------------------
+   Une plateforme d'État tunisienne, pas une application grand public. La
+   sobriété n'est pas un choix esthétique : un tableau consulté tous les jours
+   par les mêmes personnes doit s'effacer devant ses chiffres.
+
+   Le vert reprend les couleurs institutionnelles du réseau WAMA-NET ; le rouge
+   est réservé aux alertes réelles, jamais à la décoration.
+   =========================================================================== */
+
+@theme {
+  --color-siipi-50: #edfaf3;
+  --color-siipi-100: #d3f2e1;
+  --color-siipi-200: #a9e5c5;
+  --color-siipi-300: #72d0a2;
+  --color-siipi-400: #3fb47e;
+  --color-siipi-500: #1f9663;
+  --color-siipi-600: #13784f;
+  --color-siipi-700: #116040;
+  --color-siipi-800: #114c34;
+  --color-siipi-900: #0f3f2c;
+
+  --color-ardoise-50: #f7f8f9;
+  --color-ardoise-100: #eef0f2;
+  --color-ardoise-200: #dde1e6;
+  --color-ardoise-300: #c0c7d0;
+  --color-ardoise-400: #97a2b0;
+  --color-ardoise-500: #6f7c8d;
+  --color-ardoise-600: #586376;
+  --color-ardoise-700: #454f60;
+  --color-ardoise-800: #333c4a;
+  --color-ardoise-900: #1f2732;
+
+  /* Polices du système, volontairement : charger une police depuis un CDN
+     ferait dépendre l'affichage d'un service externe, ce qui est exclu pour
+     une plateforme destinée à un hébergement national éventuellement fermé.
+     Une police propre à la plateforme devra être auto-hébergée le jour où
+     l'on en voudra une — en particulier pour l'arabe. */
+  --font-sans: system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-arabe: 'Segoe UI', 'Noto Naskh Arabic', 'Geeza Pro', system-ui, sans-serif;
+  --font-chiffres: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Menlo, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-ardoise-50 text-ardoise-900 antialiased;
+    font-family: var(--font-sans);
+  }
+
+  /* En arabe, on bascule la police ET la direction. Le reste de la mise en page
+     suit automatiquement : toutes les marges et alignements de l'application
+     utilisent des propriétés logiques (ms/me, ps/pe, text-start/end) et non
+     gauche/droite. */
+  html[dir='rtl'] body {
+    font-family: var(--font-arabe);
+  }
+
+  /* Les nombres restent lisibles de gauche à droite même en arabe : c'est la
+     convention des documents administratifs tunisiens. */
+  /* Colonnes de nombres : la chasse fixe empêche les chiffres de trembler
+     d'une ligne à l'autre, ce qui rend un tableau dense lisible en diagonale. */
+  .chiffres {
+    font-family: var(--font-chiffres);
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+    unicode-bidi: embed;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-siipi-600;
+  }
+}
+
+/* Réduction des animations pour qui l'a demandé au niveau du système. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Grands nombres des cartes d'indicateurs : la chasse fixe y est inutile
+   (une seule valeur, rien à aligner) et rend la lecture plus lourde. On garde
+   seulement les chiffres tabulaires. */
+@layer base {
+  .chiffres-titre {
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+    unicode-bidi: embed;
+  }
+}
+
+/* Numéro d'ordre collé au marqueur d'un arrêt : l'infobulle de Leaflet sert
+   ici d'étiquette permanente, elle ne doit donc porter ni fond, ni bordure,
+   ni flèche. */
+.leaflet-tooltip.siipi-numero {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+.leaflet-tooltip.siipi-numero::before {
+  display: none;
+}

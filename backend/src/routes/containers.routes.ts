@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import { communeDemandee } from '../perimetre.js';
 
 export const containersRouter = Router();
 
@@ -9,7 +10,7 @@ containersRouter.get(
   '/',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const communeId = typeof req.query.communeId === 'string' ? req.query.communeId : req.user?.communeId ?? undefined;
+    const communeId = communeDemandee(req) ?? undefined;
     const alertOnly = req.query.alertOnly === 'true';
     const conditions: string[] = [];
     const params: any[] = [];

@@ -15,7 +15,12 @@ import { currentContext } from '../context.js';
  */
 export async function journaliserAccesCitoyens(
   endpoint: string,
-  lignes: Array<{ citizen_id?: string | null; citizen_name?: string | null; citizen_phone?: string | null }>
+  lignes: Array<{
+    citizen_id?: string | null;
+    citizen_name?: string | null;
+    citizen_phone?: string | null;
+    commune_id?: string | null;
+  }>
 ): Promise<void> {
   const contexte = currentContext();
   if (contexte.role === 'citoyen' || contexte.role === 'anonyme') return;
@@ -27,11 +32,19 @@ export async function journaliserAccesCitoyens(
     new Set(concernees.map((l) => l.citizen_id).filter((id): id is string => Boolean(id)))
   );
 
+  // Les communes CONCERNÉES par la consultation, et non celle de l'utilisateur :
+  // c'est ce qui permet à une commune de voir qu'un agent national a consulté
+  // les données de ses citoyens.
+  const communes = Array.from(
+    new Set(concernees.map((l) => l.commune_id).filter((id): id is string => Boolean(id)))
+  );
+
   try {
-    await query('SELECT app.enregistrer_acces($1, $2::uuid[], $3)', [
+    await query('SELECT app.enregistrer_acces($1, $2::uuid[], $3, $4::text[])', [
       endpoint,
       identifiants,
       concernees.length,
+      communes,
     ]);
   } catch (err) {
     // Un échec de journalisation ne doit pas faire échouer la requête de

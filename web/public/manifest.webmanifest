@@ -1,0 +1,24 @@
+{
+  "name": "SIIPI — Propreté",
+  "short_name": "SIIPI",
+  "description": "Horaires de collecte, signalements et carte publique — Fédération Nationale des Communes Tunisiennes.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#13784f",
+  "lang": "fr",
+  "dir": "auto",
+  "categories": ["utilities", "government"],
+  "icons": [
+    { "src": "/icones/icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icones/icone-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icones/icone-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

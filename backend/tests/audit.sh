@@ -19,6 +19,9 @@
 set -u
 API="${API_URL:-http://localhost:4000}"
 PSQL="${ADMIN_PSQL:-psql -tA -h ${PGHOST:-localhost} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}}"
+# Variante silencieuse : sans -q, psql imprime BEGIN/SET/COMMIT et brouille
+# la lecture du résultat d'un bloc multi-instructions.
+PSQLQ="psql -q -tA -h ${PGHOST:-localhost} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 MDP="Siipi2026!"
 pass=0; fail=0
 
@@ -93,6 +96,37 @@ chk "les citoyens concernés sont identifiés" "t" \
 AVANT_ACCES=$(sql "SELECT count(*) FROM access_log")
 curl -s "$API/tickets" -H "Authorization: Bearer $T_CITOYEN" -o /dev/null
 chk "un citoyen consultant ses propres données n'est pas tracé" "$AVANT_ACCES" "$(sql "SELECT count(*) FROM access_log")"
+
+# La FNCT conserve l'accès complet aux données des communes (TDR §5). La
+# contrepartie est que la commune doit pouvoir voir qu'une consultation
+# nationale a eu lieu sur SES données.
+curl -s "$API/tickets?communeId=tunis_la_marsa" -H "Authorization: Bearer $T_FNCT" -o /dev/null
+chk "une consultation nationale enregistre la commune concernée" "t" \
+    "$(sql "SELECT 'tunis_la_marsa' = ANY(communes_concernees) FROM access_log WHERE user_role='super_admin_fnct' ORDER BY id DESC LIMIT 1")"
+VU=$($PSQLQ 2>/dev/null <<'SQLEOF' | tail -1
+BEGIN;
+SELECT set_config('app.role','admin_commune',true),
+       set_config('app.commune_id','tunis_la_marsa',true),
+       set_config('app.user_id',(SELECT id::text FROM users WHERE email='directeur.marsa@siipi.tn'),true);
+SET LOCAL ROLE siipi_app;
+SELECT count(*) FROM access_log WHERE user_role = 'super_admin_fnct';
+COMMIT;
+SQLEOF
+)
+chk "la commune voit que la FNCT a consulté ses données" "t" \
+    "$([ "$(echo "$VU" | tr -d ' ')" -ge 1 ] && echo t || echo f)"
+VU_AUTRE=$($PSQLQ 2>/dev/null <<'SQLEOF' | tail -1
+BEGIN;
+SELECT set_config('app.role','admin_commune',true),
+       set_config('app.commune_id','sfax_sfax_ville_medina',true),
+       set_config('app.user_id',(SELECT id::text FROM users WHERE email='directeur.sfax@siipi.tn'),true);
+SET LOCAL ROLE siipi_app;
+SELECT count(*) FROM access_log WHERE 'tunis_la_marsa' = ANY(communes_concernees);
+COMMIT;
+SQLEOF
+)
+chk "une autre commune ne voit pas ces consultations" "0" "$(echo "$VU_AUTRE" | tr -d ' ')"
+ADMIN="psql -q -tA -h ${PGHOST:-localhost} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 
 echo
 echo "5. Journaux infalsifiables et cloisonnés"

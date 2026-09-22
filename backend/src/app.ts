@@ -23,6 +23,21 @@ import { barbechasRouter } from './routes/barbechas.routes.js';
 import { kpiRouter } from './routes/kpi.routes.js';
 import { zonesRouter } from './routes/zones.routes.js';
 import { observatoireRouter } from './routes/observatoire.routes.js';
+import { circuitsRouter } from './routes/circuits.routes.js';
+import { pointsRouter } from './routes/pointsCollecte.routes.js';
+import { comptesRouter } from './routes/comptes.routes.js';
+import { personnelRouter } from './routes/personnel.routes.js';
+import { communicationRouter } from './routes/communication.routes.js';
+import { peseesRouter } from './routes/pesees.routes.js';
+import { publicationsCitoyenRouter } from './routes/publicationsCitoyen.routes.js';
+import { passagesRouter } from './routes/passages.routes.js';
+import { fichiersRouter } from './routes/fichiers.routes.js';
+import {
+  pointsSuggeresRouter,
+  pointsSuggeresCitoyenRouter,
+} from './routes/pointsSuggeres.routes.js';
+import { citoyenRouter } from './routes/citoyen.routes.js';
+import { enlevementsRouter } from './routes/enlevements.routes.js';
 import { genererDocumentOpenApi } from './openapi/document.js';
 
 
@@ -82,7 +97,12 @@ app.use(
   })
 );
 app.use(cors({ origin: config.corsOrigin, credentials: true }));
-app.use(express.json({ limit: '5mb' })); // limite volontairement large pour les photos en base64 des signalements citoyens
+// 12 Mo : le plafond d'un fichier est de 8 Mo une fois DÉCODÉ, et l'encodage
+// base64 l'alourdit d'un tiers — 8 Mo deviennent 10,7 Mo sur le fil. Une
+// limite calée sur les 8 Mo aurait refusé, sans explication utilisable, toute
+// photo un peu grande : Express répond 413 avant que la route n'ait pu dire
+// laquelle des deux tailles pose problème.
+app.use(express.json({ limit: '12mb' }));
 app.use(morgan(config.isProduction ? 'combined' : 'dev'));
 
 // Identifie l'appelant et installe le contexte lu par les politiques de
@@ -134,6 +154,29 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/kpi', kpiRouter],
   ['/zones', zonesRouter],
   ['/observatoire', observatoireRouter],
+  ['/comptes', comptesRouter],
+  ['/personnel', personnelRouter],
+  ['/communication', communicationRouter],
+  ['/pesees', peseesRouter],
+  // Monté AVANT citoyenRouter, volontairement : si celui-ci sert un jour un
+  // « /:quelquechose » à sa racine, il capturerait « /citoyen/publications ».
+  // L'ordre de cette table est l'ordre d'essai d'Express ; ce qui n'est pas
+  // reconnu ici retombe naturellement sur le routeur suivant.
+  ['/citoyen', publicationsCitoyenRouter],
+  ['/circuits', circuitsRouter],
+  // Monté sur le même préfixe : les chemins /circuits/:id/points et
+  // /circuits/:id/import-kml sont plus profonds que /circuits/:id et ne les
+  // masquent pas.
+  ['/circuits', pointsRouter],
+  ['/passages', passagesRouter],
+  ['/citoyen', citoyenRouter],
+  ['/enlevements', enlevementsRouter],
+  ['/fichiers', fichiersRouter],
+  ['/points-suggeres', pointsSuggeresRouter],
+  // Monté sur le préfixe citoyen : la proposition et son suivi appartiennent
+  // à l'espace du citoyen, l'instruction à celui de la commune. Deux publics,
+  // deux chemins — ils ne voient pas les mêmes lignes.
+  ['/citoyen', pointsSuggeresCitoyenRouter],
 ];
 
 for (const [prefixe, routeur] of ROUTEURS) {

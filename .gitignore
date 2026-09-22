@@ -23,3 +23,19 @@ _to_delete/
 # --- Éditeurs ---
 .vscode/
 .idea/
+
+# --- Sorties d'exécution des scripts .bat : des journaux, pas des sources ---
+# Elles portent l'état d'UNE machine à UN instant (conteneurs, identifiants de
+# session, extraits de base). Les versionner ferait diverger deux postes à
+# chaque lancement, pour un contenu que personne ne relit six mois plus tard.
+/acces.txt
+/correction-personnel.txt
+/dar-chaabane.txt
+/demarrage.txt
+/migration.txt
+/module2.txt
+/verification.txt
+
+# --- Archives de livraison, reconstruites à la demande ---
+*.zip
+*.tgz

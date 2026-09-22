@@ -34,7 +34,7 @@ ticketsRouter.get(
 
 const createSchema = z.object({
   communeId: z.string(),
-  category: z.enum(['point_noir', 'conteneur_plein', 'conteneur_deteriore', 'encombrants', 'dechets_verts', 'gravats', 'autre']),
+  category: z.enum(['point_noir', 'conteneur_plein', 'conteneur_deteriore', 'encombrants', 'dechets_verts', 'ddc', 'autre']),
   title: z.string().min(3),
   description: z.string().optional(),
   citizenName: z.string().optional(),
@@ -101,11 +101,12 @@ interface TicketRow {
   commune_id: string;
   status: string;
   assigned_prestataire_id: string | null;
+  citizen_id: string | null;
 }
 
 async function loadTicketOrThrow(id: string): Promise<TicketRow> {
   const ticket = await queryOne<TicketRow>(
-    'SELECT id, commune_id, status, assigned_prestataire_id FROM tickets WHERE id = $1',
+    'SELECT id, commune_id, status, assigned_prestataire_id, citizen_id FROM tickets WHERE id = $1',
     [id]
   );
   if (!ticket) throw new ApiError(404, 'Ticket introuvable.');
@@ -250,6 +251,31 @@ ticketsRouter.patch(
         RETURNING *`,
       [data.status, data.resolvedPhotoUrl ?? null, resolvedAt, req.params.id]
     );
+
+    // LA PREUVE DE TRAITEMENT DOIT ÊTRE VISIBLE PAR CELUI QUI A SIGNALÉ.
+    //
+    // Un fichier déposé sur la plateforme est, par défaut, lisible du seul
+    // service de la commune. La photo « après traitement » ne vaut pourtant
+    // que si le citoyen la voit : c'est la réponse qu'on lui doit (B5.1.3, M5).
+    //
+    // L'ouverture se fait ICI plutôt qu'au dépôt, et c'est délibéré : à cet
+    // endroit seulement on sait à quelle réclamation la photo se rattache, et
+    // donc à QUI l'ouvrir. Un écran qui aurait dû y penser lui-même l'aurait
+    // oublié un jour — et le citoyen aurait reçu une notification renvoyant
+    // vers une image qu'il n'a pas le droit de voir.
+    //
+    // Nommément, jamais globalement : l'album de la commune ne s'ouvre pas aux
+    // autres citoyens pour autant.
+    const fichier = /^\/fichiers\/([0-9a-f-]{36})$/i.exec(data.resolvedPhotoUrl ?? '');
+    if (fichier && ticket.citizen_id) {
+      await query(
+        `UPDATE fichiers
+            SET visibilite = 'citoyen', destinataire_citoyen_id = $1
+          WHERE id = $2 AND commune_id = $3 AND deleted_at IS NULL`,
+        [ticket.citizen_id, fichier[1], ticket.commune_id]
+      );
+    }
+
     res.json(updated);
   })
 );

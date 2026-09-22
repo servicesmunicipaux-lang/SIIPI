@@ -19,10 +19,18 @@
 # node_modules local n'est ni lu ni écrit par Docker.
 # ---------------------------------------------------------------------------
 
+# Aucun « container_name » ici, volontairement : un nom de conteneur fige
+# empeche Compose de recreer le service tant qu'un conteneur du meme nom
+# subsiste — y compris arrete, y compris venu d'un autre projet. On obtient
+# alors « Conflict. The container name /siipi_db is already in use », et le
+# demarrage s'arrete sur un probleme qui n'en est pas un. Laisser Compose
+# nommer ses conteneurs (siipi-db-1, siipi-api-1…) supprime toute la classe
+# de problemes ; les donnees, elles, vivent dans des volumes nommes et
+# survivent a la recreation des conteneurs.
+
 services:
   db:
     image: postgis/postgis:16-3.4-alpine
-    container_name: siipi_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: siipi_national
@@ -40,36 +48,46 @@ services:
 
   api:
     image: node:22-alpine
-    container_name: siipi_api
     init: true
     working_dir: /app
-    command: sh -c "npm ci --no-audit --no-fund && npm run dev"
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
     environment:
       DATABASE_URL: postgres://siipi_admin:${DB_PASSWORD:-siipi_dev_password}@db:5432/siipi_national
       JWT_SECRET: ${JWT_SECRET:-dev_only_change_me_before_any_real_deployment}
       JWT_EXPIRES_IN: 8h
       PORT: 4000
+      SIIPI_FICHIERS_DIR: /var/siipi/fichiers
       CORS_ORIGIN: http://localhost:3000
       NODE_ENV: development
     volumes:
       - ./backend:/app
       - api_node_modules:/app/node_modules
+      # Les octets des photos et documents. Volume nommé : ils survivent à la
+      # reconstruction du conteneur, et une sauvegarde du volume suffit à les
+      # emporter — ils ne sont pas en base, volontairement.
+      - siipi_fichiers:/var/siipi/fichiers
     ports:
       - "4000:4000"
     depends_on:
       db:
         condition: service_healthy
 
+  # Front-end : le dossier web/, et non la racine du dépôt. La racine contient
+  # encore l'ancienne interface (src/, index.html, vite.config.ts) : tant que
+  # ce service pointait dessus, « docker compose up » servait l'ancien écran et
+  # le nouveau restait invisible.
   web:
     image: node:22-alpine
-    container_name: siipi_web
     init: true
     working_dir: /app
-    command: sh -c "npm ci --no-audit --no-fund && npm run dev"
+    command: sh -c "npm install --no-audit --no-fund && npm run dev"
     environment:
-      VITE_API_URL: http://localhost:4000
+      # Cible du proxy /api du serveur de développement, vue depuis CE
+      # conteneur : sur le réseau Compose, l'API s'appelle « api ».
+      # Le navigateur, lui, ne connaît que /api sur l'origine de la page.
+      SIIPI_API_TARGET: http://api:4000
     volumes:
-      - ./:/app
+      - ./web:/app
       - web_node_modules:/app/node_modules
     ports:
       - "3000:3000"
@@ -78,7 +96,6 @@ services:
 
   adminer:
     image: adminer:4
-    container_name: siipi_adminer
     restart: unless-stopped
     ports:
       - "8081:8080"
@@ -90,5 +107,6 @@ services:
 
 volumes:
   siipi_postgres_data:
+  siipi_fichiers:
   api_node_modules:
   web_node_modules:
