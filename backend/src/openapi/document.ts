@@ -56,6 +56,7 @@ import {
 } from '../routes/citoyen.routes.js';
 import { frontiereSchema } from '../routes/communes.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
+import { rapportEtudeDepotSchema } from '../routes/rapportsEtudes.routes.js';
 import {
   propositionSchema as pointSuggereSchema,
   validationSchema as pointSuggereValidationSchema,
@@ -2664,6 +2665,9 @@ const ControleTerrain = registry.register(
       circuit_nom: z.string().optional(),
       commune_id: z.string(),
       date_controle: z.string(),
+      voyage: z.number().int().openapi({
+        description: 'Rang de la rotation contrôlée. Un circuit à voyage unique garde toujours 1 (migration 029).',
+      }),
       etat: z.enum(['fait', 'partiel', 'non_fait']),
       remarque: z.string().nullable(),
       photo_url: z.string().nullable(),
@@ -2797,6 +2801,9 @@ const DeclarationPassage = registry.register(
       circuit_nom: z.string().optional(),
       commune_id: z.string(),
       date_passage: z.string(),
+      voyage: z.number().int().openapi({
+        description: 'Rang de la rotation déclarée. Un circuit à voyage unique garde toujours 1 (migration 029).',
+      }),
       statut: z.enum(['effectue', 'partiel', 'impossible']),
       heure_debut: z.string().nullable(),
       heure_fin: z.string().nullable(),
@@ -3381,7 +3388,15 @@ registry.registerPath({
 
 const USAGES_FICHIER = [
   'reclamation', 'preuve_traitement', 'constat_terrain', 'passage',
-  'incident', 'suggestion_point', 'document_projet', 'enlevement', 'autre',
+  'incident', 'suggestion_point', 'document_projet', 'enlevement',
+  'rapport_etude', 'autre',
+] as const;
+
+const TYPES_MIME_FICHIER = [
+  'image/jpeg', 'image/png', 'image/webp', 'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 ] as const;
 
 const Fichier = registry.register(
@@ -3393,9 +3408,9 @@ const Fichier = registry.register(
       description:
         "Le nom tel que la personne l'a donné. Sert à proposer un nom au téléchargement ; ne construit jamais un chemin.",
     }),
-    type_mime: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']).openapi({
+    type_mime: z.enum(TYPES_MIME_FICHIER).openapi({
       description:
-        "Déduit de la SIGNATURE BINAIRE au dépôt, jamais de ce que le client annonce. Un exécutable renommé « photo.jpg » est refusé (415).",
+        "Déduit de la SIGNATURE BINAIRE au dépôt, jamais de ce que le client annonce. Un exécutable renommé « photo.jpg » est refusé (415). Les types Word/Excel/PowerPoint ne sont acceptés que pour l'usage « rapport_etude ».",
     }),
     taille_octets: z.number().int().openapi({
       description: "Taille APRÈS nettoyage des métadonnées, donc parfois inférieure au fichier envoyé.",
@@ -3436,7 +3451,7 @@ registry.registerPath({
     '',
     "Le type est déterminé par les OCTETS, jamais par le nom ni par l'en-tête annoncé (415 sinon). Les métadonnées EXIF des photos — position GPS, modèle de l'appareil, nom du propriétaire — sont retirées avant écriture ; la position trouvée est rendue dans la réponse, à proposer à la personne plutôt qu'à enregistrer à son insu (décret-loi n° 2022-54).",
     '',
-    'Plafond : 8 Mo une fois décodé (413 au-delà). Un citoyen dépose pour sa propre commune ; un agent, pour une commune où il écrit.',
+    'Plafond : 8 Mo une fois décodé (413 au-delà), 50 Mo pour un rapport ou une étude (usage « rapport_etude », seul à accepter aussi les documents Word, Excel et PowerPoint). Un citoyen dépose pour sa propre commune ; un agent, pour une commune où il écrit.',
   ].join('\n'),
   security: SECURISE,
   request: {
@@ -3523,6 +3538,71 @@ registry.registerPath({
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: { 204: { description: 'Fichier retiré.' }, ...REPONSES_COMMUNES },
+});
+
+// ---------------------------------------------------------------------------
+// Rapports et études (TDR §3.2.9)
+// ---------------------------------------------------------------------------
+
+const CATEGORIES_RAPPORT = ['etude_technique', 'rapport_activite', 'audit', 'plan_action', 'autre'] as const;
+
+const RapportEtude = registry.register(
+  'RapportEtude',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    titre: z.string(),
+    categorie: z.enum(CATEGORIES_RAPPORT),
+    auteur: z.string().nullable().openapi({
+      description: "Déclaré en texte libre : un bureau d'études externe ou une direction régionale n'a pas de compte sur la plateforme.",
+    }),
+    date_document: z.string().nullable(),
+    fichier_url: z.string().openapi({ description: 'Chemin de lecture des octets, rendu par POST /fichiers au dépôt.' }),
+    nom_fichier: z.string(),
+    type_mime: z.string().nullable(),
+    taille_octets: z.number().int().nullable(),
+    depose_par: z.string().uuid().nullable(),
+    created_at: z.string(),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/rapports-etudes',
+  tags: ['Rapports et études'],
+  summary: "Liste des rapports et études d'une commune",
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: z.string().optional(), categorie: z.enum(CATEGORIES_RAPPORT).optional() }),
+  },
+  responses: { 200: json(z.array(RapportEtude), 'Rapports et études.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/rapports-etudes',
+  tags: ['Rapports et études'],
+  summary: 'Enregistrer un rapport ou une étude',
+  description:
+    "N'enregistre que la fiche : le fichier lui-même est déposé d'abord par POST /fichiers (usage « rapport_etude », jusqu'à 50 Mo, PDF ou document Word/Excel/PowerPoint), et son URL est celle qu'on donne ici.",
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: z.string().optional() }),
+    body: { content: { 'application/json': { schema: rapportEtudeDepotSchema } } },
+  },
+  responses: { 201: json(RapportEtude, 'Fiche enregistrée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/rapports-etudes/{id}',
+  tags: ['Rapports et études'],
+  summary: 'Retirer un rapport ou une étude',
+  description:
+    'Retrait LOGIQUE, comme partout : le fichier déposé reste sur le volume, seule la fiche disparaît de la liste.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 204: { description: 'Rapport retiré.' }, ...REPONSES_COMMUNES },
 });
 
 // ---------------------------------------------------------------------------
@@ -3643,7 +3723,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.1.0',
+      version: '0.2.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
@@ -3690,7 +3770,8 @@ export function genererDocumentOpenApi() {
       { name: 'Espace citoyen', description: 'Horaires de collecte, annonces et carte publique des signalements (TDR §3.3).' },
       { name: 'Flux occasionnels', description: 'Déchets verts, déchets de démolition et construction (DDC) et encombrants : demandes d’enlèvement et collecteurs agréés ANGeD.' },
       { name: 'Observatoire national', description: 'Portail FNCT : déploiement et comparaison entre territoires.' },
-      { name: 'Fichiers', description: "Photos et documents déposés : preuve de traitement d'une réclamation, photo de signalement, constat de terrain, documents de projet. Type déduit des octets, métadonnées EXIF retirées au dépôt." },
+      { name: 'Fichiers', description: "Photos et documents déposés : preuve de traitement d'une réclamation, photo de signalement, constat de terrain, documents de projet, rapports et études. Type déduit des octets, métadonnées EXIF retirées au dépôt." },
+      { name: 'Rapports et études', description: "Métadonnées des rapports et études d'une commune (TDR §3.2.9) : titre, catégorie, auteur déclaré, date. Le fichier lui-même est déposé par POST /fichiers." },
       { name: 'Supervision', description: "État de santé de l'API." },
     ],
   });

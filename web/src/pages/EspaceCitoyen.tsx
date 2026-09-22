@@ -20,9 +20,10 @@ import {
 import { Chargement, Erreur } from '../composants/Elements';
 import { CartePublique } from '../composants/CartePublique';
 import { FormulaireSignalement } from '../composants/FormulaireSignalement';
+import { ProposerPoint } from '../composants/ProposerPoint';
 import { Enlevement } from '../composants/Enlevement';
 
-type Onglet = 'collecte' | 'signaler' | 'enlevement' | 'carte';
+type Onglet = 'collecte' | 'signaler' | 'proposer' | 'enlevement' | 'carte';
 
 export function EspaceCitoyen() {
   const { t } = useTranslation();
@@ -44,11 +45,14 @@ export function EspaceCitoyen() {
     void recharger();
   }, [recharger]);
 
-  // Quatre onglets, dans l'ordre d'usage : ce qui revient chaque semaine
-  // d'abord, ce qui arrive une ou deux fois par an ensuite.
+  // Cinq onglets, dans l'ordre d'usage : ce qui revient chaque semaine
+  // d'abord, ce qui arrive une ou deux fois par an ensuite. « Proposer un
+  // point » vient juste après « Signaler » : les deux se ressemblent — une
+  // position et une photo — mais l'un signale un problème, l'autre un manque.
   const ONGLETS: Array<{ cle: Onglet; icone: string }> = [
     { cle: 'collecte', icone: '🗓' },
     { cle: 'signaler', icone: '📷' },
+    { cle: 'proposer', icone: '📍' },
     { cle: 'enlevement', icone: '🚚' },
     { cle: 'carte', icone: '🗺' },
   ];
@@ -64,6 +68,7 @@ export function EspaceCitoyen() {
         <>
           {onglet === 'collecte' && <MaCollecte adresse={adresse} onAdresseChangee={recharger} />}
           {onglet === 'signaler' && <FormulaireSignalement adresse={adresse} />}
+          {onglet === 'proposer' && <ProposerPoint adresse={adresse} />}
           {onglet === 'enlevement' && <Enlevement adresse={adresse} />}
           {onglet === 'carte' && <CartePublique communeId={adresse?.commune_id ?? undefined} />}
         </>
@@ -73,7 +78,7 @@ export function EspaceCitoyen() {
         className="fixed inset-x-0 bottom-0 z-[500] border-t border-ardoise-200 bg-white/95 backdrop-blur"
         aria-label={t('citoyen.navigation')}
       >
-        <div className="mx-auto grid max-w-2xl grid-cols-4">
+        <div className="mx-auto grid max-w-2xl grid-cols-5">
           {ONGLETS.map(({ cle, icone }) => (
             <button
               key={cle}

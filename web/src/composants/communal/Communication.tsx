@@ -19,9 +19,11 @@ import { useTranslation } from 'react-i18next';
 import {
   api,
   ErreurApi,
+  lireFichierLocal,
   type Publication,
   type Destinataires,
   type LigneDepouillement,
+  type PublicationDocument,
   type EnvoiNotification,
 } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
@@ -239,11 +241,23 @@ export function Communication({ communeId }: { communeId: string }) {
                         {t('communal.communication.resultats')}
                       </button>
                     )}
+                    {p.type === 'projet' && (
+                      <button
+                        type="button"
+                        onClick={() => setOuvert(ouvert === p.id ? null : p.id)}
+                        className="min-h-11 rounded-lg border border-ardoise-300 px-3 text-sm text-ardoise-700"
+                      >
+                        {t('communal.communication.documents', { n: p.documents ?? 0 })}
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 {ouvert === p.id && p.type === 'sondage' && (
                   <Depouillement publicationId={p.id} onErreur={setErreur} />
+                )}
+                {ouvert === p.id && p.type === 'projet' && (
+                  <DocumentsProjet communeId={communeId} publicationId={p.id} onErreur={setErreur} />
                 )}
               </li>
             ))}
@@ -583,6 +597,95 @@ function Depouillement({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// --- Documents d'un projet (B5.3.3) ------------------------------------------
+
+function DocumentsProjet({
+  communeId,
+  publicationId,
+  onErreur,
+}: {
+  communeId: string;
+  publicationId: string;
+  onErreur: (m: string | null) => void;
+}) {
+  const { t } = useTranslation();
+  const [documents, setDocuments] = useState<PublicationDocument[] | null>(null);
+  const [depotEnCours, setDepotEnCours] = useState(false);
+
+  const charger = useCallback(async () => {
+    try {
+      setDocuments(await api.documentsProjet(publicationId));
+    } catch (err) {
+      onErreur(err instanceof ErreurApi ? err.message : null);
+    }
+  }, [publicationId, onErreur]);
+
+  useEffect(() => {
+    void charger();
+  }, [charger]);
+
+  const deposer = async (fichier: File) => {
+    setDepotEnCours(true);
+    onErreur(null);
+    try {
+      const depose = await api.deposerFichier(communeId, {
+        ...(await lireFichierLocal(fichier)),
+        usage: 'document_projet',
+      });
+      await api.ajouterDocumentProjet(publicationId, {
+        nom: fichier.name,
+        url: depose.url,
+        typeMime: depose.type_mime,
+        tailleOctets: depose.taille_octets,
+      });
+      await charger();
+    } catch (err) {
+      onErreur(err instanceof ErreurApi ? err.message : null);
+    } finally {
+      setDepotEnCours(false);
+    }
+  };
+
+  if (!documents) return <div className="border-t border-ardoise-200 p-3"><Chargement /></div>;
+
+  return (
+    <div className="space-y-2 border-t border-ardoise-200 p-3">
+      {documents.length === 0 ? (
+        <p className="text-sm text-ardoise-600">{t('communal.communication.aucunDocument')}</p>
+      ) : (
+        <ul className="space-y-1">
+          {documents.map((d) => (
+            <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
+              <span className="min-w-0 truncate text-ardoise-800">{d.nom}</span>
+              <span className="shrink-0 text-xs text-ardoise-500">
+                {new Date(d.created_at).toLocaleDateString('fr-FR')}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <label
+        className={`inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 ${
+          depotEnCours ? 'opacity-50' : ''
+        }`}
+      >
+        {depotEnCours ? t('communal.communication.depotEnCours') : t('communal.communication.joindreDocument')}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,application/pdf"
+          className="sr-only"
+          disabled={depotEnCours}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = '';
+            if (f) void deposer(f);
+          }}
+        />
+      </label>
     </div>
   );
 }

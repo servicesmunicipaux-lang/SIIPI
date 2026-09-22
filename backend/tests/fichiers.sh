@@ -151,8 +151,15 @@ p = json.load(open('$T/r.json')).get('positionPhoto')
 print(1 if p and abs(p['lat']-36.8065) < 0.01 and abs(p['lng']-10.1815) < 0.01 else 0)" 2>/dev/null || echo erreur)"
 # Rendue, mais nulle part conservée : c'est toute la différence entre une
 # donnée fournie et une donnée prélevée.
+# Par SEGMENT du nom de colonne, coupé sur « _ » — un LIKE '%lat%' tenait
+# aussi « chemin_relatif », qui n'a rien d'une coordonnée : ce faux positif
+# aurait fait échouer la campagne à chaque exécution, sans lien avec ce
+# qu'elle prétend vérifier.
 chk "et elle n'est stockée dans aucune colonne" 0 \
-    "$(sql "SELECT count(*) FROM information_schema.columns WHERE table_name='fichiers' AND (column_name LIKE '%lat%' OR column_name LIKE '%position%' OR column_name LIKE '%gps%')")"
+    "$(sql "SELECT count(*) FROM information_schema.columns
+             WHERE table_name='fichiers'
+               AND EXISTS (SELECT 1 FROM unnest(string_to_array(column_name, '_')) AS seg
+                            WHERE seg IN ('lat','lng','gps','position'))")"
 chk "le fichier stocké est plus léger que l'envoyé" 1 \
     "$(python3 -c "print(1 if $(sql "SELECT taille_octets FROM fichiers WHERE id='$FICHIER'") < $ENVOYE else 0)")"
 curl -s -H "Authorization: Bearer $T_DIR" "$API/fichiers/$FICHIER" -o "$T/relu.bin"

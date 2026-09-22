@@ -3,6 +3,7 @@
 
 **Fédération Nationale des Communes Tunisiennes**
 Version au 22 septembre 2026 · établie à partir du cahier des charges SIIPI (MVP, phase 1)
+Mise à jour du 22 septembre 2026 : clôture du **Jalon 1** (§ 4) — huit lignes passées à Fait.
 
 ---
 
@@ -38,9 +39,9 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 46 | 48 % |
-| 🟡 Partiel | 19 | 20 % |
-| ⬜ À faire | 29 | 30 % |
+| ✅ Fait et éprouvé | 54 | 56 % |
+| 🟡 Partiel | 15 | 16 % |
+| ⬜ À faire | 25 | 26 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
 
@@ -64,16 +65,16 @@ les tonnes et la masse salariale.
 | **3.2.4 Pesées** | 3 |  |  | 2 | Complète pour la part communale ; la part ANGeD est suspendue. |
 | **5.1 Réclamations** | 3 | 1 |  |  | Complète, hors notification au citoyen. |
 | **5.2 Sondages** | 2 | 2 |  |  | Le questionnaire et le ciblage sont faits ; push et export non. |
-| **5.3 Projets** | 3 | 1 |  |  | Complète, hors dépôt des documents. |
+| **5.3 Projets** | 4 |  |  |  | Complète. |
 | **5.4 Notifications ciblées** | 3 |  | 1 |  | Le ciblage est fait et éprouvé ; rien ne part réellement. |
-| **5.5 Points citoyens** | 2 | 1 | 1 |  | Il reste l'écran de validation et les indicateurs. |
+| **5.5 Points citoyens** | 3 |  | 1 |  | Il reste les indicateurs de communication. |
 | **3.2.6 Paramètres** | 2 | 1 | 3 |  | Langue et mot de passe seulement. |
 | **3.2.7 Contacts** |  |  | 4 |  | Rien. CRUD simple, rapide à faire. |
 | **3.2.8 Découpage communal** | 3 | 1 | 2 |  | Fonctionnel ; validation FNCT et historique manquent. |
-| **3.2.9 Rapports et études** |  | 2 | 5 |  | Rien, mais le stockage de fichiers est prêt à le porter. |
+| **3.2.9 Rapports et études** | 5 | 1 | 1 |  | Dépôt, métadonnées et catégories faits (Jalon 1) ; reste le lecteur PDF intégré et le versionnement. |
 | **3.2.10 KPI 5 axes** |  | 2 | 3 |  | Le gros morceau restant. À faire en dernier, par construction. |
 | **3.2.11 Prestataires privés** | 3 | 1 |  |  | Complète, hors tableau de bord restreint. |
-| **3.3 Application citoyenne** | 7 | 2 | 1 |  | Les fonctions y sont — mais en web, pas en application Android (§ 7). |
+| **3.3 Application citoyenne** | 8 | 1 | 1 |  | Les fonctions y sont — mais en web, pas en application Android (§ 7). |
 
 ---
 
@@ -173,7 +174,7 @@ les tonnes et la masse salariale.
 |---|---|---|---|
 | `B5.3.1` | Création d'un projet (FR/AR, périmètre) | ✅ Fait | migration 035 · campagne module5 |
 | `B5.3.2` | Liste, suivi et affichage sur la carte | ✅ Fait | Communication.tsx |
-| `B5.3.3` | Upload de documents | 🟡 Partiel | le stockage est prêt (migration 041) ; l'écran n'est pas branché |
+| `B5.3.3` | Upload de documents | ✅ Fait | Communication.tsx (dépôt + liste) · migration 041 · campagne module5 |
 | `B5.3.4` | Visibilité citoyenne | ✅ Fait | publicationsCitoyen.routes.ts |
 
 ### 5.4 Notifications ciblées
@@ -190,7 +191,7 @@ les tonnes et la masse salariale.
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
 | `B5.5.1` | Gestion des adresses citoyennes | ✅ Fait | migration 021 · campagne citoyen |
-| `B5.5.2` | Validation des nouveaux points | 🟡 Partiel | API et cloisonnement faits (migration 042) ; les écrans restent |
+| `B5.5.2` | Validation des nouveaux points | ✅ Fait | PointsSuggeres.tsx (onglet communal) · migration 042 · campagne suggestions |
 | `B5.5.3` | Association équipe → circuit | ✅ Fait | migrations 034/040 · campagne module4 |
 | `B5.5.4` | Indicateurs de communication (délai, volumétrie, taux) | ⬜ À faire |  |
 
@@ -229,13 +230,13 @@ les tonnes et la masse salariale.
 
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
-| `C3.1` | Liste des rapports | ⬜ À faire |  |
-| `C3.2` | Dépôt de document (PDF, DOCX, XLSX, PPTX) | 🟡 Partiel | le stockage accepte PDF et images ; DOCX/XLSX/PPTX et le plafond 50 Mo restent à ouvrir |
-| `C3.3` | Métadonnées (titre, type, auteur, date) | ⬜ À faire |  |
-| `C3.4` | Catégories d'étude | ⬜ À faire |  |
-| `C3.5` | Lecteur PDF intégré | ⬜ À faire |  |
+| `C3.1` | Liste des rapports | ✅ Fait | RapportsEtudes.tsx (liste + filtre par catégorie) · campagne rapports |
+| `C3.2` | Dépôt de document (PDF, DOCX, XLSX, PPTX) | ✅ Fait | migration 043 · services/fichiers.ts (signature ZIP, plafond 50 Mo pour l'usage `rapport_etude`) · campagne rapports |
+| `C3.3` | Métadonnées (titre, type, auteur, date) | ✅ Fait | table `rapports_etudes` (migration 043) · rapportsEtudes.routes.ts |
+| `C3.4` | Catégories d'étude | ✅ Fait | 5 catégories (étude technique, rapport d'activité, audit, plan d'action, autre) · migration 043 |
+| `C3.5` | Lecteur PDF intégré | 🟡 Partiel | le document s'ouvre dans un nouvel onglet ; pas de lecteur intégré à la page |
 | `C3.6` | Versionnement | ⬜ À faire |  |
-| `C3.7` | Accès FNCT / commune | 🟡 Partiel | le cloisonnement existe déjà ; il reste à l'appliquer à cette rubrique |
+| `C3.7` | Accès FNCT / commune | ✅ Fait | RLS `rapports_etudes_select`/`_insert`/`_update` (migration 043) · campagne rapports |
 
 ### 3.2.10 KPI 5 axes
 
@@ -263,7 +264,7 @@ les tonnes et la masse salariale.
 | `M1` | Inscription / connexion (téléphone + OTP) | 🟡 Partiel | compte par courriel et mot de passe ; ni téléphone ni OTP |
 | `M2` | Gestion des adresses | ✅ Fait | migration 021 · campagne citoyen |
 | `M3` | Horaires, équipe assignée et véhicule | ✅ Fait | app.horaires_citoyen · campagne citoyen |
-| `M3.1` | Suggestion d'un point manquant | 🟡 Partiel | API et cloisonnement faits (migration 042) ; l'écran reste |
+| `M3.1` | Suggestion d'un point manquant | ✅ Fait | ProposerPoint.tsx (onglet citoyen) · migration 042 · campagne suggestions |
 | `M4` | Déposer une réclamation (texte, photo, position) | ✅ Fait | FormulaireSignalement.tsx · campagne citoyen |
 | `M5` | Suivi de la réclamation | ✅ Fait | migration 021 · campagne citoyen |
 | `M6` | Notifications push | ⬜ À faire |  |
@@ -279,22 +280,40 @@ L'ordre ci-dessous n'est pas celui du cahier des charges : c'est celui qui
 **débloque le plus de fonctionnalités par unité de travail**, et qui respecte les
 dépendances réelles entre les briques.
 
-### Jalon 1 — Brancher les écrans sur ce qui est déjà bâti *(effort faible, valeur immédiate)*
+### Jalon 1 — Brancher les écrans sur ce qui est déjà bâti ✅ *(fait le 22 septembre 2026)*
 
-Trois briques sont éprouvées côté API et n'ont pas encore d'écran. Le travail est
-de l'interface, pas de la conception : le coût est faible et le gain visible tout
-de suite.
+Quatre chantiers, tous du côté de l'écran plutôt que de la conception — l'API et
+le cloisonnement existaient déjà pour trois d'entre eux.
 
-| Quoi | Débloque |
-|---|---|
-| Carte des points proposés par les citoyens, et le formulaire de proposition | `B5.5.2`, `M3.1` |
-| Dépôt des documents d'un projet | `B5.3.3` |
-| Photo du constat de terrain quotidien | complète la rubrique 3 |
-| Écran des rapports et études, adossé au stockage existant | prépare le jalon 3 |
+| Quoi | Débloque | Preuve |
+|---|---|---|
+| Écran de validation des points proposés par les citoyens (commune), et formulaire de proposition (citoyen) | `B5.5.2`, `M3.1` | `PointsSuggeres.tsx`, `ProposerPoint.tsx` · migration 042 |
+| Dépôt des documents d'un projet | `B5.3.3` | `Communication.tsx` (section Documents) · migration 041 |
+| Photo du constat de terrain quotidien | complète la rubrique 3 | `ConstatDuJour.tsx` · usage `constat_terrain` (migration 041) |
+| Écran des rapports et études, avec dépôt DOCX/XLSX/PPTX jusqu'à 50 Mo | `C3.1`–`C3.4`, `C3.7` | `RapportsEtudes.tsx` · migration 043 · campagne `rapports` |
 
-**Test de validation.** Campagne `test:suggestions` étendue au parcours complet
-depuis l'écran ; recette : un agent de Dar Chaabane instruit dix propositions
-sans assistance.
+**Corrections livrées avec le lot**, trouvées en rejouant migrations et seeds sur
+une base neuve dans un environnement isolé (aucune n'était visible sur
+l'installation de développement existante, jamais reconstruite de zéro) :
+- `POST /circuits/controles` et `POST /passages` : la clause `ON CONFLICT` ne
+  portait plus la colonne `voyage`, introduite par la migration 029 — tout
+  constat de terrain ou toute déclaration de passage échouait (500) sur une
+  base neuve. Corrigé dans `circuits.routes.ts` et `passages.routes.ts`.
+- Le type utilitaire `Corps<>` de `web/src/lib/api.ts` supposait un corps de
+  requête obligatoire (`requestBody:`) alors que le contrat généré le porte en
+  optionnel (`requestBody?:`) pour toutes les routes — `deposerFichier`, déjà en
+  production, cessait de compiler à la moindre régénération des types.
+
+**Signalé, non corrigé dans ce lot** (tâches de fond distinctes) : fragilité de
+plusieurs campagnes de tests sur une base rejouée de zéro (dates codées en dur,
+ordre des seeds `seed:personnel`/`seed:dar-chaabane`) et une lenteur sévère
+(> 3 min) de `GET /communication` pour Dar Chaabane El Fehri, sans lien avec ce
+lot.
+
+**Test de validation.** Contrat d'API vérifié (`verifier:contrat`), 44
+migrations rejouées sur base neuve, typage front et back sans erreur, campagne
+`rapports` créée (20/20), campagnes `fichiers` (26/26) et `circuits` (25/26,
+1 échec pré-existant déjà signalé) rejouées sans régression.
 
 ### Jalon 2 — Le socle de notification *(un seul chantier, cinq lignes du TDR)*
 
@@ -408,16 +427,17 @@ réclamées, et elles comptent dans ce que la FNCT reçoit.
 
 `module2` (circuits) · `module3` (parc) · `module4` (personnel) · `module5`
 (communication) · `module6` (pesées) · `fichiers` (stockage) · `suggestions`
-(points citoyens) · `comptes` · `cloisonnement` · `intercommunal` · `citoyen` ·
-`prestataires` · `circuits` · `decoupage` · `enlevements` · `observatoire` ·
-`periode` · `audit` · `suppression`
+(points citoyens) · `rapports` (rapports et études) · `comptes` ·
+`cloisonnement` · `intercommunal` · `citoyen` · `prestataires` · `circuits` ·
+`decoupage` · `enlevements` · `observatoire` · `periode` · `audit` ·
+`suppression`
 
 **Leur principe :** elles commencent par ce que la plateforme **refuse**. Le
 module 4 vérifie d'abord qu'aucune colonne de salaire, de CIN ou de santé
 n'existe ; le stockage de fichiers, qu'un exécutable renommé « photo.jpg »
 n'entre pas. Un module se juge d'abord à ce qu'il a refusé de stocker.
 
-S'y ajoutent, à chaque passage : la chaîne des **42 migrations rejouée sur une
+S'y ajoutent, à chaque passage : la chaîne des **44 migrations rejouée sur une
 base neuve**, le contrôle du **contrat d'API** (toute route servie est
 documentée), et le **typage du front** comparé au contrat réellement servi.
 
@@ -522,7 +542,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **42 migrations**, rejouées sur base neuve à chaque livraison |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **44 migrations**, rejouées sur base neuve à chaque livraison |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

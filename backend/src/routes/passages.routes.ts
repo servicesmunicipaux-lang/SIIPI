@@ -34,6 +34,9 @@ const passageSchema = z.object({
   agentNom: z.string().optional(),
   photoUrl: z.string().optional(),
   remarque: z.string().optional(),
+  // Un circuit à un seul voyage garde 1, comme avant que la migration 029
+  // n'ouvre plusieurs rotations par jour.
+  voyage: z.number().int().min(1).max(6).optional(),
 });
 
 passagesRouter.post(
@@ -57,14 +60,14 @@ passagesRouter.post(
     const declaration = await queryOne(
       `INSERT INTO declarations_passage
          (circuit_id, commune_id, date_passage, statut, heure_debut, heure_fin,
-          mode_saisie, position, position_source, declare_par, agent_nom, photo_url, remarque)
+          mode_saisie, position, position_source, declare_par, agent_nom, photo_url, remarque, voyage)
        VALUES ($1, $2, COALESCE($3::date, CURRENT_DATE), $4, $5::timestamptz, $6::timestamptz,
                $7,
                CASE WHEN $8::double precision IS NULL OR $9::double precision IS NULL
                     THEN NULL
                     ELSE ST_SetSRID(ST_MakePoint($9, $8), 4326) END,
-               $10, $11, $12, $13, $14)
-       ON CONFLICT (circuit_id, date_passage) DO UPDATE
+               $10, $11, $12, $13, $14, COALESCE($15, 1))
+       ON CONFLICT (circuit_id, date_passage, voyage) DO UPDATE
          SET statut = EXCLUDED.statut,
              heure_debut = EXCLUDED.heure_debut,
              heure_fin = EXCLUDED.heure_fin,
@@ -75,7 +78,7 @@ passagesRouter.post(
              photo_url = EXCLUDED.photo_url,
              remarque = EXCLUDED.remarque,
              updated_at = now()
-       RETURNING id, circuit_id, commune_id, date_passage, statut, heure_debut, heure_fin,
+       RETURNING id, circuit_id, commune_id, date_passage, voyage, statut, heure_debut, heure_fin,
                  mode_saisie, position_source, agent_nom, photo_url, remarque, created_at`,
       [
         d.circuitId,
@@ -92,6 +95,7 @@ passagesRouter.post(
         d.agentNom ?? null,
         d.photoUrl ?? null,
         d.remarque ?? null,
+        d.voyage ?? null,
       ]
     );
     res.status(201).json(declaration);
@@ -106,7 +110,7 @@ passagesRouter.get(
     const depuis = typeof req.query.depuis === 'string' ? req.query.depuis : null;
 
     const lignes = await query(
-      `SELECT d.id, d.circuit_id, c.nom AS circuit_nom, d.commune_id, d.date_passage,
+      `SELECT d.id, d.circuit_id, c.nom AS circuit_nom, d.commune_id, d.date_passage, d.voyage,
               d.statut, d.heure_debut, d.heure_fin, d.mode_saisie, d.position_source,
               ST_Y(d.position) AS lat, ST_X(d.position) AS lng,
               d.agent_nom, d.photo_url, d.remarque, d.declare_par, d.created_at

@@ -32,6 +32,7 @@ import { peseesRouter } from './routes/pesees.routes.js';
 import { publicationsCitoyenRouter } from './routes/publicationsCitoyen.routes.js';
 import { passagesRouter } from './routes/passages.routes.js';
 import { fichiersRouter } from './routes/fichiers.routes.js';
+import { rapportsEtudesRouter } from './routes/rapportsEtudes.routes.js';
 import {
   pointsSuggeresRouter,
   pointsSuggeresCitoyenRouter,
@@ -97,11 +98,20 @@ app.use(
   })
 );
 app.use(cors({ origin: config.corsOrigin, credentials: true }));
-// 12 Mo : le plafond d'un fichier est de 8 Mo une fois DÉCODÉ, et l'encodage
-// base64 l'alourdit d'un tiers — 8 Mo deviennent 10,7 Mo sur le fil. Une
-// limite calée sur les 8 Mo aurait refusé, sans explication utilisable, toute
-// photo un peu grande : Express répond 413 avant que la route n'ait pu dire
-// laquelle des deux tailles pose problème.
+// 70 Mo sur /fichiers, et seulement là : un rapport ou une étude (usage
+// rapport_etude) va jusqu'à 50 Mo une fois DÉCODÉ, et l'encodage base64
+// l'alourdit d'un tiers — 50 Mo deviennent 67 Mo sur le fil. Élargir la
+// limite GÉNÉRALE à cette taille aurait laissé n'importe quelle route
+// accepter un corps de 70 Mo ; la limiter à ce seul chemin garde le reste de
+// l'API à son plafond habituel. Express saute un corps déjà lu par un
+// analyseur précédent — celui-ci fait donc écran avant le suivant, sans le
+// dédoubler.
+app.use('/fichiers', express.json({ limit: '70mb' }));
+// 12 Mo pour tout le reste : le plafond d'un fichier ordinaire est de 8 Mo
+// une fois DÉCODÉ, et l'encodage base64 l'alourdit d'un tiers — 8 Mo
+// deviennent 10,7 Mo sur le fil. Une limite calée sur les 8 Mo aurait refusé,
+// sans explication utilisable, toute photo un peu grande : Express répond 413
+// avant que la route n'ait pu dire laquelle des deux tailles pose problème.
 app.use(express.json({ limit: '12mb' }));
 app.use(morgan(config.isProduction ? 'combined' : 'dev'));
 
@@ -172,6 +182,7 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/citoyen', citoyenRouter],
   ['/enlevements', enlevementsRouter],
   ['/fichiers', fichiersRouter],
+  ['/rapports-etudes', rapportsEtudesRouter],
   ['/points-suggeres', pointsSuggeresRouter],
   // Monté sur le préfixe citoyen : la proposition et son suivi appartiennent
   // à l'espace du citoyen, l'instruction à celui de la commune. Deux publics,

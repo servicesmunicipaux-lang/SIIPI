@@ -1,6 +1,6 @@
 {
   "name": "siipi-backend",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "API REST SIIPI - Système d'Information Intelligent pour la Propreté Intercommunale (FNCT / ANGeD)",
@@ -20,7 +20,7 @@
     "seed:prod": "node dist/seed/seed.js",
     "test:cloisonnement": "sh tests/executer.sh cloisonnement",
     "test:audit": "sh tests/executer.sh audit",
-    "test": "npm run verifier:contrat && sh tests/executer.sh cloisonnement && sh tests/executer.sh audit && sh tests/executer.sh suppression && sh tests/executer.sh observatoire && sh tests/executer.sh circuits && sh tests/executer.sh prestataires && sh tests/executer.sh citoyen && sh tests/executer.sh enlevements && sh tests/executer.sh decoupage && sh tests/executer.sh periode && sh tests/executer.sh intercommunal && sh tests/executer.sh module2 && sh tests/executer.sh comptes && sh tests/executer.sh module3 && sh tests/executer.sh module4 && sh tests/executer.sh module5 && sh tests/executer.sh module6",
+    "test": "npm run verifier:contrat && sh tests/executer.sh cloisonnement && sh tests/executer.sh audit && sh tests/executer.sh suppression && sh tests/executer.sh observatoire && sh tests/executer.sh circuits && sh tests/executer.sh prestataires && sh tests/executer.sh citoyen && sh tests/executer.sh enlevements && sh tests/executer.sh decoupage && sh tests/executer.sh periode && sh tests/executer.sh intercommunal && sh tests/executer.sh module2 && sh tests/executer.sh comptes && sh tests/executer.sh module3 && sh tests/executer.sh module4 && sh tests/executer.sh module5 && sh tests/executer.sh module6 && sh tests/executer.sh fichiers && sh tests/executer.sh suggestions && sh tests/executer.sh rapports",
     "test:suppression": "sh tests/executer.sh suppression",
     "verifier:contrat": "tsx src/openapi/verifierContrat.ts",
     "openapi:export": "tsx src/openapi/exporter.ts",
@@ -41,7 +41,8 @@
     "test:module5": "sh tests/executer.sh module5",
     "test:module6": "sh tests/executer.sh module6",
     "test:fichiers": "sh tests/executer.sh fichiers",
-    "test:suggestions": "sh tests/executer.sh suggestions"
+    "test:suggestions": "sh tests/executer.sh suggestions",
+    "test:rapports": "sh tests/executer.sh rapports"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.4",

@@ -131,6 +131,7 @@
     "onglets": {
       "collecte": "Ma collecte",
       "signaler": "Signaler",
+      "proposer": "Proposer un point",
       "carte": "Carte",
       "enlevement": "Enlèvement"
     },
@@ -207,6 +208,31 @@
       "suiteAvecPosition": "Votre signalement est parti à la commune. Il apparaît sur la carte publique, sans votre nom et avec une position arrondie.",
       "suiteSansPosition": "Votre signalement est bien parti à la commune, qui le traitera. Il n’apparaîtra pas sur la carte publique : celle-ci n’affiche que les signalements localisés, et votre téléphone n’a pas transmis de position."
     },
+    "proposerPoint": {
+      "adresseRequise": "Renseignez d’abord votre adresse dans l’onglet « Ma collecte ».",
+      "titre": "Proposer un point manquant",
+      "explication": "Un endroit où la collecte devrait passer, mais n’a pas d’arrêt enregistré. Votre position et, si vous le pouvez, une photo suffisent : la commune décide ensuite où et si l’ajouter à une tournée.",
+      "nom": "Comment appelez-vous cet endroit ? (facultatif)",
+      "nomExemple": "En face de l’école, près de la mosquée…",
+      "commentaire": "Précisions (facultatif)",
+      "positionPrise": "Votre position a été relevée : la commune saura où regarder.",
+      "positionAbsente": "Position en cours de relevé…",
+      "photoAjoutee": "Photo ajoutée.",
+      "ajouterPhoto": "Ajouter une photo (facultatif)",
+      "depotEnCours": "Envoi de la photo…",
+      "envoyer": "Envoyer la proposition",
+      "envoiEnCours": "Envoi…",
+      "envoyee": "Proposition envoyée",
+      "suite": "La commune l’examinera et vous dira si elle est retenue, ou pourquoi elle ne l’est pas.",
+      "nouvelle": "Proposer un autre point",
+      "mesPropositions": "Mes propositions",
+      "sansNom": "Point sans nom",
+      "statuts": {
+        "en_attente": "En attente",
+        "valide": "Retenue",
+        "refuse": "Refusée"
+      }
+    },
     "carte": {
       "titre": "Carte des signalements",
       "resume": "{{total}} signalements localisés, dont {{resolus}} résolus",
@@ -281,6 +307,7 @@
     "onglets": {
       "constat": "Constat du jour",
       "reclamations": "Réclamations",
+      "suggestions": "Points suggérés",
       "preuve": "Preuve",
       "circuits": "Circuits",
       "carte": "Carte",
@@ -288,6 +315,7 @@
       "parc": "Parc",
       "personnel": "Personnel",
       "communication": "Communication",
+      "rapports": "Rapports et études",
       "pesees": "Pesées"
     },
     "etats": {
@@ -323,9 +351,38 @@
       "aucunAujourdhui": "Aucun passage n’est prévu aujourd’hui d’après les jours enregistrés.",
       "regie": "Régie communale",
       "remarque": "Remarque (facultative) — ce qui a été constaté",
+      "ajouterPhoto": "Ajouter une photo",
+      "remplacerPhoto": "Remplacer la photo",
+      "depotPhotoEnCours": "Envoi…",
+      "photo": "Photo du constat",
       "incidents": "Incidents signalés par le prestataire",
       "prendreEnCompte": "Prendre en compte",
       "clore": "Clore"
+    },
+    "pointsSuggeres": {
+      "titre": "Points de collecte suggérés",
+      "enAttente": "{{nombre}} en attente d’instruction",
+      "aucune": "Aucune proposition dans cette vue.",
+      "sansNom": "Point sans nom",
+      "voisin": "point le plus proche : {{nom}} ({{m}} m)",
+      "doublonProbable": "À moins de 30 m d’un point existant : vérifier qu’il ne s’agit pas d’un doublon avant de retenir la proposition.",
+      "photo": "Photo jointe à la proposition",
+      "motifDonne": "Motif du refus : {{motif}}",
+      "choisirCircuit": "Rattacher au circuit…",
+      "valider": "Retenir",
+      "motifRefus": "Motif du refus (obligatoire)",
+      "refuser": "Refuser",
+      "filtres": {
+        "en_attente": "En attente",
+        "valide": "Retenues",
+        "refuse": "Refusées",
+        "tous": "Toutes"
+      },
+      "statuts": {
+        "en_attente": "En attente",
+        "valide": "Retenue",
+        "refuse": "Refusée"
+      }
     },
     "reclamations": {
       "titre": "Réclamations citoyennes",
@@ -822,7 +879,36 @@
       "colDestinataires": "Destinataires",
       "colNonJoints": "Non joints",
       "nonJoints": "{{sans}} sans adresse, {{des}} désabonné(s)",
-      "noteHistorique": "L’historique retient la date, le périmètre et les volumes — jamais la liste des destinataires. Un envoi se justifie par son périmètre et son volume ; la liste nominative ne sert aucune opération."
+      "noteHistorique": "L’historique retient la date, le périmètre et les volumes — jamais la liste des destinataires. Un envoi se justifie par son périmètre et son volume ; la liste nominative ne sert aucune opération.",
+      "documents": "Documents ({{n}})",
+      "aucunDocument": "Aucun document joint à ce projet.",
+      "joindreDocument": "Joindre un document",
+      "depotEnCours": "Envoi…"
+    },
+    "rapportsEtudes": {
+      "titre": "Rapports et études",
+      "chapeau": "Études techniques, rapports d’activité, audits : un titre, une catégorie, un auteur — pour s’y retrouver un an plus tard.",
+      "deposer": "Déposer un document",
+      "aucun": "Aucun rapport ou étude dans cette vue.",
+      "ouvrir": "Ouvrir",
+      "retirer": "Retirer",
+      "champTitre": "Titre",
+      "champCategorie": "Catégorie",
+      "champAuteur": "Auteur (facultatif)",
+      "champAuteurExemple": "Bureau d’études, direction régionale…",
+      "champDate": "Date du document (facultative)",
+      "champFichier": "Fichier",
+      "champFichierAide": "PDF, Word, Excel ou PowerPoint, jusqu’à 50 Mo.",
+      "depotEnCours": "Envoi…",
+      "enregistrer": "Enregistrer",
+      "categories": {
+        "tous": "Toutes",
+        "etude_technique": "Étude technique",
+        "rapport_activite": "Rapport d’activité",
+        "audit": "Audit",
+        "plan_action": "Plan d’action",
+        "autre": "Autre"
+      }
     },
     "pesees": {
       "titre": "Pesées",

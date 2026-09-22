@@ -16,12 +16,13 @@ import { useTranslation } from 'react-i18next';
 import {
   api,
   ErreurApi,
+  lireFichierLocal,
   type Circuit,
   type ControleTerrain,
   type EtatControle,
   type IncidentPrestataire,
 } from '../../lib/api';
-import { Chargement, Erreur } from '../Elements';
+import { Chargement, Erreur, PhotoDeposee } from '../Elements';
 import { Coherence } from './Coherence';
 
 const ETATS: EtatControle[] = ['fait', 'partiel', 'non_fait'];
@@ -40,6 +41,7 @@ export function ConstatDuJour({ communeId }: { communeId: string }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState<string | null>(null);
   const [remarques, setRemarques] = useState<Record<string, string>>({});
+  const [depotPhotoEnCours, setDepotPhotoEnCours] = useState<string | null>(null);
 
   // Date du jour au format ISO, calculée en heure LOCALE. toISOString() aurait
   // renvoyé la veille pour toute heure avant 01 h 00 à Tunis (UTC+1) : le même
@@ -76,11 +78,12 @@ export function ConstatDuJour({ communeId }: { communeId: string }) {
   if (!circuits) return <Chargement />;
 
   const attendus = circuits.filter((c) => c.actif && (c.jours_passage ?? []).includes(jourSemaine));
-  const etatDe = (circuitId: string) =>
-    controles.find((ct) => ct.circuit_id === circuitId && ct.date_controle === aujourdhui)?.etat as
-      EtatControle | undefined;
+  const controleDuJour = (circuitId: string) =>
+    controles.find((ct) => ct.circuit_id === circuitId && ct.date_controle === aujourdhui);
+  const etatDe = (circuitId: string) => controleDuJour(circuitId)?.etat as EtatControle | undefined;
+  const photoDe = (circuitId: string) => controleDuJour(circuitId)?.photo_url ?? null;
 
-  const enregistrer = async (circuitId: string, etat: EtatControle) => {
+  const enregistrer = async (circuitId: string, etat: EtatControle, photoUrl?: string) => {
     setEnCours(circuitId);
     try {
       await api.enregistrerControle({
@@ -88,12 +91,31 @@ export function ConstatDuJour({ communeId }: { communeId: string }) {
         dateControle: aujourdhui,
         etat,
         remarque: remarques[circuitId] || undefined,
+        // Le constat déjà photographié ne perd pas sa photo au passage
+        // suivant : sans ce report, changer « partiel » en « fait » plus tard
+        // dans la journée effacerait silencieusement la preuve déposée.
+        photoUrl: photoUrl ?? photoDe(circuitId) ?? undefined,
       });
       await charger();
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
     } finally {
       setEnCours(null);
+    }
+  };
+
+  const deposerPhoto = async (circuitId: string, etat: EtatControle, fichier: File) => {
+    setDepotPhotoEnCours(circuitId);
+    try {
+      const depose = await api.deposerFichier(communeId, {
+        ...(await lireFichierLocal(fichier)),
+        usage: 'constat_terrain',
+      });
+      await enregistrer(circuitId, etat, depose.url);
+    } catch (err) {
+      setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
+    } finally {
+      setDepotPhotoEnCours(null);
     }
   };
 
@@ -171,6 +193,40 @@ export function ConstatDuJour({ communeId }: { communeId: string }) {
                     placeholder={t('communal.constat.remarque')}
                     className="mt-3 w-full rounded-lg border border-ardoise-300 px-3 py-2 text-sm"
                   />
+                )}
+
+                {/* La photo, comme la remarque, n'a de sens qu'une fois l'état
+                    posé — sans quoi elle documenterait un constat qui n'existe
+                    pas encore. */}
+                {etat && (
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <label
+                      className={`inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 ${
+                        depotPhotoEnCours === c.id ? 'opacity-50' : ''
+                      }`}
+                    >
+                      {depotPhotoEnCours === c.id
+                        ? t('communal.constat.depotPhotoEnCours')
+                        : photoDe(c.id)
+                          ? t('communal.constat.remplacerPhoto')
+                          : t('communal.constat.ajouterPhoto')}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        capture="environment"
+                        className="sr-only"
+                        disabled={depotPhotoEnCours !== null}
+                        onChange={(evt) => {
+                          const f = evt.target.files?.[0];
+                          evt.target.value = '';
+                          if (f) void deposerPhoto(c.id, etat, f);
+                        }}
+                      />
+                    </label>
+                    {photoDe(c.id) && (
+                      <PhotoDeposee chemin={photoDe(c.id)} alt={t('communal.constat.photo')} className="max-h-24 w-auto rounded-lg border border-ardoise-200" />
+                    )}
+                  </div>
                 )}
               </li>
             );

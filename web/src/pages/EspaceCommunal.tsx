@@ -26,11 +26,13 @@ import { Parc } from '../composants/communal/Parc';
 import { Personnel } from '../composants/communal/Personnel';
 import { Communication } from '../composants/communal/Communication';
 import { Pesees } from '../composants/communal/Pesees';
+import { PointsSuggeres } from '../composants/communal/PointsSuggeres';
+import { RapportsEtudes } from '../composants/communal/RapportsEtudes';
 import { NavigationOnglets } from '../composants/NavigationOnglets';
 
-type Onglet = 'constat' | 'carte' | 'reclamations' | 'preuve' | 'circuits' | 'parc' | 'personnel' | 'pesees' | 'communication' | 'comptes';
+type Onglet = 'constat' | 'carte' | 'reclamations' | 'suggestions' | 'preuve' | 'circuits' | 'parc' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'comptes';
 
-const ONGLETS: Onglet[] = ['constat', 'carte', 'reclamations', 'preuve', 'circuits', 'parc', 'personnel', 'pesees', 'communication', 'comptes'];
+const ONGLETS: Onglet[] = ['constat', 'carte', 'reclamations', 'suggestions', 'preuve', 'circuits', 'parc', 'personnel', 'pesees', 'communication', 'rapports', 'comptes'];
 
 export function EspaceCommunal({
   /** Commune imposée par l'appelant — l'annuaire national, qui vient de la
@@ -139,12 +141,14 @@ export function EspaceCommunal({
         {onglet === 'constat' && <ConstatDuJour communeId={communeId} />}
         {onglet === 'carte' && <CarteCommunale communeId={communeId} />}
         {onglet === 'reclamations' && <Reclamations communeId={communeId} />}
+        {onglet === 'suggestions' && <PointsSuggeres communeId={communeId} />}
         {onglet === 'preuve' && <Preuve communeId={communeId} />}
         {onglet === 'circuits' && <Circuits communeId={communeId} />}
         {onglet === 'parc' && <Parc communeId={communeId} />}
         {onglet === 'personnel' && <Personnel communeId={communeId} />}
         {onglet === 'pesees' && <Pesees communeId={communeId} />}
         {onglet === 'communication' && <Communication communeId={communeId} />}
+        {onglet === 'rapports' && <RapportsEtudes communeId={communeId} />}
         {onglet === 'comptes' && <Comptes communeId={communeId} />}
       </div>
     </div>
