@@ -37,7 +37,7 @@ COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
 EMAIL_TEST="test-notif@example.test"
 
 nettoyer() {
-  $PSQL -c "DELETE FROM notifications_envoyees WHERE titre LIKE 'TEST-NOTIF%';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM notifications_citoyen WHERE titre LIKE 'TEST-NOTIF%';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM tickets WHERE title LIKE 'TEST-NOTIF%';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM push_souscriptions WHERE endpoint LIKE 'https://exemple.test/%';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM publications WHERE titre_fr LIKE 'TEST-NOTIF%';" >/dev/null 2>&1
@@ -72,7 +72,7 @@ TICKET1=$(sql "INSERT INTO tickets (ticket_number, commune_id, category, title, 
                RETURNING id")
 code -X PATCH "$API/tickets/$TICKET1/accept" -H "Authorization: Bearer $T_DIR" >/dev/null
 chk "l'acceptation est consignée" "sans_souscription" \
-    "$(sql "SELECT statut FROM notifications_envoyees WHERE reference_id='$TICKET1' AND contexte='decision_reclamation'")"
+    "$(sql "SELECT statut FROM notifications_citoyen WHERE reference_id='$TICKET1' AND type='decision_reclamation'")"
 
 echo
 echo "3. Un désabonné ne reçoit rien"
@@ -83,7 +83,7 @@ TICKET2=$(sql "INSERT INTO tickets (ticket_number, commune_id, category, title, 
 code -X PATCH "$API/tickets/$TICKET2/refuse" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
   -d '{"reason":"TEST-NOTIF motif de refus"}' >/dev/null
 chk "le refus d'un désabonné est consigné « non_abonne »" "non_abonne" \
-    "$(sql "SELECT statut FROM notifications_envoyees WHERE reference_id='$TICKET2' AND contexte='decision_reclamation'")"
+    "$(sql "SELECT statut FROM notifications_citoyen WHERE reference_id='$TICKET2' AND type='decision_reclamation'")"
 $PSQL -c "UPDATE citoyens SET notifications = true WHERE id = '$CIT_ID';" >/dev/null 2>&1
 
 echo
@@ -95,9 +95,9 @@ TICKET3=$(sql "INSERT INTO tickets (ticket_number, commune_id, category, title, 
                RETURNING id")
 code -X PATCH "$API/tickets/$TICKET3/accept" -H "Authorization: Bearer $T_DIR" >/dev/null
 chk "l'envoi vers un endpoint injoignable échoue" "echec" \
-    "$(sql "SELECT statut FROM notifications_envoyees WHERE reference_id='$TICKET3' AND contexte='decision_reclamation'")"
+    "$(sql "SELECT statut FROM notifications_citoyen WHERE reference_id='$TICKET3' AND type='decision_reclamation'")"
 chk "et l'échec porte un message, pas un champ vide" 1 \
-    "$(sql "SELECT (length(coalesce(erreur,'')) > 0)::int FROM notifications_envoyees WHERE reference_id='$TICKET3' AND contexte='decision_reclamation'")"
+    "$(sql "SELECT (length(coalesce(erreur,'')) > 0)::int FROM notifications_citoyen WHERE reference_id='$TICKET3' AND type='decision_reclamation'")"
 
 echo
 echo "5. Une publication envoyée en push atteint le citoyen du périmètre (B5.2.3 / B5.4.3)"
@@ -109,15 +109,15 @@ code -X POST "$API/communication/$PUB/publier" -H "Authorization: Bearer $T_DIR"
 CODE=$(code -X POST "$API/communication/$PUB/envoyer" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' -d '{"canal":"push"}')
 chk "l'envoi est accepté" 201 "$CODE"
 chk "le citoyen ciblé a une tentative consignée" "echec" \
-    "$(sql "SELECT statut FROM notifications_envoyees WHERE reference_id='$PUB' AND citoyen_id='$CIT_ID' AND contexte='notification_ciblee'")"
+    "$(sql "SELECT statut FROM notifications_citoyen WHERE reference_id='$PUB' AND citoyen_id='$CIT_ID' AND type='notification_ciblee'")"
 
 echo
 echo "6. Cloisonnement — même schéma que envois_notification (campagne module5) : la commune compte, elle ne lit jamais qui"
 CIT_USER_ID=$(sql "SELECT user_id FROM citoyens WHERE id='$CIT_ID'")
 chk "un admin_commune ne peut pas lire le journal individuel" 0 \
-    "$(sql "BEGIN; SET LOCAL ROLE siipi_app; SET LOCAL app.role='admin_commune'; SET LOCAL app.commune_id='$COMMUNE'; SELECT count(*) FROM notifications_envoyees WHERE reference_id='$PUB'; ROLLBACK;" | tail -1)"
+    "$(sql "BEGIN; SET LOCAL ROLE siipi_app; SET LOCAL app.role='admin_commune'; SET LOCAL app.commune_id='$COMMUNE'; SELECT count(*) FROM notifications_citoyen WHERE reference_id='$PUB'; ROLLBACK;" | tail -1)"
 chk "le citoyen concerné voit ses propres notifications" 1 \
-    "$(sql "BEGIN; SET LOCAL ROLE siipi_app; SET LOCAL app.role='citoyen'; SET LOCAL app.user_id='$CIT_USER_ID'; SELECT (count(*) > 0)::int FROM notifications_envoyees WHERE citoyen_id='$CIT_ID'; ROLLBACK;" | tail -1)"
+    "$(sql "BEGIN; SET LOCAL ROLE siipi_app; SET LOCAL app.role='citoyen'; SET LOCAL app.user_id='$CIT_USER_ID'; SELECT (count(*) > 0)::int FROM notifications_citoyen WHERE citoyen_id='$CIT_ID'; ROLLBACK;" | tail -1)"
 
 echo
 echo "7. Les souscriptions push n'appartiennent qu'au citoyen"

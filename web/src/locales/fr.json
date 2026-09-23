@@ -298,6 +298,39 @@
       "activationEnCours": "Activation…",
       "plusTard": "Plus tard"
     },
+    "notifications": {
+      "ouvrir": "Notifications",
+      "titre": "Mes notifications",
+      "retour": "Retour",
+      "preferences": "Préférences",
+      "toutMarquerLu": "Tout marquer comme lu",
+      "vide": "Aucune notification pour le moment.",
+      "types": {
+        "decision_reclamation": "Réclamation",
+        "invitation_sondage": "Sondage",
+        "notification_ciblee": "Notification"
+      },
+      "statuts": {
+        "livre": "Envoyée",
+        "echec": "Échec d’envoi",
+        "non_abonne": "Notifications désactivées",
+        "non_souhaite": "Type désactivé dans vos préférences",
+        "sans_souscription": "Aucun appareil enregistré"
+      }
+    },
+    "preferences": {
+      "titre": "Préférences de notification",
+      "explication": "Choisissez ce que vous voulez recevoir, par type de notification. Un canal grisé n’est pas encore disponible.",
+      "canaux": {
+        "push": "Notifications push",
+        "sms": "SMS",
+        "email": "Courriel"
+      },
+      "bientotDisponible": "Bientôt disponible",
+      "enregistrer": "Enregistrer",
+      "enregistrementEnCours": "Enregistrement…",
+      "enregistre": "Préférences enregistrées"
+    },
     "statutsEnlevement": {
       "recue": "Reçue",
       "planifiee": "Planifiée",
@@ -405,7 +438,10 @@
       "photoApres": "Après traitement",
       "resoudreAvecPreuve": "Résoudre avec photo",
       "resoudreSansPreuve": "Résoudre sans photo",
-      "depotEnCours": "Envoi de la photo…"
+      "depotEnCours": "Envoi de la photo…",
+      "notificationEchec": "La notification de décision n’a pas pu être envoyée.",
+      "renvoyerNotification": "Renvoyer la notification",
+      "renvoiEnCours": "Renvoi…"
     },
     "filtresReclamation": {
       "ouvertes": "En cours",

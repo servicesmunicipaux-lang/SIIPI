@@ -123,6 +123,8 @@ export type AdresseCitoyen = Reponse<'/citoyen/adresse', 'get'>;
 export type HoraireCollecte = Reponse<'/citoyen/horaires', 'get'>[number];
 export type AnnonceCollecte = Reponse<'/citoyen/annonces', 'get'>[number];
 export type PointCarte = Reponse<'/citoyen/carte', 'get'>[number];
+export type NotificationCitoyen = Reponse<'/citoyen/notifications', 'get'>[number];
+export type PreferenceNotification = Reponse<'/citoyen/preferences', 'get'>[number];
 export type CollecteurAgree = Reponse<'/enlevements/collecteurs', 'get'>[number];
 
 // --- Espace communal -------------------------------------------------------
@@ -828,6 +830,25 @@ export const api = {
     requete<void>('/citoyen/push/souscriptions', {
       method: 'DELETE',
       body: JSON.stringify({ endpoint }),
+    }),
+
+  // --- Historique « Mes notifications » et préférences (M6) -------------------
+  mesNotifications: (nonLues?: boolean) =>
+    requete<NotificationCitoyen[]>(`/citoyen/notifications${nonLues ? '?nonLues=true' : ''}`),
+  marquerNotificationLue: (id: string) =>
+    requete<{ id: string; lu: boolean }>(`/citoyen/notifications/${encodeURIComponent(id)}/lu`, {
+      method: 'PUT',
+    }),
+  toutMarquerLu: () => requete<{ maj: number }>('/citoyen/notifications/tout-lu', { method: 'PUT' }),
+  mesPreferences: () => requete<PreferenceNotification[]>('/citoyen/preferences'),
+  enregistrerPreferences: (preferences: PreferenceNotification[]) =>
+    requete<void>('/citoyen/preferences', {
+      method: 'PUT',
+      body: JSON.stringify({ preferences }),
+    }),
+  renvoyerNotificationTicket: (ticketId: string) =>
+    requete<unknown>(`/tickets/${encodeURIComponent(ticketId)}/notification/renvoyer`, {
+      method: 'PATCH',
     }),
 
   // --- Rapports et études (TDR §3.2.9) --------------------------------------

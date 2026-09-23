@@ -325,4 +325,121 @@ citoyenRouter.delete(
   })
 );
 
+// ---------------------------------------------------------------------------
+// Historique « Mes notifications » et préférences par canal/type (M6).
+//
+// Aucune de ces routes ne filtre explicitement par citoyen_id : la politique
+// RLS `notifications_citoyen_select` / `preferences_notification_select`
+// borne déjà le résultat à `app.my_citizen_id()` pour un compte de rôle
+// citoyen (les deux autres clauses de la politique — FNCT, commune sur une
+// décision de réclamation — ne s'appliquent pas à ce rôle). Seules les
+// écritures qui créent une ligne (upsert des préférences) doivent fournir
+// l'identifiant explicitement, une politique RLS ne pouvant que vérifier une
+// valeur déjà posée, jamais la déduire pour l'appelant.
+// ---------------------------------------------------------------------------
+
+const CANAUX = ['push', 'sms', 'email'] as const;
+const TYPES_NOTIFICATION = ['decision_reclamation', 'invitation_sondage', 'notification_ciblee'] as const;
+
+citoyenRouter.get(
+  '/notifications',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const nonLues = req.query.nonLues === 'true';
+    const lignes = await query(
+      `SELECT id, type, canal, titre, corps, metadata, lu, statut, date_envoi
+         FROM notifications_citoyen
+        WHERE ($1::boolean IS FALSE OR NOT lu)
+        ORDER BY date_envoi DESC
+        LIMIT 200`,
+      [nonLues]
+    );
+    res.json(lignes);
+  })
+);
+
+citoyenRouter.put(
+  '/notifications/:id/lu',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const notif = await queryOne(
+      'UPDATE notifications_citoyen SET lu = true WHERE id = $1 RETURNING id, lu',
+      [req.params.id]
+    );
+    if (!notif) throw new ApiError(404, 'Notification introuvable.');
+    res.json(notif);
+  })
+);
+
+citoyenRouter.put(
+  '/notifications/tout-lu',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (_req, res) => {
+    const lignes = await query<{ id: string }>(
+      'UPDATE notifications_citoyen SET lu = true WHERE NOT lu RETURNING id'
+    );
+    res.json({ maj: lignes.length });
+  })
+);
+
+citoyenRouter.get(
+  '/preferences',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (_req, res) => {
+    const lignes = await query<{ canal: string; type: string; active: boolean }>(
+      'SELECT canal, type, active FROM preferences_notification'
+    );
+    // Table creuse (voir migration 044) : une combinaison absente vaut
+    // « activé ». On complète ici pour que l'écran Préférences n'ait jamais à
+    // deviner un défaut lui-même.
+    const connues = new Map(lignes.map((l) => [`${l.canal}:${l.type}`, l.active]));
+    const preferences = CANAUX.flatMap((canal) =>
+      TYPES_NOTIFICATION.map((type) => ({
+        canal,
+        type,
+        active: connues.get(`${canal}:${type}`) ?? true,
+      }))
+    );
+    res.json(preferences);
+  })
+);
+
+const preferencesSchema = z.object({
+  preferences: z
+    .array(
+      z.object({
+        canal: z.enum(CANAUX),
+        type: z.enum(TYPES_NOTIFICATION),
+        active: z.boolean(),
+      })
+    )
+    .min(1),
+});
+
+citoyenRouter.put(
+  '/preferences',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const d = preferencesSchema.parse(req.body);
+    const citoyen = await queryOne<{ id: string }>('SELECT id FROM citoyens WHERE user_id = $1', [req.user!.sub]);
+    if (!citoyen) throw new ApiError(404, 'Aucun profil citoyen rattaché à ce compte.');
+
+    for (const p of d.preferences) {
+      await query(
+        `INSERT INTO preferences_notification (citoyen_id, canal, type, active)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (citoyen_id, canal, type) DO UPDATE
+           SET active = EXCLUDED.active, updated_at = now()`,
+        [citoyen.id, p.canal, p.type, p.active]
+      );
+    }
+    res.status(204).end();
+  })
+);
+
 export { adresseSchema, annonceSchema, majAnnonceSchema, photoSchema, souscriptionSchema };

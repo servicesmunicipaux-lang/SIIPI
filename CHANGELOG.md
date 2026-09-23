@@ -5,6 +5,93 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.4.0] — 2026-09-23 — Jalon 2, lot 2 : clôture de `M6` (historique et préférences)
+
+### Ajouté
+- Historique « Mes notifications » côté citoyen : `GET /citoyen/notifications`
+  (+ `?nonLues=true`), `PUT /citoyen/notifications/:id/lu`,
+  `PUT /citoyen/notifications/tout-lu`. La table du lot 1
+  (`notifications_envoyees`) est renommée `notifications_citoyen` et étendue
+  de trois colonnes (`lu`, `metadata`, `tentatives`) — pas de nouvelle
+  migration : la 044 n'était pas encore fusionnée dans `main`.
+- Préférences par canal et par type : `GET`/`PUT /citoyen/preferences`, table
+  `preferences_notification` (creuse — une ligne absente vaut « activé », un
+  citoyen qui n'a jamais ouvert l'écran reçoit tout ce pour quoi il s'est
+  inscrit). Le service d'émission consulte la préférence avant d'envoyer, mais
+  consigne toujours l'issue dans l'historique — y compris quand rien n'est
+  parti (`non_souhaite`, `non_abonne`, `sans_souscription`) : c'est cette
+  trace, pas seulement les envois réussis, qui nourrit l'écran et son
+  compteur.
+- Écrans citoyens « Mes notifications » (liste chronologique, non-lus mis en
+  évidence, tout marquer lu, état vide) et « Préférences » (canaux × types,
+  SMS et courriel grisés — non câblés), atteints depuis une cloche à compteur
+  de non-lus dans l'en-tête de l'espace citoyen. Bilingue FR/AR, RTL compris.
+- Relance manuelle (« Renvoyer ») d'un envoi en échec :
+  `PATCH /tickets/:id/notification/renvoyer` et `renvoyerNotification()`
+  (`services/notifications.ts`), plus le bouton correspondant dans l'écran
+  Réclamations du back-office communal. Réservée aux décisions de
+  réclamation — la commune connaît déjà ce citoyen par le ticket qu'elle
+  instruit, retenir cette seule ligne ne lui apprend rien de plus ; un envoi
+  lié à une publication reste invisible d'une commune, comme au lot 1.
+  Re-résout la souscription du citoyen au moment de la relance, pas celle
+  d'hier : un citoyen réabonné depuis reçoit l'essai suivant sur son nouvel
+  appareil.
+- Nouvelle campagne de tests `notifications-citoyen` (25/25) : RLS croisée
+  entre citoyens, historique conservé malgré un type désactivé et malgré
+  l'opt-out global, compteur de non-lus, « tout marquer lu », relance refusée
+  hors échec puis acceptée. `npm run test` inclut désormais cette campagne.
+
+### Décisions et limites à retenir
+
+**« Push seul, pas de SMS » (confirmé à la clôture de `M6`).** Le SMS et le
+courriel restent acceptés par le modèle de données (`canal`, contrainte
+`preferences_canal_valide`) mais aucun des deux n'émet quoi que ce soit : la
+préférence de la feuille de route § 7.2 est un seul canal sans fournisseur
+externe à payer ni à choisir, et le SMS dépend d'une décision distincte liée
+à l'inscription citoyenne par téléphone (`M1`). Proposer le SMS comme
+fonctionnel dans l'écran Préférences aurait promis au citoyen une réception
+qui n'aurait jamais lieu ; l'écran le grise donc explicitement plutôt que de
+le masquer, pour que la limite reste visible plutôt que silencieuse.
+
+**Leçon RLS retenue en cours de route : `INSERT ... ON CONFLICT ... DO
+UPDATE` sur une table RLS exige une politique `UPDATE`, même quand aucun
+conflit ne survient.** PostgreSQL vérifie les permissions de toutes les
+clauses d'une requête au moment de la *planifier*, pas seulement de celles
+qu'elle exécute — un upsert dont c'est le tout premier passage (donc sans
+conflit réel) échoue déjà sur la clause `DO UPDATE` absente de politique
+(erreur `42501`). Découverte sur `push_souscriptions` (lot 1, premier
+`POST /citoyen/push/souscriptions` en échec), et appliquée par anticipation à
+`preferences_notification` dès sa création dans ce lot, pour la même raison
+d'upsert.
+
+**Statut de `M6` avant cette clôture.** Le lot 1 avait dû construire le
+mécanisme même de `M6` (abonnement du navigateur, réception, clic vers
+l'application) pour être testable, sans quoi émettre un push n'aurait eu
+personne à joindre — mais sans l'historique côté citoyen ni les préférences
+fines, qui restaient à construire. `M6` n'était donc pas coché à l'issue du
+lot 1 ; il l'est avec ce lot.
+
+**Limite assumée : une seule tentative automatique par envoi.** L'automatisme
+ne retente jamais un échec en silence — chaque tentative est consignée
+immédiatement, résultat compris. La relance ajoutée dans ce lot est la
+mitigation retenue : un agent peut relancer explicitement un envoi en échec
+(jamais l'inverse — l'automatisme reste à une tentative), et chaque relance
+incrémente `tentatives` plutôt que de créer une nouvelle ligne, pour que
+l'historique reste lisible comme une seule notification qui a fini par
+aboutir ou non.
+
+### État de l'art à la clôture de ce lot
+45 migrations rejouées sur base neuve · contrat OpenAPI conforme (153 routes
+servies, 153 documentées) · typage front et back sans erreur · campagnes
+`notifications-citoyen` (25/25, nouvelle) et `notifications` (16/16, rejouée
+sans régression après le renommage de table) · `citoyen` (43/43), `module5`
+(31/31) et le reste de la suite sans régression additionnelle imputable à ce
+lot (cinq échecs pré-existants et sans rapport — dates codées en dur,
+découpage officiel non importé sur cette base de test, ordre des seeds —
+signalés séparément, voir le rapport de lot).
+
+---
+
 ## [0.3.0] — 2026-09-22 — Jalon 2, lot 1 : le socle de notification (push)
 
 Décision retenue avec l'utilisateur : un seul canal pour ce lot, le **push

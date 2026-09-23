@@ -331,7 +331,7 @@ communicationRouter.post(
     // encore derrière — décision distincte, liée au fournisseur SMS de M1).
     // Un échec du service d'émission ne défait pas l'agrégat déjà écrit
     // ci-dessus : l'agent voit « envoyé », et un envoi individuel manqué se
-    // lit dans notifications_envoyees plutôt que de faire échouer ce geste.
+    // lit dans notifications_citoyen plutôt que de faire échouer ce geste.
     if (d.canal === 'push') {
       const contexte = p.type === 'sondage' ? 'invitation_sondage' : 'notification_ciblee';
       const titre = p.titre_fr;

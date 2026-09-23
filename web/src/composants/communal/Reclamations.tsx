@@ -38,6 +38,7 @@ export function Reclamations({ communeId }: { communeId: string }) {
   const [filtre, setFiltre] = useState<string>('ouvertes');
   const [motifRefus, setMotifRefus] = useState<Record<string, string>>({});
   const [depotEnCours, setDepotEnCours] = useState<string | null>(null);
+  const [renvoiEnCours, setRenvoiEnCours] = useState<string | null>(null);
 
   const charger = async () => {
     try {
@@ -105,6 +106,18 @@ export function Reclamations({ communeId }: { communeId: string }) {
       await charger();
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
+    }
+  };
+
+  // Une seule tentative automatique (M6) : un échec n'est jamais réessayé en
+  // silence, mais un agent peut relancer explicitement — voir
+  // services/notifications.ts côté API.
+  const renvoyerNotification = async (id: string) => {
+    setRenvoiEnCours(id);
+    try {
+      await agir(() => api.renvoyerNotificationTicket(id));
+    } finally {
+      setRenvoiEnCours(null);
     }
   };
 
@@ -219,6 +232,27 @@ export function Reclamations({ communeId }: { communeId: string }) {
                       </a>
                     )}
                   </p>
+                )}
+
+                {/* Une seule tentative automatique : un échec reste visible et
+                    relançable tant qu'il n'a pas réussi, plutôt que de se
+                    perdre silencieusement dans le journal. */}
+                {r.notification_statut === 'echec' && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-2">
+                    <span className="text-sm text-red-900">
+                      {t('communal.reclamations.notificationEchec')}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void renvoyerNotification(r.id)}
+                      disabled={renvoiEnCours === r.id}
+                      className="min-h-9 rounded-lg border border-red-300 bg-white px-3 text-sm font-medium text-red-800 disabled:opacity-50"
+                    >
+                      {renvoiEnCours === r.id
+                        ? t('communal.reclamations.renvoiEnCours')
+                        : t('communal.reclamations.renvoyerNotification')}
+                    </button>
+                  </div>
                 )}
 
                 <div className="mt-3 flex flex-wrap gap-2">

@@ -5,6 +5,7 @@
 Version au 22 septembre 2026 · établie à partir du cahier des charges SIIPI (MVP, phase 1)
 Mise à jour du 22 septembre 2026 : clôture du **Jalon 1** (§ 4) — huit lignes passées à Fait.
 Mise à jour du 22 septembre 2026 (suite) : **Jalon 2, lot 1** (B5.1.2, B5.2.3, B5.4.3) — le push web est réellement émis. Le mécanisme d'abonnement du citoyen (`M6`) a dû être construit avec, pour que l'envoi ait un destinataire à joindre — voir le rapport de lot avant de considérer `M6` clos.
+Mise à jour du 23 septembre 2026 : **`M6` clos** — historique « Mes notifications », préférences par canal et par type, et relance manuelle (« Renvoyer ») d'un envoi en échec.
 
 ---
 
@@ -40,9 +41,9 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 56 | 58 % |
+| ✅ Fait et éprouvé | 57 | 59 % |
 | 🟡 Partiel | 14 | 15 % |
-| ⬜ À faire | 24 | 25 % |
+| ⬜ À faire | 23 | 24 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
 
@@ -268,7 +269,7 @@ les tonnes et la masse salariale.
 | `M3.1` | Suggestion d'un point manquant | ✅ Fait | ProposerPoint.tsx (onglet citoyen) · migration 042 · campagne suggestions |
 | `M4` | Déposer une réclamation (texte, photo, position) | ✅ Fait | FormulaireSignalement.tsx · campagne citoyen |
 | `M5` | Suivi de la réclamation | ✅ Fait | migration 021 · campagne citoyen |
-| `M6` | Notifications push | ⬜ À faire |  |
+| `M6` | Notifications push | ✅ Fait | migration 044 (`notifications_citoyen`, `preferences_notification`) · routes citoyen.routes.ts · campagne `notifications-citoyen` |
 | `M7` | Participation aux sondages | ✅ Fait | publicationsCitoyen.routes.ts · campagne module5 |
 | `M8` | Visibilité de l'équipe de collecte | ✅ Fait | app.horaires_citoyen · campagne citoyen |
 | `M9` | Bilinguisme FR / AR avec RTL | ✅ Fait | i18n.ts · tout l'espace citoyen |
@@ -316,24 +317,23 @@ migrations rejouées sur base neuve, typage front et back sans erreur, campagne
 `rapports` créée (20/20), campagnes `fichiers` (26/26) et `circuits` (25/26,
 1 échec pré-existant déjà signalé) rejouées sans régression.
 
-### Jalon 2 — Le socle de notification *(un seul chantier, cinq lignes du TDR)*
+### Jalon 2 — Le socle de notification ✅ *(fait le 23 septembre 2026)*
 
-**Lot 1 — `B5.1.2`, `B5.2.3`, `B5.4.3` : fait le 22 septembre 2026, en attente
-de validation avant `M6`.**
+**Lot 1 — `B5.1.2`, `B5.2.3`, `B5.4.3` : fait le 22 septembre 2026.**
 
 Décision retenue avec l'utilisateur : un seul canal pour ce lot, le **push
 web** (Web Push API + VAPID) — aucun fournisseur externe à payer ni à choisir.
 SMS et courriel restent enregistrables comme canal choisi mais n'émettent
 encore rien (décision de fournisseur distincte, liée à `M1`, § 7.2). Politique
-de retry retenue : **une seule tentative**, un échec est consigné
+de retry retenue : **une seule tentative automatique**, un échec est consigné
 immédiatement, jamais réessayé en silence.
 
 Construit dans ce lot (migration 044) :
 - `push_souscriptions` — l'endpoint du navigateur d'un citoyen, qu'il
   enregistre lui-même (aucune commune n'y a accès).
-- `notifications_envoyees` — une ligne par tentative individuelle, avec son
-  issue (`livre`/`echec`/`non_abonne`/`sans_souscription`) ; lecture réservée
-  à la FNCT et au citoyen concerné, jamais à la commune — qui continue de lire
+- Le journal d'envoi individuel — une ligne par tentative, avec son issue
+  (`livre`/`echec`/`non_abonne`/`sans_souscription`) ; lecture réservée à la
+  FNCT et au citoyen concerné, jamais à la commune — qui continue de lire
   l'agrégat de `envois_notification` (campagne module5), jamais qui a reçu
   quoi.
 - Le ciblage d'une publication reste entièrement en SQL (fonctions
@@ -342,18 +342,51 @@ Construit dans ce lot (migration 044) :
 - Côté citoyen : bandeau d'abonnement (`AbonnementPush.tsx`), gestion `push` /
   `notificationclick` dans le service worker (`web/public/sw.js`).
 
-**Ce que ce lot a dû construire pour être testable : le mécanisme même de
-`M6`** (abonnement du navigateur, réception, clic vers l'application) — on ne
-peut pas émettre un push sans que quelqu'un puisse le recevoir. `M6` n'est
-donc pas coché ici : voir le rapport de lot pour ce qui reste ouvert
-(historique « mes notifications » côté citoyen, préférences par canal) avant
-de le considérer clos.
+Ce lot avait dû construire, pour être testable, le mécanisme même de `M6`
+(abonnement du navigateur, réception, clic vers l'application) — sans
+l'historique côté citoyen ni les préférences fines, objets du lot 2.
 
-**Test de validation retenu.** Campagne `notifications` (16/16) : un échec de
+**Test de validation.** Campagne `notifications` (16/16) : un échec de
 livraison est consigné et non silencieux (endpoint injoignable → `echec` avec
 message) ; un désabonné ne reçoit rien (`non_abonne`) ; une commune ne peut
 pas lire le journal individuel (RLS vérifiée par émulation de rôle) ; le
 citoyen concerné voit ses propres envois.
+
+**Lot 2 — clôture de `M6` : fait le 23 septembre 2026.**
+
+Le journal d'envoi du lot 1 (`notifications_envoyees`) est devenu
+`notifications_citoyen` : même table, renommée et étendue (`lu`, `metadata`,
+`tentatives`) pour porter aussi l'historique citoyen — pas de migration
+séparée, la précédente n'était pas encore fusionnée dans `main`. Construit
+dans ce lot :
+- `preferences_notification` (canal × type, table creuse : une ligne absente
+  vaut « activé ») — le citoyen choisit ce qu'il veut recevoir, par type de
+  notification. Le service d'émission la consulte avant d'envoyer, mais
+  consigne toujours l'issue dans l'historique, y compris quand rien n'est
+  parti.
+- API citoyenne : `GET /citoyen/notifications` (+ `?nonLues=true`),
+  `PUT .../notifications/:id/lu`, `PUT .../notifications/tout-lu`,
+  `GET`/`PUT /citoyen/preferences`.
+- Écrans « Mes notifications » (liste chronologique, non-lus mis en évidence,
+  tout marquer lu, état vide) et « Préférences » (canaux × types, SMS et
+  courriel grisés — non câblés) — bilingues FR/AR, RTL compris — atteints
+  depuis une cloche à compteur de non-lus dans l'en-tête de l'espace citoyen.
+- Relance manuelle (« Renvoyer ») d'un envoi en échec, depuis l'écran
+  Réclamations du back-office communal (`PATCH
+  /tickets/:id/notification/renvoyer`) — réservée aux décisions de
+  réclamation (la commune connaît déjà ce citoyen par le ticket qu'elle
+  instruit) ; une publication reste invisible d'une commune, comme au lot 1.
+  L'automatisme, lui, continue de ne tenter qu'une fois.
+
+**Test de validation.** Campagne `notifications-citoyen` (25/25, nouvelle) :
+RLS croisée (un citoyen ne lit ni l'historique ni les préférences d'un
+autre) ; l'historique reste renseigné malgré un type désactivé (`non_souhaite`)
+et malgré l'opt-out global (`non_abonne`) ; compteur de non-lus exact ; « tout
+marquer lu » vide le compteur sans supprimer l'historique ; relance manuelle
+refusée hors échec (400), acceptée sur un échec et incrémente `tentatives`.
+Campagne `notifications` rejouée sans régression (16/16) après le
+renommage de table. Contrat d'API vérifié, 45 migrations rejouées sur base
+neuve, typage front et back sans erreur.
 
 ### Jalon 3 — Rapports et études, puis Contacts *(deux CRUD simples)*
 

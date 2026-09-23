@@ -4,9 +4,26 @@ import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { journaliserAccesCitoyens } from '../services/accessLog.js';
-import { notifierDecisionReclamation } from '../services/notifications.js';
+import { notifierDecisionReclamation, renvoyerNotification } from '../services/notifications.js';
 
 export const ticketsRouter = Router();
+
+// Le statut de la dernière notification de décision, jointe à chaque ticket
+// pour que l'écran puisse afficher un échec et proposer de le relancer sans
+// appel supplémentaire. La jointure suit les mêmes politiques RLS que toute
+// autre lecture de notifications_citoyen : un Gestionnaire Prestataire ne
+// verra jamais cette colonne renseignée (il n'a pas à agir dessus).
+const TICKET_SELECT = `
+  SELECT t.*, n.id AS notification_id, n.statut AS notification_statut
+    FROM tickets t
+    LEFT JOIN LATERAL (
+      SELECT nc.id, nc.statut
+        FROM notifications_citoyen nc
+       WHERE nc.reference_id = t.id AND nc.type = 'decision_reclamation'
+       ORDER BY nc.date_envoi DESC
+       LIMIT 1
+    ) n ON true
+`;
 
 ticketsRouter.get(
   '/',
@@ -17,17 +34,18 @@ ticketsRouter.get(
     // transférés (?assignedToMe=true), plutôt que de voir tout le trafic de la commune.
     const assignedToMe = req.query.assignedToMe === 'true';
     if (assignedToMe && req.user) {
-      const rows = await query('SELECT * FROM tickets WHERE assigned_prestataire_id = $1 ORDER BY created_at DESC', [
-        req.user.sub,
-      ]);
+      const rows = await query(
+        `${TICKET_SELECT} WHERE t.assigned_prestataire_id = $1 ORDER BY t.created_at DESC`,
+        [req.user.sub]
+      );
       // Les réclamations portent le nom et le téléphone déclarés par le citoyen :
       // toute consultation par un agent est journalisée (décret-loi 2022-54).
       await journaliserAccesCitoyens('GET /tickets?assignedToMe', rows);
       return res.json(rows);
     }
     const rows = communeId
-      ? await query('SELECT * FROM tickets WHERE commune_id = $1 ORDER BY created_at DESC', [communeId])
-      : await query('SELECT * FROM tickets ORDER BY created_at DESC LIMIT 500');
+      ? await query(`${TICKET_SELECT} WHERE t.commune_id = $1 ORDER BY t.created_at DESC`, [communeId])
+      : await query(`${TICKET_SELECT} ORDER BY t.created_at DESC LIMIT 500`);
     await journaliserAccesCitoyens('GET /tickets', rows);
     res.json(rows);
   })
@@ -297,6 +315,30 @@ ticketsRouter.patch(
     }
 
     res.json(updated);
+  })
+);
+
+// PATCH /tickets/:id/notification/renvoyer — relance manuelle d'une
+// notification de décision ÉCHOUÉE. Jamais automatique (une seule tentative
+// — voir notifications.ts) : c'est un geste d'agent, explicite.
+ticketsRouter.patch(
+  '/:id/notification/renvoyer',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const ticket = await loadTicketOrThrow(req.params.id);
+    assertCommuneAccess(req, ticket);
+
+    const notif = await queryOne<{ id: string }>(
+      `SELECT id FROM notifications_citoyen
+        WHERE reference_id = $1 AND type = 'decision_reclamation'
+        ORDER BY date_envoi DESC LIMIT 1`,
+      [req.params.id]
+    );
+    if (!notif) throw new ApiError(404, 'Aucune notification à relancer pour ce ticket.');
+
+    await renvoyerNotification(notif.id);
+    res.json(await queryOne(`${TICKET_SELECT} WHERE t.id = $1`, [req.params.id]));
   })
 );
 
