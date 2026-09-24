@@ -20,6 +20,15 @@ export const config = {
   // en production.
   authRateLimitMax: Number(process.env.AUTH_RATE_LIMIT_MAX ?? 20),
   isProduction: process.env.NODE_ENV === 'production',
+  // Notifications push (Jalon 2, lot 1) : une paire de clés VAPID identifie
+  // le serveur auprès des navigateurs, comme un certificat auto-signé — ce
+  // n'est pas un secret d'authentification, et son absence ne doit pas
+  // empêcher le reste de l'API de démarrer. Sans elle, le service d'émission
+  // consigne un échec au lieu d'envoyer, plutôt que de faire échouer
+  // l'application entière pour une fonctionnalité qui reste best-effort.
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? '',
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? '',
+  vapidSubject: process.env.VAPID_SUBJECT ?? 'mailto:contact@fnct.tn',
 };
 
 if (config.isProduction && config.jwtSecret.startsWith('dev_only')) {

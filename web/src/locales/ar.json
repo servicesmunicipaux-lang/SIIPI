@@ -300,6 +300,45 @@
       "autre": "أخرى",
       "ddc": "نفايات الهدم والبناء"
     },
+    "push": {
+      "proposition": "هل تريد تلقي إشعار عند معالجة تبليغك، أو عند توجيه استطلاع إليك؟",
+      "activer": "تفعيل",
+      "activationEnCours": "جارٍ التفعيل…",
+      "plusTard": "لاحقاً"
+    },
+    "notifications": {
+      "ouvrir": "الإشعارات",
+      "titre": "إشعاراتي",
+      "retour": "رجوع",
+      "preferences": "التفضيلات",
+      "toutMarquerLu": "تعليم الكل كمقروء",
+      "vide": "لا توجد إشعارات في الوقت الحالي.",
+      "types": {
+        "decision_reclamation": "إبلاغ",
+        "invitation_sondage": "استطلاع",
+        "notification_ciblee": "إشعار"
+      },
+      "statuts": {
+        "livre": "تم الإرسال",
+        "echec": "فشل الإرسال",
+        "non_abonne": "الإشعارات معطّلة",
+        "non_souhaite": "هذا النوع معطّل في تفضيلاتك",
+        "sans_souscription": "لا يوجد جهاز مسجّل"
+      }
+    },
+    "preferences": {
+      "titre": "تفضيلات الإشعارات",
+      "explication": "اختر ما تريد تلقيه، حسب نوع الإشعار. القناة الرمادية غير متاحة بعد.",
+      "canaux": {
+        "push": "إشعارات الدفع",
+        "sms": "رسالة نصية",
+        "email": "بريد إلكتروني"
+      },
+      "bientotDisponible": "قريباً",
+      "enregistrer": "حفظ",
+      "enregistrementEnCours": "جارٍ الحفظ…",
+      "enregistre": "تم حفظ التفضيلات"
+    },
     "statutsEnlevement": {
       "recue": "مستلم",
       "planifiee": "مبرمج",
@@ -407,7 +446,10 @@
       "photoApres": "بعد المعالجة",
       "resoudreAvecPreuve": "المعالجة مع صورة",
       "resoudreSansPreuve": "المعالجة دون صورة",
-      "depotEnCours": "جارٍ إرسال الصورة…"
+      "depotEnCours": "جارٍ إرسال الصورة…",
+      "notificationEchec": "تعذر إرسال إشعار القرار إلى المواطن.",
+      "renvoyerNotification": "إعادة إرسال الإشعار",
+      "renvoiEnCours": "جارٍ إعادة الإرسال…"
     },
     "filtresReclamation": {
       "ouvertes": "جارية",

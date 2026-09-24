@@ -4,6 +4,7 @@ import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
+import { notifierPublication } from '../services/notifications.js';
 
 export const communicationRouter = Router();
 
@@ -290,8 +291,11 @@ communicationRouter.post(
   asyncHandler(async (req, res) => {
     const d = z.object({ canal: z.enum(['push', 'sms', 'email']).default('push') }).parse(req.body ?? {});
 
-    const p = await queryOne<{ id: string; commune_id: string; statut: string; est_exemple: boolean; perimetre_type: string }>(
-      'SELECT id, commune_id, statut, est_exemple, perimetre_type FROM publications WHERE id = $1 AND deleted_at IS NULL',
+    const p = await queryOne<{
+      id: string; commune_id: string; statut: string; est_exemple: boolean; perimetre_type: string;
+      type: string; titre_fr: string; contenu_fr: string | null;
+    }>(
+      'SELECT id, commune_id, statut, est_exemple, perimetre_type, type, titre_fr, contenu_fr FROM publications WHERE id = $1 AND deleted_at IS NULL',
       [req.params.id]
     );
     if (!p) throw new ApiError(404, 'Publication introuvable.');
@@ -321,6 +325,24 @@ communicationRouter.post(
       [req.params.id, p.commune_id, d.canal, compte.joignables, compte.sans_adresse,
        compte.desabonnes, p.perimetre_type, req.user!.sub]
     );
+
+    // L'envoi RÉEL, pour l'instant réservé au push (B5.4.3 : le SMS et le
+    // courriel restent enregistrables comme canal choisi, mais rien ne part
+    // encore derrière — décision distincte, liée au fournisseur SMS de M1).
+    // Un échec du service d'émission ne défait pas l'agrégat déjà écrit
+    // ci-dessus : l'agent voit « envoyé », et un envoi individuel manqué se
+    // lit dans notifications_citoyen plutôt que de faire échouer ce geste.
+    if (d.canal === 'push') {
+      const contexte = p.type === 'sondage' ? 'invitation_sondage' : 'notification_ciblee';
+      const titre = p.titre_fr;
+      const corps = p.contenu_fr ?? p.titre_fr;
+      try {
+        await notifierPublication(p.commune_id, p.id, contexte, titre, corps);
+      } catch (err) {
+        console.error('[communication] envoi push non abouti :', err);
+      }
+    }
+
     res.status(201).json(envoi);
   })
 );

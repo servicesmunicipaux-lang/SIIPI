@@ -123,6 +123,8 @@ export type AdresseCitoyen = Reponse<'/citoyen/adresse', 'get'>;
 export type HoraireCollecte = Reponse<'/citoyen/horaires', 'get'>[number];
 export type AnnonceCollecte = Reponse<'/citoyen/annonces', 'get'>[number];
 export type PointCarte = Reponse<'/citoyen/carte', 'get'>[number];
+export type NotificationCitoyen = Reponse<'/citoyen/notifications', 'get'>[number];
+export type PreferenceNotification = Reponse<'/citoyen/preferences', 'get'>[number];
 export type CollecteurAgree = Reponse<'/enlevements/collecteurs', 'get'>[number];
 
 // --- Espace communal -------------------------------------------------------
@@ -813,6 +815,41 @@ export const api = {
   creerAnnonce: (saisie: Record<string, unknown>) =>
     requete<AnnonceCollecte>('/citoyen/annonces', { method: 'POST', body: JSON.stringify(saisie) }),
   supprimerAnnonce: (id: string) => requete<void>(`/citoyen/annonces/${id}`, { method: 'DELETE' }),
+
+  // --- Notifications push (Jalon 2, lot 1) ----------------------------------
+  //
+  // Le citoyen s'abonne lui-même : aucune commune n'a accès à ces routes, ni
+  // à la liste des abonnés (migration 044).
+  clePubliquePush: () => requete<{ clePublique: string | null }>('/citoyen/push/cle-publique'),
+  sabonnerPush: (saisie: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent?: string }) =>
+    requete<{ ok: boolean }>('/citoyen/push/souscriptions', {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  desabonnerPush: (endpoint: string) =>
+    requete<void>('/citoyen/push/souscriptions', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint }),
+    }),
+
+  // --- Historique « Mes notifications » et préférences (M6) -------------------
+  mesNotifications: (nonLues?: boolean) =>
+    requete<NotificationCitoyen[]>(`/citoyen/notifications${nonLues ? '?nonLues=true' : ''}`),
+  marquerNotificationLue: (id: string) =>
+    requete<{ id: string; lu: boolean }>(`/citoyen/notifications/${encodeURIComponent(id)}/lu`, {
+      method: 'PUT',
+    }),
+  toutMarquerLu: () => requete<{ maj: number }>('/citoyen/notifications/tout-lu', { method: 'PUT' }),
+  mesPreferences: () => requete<PreferenceNotification[]>('/citoyen/preferences'),
+  enregistrerPreferences: (preferences: PreferenceNotification[]) =>
+    requete<void>('/citoyen/preferences', {
+      method: 'PUT',
+      body: JSON.stringify({ preferences }),
+    }),
+  renvoyerNotificationTicket: (ticketId: string) =>
+    requete<unknown>(`/tickets/${encodeURIComponent(ticketId)}/notification/renvoyer`, {
+      method: 'PATCH',
+    }),
 
   // --- Rapports et études (TDR §3.2.9) --------------------------------------
   //

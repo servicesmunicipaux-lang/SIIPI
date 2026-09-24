@@ -22,14 +22,26 @@ import { CartePublique } from '../composants/CartePublique';
 import { FormulaireSignalement } from '../composants/FormulaireSignalement';
 import { ProposerPoint } from '../composants/ProposerPoint';
 import { Enlevement } from '../composants/Enlevement';
+import { AbonnementPush } from '../composants/AbonnementPush';
+import {
+  ClocheNotifications,
+  MesNotifications,
+  PreferencesNotification,
+} from '../composants/NotificationsCitoyen';
 
 type Onglet = 'collecte' | 'signaler' | 'proposer' | 'enlevement' | 'carte';
+// Les deux vues de notification se superposent aux cinq onglets plutôt que
+// d'en occuper un sixième dans la barre du bas : on y entre par la cloche de
+// l'en-tête, pas par un geste quotidien.
+type Vue = 'principale' | 'notifications' | 'preferences';
 
 export function EspaceCitoyen() {
   const { t } = useTranslation();
   const [onglet, setOnglet] = useState<Onglet>('collecte');
+  const [vue, setVue] = useState<Vue>('principale');
   const [adresse, setAdresse] = useState<AdresseCitoyen | null>(null);
   const [chargement, setChargement] = useState(true);
+  const [nonLues, setNonLues] = useState(0);
 
   const recharger = useCallback(async () => {
     try {
@@ -41,9 +53,27 @@ export function EspaceCitoyen() {
     }
   }, []);
 
+  const rechargerCompteur = useCallback(() => {
+    api
+      .mesNotifications(true)
+      .then((l) => setNonLues(l.length))
+      .catch(() => undefined);
+  }, []);
+
   useEffect(() => {
     void recharger();
   }, [recharger]);
+
+  useEffect(() => {
+    rechargerCompteur();
+  }, [rechargerCompteur]);
+
+  // En quittant l'écran des notifications, le compteur peut avoir changé
+  // (lectures individuelles ou « tout marquer lu ») : on le resynchronise
+  // plutôt que de le faire suivre notification par notification.
+  useEffect(() => {
+    if (vue === 'principale') rechargerCompteur();
+  }, [vue, rechargerCompteur]);
 
   // Cinq onglets, dans l'ordre d'usage : ce qui revient chaque semaine
   // d'abord, ce qui arrive une ou deux fois par an ensuite. « Proposer un
@@ -64,14 +94,48 @@ export function EspaceCitoyen() {
     <div className="mx-auto max-w-2xl px-4 pt-4 pb-24">
       {chargement ? (
         <Chargement />
-      ) : (
+      ) : vue === 'principale' ? (
         <>
+          <div className="mb-3 flex items-center justify-end">
+            <ClocheNotifications compte={nonLues} onClick={() => setVue('notifications')} />
+          </div>
+          <AbonnementPush />
           {onglet === 'collecte' && <MaCollecte adresse={adresse} onAdresseChangee={recharger} />}
           {onglet === 'signaler' && <FormulaireSignalement adresse={adresse} />}
           {onglet === 'proposer' && <ProposerPoint adresse={adresse} />}
           {onglet === 'enlevement' && <Enlevement adresse={adresse} />}
           {onglet === 'carte' && <CartePublique communeId={adresse?.commune_id ?? undefined} />}
         </>
+      ) : (
+        <div>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setVue(vue === 'preferences' ? 'notifications' : 'principale')}
+              className="flex min-h-11 items-center gap-1 rounded-lg px-2 text-sm font-medium text-ardoise-700"
+            >
+              ← {t('citoyen.notifications.retour')}
+            </button>
+            <h1 className="flex-1 truncate text-center text-base font-semibold text-ardoise-900">
+              {vue === 'preferences'
+                ? t('citoyen.preferences.titre')
+                : t('citoyen.notifications.titre')}
+            </h1>
+            {vue === 'notifications' ? (
+              <button
+                type="button"
+                onClick={() => setVue('preferences')}
+                aria-label={t('citoyen.notifications.preferences')}
+                className="grid min-h-11 min-w-11 place-items-center rounded-lg text-lg"
+              >
+                ⚙
+              </button>
+            ) : (
+              <span className="min-w-11" aria-hidden />
+            )}
+          </div>
+          {vue === 'notifications' ? <MesNotifications /> : <PreferencesNotification />}
+        </div>
       )}
 
       <nav
@@ -83,7 +147,10 @@ export function EspaceCitoyen() {
             <button
               key={cle}
               type="button"
-              onClick={() => setOnglet(cle)}
+              onClick={() => {
+                setOnglet(cle);
+                setVue('principale');
+              }}
               aria-current={onglet === cle ? 'page' : undefined}
               className={`flex min-h-16 flex-col items-center justify-center gap-0.5 text-xs font-medium ${
                 onglet === cle ? 'text-siipi-700' : 'text-ardoise-500'

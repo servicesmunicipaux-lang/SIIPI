@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { config } from '../config.js';
 
 export const citoyenRouter = Router();
 
@@ -262,4 +263,183 @@ citoyenRouter.patch(
   })
 );
 
-export { adresseSchema, annonceSchema, majAnnonceSchema, photoSchema };
+// ---------------------------------------------------------------------------
+// Souscription aux notifications push (Jalon 2, lot 1).
+//
+// Le citoyen enregistre lui-même son navigateur — jamais une commune pour
+// lui. La clé publique VAPID n'est pas un secret (elle est faite pour être
+// distribuée aux navigateurs) ; elle n'est simplement pas codée en dur côté
+// front pour rester changeable sans nouvelle mise en production du portail.
+// ---------------------------------------------------------------------------
+
+citoyenRouter.get(
+  '/push/cle-publique',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (_req, res) => {
+    res.json({ clePublique: config.vapidPublicKey || null });
+  })
+);
+
+const souscriptionSchema = z.object({
+  endpoint: z.string().min(1).max(2000),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+  userAgent: z.string().max(300).optional(),
+});
+
+citoyenRouter.post(
+  '/push/souscriptions',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const d = souscriptionSchema.parse(req.body);
+    const citoyen = await queryOne<{ id: string }>('SELECT id FROM citoyens WHERE user_id = $1', [req.user!.sub]);
+    if (!citoyen) throw new ApiError(404, 'Aucun profil citoyen rattaché à ce compte.');
+
+    // Un même navigateur qui se réabonne (clés renouvelées par le
+    // navigateur lui-même) remplace sa fiche plutôt que d'en accumuler une
+    // seconde : la contrainte d'unicité (citoyen_id, endpoint) le permet
+    // directement via ON CONFLICT.
+    await query(
+      `INSERT INTO push_souscriptions (citoyen_id, endpoint, p256dh, auth, user_agent)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (citoyen_id, endpoint) DO UPDATE
+         SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, user_agent = EXCLUDED.user_agent`,
+      [citoyen.id, d.endpoint, d.keys.p256dh, d.keys.auth, d.userAgent ?? null]
+    );
+    res.status(201).json({ ok: true });
+  })
+);
+
+citoyenRouter.delete(
+  '/push/souscriptions',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const d = z.object({ endpoint: z.string().min(1) }).parse(req.body ?? {});
+    await query('DELETE FROM push_souscriptions WHERE endpoint = $1', [d.endpoint]);
+    res.status(204).end();
+  })
+);
+
+// ---------------------------------------------------------------------------
+// Historique « Mes notifications » et préférences par canal/type (M6).
+//
+// Aucune de ces routes ne filtre explicitement par citoyen_id : la politique
+// RLS `notifications_citoyen_select` / `preferences_notification_select`
+// borne déjà le résultat à `app.my_citizen_id()` pour un compte de rôle
+// citoyen (les deux autres clauses de la politique — FNCT, commune sur une
+// décision de réclamation — ne s'appliquent pas à ce rôle). Seules les
+// écritures qui créent une ligne (upsert des préférences) doivent fournir
+// l'identifiant explicitement, une politique RLS ne pouvant que vérifier une
+// valeur déjà posée, jamais la déduire pour l'appelant.
+// ---------------------------------------------------------------------------
+
+const CANAUX = ['push', 'sms', 'email'] as const;
+const TYPES_NOTIFICATION = ['decision_reclamation', 'invitation_sondage', 'notification_ciblee'] as const;
+
+citoyenRouter.get(
+  '/notifications',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const nonLues = req.query.nonLues === 'true';
+    const lignes = await query(
+      `SELECT id, type, canal, titre, corps, metadata, lu, statut, date_envoi
+         FROM notifications_citoyen
+        WHERE ($1::boolean IS FALSE OR NOT lu)
+        ORDER BY date_envoi DESC
+        LIMIT 200`,
+      [nonLues]
+    );
+    res.json(lignes);
+  })
+);
+
+citoyenRouter.put(
+  '/notifications/:id/lu',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const notif = await queryOne(
+      'UPDATE notifications_citoyen SET lu = true WHERE id = $1 RETURNING id, lu',
+      [req.params.id]
+    );
+    if (!notif) throw new ApiError(404, 'Notification introuvable.');
+    res.json(notif);
+  })
+);
+
+citoyenRouter.put(
+  '/notifications/tout-lu',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (_req, res) => {
+    const lignes = await query<{ id: string }>(
+      'UPDATE notifications_citoyen SET lu = true WHERE NOT lu RETURNING id'
+    );
+    res.json({ maj: lignes.length });
+  })
+);
+
+citoyenRouter.get(
+  '/preferences',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (_req, res) => {
+    const lignes = await query<{ canal: string; type: string; active: boolean }>(
+      'SELECT canal, type, active FROM preferences_notification'
+    );
+    // Table creuse (voir migration 044) : une combinaison absente vaut
+    // « activé ». On complète ici pour que l'écran Préférences n'ait jamais à
+    // deviner un défaut lui-même.
+    const connues = new Map(lignes.map((l) => [`${l.canal}:${l.type}`, l.active]));
+    const preferences = CANAUX.flatMap((canal) =>
+      TYPES_NOTIFICATION.map((type) => ({
+        canal,
+        type,
+        active: connues.get(`${canal}:${type}`) ?? true,
+      }))
+    );
+    res.json(preferences);
+  })
+);
+
+const preferencesSchema = z.object({
+  preferences: z
+    .array(
+      z.object({
+        canal: z.enum(CANAUX),
+        type: z.enum(TYPES_NOTIFICATION),
+        active: z.boolean(),
+      })
+    )
+    .min(1),
+});
+
+citoyenRouter.put(
+  '/preferences',
+  requireAuth,
+  requireRole('citoyen', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const d = preferencesSchema.parse(req.body);
+    const citoyen = await queryOne<{ id: string }>('SELECT id FROM citoyens WHERE user_id = $1', [req.user!.sub]);
+    if (!citoyen) throw new ApiError(404, 'Aucun profil citoyen rattaché à ce compte.');
+
+    for (const p of d.preferences) {
+      await query(
+        `INSERT INTO preferences_notification (citoyen_id, canal, type, active)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (citoyen_id, canal, type) DO UPDATE
+           SET active = EXCLUDED.active, updated_at = now()`,
+        [citoyen.id, p.canal, p.type, p.active]
+      );
+    }
+    res.status(204).end();
+  })
+);
+
+export { adresseSchema, annonceSchema, majAnnonceSchema, photoSchema, souscriptionSchema };

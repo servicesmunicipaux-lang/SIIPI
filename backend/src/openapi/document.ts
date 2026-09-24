@@ -53,6 +53,7 @@ import {
   annonceSchema,
   majAnnonceSchema,
   photoSchema,
+  souscriptionSchema,
 } from '../routes/citoyen.routes.js';
 import { frontiereSchema } from '../routes/communes.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
@@ -200,6 +201,14 @@ const Reclamation = registry.register(
       rejection_reason: z.string().nullable(),
       resolved_at: z.string().nullable(),
       created_at: z.string(),
+      notification_id: z.string().uuid().nullable().optional().openapi({
+        description:
+          'Dernière notification de décision envoyée au citoyen pour ce ticket (M6), s’il en existe une. Sert à afficher « Renvoyer » sur un échec.',
+      }),
+      notification_statut: z
+        .enum(['livre', 'echec', 'non_abonne', 'non_souhaite', 'sans_souscription'])
+        .nullable()
+        .optional(),
     })
     .passthrough()
     .openapi('Reclamation')
@@ -747,6 +756,18 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: ticketTreatSchema } } },
   },
   responses: { 200: json(Reclamation, 'Réclamation traitée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/tickets/{id}/notification/renvoyer',
+  tags: ['Réclamations'],
+  summary: 'Relancer manuellement la notification de décision',
+  description:
+    'Une seule tentative automatique (M6) : un échec n’est jamais réessayé en silence, mais un agent peut relancer explicitement. Réservé à la dernière notification de décision de ce ticket, et seulement si elle est en échec.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 200: json(Reclamation, 'Notification relancée ; réclamation renvoyée avec son nouveau statut.'), ...REPONSES_COMMUNES },
 });
 
 // --- Pesées ----------------------------------------------------------------
@@ -2007,8 +2028,11 @@ registry.registerPath({
   path: '/communication/{id}/envoyer',
   tags: ['Communication'],
   summary: 'Envoyer la notification et l’inscrire à l’historique',
-  description:
+  description: [
     "Un envoi vers zéro destinataire est refusé : inscrire « 0 destinataires » à l’historique laisserait l’agent croire que c’est parti.",
+    '',
+    "Canal « push » : l’envoi est réel (Web Push), un par citoyen abonné du périmètre — voir migration 044. Canaux « sms » et « email » : le choix est enregistré, mais rien n’est encore émis derrière (décision de fournisseur en attente, feuille de route §7.2).",
+  ].join('\n'),
   security: SECURISE,
   request: {
     params: z.object({ id: idPublication }),
@@ -3192,6 +3216,140 @@ registry.registerPath({
   responses: { 200: json(z.any(), 'Statut de publication mis à jour.'), ...REPONSES_COMMUNES },
 });
 
+// --- Notifications push (Jalon 2, lot 1) ------------------------------------
+//
+// Le citoyen s'abonne lui-même : aucune de ces routes n'est ouverte à une
+// commune, qui n'a par ailleurs aucun moyen de lister les abonnés (voir le
+// tag Communication et la migration 044).
+
+registry.registerPath({
+  method: 'get',
+  path: '/citoyen/push/cle-publique',
+  tags: ['Espace citoyen'],
+  summary: 'Clé publique VAPID',
+  description:
+    "Publique par nature (elle est faite pour être distribuée aux navigateurs) : ne pas la coder en dur côté front permet de la faire tourner sans nouvelle mise en production. Rend `null` tant qu'aucune clé n'est configurée côté serveur — l'abonnement reste alors impossible, sans faire échouer le reste de l'application.",
+  security: SECURISE,
+  responses: { 200: json(z.object({ clePublique: z.string().nullable() }), 'Clé publique.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/citoyen/push/souscriptions',
+  tags: ['Espace citoyen'],
+  summary: 'Enregistrer ce navigateur pour les notifications push',
+  description:
+    "Un même navigateur qui se réabonne remplace sa fiche plutôt que d'en accumuler une seconde (contrainte d'unicité sur l'endpoint).",
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: souscriptionSchema } } } },
+  responses: { 201: json(z.object({ ok: z.boolean() }), 'Souscription enregistrée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/citoyen/push/souscriptions',
+  tags: ['Espace citoyen'],
+  summary: 'Retirer ce navigateur des notifications push',
+  security: SECURISE,
+  request: {
+    body: { content: { 'application/json': { schema: z.object({ endpoint: z.string() }) } } },
+  },
+  responses: { 204: { description: 'Souscription retirée.' }, ...REPONSES_COMMUNES },
+});
+
+// --- Historique « Mes notifications » et préférences (M6) -------------------
+//
+// L'historique est écrit même quand rien n'a été envoyé (désabonné,
+// préférence désactivée, aucun navigateur) : voir la migration 044 et
+// services/notifications.ts. Ces routes ne renvoient jamais que les lignes
+// du citoyen appelant — la politique RLS s'en charge, pas un filtre ici.
+
+const CANAUX_NOTIFICATION = ['push', 'sms', 'email'] as const;
+const TYPES_NOTIFICATION_OPENAPI = ['decision_reclamation', 'invitation_sondage', 'notification_ciblee'] as const;
+
+const NotificationCitoyen = registry.register(
+  'NotificationCitoyen',
+  z.object({
+    id: z.string().uuid(),
+    type: z.enum(TYPES_NOTIFICATION_OPENAPI),
+    canal: z.literal('push'),
+    titre: z.string(),
+    corps: z.string(),
+    metadata: z.record(z.any()).nullable(),
+    lu: z.boolean(),
+    statut: z.enum(['livre', 'echec', 'non_abonne', 'non_souhaite', 'sans_souscription']),
+    date_envoi: z.string(),
+  })
+);
+
+const PreferenceNotification = registry.register(
+  'PreferenceNotification',
+  z.object({
+    canal: z.enum(CANAUX_NOTIFICATION),
+    type: z.enum(TYPES_NOTIFICATION_OPENAPI),
+    active: z.boolean(),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/citoyen/notifications',
+  tags: ['Espace citoyen'],
+  summary: 'Mon historique de notifications',
+  description:
+    'Chronologique, y compris les tentatives qui n’ont rien envoyé (désabonné, préférence désactivée, aucun navigateur) : c’est l’historique réel, pas seulement les envois réussis.',
+  security: SECURISE,
+  request: { query: z.object({ nonLues: z.enum(['true', 'false']).optional() }) },
+  responses: { 200: json(z.array(NotificationCitoyen), 'Notifications, plus récentes en premier.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/citoyen/notifications/{id}/lu',
+  tags: ['Espace citoyen'],
+  summary: 'Marquer une notification comme lue',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 200: json(z.object({ id: z.string().uuid(), lu: z.boolean() }), 'Notification mise à jour.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/citoyen/notifications/tout-lu',
+  tags: ['Espace citoyen'],
+  summary: 'Tout marquer comme lu',
+  security: SECURISE,
+  responses: { 200: json(z.object({ maj: z.number() }), 'Nombre de notifications marquées comme lues.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/citoyen/preferences',
+  tags: ['Espace citoyen'],
+  summary: 'Mes préférences de notification',
+  description:
+    'Une combinaison canal × type absente de la base vaut « activé » (table creuse, voir migration 044) : cette route complète toujours les 9 combinaisons, jamais un sous-ensemble.',
+  security: SECURISE,
+  responses: { 200: json(z.array(PreferenceNotification), 'Préférences effectives.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/citoyen/preferences',
+  tags: ['Espace citoyen'],
+  summary: 'Modifier mes préférences de notification',
+  security: SECURISE,
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({ preferences: z.array(PreferenceNotification).min(1) }),
+        },
+      },
+    },
+  },
+  responses: { 204: { description: 'Préférences enregistrées.' }, ...REPONSES_COMMUNES },
+});
 
 // --- Flux occasionnels : déchets verts, DDC, encombrants ------------------
 //
@@ -3723,7 +3881,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.2.0',
+      version: '0.4.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

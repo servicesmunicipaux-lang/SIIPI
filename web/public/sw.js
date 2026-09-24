@@ -93,3 +93,42 @@ self.addEventListener('fetch', (evenement) => {
     );
   }
 });
+
+/* Notifications push (Jalon 2, lot 1).
+ *
+ * Le contenu vient du serveur tel quel (titre, corps, lien) — le service
+ * worker ne fait qu'afficher ce qu'on lui donne, il ne décide de rien.
+ * Si la charge utile est illisible (JSON malformé), on affiche un message
+ * générique plutôt que de laisser l'événement échouer en silence : un push
+ * reçu et non affiché serait pire qu'un push jamais envoyé. */
+self.addEventListener('push', (evenement) => {
+  let donnees = { titre: 'Propreté Intercommunale', corps: '', lien: '/' };
+  try {
+    if (evenement.data) donnees = { ...donnees, ...evenement.data.json() };
+  } catch {
+    donnees.corps = 'Une nouvelle notification est disponible.';
+  }
+  evenement.waitUntil(
+    self.registration.showNotification(donnees.titre, {
+      body: donnees.corps,
+      icon: '/icones/icone-192.png',
+      badge: '/icones/icone-192.png',
+      data: { lien: donnees.lien || '/' },
+    })
+  );
+});
+
+// Un clic ouvre l'onglet existant s'il y en a un, sinon en ouvre un nouveau —
+// jamais un doublon de l'application citoyenne.
+self.addEventListener('notificationclick', (evenement) => {
+  evenement.notification.close();
+  const lien = evenement.notification.data?.lien || '/';
+  evenement.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client) return client.focus();
+      }
+      return self.clients.openWindow(lien);
+    })
+  );
+});

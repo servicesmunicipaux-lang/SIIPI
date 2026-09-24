@@ -1,6 +1,6 @@
 {
   "name": "siipi-backend",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "API REST SIIPI - Système d'Information Intelligent pour la Propreté Intercommunale (FNCT / ANGeD)",
@@ -20,7 +20,7 @@
     "seed:prod": "node dist/seed/seed.js",
     "test:cloisonnement": "sh tests/executer.sh cloisonnement",
     "test:audit": "sh tests/executer.sh audit",
-    "test": "npm run verifier:contrat && sh tests/executer.sh cloisonnement && sh tests/executer.sh audit && sh tests/executer.sh suppression && sh tests/executer.sh observatoire && sh tests/executer.sh circuits && sh tests/executer.sh prestataires && sh tests/executer.sh citoyen && sh tests/executer.sh enlevements && sh tests/executer.sh decoupage && sh tests/executer.sh periode && sh tests/executer.sh intercommunal && sh tests/executer.sh module2 && sh tests/executer.sh comptes && sh tests/executer.sh module3 && sh tests/executer.sh module4 && sh tests/executer.sh module5 && sh tests/executer.sh module6 && sh tests/executer.sh fichiers && sh tests/executer.sh suggestions && sh tests/executer.sh rapports",
+    "test": "npm run verifier:contrat && sh tests/executer.sh cloisonnement && sh tests/executer.sh audit && sh tests/executer.sh suppression && sh tests/executer.sh observatoire && sh tests/executer.sh circuits && sh tests/executer.sh prestataires && sh tests/executer.sh citoyen && sh tests/executer.sh enlevements && sh tests/executer.sh decoupage && sh tests/executer.sh periode && sh tests/executer.sh intercommunal && sh tests/executer.sh module2 && sh tests/executer.sh comptes && sh tests/executer.sh module3 && sh tests/executer.sh module4 && sh tests/executer.sh module5 && sh tests/executer.sh module6 && sh tests/executer.sh fichiers && sh tests/executer.sh suggestions && sh tests/executer.sh rapports && sh tests/executer.sh notifications && sh tests/executer.sh notifications-citoyen",
     "test:suppression": "sh tests/executer.sh suppression",
     "verifier:contrat": "tsx src/openapi/verifierContrat.ts",
     "openapi:export": "tsx src/openapi/exporter.ts",
@@ -42,7 +42,10 @@
     "test:module6": "sh tests/executer.sh module6",
     "test:fichiers": "sh tests/executer.sh fichiers",
     "test:suggestions": "sh tests/executer.sh suggestions",
-    "test:rapports": "sh tests/executer.sh rapports"
+    "test:rapports": "sh tests/executer.sh rapports",
+    "test:notifications": "sh tests/executer.sh notifications",
+    "test:notifications-citoyen": "sh tests/executer.sh notifications-citoyen",
+    "vapid:generer": "node -e \"const w=require('web-push');const k=w.generateVAPIDKeys();console.log('VAPID_PUBLIC_KEY='+k.publicKey);console.log('VAPID_PRIVATE_KEY='+k.privateKey);\""
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.3.4",
@@ -57,6 +60,7 @@
     "morgan": "^1.10.0",
     "pg": "^8.13.1",
     "swagger-ui-dist": "^5.32.15",
+    "web-push": "^3.6.7",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -68,6 +72,7 @@
     "@types/node": "^22.14.0",
     "@types/pg": "^8.11.10",
     "@types/swagger-ui-dist": "^3.30.6",
+    "@types/web-push": "^3.6.4",
     "tsx": "^4.19.2",
     "typescript": "~5.8.2"
   }
