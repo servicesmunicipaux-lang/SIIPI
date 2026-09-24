@@ -1,31 +1,33 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# SIIPI — Système d'Information Intelligent pour la Propreté Intercommunale
 
-# Run and deploy your AI Studio app
+Plateforme nationale de gestion intelligente des déchets ménagers et
+assimilés, portée par la **Fédération Nationale des Communes Tunisiennes**
+(FNCT) à travers le réseau WAMA-NET, en lien avec l'ANGeD : observatoire
+national, portails municipaux, espace prestataire et application citoyenne
+(FR/AR, RTL).
 
-This contains everything you need to run your app locally.
+## Démarrer
 
-View your app in AI Studio: https://ai.studio/apps/0e775f59-6778-4020-8c36-4871c3165d92
+Tout tourne en conteneurs Docker — voir **[DEMARRAGE.md](DEMARRAGE.md)** pour
+les trois commandes qui lancent la base, les migrations, le jeu de données de
+démonstration, l'API et le front-end, et **[GUIDE_DEMARRAGE.md](GUIDE_DEMARRAGE.md)**
+pour la procédure détaillée.
 
-## Run Locally
+## Où en est le projet
 
-**Prerequisites:**  Node.js
+**[FEUILLE_DE_ROUTE.md](FEUILLE_DE_ROUTE.md)** confronte, fonctionnalité par
+fonctionnalité, le cahier des charges à ce que la plateforme fait réellement
+aujourd'hui — avec la preuve (migration, route, campagne de tests) pour
+chaque ligne déjà faite. **[CHANGELOG.md](CHANGELOG.md)** suit l'avancement
+par jalon, version par version.
 
+## Structure du dépôt
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
-
----
-
-## Back-end réel (API + base de données)
-
-Ce front-end fonctionnait initialement avec des données 100% simulées (aucun
-serveur, aucune base, `localStorage` comme seule persistance). Un vrai
-back-end a été ajouté dans le dossier [`backend/`](backend/) : API REST
-Node/Express, base PostgreSQL + PostGIS, authentification JWT par rôle
-(RBAC). Voir **[GUIDE_DEMARRAGE.md](GUIDE_DEMARRAGE.md)** pour la procédure
-complète de démarrage (base de données, migrations, seed, API, front-end).
+- [`backend/`](backend/) — API REST Node.js/Express + TypeScript, base
+  PostgreSQL/PostGIS (cloisonnement par commune via RLS), migrations et
+  campagnes de tests.
+- [`web/`](web/) — front-end React + Vite, bilingue FR/AR avec support RTL :
+  observatoire national, portail communal, espace prestataire, application
+  citoyenne.
+- `docker-compose.yml` — l'environnement de développement complet (base, API,
+  front-end, Adminer).
