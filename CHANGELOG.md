@@ -5,6 +5,69 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.7.0] — 2026-09-28 — Jalon 4, lot 2 : imports CSV et PDF (clôture du Jalon 4)
+
+### Ajouté
+- **Import CSV des contacts** (`C1.4`, `POST /contacts/import`) et **du parc**
+  (`B2.4`, `POST /trucks/import`), avec un bouton « Importer un CSV » sur les
+  deux écrans. En deux temps, comme l'import KML : un aperçu ligne par ligne
+  qui n'écrit rien (à créer, à mettre à jour, inchangé, déjà présent, erreur —
+  avec la raison), puis la validation des seules lignes valides, en une
+  transaction.
+- **Import CSV des points de collecte** (`B3.1`) : un format de plus du lecteur
+  de relevés (`services/kml.ts`), reconnu à son contenu — l'import par circuit
+  existant sert tel quel. Ordre de passage renuméroté par voyage.
+- **PDF** du tableau national (`A3.4`, A4 à l'italienne) et des résultats d'un
+  sondage (`B5.2.4`), par l'impression du navigateur (`lib/impression.ts`) :
+  le bloc est copié dans une zone d'impression avec titre, date et organisme.
+- `services/import.ts` : lecteur CSV (RFC 4180) piloté par les jeux de
+  colonnes de l'export — en-têtes et valeurs codées reconnus en français, en
+  arabe ou par leur code.
+- Nouvelle campagne `imports` (51/51), incluse dans `npm run test`.
+
+### Décisions à retenir
+- **L'aller-retour export → tableur → import est sans effet** tant qu'on ne
+  change rien : les contacts ressortent « déjà présents » (même nom et même
+  téléphone ou courriel), les engins « inchangés ». L'apostrophe qui
+  neutralise une formule à l'export est retirée au retour.
+- **Une case vide n'efface rien** à l'import du parc : seules les cases
+  remplies sont comparées à la fiche existante. Un changement d'état sans date
+  dit « depuis aujourd'hui », comme à l'écran.
+- **Windows-1252 accepté, mais signalé** : c'est l'enregistrement « CSV »
+  classique d'un Excel français ; l'arabe y est déjà perdu, et l'aperçu le dit
+  plutôt que d'importer des « ??? » en silence.
+- **PDF par le navigateur, pas par le serveur** : il met en forme l'arabe
+  (lettres liées, droite à gauche) sans bibliothèque ni police embarquée.
+  Le reste de la page est retiré de l'impression (`display: none`), pas masqué
+  — sans quoi il laisserait des pages blanches.
+
+### Corrigé
+- `POST /trucks` : un engin existant n'était reconnu qu'à un identifiant dérivé
+  de l'immatriculation, que les fiches des seeds ne portent pas
+  (« dcef-02220943 », « trk-04 ») — ressaisir son immatriculation le
+  dédoublait. Il est désormais reconnu à l'immatriculation, espaces et casse
+  mis à part, comme à l'import.
+- Impression : les titres de colonnes cliquables (tri) disparaissaient du PDF ;
+  ils sont imprimés comme du texte, sans les flèches de tri.
+
+### Vérifié
+- Campagne `imports` : aperçu sans écriture, validation des seules lignes
+  valides, doublons dans le fichier, aller-retour export → import sans effet
+  (y compris depuis un export en arabe), arabe et accents intacts, séparateurs
+  « ; » « , » tabulation, Windows-1252, virgule décimale, cloisonnement
+  (autre commune et prestataire : 403).
+- **PDF produits réellement** avec Microsoft Edge à partir de la vue
+  d'impression de l'application : tableau national en français et en arabe
+  (de droite à gauche, lettres liées, en-tête répété page 2), résultats d'un
+  sondage.
+- Navigateur : import de contacts de bout en bout (aperçu, validation, liste
+  rafraîchie).
+- 46 migrations rejouées sur base neuve · contrat OpenAPI conforme (161 routes)
+  · typage front et back sans erreur · les 24 autres campagnes sans régression
+  (mêmes échecs pré-existants et sans rapport qu'aux jalons précédents).
+
+---
+
 ## [0.6.0] — 2026-09-28 — Jalon 4, lot 1 : le service d'export unique
 
 ### Ajouté

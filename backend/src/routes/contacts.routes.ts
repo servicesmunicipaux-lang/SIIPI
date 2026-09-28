@@ -8,10 +8,11 @@
 
 import { Router } from 'express';
 import { z } from 'zod';
-import { query, queryOne } from '../db.js';
+import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { exportable } from '../services/export.js';
+import { lireTableau, messageLecture, messagesValidation, normaliser } from '../services/import.js';
 import { JEU_CONTACTS } from '../services/jeuxExport.js';
 import { communeDemandee } from '../perimetre.js';
 
@@ -103,6 +104,115 @@ contactsRouter.post(
   })
 );
 
+// --- Import CSV (C1.4) -------------------------------------------------------
+//
+// Deux temps, comme l'import KML des points : un aperçu qui ne touche à rien,
+// puis la validation (`valider: true`) qui écrit, en une transaction, les
+// seules lignes marquées « créer ». Un contact déjà présent (même nom, et même
+// téléphone ou même courriel) n'est pas recréé : réimporter un export ne double
+// pas l'annuaire.
+
+const importSchema = z.object({
+  nomFichier: z.string().min(1).max(255),
+  /** Le fichier en base64, comme pour POST /fichiers. */
+  contenu: z.string().min(1).max(4_000_000),
+  valider: z.boolean().default(false),
+});
+
+const chiffres = (tel: unknown) => (typeof tel === 'string' ? tel.replace(/\D/g, '') : '');
+
+contactsRouter.post(
+  '/import',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise.');
+    const d = importSchema.parse(req.body);
+
+    let tableau;
+    try {
+      tableau = lireTableau(JEU_CONTACTS, Buffer.from(d.contenu, 'base64'));
+    } catch (err) {
+      throw new ApiError(400, messageLecture(err));
+    }
+
+    const existants = await query<{ nom_complet: string; telephone: string | null; email: string | null }>(
+      'SELECT nom_complet, telephone, email FROM contacts WHERE deleted_at IS NULL AND commune_id = $1',
+      [communeId]
+    );
+    const connus = new Set<string>();
+    const retenir = (nom: unknown, tel: unknown, email: unknown) => {
+      const n = normaliser(String(nom ?? ''));
+      if (chiffres(tel)) connus.add(`${n}|t|${chiffres(tel)}`);
+      if (email) connus.add(`${n}|e|${normaliser(String(email))}`);
+    };
+    const dejaConnu = (nom: unknown, tel: unknown, email: unknown) => {
+      const n = normaliser(String(nom ?? ''));
+      return (
+        (chiffres(tel) !== '' && connus.has(`${n}|t|${chiffres(tel)}`)) ||
+        (Boolean(email) && connus.has(`${n}|e|${normaliser(String(email))}`))
+      );
+    };
+    for (const c of existants) retenir(c.nom_complet, c.telephone, c.email);
+
+    const lignes = tableau.lignes.map((l) => {
+      const v = Object.fromEntries(Object.entries(l.valeurs).filter(([, x]) => x !== null));
+      if (l.erreurs.length > 0) {
+        return { numero: l.numero, action: 'erreur' as const, libelle: String(v.nomComplet ?? ''), erreurs: l.erreurs, saisie: null };
+      }
+      const r = contactSchema.safeParse(v);
+      if (!r.success) {
+        return {
+          numero: l.numero,
+          action: 'erreur' as const,
+          libelle: String(v.nomComplet ?? ''),
+          erreurs: messagesValidation(JEU_CONTACTS, r.error.issues as never),
+          saisie: null,
+        };
+      }
+      if (dejaConnu(r.data.nomComplet, r.data.telephone, r.data.email)) {
+        return { numero: l.numero, action: 'doublon' as const, libelle: r.data.nomComplet, erreurs: [], saisie: null };
+      }
+      // Un doublon À L'INTÉRIEUR du fichier compte aussi : la seconde ligne
+      // serait une deuxième fiche pour la même personne.
+      retenir(r.data.nomComplet, r.data.telephone, r.data.email);
+      return { numero: l.numero, action: 'creer' as const, libelle: r.data.nomComplet, erreurs: [], saisie: r.data };
+    });
+
+    const resume = {
+      creer: lignes.filter((l) => l.action === 'creer').length,
+      doublon: lignes.filter((l) => l.action === 'doublon').length,
+      erreur: lignes.filter((l) => l.action === 'erreur').length,
+    };
+    const apercu = {
+      fichier: d.nomFichier,
+      colonnesReconnues: tableau.colonnesReconnues,
+      colonnesIgnorees: tableau.colonnesIgnorees,
+      avertissements: tableau.avertissements,
+      resume,
+      lignes: lignes.map(({ saisie: _saisie, ...l }) => l),
+    };
+    if (!d.valider) return res.json({ ...apercu, ecrit: false });
+    if (resume.creer === 0) throw new ApiError(400, 'Aucune ligne à créer dans ce fichier.');
+
+    await withTransaction(async (client) => {
+      for (const l of lignes) {
+        if (l.action !== 'creer' || !l.saisie) continue;
+        const s = l.saisie;
+        await client.query(
+          `INSERT INTO contacts
+             (commune_id, nom_complet, organisation, fonction, categorie, telephone, email, notes, created_by)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [communeId, s.nomComplet, vide(s.organisation), vide(s.fonction), s.categorie ?? 'autre',
+           vide(s.telephone), vide(s.email), vide(s.notes), req.user!.sub]
+        );
+      }
+    });
+    res.status(201).json({ ...apercu, ecrit: true, crees: resume.creer });
+  })
+);
+
 contactsRouter.patch(
   '/:id',
   requireAuth,
@@ -159,4 +269,4 @@ contactsRouter.delete(
   })
 );
 
-export { contactSchema, majContactSchema };
+export { contactSchema, majContactSchema, importSchema as importContactsSchema };

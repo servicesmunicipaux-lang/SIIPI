@@ -25,7 +25,7 @@ import { z } from 'zod';
 
 import { loginSchema } from '../routes/auth.routes.js';
 import { communeUpdateSchema } from '../routes/communes.routes.js';
-import { truckPositionSchema } from '../routes/trucks.routes.js';
+import { truckPositionSchema, importParcSchema } from '../routes/trucks.routes.js';
 import {
   ticketCreateSchema,
   ticketRefuseSchema,
@@ -58,7 +58,7 @@ import {
 import { frontiereSchema } from '../routes/communes.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
-import { contactSchema, majContactSchema } from '../routes/contacts.routes.js';
+import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
 import {
   propositionSchema as pointSuggereSchema,
   validationSchema as pointSuggereValidationSchema,
@@ -366,6 +366,32 @@ const jsonOuExport = (schema: any, description: string) => ({
   },
 });
 
+const LigneImport = z.object({
+  numero: z.number().int().openapi({ description: 'Numéro de ligne dans le fichier, en-tête compris.' }),
+  action: z.enum(['creer', 'maj', 'inchange', 'doublon', 'erreur']),
+  libelle: z.string(),
+  erreurs: z.array(z.string()),
+  champs: z.array(z.string()).optional().openapi({ description: 'Pour une mise à jour : les colonnes modifiées.' }),
+});
+
+const ApercuImportCsv = registry.register(
+  'ApercuImportCsv',
+  z.object({
+    fichier: z.string(),
+    colonnesReconnues: z.array(z.string()),
+    colonnesIgnorees: z.array(z.string()).openapi({ description: 'Colonnes calculées ou inconnues : jamais écrites.' }),
+    avertissements: z.array(z.string()),
+    resume: z.record(z.number().int()),
+    lignes: z.array(LigneImport),
+    ecrit: z.boolean(),
+    crees: z.number().int().optional(),
+    modifies: z.number().int().optional(),
+  })
+);
+
+const DESCRIPTION_IMPORT_CSV =
+  "Le fichier en base64. En-têtes reconnus en français, en arabe ou par leur code — ceux d'un export de cet écran conviennent tels quels, valeurs codées comprises (« En panne », « معطّبة »). Séparateur « ; », « , » ou tabulation, déduit de l'en-tête ; UTF-8 (avec ou sans BOM) ou, à défaut, Windows-1252 avec un avertissement. 5 000 lignes au plus.";
+
 const paramsExport = {
   format: z.enum(['csv', 'xlsx']).optional().openapi({ description: 'Télécharger la liste en fichier plutôt qu’en JSON.' }),
   langue: z.enum(['fr', 'ar']).optional().openapi({ description: 'Langue des en-têtes et des libellés du fichier (défaut : fr).' }),
@@ -628,6 +654,25 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: vehiculeSchemaDoc } } },
   },
   responses: { 201: json(Vehicule, 'Engin enregistré.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/trucks/import',
+  tags: ['Flotte'],
+  summary: 'Importer ou mettre à jour le parc depuis un CSV',
+  description:
+    "Un engin se reconnaît à son immatriculation. Inconnu : il est créé (le type est alors obligatoire). Connu : seules les cases remplies sont comparées — une case vide n'efface jamais une valeur saisie à l'écran, et réimporter un export tel quel ne change rien (« inchange »). Âge, attelage et date d'inventaire sont calculés ou gérés ailleurs : ignorés. Le fichier en base64 ; en-têtes et valeurs codées reconnus en français, en arabe ou par leur code. Sans « valider », rien n'est écrit.",
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: paramCommuneId.optional() }),
+    body: { content: { 'application/json': { schema: importParcSchema } } },
+  },
+  responses: {
+    200: json(ApercuImportCsv, "Aperçu : rien n'a été écrit."),
+    201: json(ApercuImportCsv, 'Parc mis à jour.'),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 registry.registerPath({
@@ -2675,9 +2720,9 @@ registry.registerPath({
   method: 'post',
   path: '/circuits/{id}/import-kml',
   tags: ['Circuits et contrôle terrain'],
-  summary: 'Importer un relevé KML ou KMZ',
+  summary: 'Importer un relevé KML, KMZ, GPX, GeoJSON ou CSV',
   description:
-    "En deux temps. Sans « valider », la réponse décrit ce qui serait créé sans rien écrire : un relevé de Dar Chaabane porte jusqu'à 113 arrêts, et les écrire au premier clic obligerait à défaire à la main ce qu'on n'a pas relu.",
+    "Le format est reconnu au contenu, pas à l'extension. Un CSV porte au moins « Latitude » et « Longitude » (les en-têtes de l'export de la carte communale sont reconnus, en français ou en arabe) ; l'ordre de passage y est renuméroté par voyage. En deux temps. Sans « valider », la réponse décrit ce qui serait créé sans rien écrire : un relevé de Dar Chaabane porte jusqu'à 113 arrêts, et les écrire au premier clic obligerait à défaire à la main ce qu'on n'a pas relu.",
   security: SECURISE,
   request: {
     params: z.object({ id: z.string().uuid() }),
@@ -3836,6 +3881,29 @@ registry.registerPath({
 });
 
 // ---------------------------------------------------------------------------
+// Imports CSV (Jalon 4, lot 2) — même calque que l'import KML : sans
+// « valider », un aperçu qui n'écrit rien ; avec, une transaction.
+// ---------------------------------------------------------------------------
+
+registry.registerPath({
+  method: 'post',
+  path: '/contacts/import',
+  tags: ['Contacts'],
+  summary: 'Importer des contacts depuis un CSV',
+  description: `${DESCRIPTION_IMPORT_CSV} Un contact déjà présent (même nom, et même téléphone ou même courriel) n'est pas recréé : réimporter un export ne double pas l'annuaire. Seules les lignes « creer » sont écrites.`,
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: z.string().optional() }),
+    body: { content: { 'application/json': { schema: importContactsSchema } } },
+  },
+  responses: {
+    200: json(ApercuImportCsv, "Aperçu : rien n'a été écrit."),
+    201: json(ApercuImportCsv, 'Contacts créés.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+// ---------------------------------------------------------------------------
 // Contacts (TDR §3.2.7)
 // ---------------------------------------------------------------------------
 
@@ -4034,7 +4102,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.6.0',
+      version: '0.7.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

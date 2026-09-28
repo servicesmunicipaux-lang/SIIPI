@@ -158,6 +158,7 @@ export type PublicationDocument = Reponse<'/communication/{id}/documents', 'get'
 export type RapportEtude = Reponse<'/rapports-etudes', 'get'>[number];
 export type VersionRapport = Reponse<'/rapports-etudes/{id}/versions', 'get'>[number];
 export type Contact = Reponse<'/contacts', 'get'>[number];
+export type ApercuImportCsv = Reponse<'/contacts/import', 'post'>;
 
 // --- Découpage communal ----------------------------------------------------
 export interface FrontiereCommune {
@@ -927,4 +928,16 @@ export const api = {
   modifierContact: (id: string, saisie: Corps<'/contacts/{id}', 'patch'>) =>
     requete<Contact>(`/contacts/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
   retirerContact: (id: string) => requete<void>(`/contacts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // --- Imports CSV (Jalon 4, lot 2) : aperçu puis validation ------------------
+  importerContacts: (communeId: string, saisie: Corps<'/contacts/import', 'post'>) =>
+    requete<ApercuImportCsv>(`/contacts/import?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  importerParc: (communeId: string, saisie: Corps<'/trucks/import', 'post'>) =>
+    requete<ApercuImportCsv>(`/trucks/import?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
 };

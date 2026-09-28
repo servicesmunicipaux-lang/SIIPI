@@ -5,11 +5,21 @@
 // premier — c'est lui qui garde les nombres et les dates typés quelle que
 // soit la langue du tableur ; le CSV reste là pour les autres outils.
 
-import { useState } from 'react';
+import { useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ErreurApi, telechargerExport } from '../lib/api';
+import { imprimer, type OptionsImpression } from '../lib/impression';
 
-export function BoutonExport({ chemin, desactive }: { chemin: string; desactive?: boolean }) {
+export function BoutonExport({
+  chemin,
+  desactive,
+  impression,
+}: {
+  chemin: string;
+  desactive?: boolean;
+  /** Le bloc à imprimer, pour proposer aussi le PDF (impression du navigateur). */
+  impression?: OptionsImpression & { cible: RefObject<HTMLElement | null> };
+}) {
   const { t, i18n } = useTranslation();
   const [enCours, setEnCours] = useState<'csv' | 'xlsx' | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -38,6 +48,17 @@ export function BoutonExport({ chemin, desactive }: { chemin: string; desactive?
       <button type="button" onClick={() => void exporter('csv')} disabled={desactive || enCours !== null} className={bouton}>
         {enCours === 'csv' ? t('export.enCours') : t('export.csv')}
       </button>
+      {impression && (
+        <button
+          type="button"
+          onClick={() => impression.cible.current && imprimer(impression.cible.current, impression)}
+          disabled={desactive || enCours !== null}
+          title={t('export.pdfAide')}
+          className={bouton}
+        >
+          {t('export.pdf')}
+        </button>
+      )}
       {erreur && (
         <span role="alert" className="text-xs text-red-700">
           {erreur}

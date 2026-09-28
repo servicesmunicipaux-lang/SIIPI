@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Vehicule, type EtatDuParc } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
+import { ImportCsv } from '../ImportCsv';
 
 const ETATS = ['en_service', 'en_panne', 'a_reformer', 'reforme'] as const;
 type Etat = (typeof ETATS)[number];
@@ -96,6 +97,10 @@ export function Parc({ communeId }: { communeId: string }) {
       </header>
 
       {erreur && <Erreur message={erreur} />}
+
+      {/* Un engin se reconnaît à son immatriculation : réimporter un export
+          retouché met à jour les fiches, sans en créer de doubles. */}
+      <ImportCsv envoyer={(saisie) => api.importerParc(communeId, saisie)} onFait={charger} />
 
       {/* La phrase avant les chiffres. « 16 engins sur 29 peuvent rouler » se
           retient ; un tableau de cinq nombres ne se retient pas. */}

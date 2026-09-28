@@ -154,7 +154,7 @@ export function CircuitImport({
               {t('communal.circuits.import.remplacerFichier')}
               <input
                 type="file"
-                accept=".kml,.kmz,.gpx,.json,.geojson"
+                accept=".kml,.kmz,.gpx,.json,.geojson,.csv,text/csv"
                 onChange={choisir}
                 className="hidden"
                 disabled={occupe}
@@ -203,7 +203,7 @@ export function CircuitImport({
           {t('communal.circuits.import.choisir')}
           <input
             type="file"
-            accept=".kml,.kmz,.gpx,.json,.geojson"
+            accept=".kml,.kmz,.gpx,.json,.geojson,.csv,text/csv"
             onChange={choisir}
             className="hidden"
             disabled={occupe}

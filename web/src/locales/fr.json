@@ -129,7 +129,28 @@
     "titre": "Exporter",
     "excel": "Excel",
     "csv": "CSV",
-    "enCours": "Préparation…"
+    "enCours": "Préparation…",
+    "pdf": "PDF",
+    "pdfAide": "Imprimer, ou enregistrer en PDF depuis la fenêtre d’impression"
+  },
+  "import": {
+    "choisir": "Importer un CSV",
+    "lecture": "Lecture du fichier…",
+    "apercuDe": "Aperçu de {{fichier}}",
+    "rienEcrit": "rien n’a encore été enregistré",
+    "actions": {
+      "creer": "À créer",
+      "maj": "À mettre à jour",
+      "inchange": "Inchangé",
+      "doublon": "Déjà présent",
+      "erreur": "Erreur"
+    },
+    "colonnesIgnorees": "Colonnes non importées (calculées ou inconnues) : {{colonnes}}",
+    "ligne": "Ligne {{n}}",
+    "lignesMasquees": "{{n}} autres lignes ne sont pas affichées (les erreurs le sont en premier).",
+    "valider": "Enregistrer {{n}} ligne(s)",
+    "ecriture": "Enregistrement…",
+    "bilan": "Import terminé : {{crees}} créé(s), {{modifies}} mis à jour."
   },
   "citoyen": {
     "navigation": "Navigation principale",
@@ -582,7 +603,7 @@
         "titre_trace": "Itinéraire du circuit",
         "aide_trace": "Le chemin suivi, pour l’affichage sur la carte. Fichier KML, KMZ, GPX ou GeoJSON.",
         "titre_points": "Points de collecte",
-        "aide_points": "Les arrêts, dans leur ordre de passage. Fichier KML, KMZ, GPX ou GeoJSON.",
+        "aide_points": "Les arrêts, dans leur ordre de passage. Fichier KML, KMZ, GPX, GeoJSON ou CSV (latitude et longitude au moins).",
         "dejaPose": "Déjà en place : {{fichier}}, importé le {{date}}. Un nouvel import le remplacera.",
         "enPlace_points": "{{n}} arrêt(s) en place.",
         "enPlace_trace": "Itinéraire en place.",
@@ -937,7 +958,8 @@
       "documents": "Documents ({{n}})",
       "aucunDocument": "Aucun document joint à ce projet.",
       "joindreDocument": "Joindre un document",
-      "depotEnCours": "Envoi…"
+      "depotEnCours": "Envoi…",
+      "resultatsDe": "Résultats du sondage"
     },
     "rapportsEtudes": {
       "titre": "Rapports et études",

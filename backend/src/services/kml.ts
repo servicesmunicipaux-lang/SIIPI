@@ -44,6 +44,9 @@
 
 import { XMLParser } from 'fast-xml-parser';
 import { inflateRawSync } from 'node:zlib';
+import type { JeuExport } from './export.js';
+import { lireTableau, messageLecture, normaliser } from './import.js';
+import { JEU_POINTS } from './jeuxExport.js';
 
 export type TypePoint =
   | 'porte_a_porte'
@@ -77,6 +80,7 @@ export interface ResultatKml {
     | 'itineraire_dessine'
     | 'gpx'
     | 'geojson'
+    | 'csv'
     | 'inconnu';
   nom: string | null;
   points: PointReleve[];
@@ -226,6 +230,12 @@ export function lireKml(contenuFichier: Buffer | string): ResultatKml {
   }
   if (debut.includes('<gpx') || debut.includes('<trk') || debut.includes('<wpt')) {
     return lireGpx(brut.toString('utf-8'));
+  }
+  // CSV (B3.1) : ni XML, ni JSON, ni archive, et une ligne d'en-tête découpée
+  // par « ; », « , » ou une tabulation.
+  const estZip = brut[0] === 0x50 && brut[1] === 0x4b;
+  if (!estZip && !debut.startsWith('<') && /[;,\t]/.test(debut.split(/\r?\n/)[0] ?? '')) {
+    return lireCsvPoints(brut);
   }
 
   let xml: string;
@@ -515,6 +525,100 @@ function lireGpx(xml: string): ResultatKml {
   }
 
   return { famille: 'gpx', nom, points, trace, statistiques: {}, avertissements };
+}
+
+// ---------------------------------------------------------------------------
+// CSV — un tableau d'arrêts, typiquement l'export de la carte communale
+// retouché dans un tableur, ou une liste tenue à la main.
+//
+// Les colonnes sont celles de l'export (services/jeuxExport.ts) : latitude et
+// longitude obligatoires, le reste facultatif. La colonne « Circuit » d'un
+// export est ignorée : l'import se fait circuit par circuit, depuis la fiche
+// du circuit visé.
+// ---------------------------------------------------------------------------
+
+const TYPES_POINT_EXPORT = JEU_POINTS.colonnes.find((c) => c.cle === 'type')?.libelles ?? {};
+// Le type est reconnu ici plutôt que par lireTableau : un type inconnu ne rend
+// pas la ligne invalide, il la range en « autre », comme pour un KML.
+const JEU_POINTS_IMPORT: JeuExport = {
+  ...JEU_POINTS,
+  colonnes: JEU_POINTS.colonnes.map((c) => (c.cle === 'type' ? { ...c, libelles: undefined } : c)),
+};
+
+function typeDepuisTexte(v: string): TypePoint {
+  const cible = normaliser(v);
+  for (const [code, lib] of Object.entries(TYPES_POINT_EXPORT)) {
+    if (cible === normaliser(code) || cible === normaliser(lib.fr) || cible === normaliser(lib.ar)) {
+      return code as TypePoint;
+    }
+  }
+  return classer([v]);
+}
+
+function lireCsvPoints(brut: Buffer): ResultatKml {
+  let tableau;
+  try {
+    tableau = lireTableau(JEU_POINTS_IMPORT, brut);
+  } catch (err) {
+    throw new Error(messageLecture(err));
+  }
+  const avertissements = [...tableau.avertissements];
+  const reconnues = new Set(tableau.colonnesReconnues.map(normaliser));
+  const aColonne = (cle: string) =>
+    JEU_POINTS.colonnes
+      .filter((c) => c.import === cle)
+      .some((c) => [c.cle, c.fr, c.ar, ...(c.alias ?? [])].some((e) => reconnues.has(normaliser(e))));
+  if (!aColonne('lat') || !aColonne('lng')) {
+    throw new Error('CSV sans colonnes « Latitude » et « Longitude »');
+  }
+  if (tableau.colonnesIgnorees.length > 0) {
+    avertissements.push(`Colonnes non importées : ${tableau.colonnesIgnorees.join(', ')}.`);
+  }
+
+  const bruts: Array<PointReleve & { rang: number }> = [];
+  for (const l of tableau.lignes) {
+    const v = l.valeurs;
+    const lat = typeof v.lat === 'number' ? v.lat : NaN;
+    const lng = typeof v.lng === 'number' ? v.lng : NaN;
+    if (l.erreurs.length > 0 || !(Math.abs(lat) <= 90) || !(Math.abs(lng) <= 180)) {
+      avertissements.push(
+        `Ligne ${l.numero} écartée : ${l.erreurs.length ? l.erreurs.join(' ') : 'latitude ou longitude absente ou hors limites.'}`
+      );
+      continue;
+    }
+    let heure: string | null = null;
+    if (typeof v.heureObservee === 'string') {
+      const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(v.heureObservee.trim());
+      if (m && Number(m[1]) < 24 && Number(m[2]) < 60) heure = `${m[1].padStart(2, '0')}:${m[2]}:${m[3] ?? '00'}`;
+      else avertissements.push(`Ligne ${l.numero} : heure « ${v.heureObservee} » illisible, laissée vide.`);
+    }
+    const voyage = typeof v.voyage === 'number' && v.voyage >= 1 ? Math.floor(v.voyage) : 1;
+    bruts.push({
+      rang: typeof v.ordre === 'number' ? v.ordre : Number.MAX_SAFE_INTEGER,
+      voyage,
+      ordre: 0,
+      nom: typeof v.nom === 'string' ? v.nom : null,
+      type: typeof v.type === 'string' ? typeDepuisTexte(v.type) : 'porte_a_porte',
+      lat,
+      lng,
+      precisionM: typeof v.precisionM === 'number' ? v.precisionM : null,
+      heureObservee: heure,
+      observation: typeof v.observation === 'string' ? v.observation : null,
+    });
+  }
+
+  // L'ordre de passage est unique par voyage (index idx_points_collecte_ordre) :
+  // on reprend l'ordre du fichier, puis on renumérote 1, 2, 3… sans trou ni
+  // doublon — un fichier retouché à la main en porte presque toujours.
+  bruts.sort((a, b) => a.voyage - b.voyage || a.rang - b.rang);
+  const compteurs = new Map<number, number>();
+  const points: PointReleve[] = bruts.map(({ rang: _rang, ...p }) => {
+    const n = (compteurs.get(p.voyage) ?? 0) + 1;
+    compteurs.set(p.voyage, n);
+    return { ...p, ordre: n };
+  });
+
+  return { famille: 'csv', nom: null, points, trace: [], statistiques: {}, avertissements };
 }
 
 // ---------------------------------------------------------------------------

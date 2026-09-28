@@ -880,6 +880,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/trucks/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer ou mettre à jour le parc depuis un CSV
+         * @description Un engin se reconnaît à son immatriculation. Inconnu : il est créé (le type est alors obligatoire). Connu : seules les cases remplies sont comparées — une case vide n'efface jamais une valeur saisie à l'écran, et réimporter un export tel quel ne change rien (« inchange »). Âge, attelage et date d'inventaire sont calculés ou gérés ailleurs : ignorés. Le fichier en base64 ; en-têtes et valeurs codées reconnus en français, en arabe ou par leur code. Sans « valider », rien n'est écrit.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomFichier: string;
+                        contenu: string;
+                        /** @default false */
+                        valider?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Aperçu : rien n'a été écrit. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuImportCsv"];
+                    };
+                };
+                /** @description Parc mis à jour. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuImportCsv"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trucks/{id}": {
         parameters: {
             query?: never;
@@ -6966,8 +7061,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Importer un relevé KML ou KMZ
-         * @description En deux temps. Sans « valider », la réponse décrit ce qui serait créé sans rien écrire : un relevé de Dar Chaabane porte jusqu'à 113 arrêts, et les écrire au premier clic obligerait à défaire à la main ce qu'on n'a pas relu.
+         * Importer un relevé KML, KMZ, GPX, GeoJSON ou CSV
+         * @description Le format est reconnu au contenu, pas à l'extension. Un CSV porte au moins « Latitude » et « Longitude » (les en-têtes de l'export de la carte communale sont reconnus, en français ou en arabe) ; l'ordre de passage y est renuméroté par voyage. En deux temps. Sans « valider », la réponse décrit ce qui serait créé sans rien écrire : un relevé de Dar Chaabane porte jusqu'à 113 arrêts, et les écrire au premier clic obligerait à défaire à la main ce qu'on n'a pas relu.
          */
         post: {
             parameters: {
@@ -10667,6 +10762,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contacts/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer des contacts depuis un CSV
+         * @description Le fichier en base64. En-têtes reconnus en français, en arabe ou par leur code — ceux d'un export de cet écran conviennent tels quels, valeurs codées comprises (« En panne », « معطّبة »). Séparateur « ; », « , » ou tabulation, déduit de l'en-tête ; UTF-8 (avec ou sans BOM) ou, à défaut, Windows-1252 avec un avertissement. 5 000 lignes au plus. Un contact déjà présent (même nom, et même téléphone ou même courriel) n'est pas recréé : réimporter un export ne double pas l'annuaire. Seules les lignes « creer » sont écrites.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomFichier: string;
+                        contenu: string;
+                        /** @default false */
+                        valider?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Aperçu : rien n'a été écrit. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuImportCsv"];
+                    };
+                };
+                /** @description Contacts créés. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuImportCsv"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/contacts": {
         parameters: {
             query?: never;
@@ -11554,6 +11744,29 @@ export interface components {
             /** Format: uuid */
             id: string;
             commune_id: string | null;
+        };
+        ApercuImportCsv: {
+            fichier: string;
+            colonnesReconnues: string[];
+            /** @description Colonnes calculées ou inconnues : jamais écrites. */
+            colonnesIgnorees: string[];
+            avertissements: string[];
+            resume: {
+                [key: string]: number;
+            };
+            lignes: {
+                /** @description Numéro de ligne dans le fichier, en-tête compris. */
+                numero: number;
+                /** @enum {string} */
+                action: "creer" | "maj" | "inchange" | "doublon" | "erreur";
+                libelle: string;
+                erreurs: string[];
+                /** @description Pour une mise à jour : les colonnes modifiées. */
+                champs?: string[];
+            }[];
+            ecrit: boolean;
+            crees?: number;
+            modifies?: number;
         };
         Incoherence: {
             /** @enum {string} */

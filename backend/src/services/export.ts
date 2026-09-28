@@ -36,6 +36,13 @@ export interface Colonne {
   type?: TypeColonne;
   /** Libellés des valeurs codées (« en_panne » → « En panne »). */
   libelles?: Record<string, { fr: string; ar: string }>;
+  /**
+   * Nom du champ à l'import (services/import.ts). Absent : colonne calculée
+   * ou en lecture seule, ignorée si elle revient dans un fichier importé.
+   */
+  import?: string;
+  /** Autres en-têtes acceptés à l'import (« lat », « latitude »…). */
+  alias?: string[];
 }
 
 export interface JeuExport {

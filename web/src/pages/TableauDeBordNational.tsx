@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePortail } from '../lib/portail';
 import { api, type LigneGouvernorat, type StatutCommune } from '../lib/api';
@@ -69,6 +69,7 @@ function sansAccent(texte: string): string {
 
 export function TableauDeBordNational() {
   const { t } = useTranslation();
+  const tableauRef = useRef<HTMLDivElement>(null);
   const { ouvrirPortail } = usePortail();
   const [gouvernorats, setGouvernorats] = useState<LigneGouvernorat[] | null>(null);
   const [communes, setCommunes] = useState<StatutCommune[] | null>(null);
@@ -232,10 +233,22 @@ export function TableauDeBordNational() {
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-semibold text-ardoise-900">{t('national.tableau.titre')}</h2>
           <p className="text-xs text-ardoise-500">{t('national.tableau.sousTitre')}</p>
-          <BoutonExport chemin="/observatoire/gouvernorats" />
+          <BoutonExport
+            chemin="/observatoire/gouvernorats"
+            impression={{
+              cible: tableauRef,
+              titre: `${t('app.nomCourt')} — ${t('national.tableau.titre')}`,
+              details: [
+                t('app.organisation'),
+                t('national.tableau.sousTitre'),
+                new Date().toLocaleString(document.documentElement.lang || 'fr'),
+              ],
+              paysage: true,
+            }}
+          />
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-ardoise-200 bg-white">
+        <div ref={tableauRef} className="overflow-x-auto rounded-xl border border-ardoise-200 bg-white">
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-ardoise-200 bg-ardoise-50 text-start">

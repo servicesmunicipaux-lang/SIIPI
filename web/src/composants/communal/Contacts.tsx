@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Contact } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
+import { ImportCsv } from '../ImportCsv';
 
 const CATEGORIES = ['administration', 'prestataire', 'association', 'fournisseur', 'elu', 'autre'] as const;
 type Categorie = (typeof CATEGORIES)[number];
@@ -86,6 +87,11 @@ export function Contacts({ communeId }: { communeId: string }) {
           {erreur}
         </p>
       )}
+
+      <ImportCsv
+        envoyer={(saisie) => api.importerContacts(communeId, saisie)}
+        onFait={charger}
+      />
 
       {edition === 'nouveau' && (
         <FormulaireContact

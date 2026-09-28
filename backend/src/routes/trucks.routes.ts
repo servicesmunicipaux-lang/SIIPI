@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { query, queryOne } from '../db.js';
+import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { exportable } from '../services/export.js';
 import { JEU_PARC } from '../services/jeuxExport.js';
+import { lireTableau, messageLecture, messagesValidation } from '../services/import.js';
 import { communeDemandee } from '../perimetre.js';
 
 export const trucksRouter = Router();
@@ -107,6 +108,14 @@ const COLONNES_VEHICULE: Record<string, string> = {
   atteleA: 'attele_a',
 };
 
+// Identifiant d'un engin CRÉÉ par l'API, dérivé de l'immatriculation. Il ne
+// sert pas à reconnaître un engin existant : les fiches chargées par les seeds
+// portent d'autres identifiants (« dcef-02220943 », « trk-04 »). Un engin se
+// reconnaît à son immatriculation, espaces et casse mis à part.
+const idVehicule = (communeId: string, immat: string) => `${communeId.slice(0, 12)}-${immat.replace(/\s+/g, '')}`;
+const cleImmat = (immat: string) => immat.replace(/\s+/g, '').toUpperCase();
+const MEME_IMMAT = "upper(regexp_replace(registration, '\\s+', '', 'g'))";
+
 const typerVehicule = (cle: string, pos: number) =>
   cle === 'datePremiereCirculation' || cle === 'etatDepuis' ? `$${pos}::date` : `$${pos}`;
 
@@ -119,10 +128,11 @@ trucksRouter.post(
     const communeId = communeDemandee(req);
     if (!communeId) throw new ApiError(400, 'Commune requise.');
 
-    // Identifiant dérivé de l'immatriculation : deux saisies du même engin ne
-    // créent pas deux lignes, et l'on retrouve la fiche sans connaître l'UUID.
-    const id = `${communeId.slice(0, 12)}-${String(d.registration).replace(/\s+/g, '')}`;
-    const existe = await queryOne('SELECT id FROM vehicules WHERE id = $1', [id]);
+    const id = idVehicule(communeId, String(d.registration));
+    const existe = await queryOne(
+      `SELECT id FROM vehicules WHERE id = $1 OR (commune_id = $2 AND deleted_at IS NULL AND ${MEME_IMMAT} = $3)`,
+      [id, communeId, cleImmat(String(d.registration))]
+    );
     if (existe) throw new ApiError(409, 'Un engin portant cette immatriculation existe déjà.');
 
     const colonnes = ['id', 'commune_id'];
@@ -139,6 +149,140 @@ trucksRouter.post(
       valeurs
     );
     res.status(201).json(await queryOne(`${VEHICULE_SELECT} WHERE v.id = $1`, [id]));
+  })
+);
+
+// --- Import CSV du parc (B2.4) ---------------------------------------------
+//
+// Deux temps, comme les autres imports : aperçu, puis `valider: true`. Un
+// engin se reconnaît à son immatriculation — c'est d'elle que la création
+// dérive l'identifiant. Pour un engin connu, seules les cases REMPLIES du
+// fichier sont comparées : une case vide ne gomme jamais une valeur saisie à
+// l'écran, et réimporter un export tel quel ne change rien (« inchangé »).
+
+const importParcSchema = z.object({
+  nomFichier: z.string().min(1).max(255),
+  contenu: z.string().min(1).max(4_000_000),
+  valider: z.boolean().default(false),
+});
+
+/** Deux valeurs sont-elles la même, une fois ramenées à une forme comparable ? */
+function identiques(a: unknown, b: unknown): boolean {
+  if (a === null || a === undefined || a === '') return b === null || b === undefined || b === '';
+  if (typeof a === 'number' || typeof b === 'number') return Number(a) === Number(b);
+  return String(a).trim() === String(b).trim();
+}
+
+trucksRouter.post(
+  '/import',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise.');
+    const d = importParcSchema.parse(req.body);
+
+    let tableau;
+    try {
+      tableau = lireTableau(JEU_PARC, Buffer.from(d.contenu, 'base64'));
+    } catch (err) {
+      throw new ApiError(400, messageLecture(err));
+    }
+
+    const existants = new Map(
+      (
+        await query<Record<string, unknown> & { id: string }>(
+          `SELECT id, ${Object.values(COLONNES_VEHICULE).filter((c) => c !== 'attele_a' && c !== 'registration').join(', ')}, registration
+             FROM vehicules WHERE commune_id = $1 AND deleted_at IS NULL`,
+          [communeId]
+        )
+      ).map((v) => [cleImmat(String(v.registration)), v])
+    );
+    const vusDansLeFichier = new Map<string, number>();
+
+    const lignes = tableau.lignes.map((l) => {
+      const v = Object.fromEntries(Object.entries(l.valeurs).filter(([, x]) => x !== null));
+      const libelle = String(v.registration ?? '');
+      const erreur = (erreurs: string[]) => ({ numero: l.numero, action: 'erreur' as const, libelle, erreurs, champs: [], saisie: null });
+      if (l.erreurs.length > 0) return erreur(l.erreurs);
+      if (!v.registration) return erreur(['« Immatriculation » est obligatoire.']);
+
+      const cle = cleImmat(String(v.registration));
+      const deja = vusDansLeFichier.get(cle);
+      if (deja) return erreur([`Immatriculation déjà présente ligne ${deja} du fichier.`]);
+      vusDansLeFichier.set(cle, l.numero);
+
+      const existant = existants.get(cle);
+      const id = existant ? existant.id : idVehicule(communeId, String(v.registration));
+      if (!existant) {
+        const r = vehiculeSchema.safeParse(v);
+        if (!r.success) return erreur(messagesValidation(JEU_PARC, r.error.issues as never));
+        return { numero: l.numero, action: 'creer' as const, libelle, erreurs: [], champs: [], saisie: { id, ...r.data } as Record<string, unknown> };
+      }
+
+      const r = vehiculeSchema.partial().safeParse(v);
+      if (!r.success) return erreur(messagesValidation(JEU_PARC, r.error.issues as never));
+      const modifies = Object.entries(r.data as Record<string, unknown>).filter(
+        ([cle, valeur]) => cle !== 'registration' && !identiques(valeur, existant[COLONNES_VEHICULE[cle]])
+      );
+      if (modifies.length === 0) {
+        return { numero: l.numero, action: 'inchange' as const, libelle, erreurs: [], champs: [], saisie: null };
+      }
+      return {
+        numero: l.numero,
+        action: 'maj' as const,
+        libelle,
+        erreurs: [],
+        champs: modifies.map(([cle]) => JEU_PARC.colonnes.find((c) => c.import === cle)?.fr ?? cle),
+        saisie: { id, ...Object.fromEntries(modifies), _etatAvant: existant.etat } as Record<string, unknown>,
+      };
+    });
+
+    const compter = (a: string) => lignes.filter((l) => l.action === a).length;
+    const resume = { creer: compter('creer'), maj: compter('maj'), inchange: compter('inchange'), erreur: compter('erreur') };
+    const apercu = {
+      fichier: d.nomFichier,
+      colonnesReconnues: tableau.colonnesReconnues,
+      colonnesIgnorees: tableau.colonnesIgnorees,
+      avertissements: tableau.avertissements,
+      resume,
+      lignes: lignes.map(({ saisie: _saisie, ...l }) => l),
+    };
+    if (!d.valider) return res.json({ ...apercu, ecrit: false });
+    if (resume.creer + resume.maj === 0) throw new ApiError(400, 'Rien à créer ni à modifier dans ce fichier.');
+
+    await withTransaction(async (client) => {
+      for (const l of lignes) {
+        if (!l.saisie) continue;
+        const { id, _etatAvant, ...champs } = l.saisie;
+        const valeurs: unknown[] = [];
+        const colonnes: string[] = [];
+        const emplacements: string[] = [];
+        for (const [cle, colonne] of Object.entries(COLONNES_VEHICULE)) {
+          if (!(cle in champs)) continue;
+          valeurs.push(champs[cle]);
+          colonnes.push(colonne);
+          emplacements.push(typerVehicule(cle, valeurs.length + 2));
+        }
+        if (l.action === 'creer') {
+          await client.query(
+            `INSERT INTO vehicules (id, commune_id, ${colonnes.join(', ')}) VALUES ($1, $2, ${emplacements.join(', ')})`,
+            [id, communeId, ...valeurs]
+          );
+        } else {
+          // Même règle que la modification à l'écran : un changement d'état
+          // sans date dit « depuis aujourd'hui ».
+          const depuis =
+            'etat' in champs && !('etatDepuis' in champs) && champs.etat !== _etatAvant ? ', etat_depuis = CURRENT_DATE' : '';
+          await client.query(
+            `UPDATE vehicules SET ${colonnes.map((c, i) => `${c} = ${emplacements[i]}`).join(', ')}${depuis}, last_update = now()
+              WHERE id = $1 AND commune_id = $2 AND deleted_at IS NULL`,
+            [id, communeId, ...valeurs]
+          );
+        }
+      }
+    });
+    res.status(201).json({ ...apercu, ecrit: true, crees: resume.creer, modifies: resume.maj });
   })
 );
 
@@ -272,4 +416,5 @@ trucksRouter.delete(
 // donc pas décrire un format différent de celui réellement contrôlé à l'exécution.
 export {
   positionSchema as truckPositionSchema,
+  importParcSchema,
 };

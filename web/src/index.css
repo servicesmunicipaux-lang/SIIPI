@@ -112,3 +112,73 @@
 .leaflet-tooltip.siipi-numero::before {
   display: none;
 }
+
+/* ===========================================================================
+   Impression et PDF (Jalon 4, lot 2 — voir lib/impression.ts)
+   ---------------------------------------------------------------------------
+   La zone d'impression n'existe que le temps d'une impression. Tout le reste
+   de la page est retiré (display: none) : masqué par visibility, il garderait
+   sa place et laisserait des pages blanches derrière le tableau.
+   =========================================================================== */
+
+@media screen {
+  #zone-impression {
+    display: none;
+  }
+}
+
+@media print {
+  html.impression body > *:not(#zone-impression) {
+    display: none !important;
+  }
+
+  html.impression body {
+    background: #fff;
+  }
+
+  #zone-impression {
+    color: #000;
+    font-size: 10pt;
+    /* Les barres d'un dépouillement portent l'information : elles doivent
+       sortir sur le papier, fond compris. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  #zone-impression .entete-impression {
+    margin-bottom: 6mm;
+    padding-bottom: 3mm;
+    border-bottom: 1px solid #999;
+  }
+
+  #zone-impression .entete-impression h1 {
+    font-size: 14pt;
+    font-weight: 700;
+  }
+
+  #zone-impression .entete-impression p {
+    font-size: 9pt;
+    color: #444;
+  }
+
+  /* Un défilement horizontal n'a pas de sens sur le papier : le tableau
+     s'imprime en entier, à l'italienne s'il le faut. */
+  #zone-impression .overflow-x-auto,
+  #zone-impression .overflow-auto {
+    overflow: visible !important;
+  }
+
+  #zone-impression table {
+    min-width: 0 !important;
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  #zone-impression tr {
+    break-inside: avoid;
+  }
+
+  #zone-impression thead {
+    display: table-header-group;
+  }
+}
