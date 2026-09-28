@@ -5,6 +5,66 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.5.0] — 2026-09-28 — Jalon 3 : Contacts, versionnement et lecteur PDF
+
+### Ajouté
+- **Contacts** (`C1.1`–`C1.3`) : l'annuaire de travail de la commune — ANGeD,
+  gouvernorat, prestataires, associations, fournisseurs, élus. Liste avec
+  recherche (nom, organisation, fonction) et filtre par catégorie, ajout,
+  modification, retrait logique. Nouvel onglet « Contacts » du portail
+  communal (`Contacts.tsx`), routes `GET/POST /contacts`,
+  `PATCH/DELETE /contacts/:id`, table `contacts` (migration 045) avec journal
+  d'audit.
+- **Versionnement des rapports et études** (`C3.6`) : « Nouvelle version »
+  sur chaque document, historique daté de toutes les versions. Une version 2
+  est une nouvelle ligne rattachée à la première par `document_id` — la
+  version 1 n'est jamais écrasée et son fichier reste lisible. Routes
+  `GET/POST /rapports-etudes/:id/versions` ; la liste ne montre plus que la
+  dernière version de chaque document, avec son nombre de versions.
+- **Lecteur PDF intégré** (`C3.5`) : « Aperçu » affiche un PDF dans la page,
+  pour la version courante comme pour les anciennes. Un document Office
+  s'ouvre toujours à part — aucun navigateur ne l'affiche nativement.
+- Nouvelle campagne de tests `contacts` (25/25), incluse dans `npm run test` ;
+  campagne `rapports` étendue au versionnement (37/37, 17 nouvelles
+  assertions).
+
+### Décisions à retenir
+- **Contacts lisibles par la commune et la FNCT seulement.** La politique RLS
+  s'appuie sur `app.can_write_commune` et non sur `app.can_read_commune`, qui
+  ouvrirait aussi la lecture aux prestataires rattachés : ce sont des données
+  personnelles de tiers dont leur mission n'a pas besoin (décret-loi
+  2022-54). Une fiche doit porter au moins un téléphone ou un courriel,
+  vérifié par l'API et par une contrainte en base.
+- **Retirer un contact d'une autre commune répond 404, pas 403.**
+  `app.supprimer` étant SECURITY DEFINER, il voit la fiche et répondait 403 —
+  ce qui révélait son existence. La route vérifie désormais la visibilité
+  sous RLS avant d'appeler `app.supprimer`, conformément à la règle déjà
+  posée par la campagne `suppression`.
+- **Versions : garde-fous en base, pas seulement dans la route.** Un
+  déclencheur refuse une version greffée sur le document d'une autre commune
+  ou une « version 2 » sans document ; le numéro suivant est compté sur toutes
+  les versions, retirées comprises (`app.prochaine_version_rapport`), pour
+  qu'un numéro cité dans un courrier ne désigne jamais deux fichiers. Retirer
+  un document retire toutes ses versions.
+- **`C1.4` (import/export CSV des contacts) reporté au Jalon 4**, qui bâtit un
+  service d'export unique pour les cinq endroits qui en demandent.
+
+### Corrigé
+- `FEUILLE_DE_ROUTE.md` : la ligne « 3.3 Application citoyenne » du tableau
+  par rubrique n'avait pas été mise à jour à la clôture de `M6` (Jalon 2).
+
+### État de l'art à la clôture de ce lot
+46 migrations rejouées sur base neuve · contrat OpenAPI conforme (159 routes
+servies, 159 documentées) · typage front et back sans erreur · campagnes
+`contacts` (25/25) et `rapports` (37/37) · les 21 autres campagnes sans
+régression (mêmes échecs pré-existants et sans rapport qu'aux jalons
+précédents — `circuits`, `prestataires`, `decoupage`, `module2`, `module4`,
+`module6` — signalés séparément) · vérification manuelle dans le navigateur :
+ajout, modification, recherche et état vide des contacts ; historique et
+aperçu PDF d'une version antérieure ; rendu arabe RTL.
+
+---
+
 ## [0.4.0] — 2026-09-23 — Jalon 2, lot 2 : clôture de `M6` (historique et préférences)
 
 ### Ajouté

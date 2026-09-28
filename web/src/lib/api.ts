@@ -156,6 +156,8 @@ export type Reclamation = Reponse<'/tickets', 'get'>[number];
 export type PointSuggere = Reponse<'/points-suggeres', 'get'>[number];
 export type PublicationDocument = Reponse<'/communication/{id}/documents', 'get'>[number];
 export type RapportEtude = Reponse<'/rapports-etudes', 'get'>[number];
+export type VersionRapport = Reponse<'/rapports-etudes/{id}/versions', 'get'>[number];
+export type Contact = Reponse<'/contacts', 'get'>[number];
 
 // --- Découpage communal ----------------------------------------------------
 export interface FrontiereCommune {
@@ -867,4 +869,27 @@ export const api = {
     }),
   retirerRapportEtude: (id: string) =>
     requete<void>(`/rapports-etudes/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  versionsRapport: (id: string) =>
+    requete<VersionRapport[]>(`/rapports-etudes/${encodeURIComponent(id)}/versions`),
+  deposerVersionRapport: (id: string, saisie: Corps<'/rapports-etudes/{id}/versions', 'post'>) =>
+    requete<VersionRapport>(`/rapports-etudes/${encodeURIComponent(id)}/versions`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+
+  // --- Contacts (TDR §3.2.7) ------------------------------------------------
+  contacts: (communeId: string, filtre?: { categorie?: string; q?: string }) => {
+    const q = new URLSearchParams({ communeId });
+    if (filtre?.categorie) q.set('categorie', filtre.categorie);
+    if (filtre?.q) q.set('q', filtre.q);
+    return requete<Contact[]>(`/contacts?${q.toString()}`);
+  },
+  creerContact: (communeId: string, saisie: Corps<'/contacts', 'post'>) =>
+    requete<Contact>(`/contacts?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  modifierContact: (id: string, saisie: Corps<'/contacts/{id}', 'patch'>) =>
+    requete<Contact>(`/contacts/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
+  retirerContact: (id: string) => requete<void>(`/contacts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };

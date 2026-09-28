@@ -7,6 +7,10 @@
 # traitement de réclamation en .pptx n'a aucun sens — et qu'un rapport, lui,
 # les accepte au-delà du plafond de 8 Mo qui s'applique partout ailleurs.
 #
+# PUIS LE VERSIONNEMENT (C3.6, migration 045) : une version 2 ne remplace
+# jamais la version 1, qui reste consultable, datée et imputée ; une autre
+# commune ne peut ni lire ni greffer une version sur le document.
+#
 #   docker compose exec -T api npm run test:rapports
 # =============================================================================
 
@@ -163,6 +167,68 @@ import json
 print(sum(1 for x in json.load(open('$T/r.json')) if x['id']=='$AUTRE_FICHE'))" 2>/dev/null || echo erreur)"
 fi
 chk "sans jeton, rien" 401 "$(code "$API/rapports-etudes?communeId=$COMMUNE")"
+
+echo
+echo "7. Versionnement (C3.6) : la version 1 survit à la version 2"
+depot doc.pdf 'TEST-R-v1.pdf' rapport_etude >/dev/null; F_V1=$(val "['id']")
+depot doc.pdf 'TEST-R-v2.pdf' rapport_etude >/dev/null; F_V2=$(val "['id']")
+code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+  -d "{\"titre\":\"TEST-R plan d'action\",\"categorie\":\"plan_action\",\"auteur\":\"Bureau Test\",\"fichierUrl\":\"/fichiers/$F_V1\",\"nomFichier\":\"plan-v1.pdf\"}" \
+  "$API/rapports-etudes?communeId=$COMMUNE" >/dev/null
+V1=$(val "['id']")
+chk "une nouvelle fiche est la version 1 de son propre document" "1|$V1" "$(val "['version']")|$(val "['document_id']")"
+
+CODE=$(code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+  -d "{\"fichierUrl\":\"/fichiers/$F_V2\",\"nomFichier\":\"plan-v2.pdf\"}" \
+  "$API/rapports-etudes/$V1/versions")
+chk "la version 2 se dépose avec le seul fichier" 201 "$CODE"
+V2=$(val "['id']")
+chk "elle est numérotée 2, sur le même document" "2|$V1" "$(val "['version']")|$(val "['document_id']")"
+chk "et reprend titre, catégorie et auteur de la version courante" "TEST-R plan d'action|plan_action|Bureau Test" \
+    "$(val "['titre']")|$(val "['categorie']")|$(val "['auteur']")"
+
+code -H "Authorization: Bearer $T_DIR" "$API/rapports-etudes?communeId=$COMMUNE" >/dev/null
+chk "la liste ne montre qu'une ligne pour ce document : la version 2, sur 2" "1|2|2" \
+    "$(python3 -c "
+import json
+l=[x for x in json.load(open('$T/r.json')) if x['document_id']=='$V1']
+print(f\"{len(l)}|{l[0]['version']}|{l[0]['nb_versions']}\" if l else '0')" 2>/dev/null || echo erreur)"
+
+chk "l'historique répond" 200 "$(code -H "Authorization: Bearer $T_DIR" "$API/rapports-etudes/$V2/versions")"
+chk "il porte les deux versions, la plus récente en tête" "2,1" \
+    "$(python3 -c "import json;print(','.join(str(x['version']) for x in json.load(open('$T/r.json'))))" 2>/dev/null || echo erreur)"
+chk "la version 1 garde son fichier, sa date et son auteur de dépôt" "/fichiers/$F_V1|1|1" \
+    "$(python3 -c "
+import json
+v=[x for x in json.load(open('$T/r.json')) if x['version']==1][0]
+print(f\"{v['fichier_url']}|{int(bool(v['created_at']))}|{int(bool(v['depose_par']))}\")" 2>/dev/null || echo erreur)"
+chk "et son fichier se lit toujours" 200 "$(code -H "Authorization: Bearer $T_DIR" "$API/fichiers/$F_V1")"
+
+CODE=$(code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+  -d "{\"titre\":\"TEST-R plan d'action révisé\",\"fichierUrl\":\"/fichiers/$F_V2\",\"nomFichier\":\"plan-v3.pdf\"}" \
+  "$API/rapports-etudes/$V1/versions")
+chk "déposer depuis l'id d'une ancienne version donne la version suivante (3)" "201|3" "$CODE|$(val "['version']")"
+V3=$(val "['id']")
+
+if [ -n "${AUTRE_EMAIL:-}" ]; then
+  chk "une autre commune ne lit pas l'historique" 404 \
+      "$(code -H "Authorization: Bearer $T_AUTRE" "$API/rapports-etudes/$V1/versions")"
+  chk "ni ne greffe une version sur le document" 404 \
+      "$(code -X POST -H "Authorization: Bearer $T_AUTRE" -H 'Content-Type: application/json' \
+         -d "{\"fichierUrl\":\"/fichiers/$F_V2\",\"nomFichier\":\"intrus.pdf\"}" \
+         "$API/rapports-etudes/$V1/versions")"
+  chk "même en SQL direct, la base refuse une version d'une autre commune" 1 \
+      "$($PSQL -c "INSERT INTO rapports_etudes (commune_id, document_id, version, titre, fichier_url, nom_fichier)
+                   VALUES ('$AUTRE_COMMUNE', '$V1', 9, 'TEST-R intrus', '/fichiers/$F_V2', 'x.pdf')" 2>&1 | grep -c DOCUMENT_AUTRE_COMMUNE)"
+fi
+chk "une « version 2 » sans document de rattachement est refusée" 1 \
+    "$($PSQL -c "INSERT INTO rapports_etudes (commune_id, version, titre, fichier_url, nom_fichier)
+                 VALUES ('$COMMUNE', 2, 'TEST-R orpheline', '/fichiers/$F_V2', 'x.pdf')" 2>&1 | grep -c VERSION_INVALIDE)"
+
+chk "retirer le document le retire tout entier" 204 "$(code -X DELETE -H "Authorization: Bearer $T_DIR" "$API/rapports-etudes/$V3")"
+chk "l'historique n'est plus servi" 404 "$(code -H "Authorization: Bearer $T_DIR" "$API/rapports-etudes/$V1/versions")"
+chk "mais les trois versions restent en base, datées et imputées" "3" \
+    "$(sql "SELECT count(*) FROM rapports_etudes WHERE document_id='$V1' AND deleted_at IS NOT NULL AND deleted_by IS NOT NULL")"
 
 nettoyer
 echo

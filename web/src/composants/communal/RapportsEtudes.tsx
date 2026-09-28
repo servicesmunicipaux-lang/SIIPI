@@ -8,13 +8,27 @@
 // PDF, Word, Excel ou PowerPoint, jusqu'à 50 Mo : le seul usage de la
 // plateforme à accepter les documents Office, parce que c'est le seul où ça a
 // un sens.
+//
+// VERSIONS (C3.6) : déposer une nouvelle version ne remplace jamais la
+// précédente — la liste montre la dernière, l'historique garde les autres,
+// datées. Un PDF se lit dans la page (C3.5) ; un document Office, qu'aucun
+// navigateur n'affiche nativement, s'ouvre à part.
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, lireFichierLocal, lireOctetsFichier, type RapportEtude } from '../../lib/api';
+import {
+  api,
+  ErreurApi,
+  lireFichierLocal,
+  lireOctetsFichier,
+  type RapportEtude,
+  type VersionRapport,
+} from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
 
 const CATEGORIES = ['etude_technique', 'rapport_activite', 'audit', 'plan_action', 'autre'] as const;
+
+const PDF = 'application/pdf';
 
 function tailleLisible(octets: number | null): string {
   if (!octets) return '';
@@ -28,6 +42,9 @@ export function RapportsEtudes({ communeId }: { communeId: string }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [filtre, setFiltre] = useState<string>('tous');
   const [redaction, setRedaction] = useState(false);
+  const [historique, setHistorique] = useState<string | null>(null);
+  const [apercu, setApercu] = useState<{ url: string; titre: string } | null>(null);
+  const [versionEnCours, setVersionEnCours] = useState<string | null>(null);
 
   const charger = async () => {
     try {
@@ -48,7 +65,7 @@ export function RapportsEtudes({ communeId }: { communeId: string }) {
 
   const affiches = filtre === 'tous' ? rapports : rapports.filter((r) => r.categorie === filtre);
 
-  const telecharger = async (r: RapportEtude) => {
+  const telecharger = async (r: Pick<RapportEtude, 'fichier_url'>) => {
     try {
       const url = await lireOctetsFichier(r.fichier_url);
       window.open(url, '_blank', 'noopener');
@@ -57,7 +74,49 @@ export function RapportsEtudes({ communeId }: { communeId: string }) {
     }
   };
 
+  const afficher = async (r: Pick<RapportEtude, 'fichier_url' | 'titre' | 'version'>) => {
+    try {
+      if (apercu) URL.revokeObjectURL(apercu.url);
+      const url = await lireOctetsFichier(r.fichier_url);
+      setApercu({ url, titre: `${r.titre} — v${r.version}` });
+    } catch (err) {
+      setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
+    }
+  };
+
+  const fermerApercu = () => {
+    if (apercu) URL.revokeObjectURL(apercu.url);
+    setApercu(null);
+  };
+
+  const nouvelleVersion = async (r: RapportEtude, fichier: File) => {
+    setVersionEnCours(r.id);
+    setErreur(null);
+    try {
+      const depose = await api.deposerFichier(communeId, {
+        ...(await lireFichierLocal(fichier)),
+        usage: 'rapport_etude',
+      });
+      await api.deposerVersionRapport(r.id, {
+        fichierUrl: depose.url,
+        nomFichier: fichier.name,
+        typeMime: depose.type_mime,
+        tailleOctets: depose.taille_octets,
+      });
+      await charger();
+    } catch (err) {
+      setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
+    } finally {
+      setVersionEnCours(null);
+    }
+  };
+
   const retirer = async (r: RapportEtude) => {
+    // Retirer un document, c'est retirer toutes ses versions : on le dit
+    // avant, puisque ce n'est pas ce qu'un « Retirer » laisse deviner.
+    if (r.nb_versions > 1 && !window.confirm(t('communal.rapportsEtudes.confirmerRetrait', { n: r.nb_versions }))) {
+      return;
+    }
     try {
       await api.retirerRapportEtude(r.id);
       await charger();
@@ -98,6 +157,22 @@ export function RapportsEtudes({ communeId }: { communeId: string }) {
         />
       )}
 
+      {apercu && (
+        <section className="space-y-2 rounded-xl border border-ardoise-200 bg-white p-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-sm font-medium text-ardoise-900">{apercu.titre}</p>
+            <button
+              type="button"
+              onClick={fermerApercu}
+              className="min-h-11 shrink-0 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700"
+            >
+              {t('communal.rapportsEtudes.fermerApercu')}
+            </button>
+          </div>
+          <iframe src={apercu.url} title={apercu.titre} className="h-[70vh] w-full rounded-lg border border-ardoise-200" />
+        </section>
+      )}
+
       <div className="flex flex-wrap gap-1.5">
         {['tous', ...CATEGORIES].map((c) => (
           <button
@@ -122,40 +197,153 @@ export function RapportsEtudes({ communeId }: { communeId: string }) {
       ) : (
         <ul className="space-y-2">
           {affiches.map((r) => (
-            <li
-              key={r.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ardoise-200 bg-white p-4"
-            >
-              <div className="min-w-0">
-                <p className="font-medium text-ardoise-900">{r.titre}</p>
-                <p className="text-xs text-ardoise-500">
-                  {t(`communal.rapportsEtudes.categories.${r.categorie}`)}
-                  {r.auteur ? ` · ${r.auteur}` : ''}
-                  {r.date_document ? ` · ${new Date(r.date_document).toLocaleDateString('fr-FR')}` : ''}
-                  {r.taille_octets ? ` · ${tailleLisible(r.taille_octets)}` : ''}
-                </p>
+            <li key={r.id} className="space-y-3 rounded-xl border border-ardoise-200 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-ardoise-900">
+                    {r.titre}
+                    <span className="ms-2 rounded bg-ardoise-100 px-1.5 py-0.5 text-xs font-semibold text-ardoise-700">
+                      v{r.version}
+                    </span>
+                  </p>
+                  <p className="text-xs text-ardoise-500">
+                    {t(`communal.rapportsEtudes.categories.${r.categorie}`)}
+                    {r.auteur ? ` · ${r.auteur}` : ''}
+                    {r.date_document ? ` · ${new Date(r.date_document).toLocaleDateString('fr-FR')}` : ''}
+                    {r.taille_octets ? ` · ${tailleLisible(r.taille_octets)}` : ''}
+                    {r.nb_versions > 1 ? ` · ${t('communal.rapportsEtudes.nbVersions', { n: r.nb_versions })}` : ''}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  {r.type_mime === PDF && (
+                    <button
+                      type="button"
+                      onClick={() => void afficher(r)}
+                      className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700"
+                    >
+                      {t('communal.rapportsEtudes.apercu')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void telecharger(r)}
+                    className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700"
+                  >
+                    {t('communal.rapportsEtudes.ouvrir')}
+                  </button>
+                  <label
+                    className={`inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-siipi-300 bg-white px-3 text-sm font-medium text-siipi-800 ${
+                      versionEnCours === r.id ? 'opacity-50' : ''
+                    }`}
+                  >
+                    {versionEnCours === r.id
+                      ? t('communal.rapportsEtudes.depotEnCours')
+                      : t('communal.rapportsEtudes.nouvelleVersion')}
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.xlsx,.pptx,image/jpeg,image/png,image/webp,application/pdf"
+                      className="sr-only"
+                      disabled={versionEnCours !== null}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        e.target.value = '';
+                        if (f) void nouvelleVersion(r, f);
+                      }}
+                    />
+                  </label>
+                  {r.nb_versions > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setHistorique((h) => (h === r.document_id ? null : r.document_id))}
+                      aria-expanded={historique === r.document_id}
+                      className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700"
+                    >
+                      {t('communal.rapportsEtudes.historique')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => void retirer(r)}
+                    className="min-h-11 rounded-lg border border-red-300 bg-white px-3 text-sm font-medium text-red-800"
+                  >
+                    {t('communal.rapportsEtudes.retirer')}
+                  </button>
+                </div>
               </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  onClick={() => void telecharger(r)}
-                  className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700"
-                >
-                  {t('communal.rapportsEtudes.ouvrir')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void retirer(r)}
-                  className="min-h-11 rounded-lg border border-red-300 bg-white px-3 text-sm font-medium text-red-800"
-                >
-                  {t('communal.rapportsEtudes.retirer')}
-                </button>
-              </div>
+              {historique === r.document_id && (
+                <Historique
+                  rapportId={r.id}
+                  onOuvrir={(v) => void telecharger(v)}
+                  onApercu={(v) => void afficher(v)}
+                />
+              )}
             </li>
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+function Historique({
+  rapportId,
+  onOuvrir,
+  onApercu,
+}: {
+  rapportId: string;
+  onOuvrir: (v: VersionRapport) => void;
+  onApercu: (v: VersionRapport) => void;
+}) {
+  const { t } = useTranslation();
+  const [versions, setVersions] = useState<VersionRapport[] | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .versionsRapport(rapportId)
+      .then(setVersions)
+      .catch((err) => setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur')));
+  }, [rapportId, t]);
+
+  if (erreur) return <Erreur message={erreur} />;
+  if (!versions) return <Chargement />;
+
+  return (
+    <ol className="space-y-1 border-s-2 border-ardoise-200 ps-3">
+      {versions.map((v) => (
+        <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <span className="min-w-0">
+            <span className="font-semibold text-ardoise-800">v{v.version}</span>
+            <span className="text-ardoise-500">
+              {' · '}
+              {t('communal.rapportsEtudes.deposeLe', {
+                date: new Date(v.created_at).toLocaleString(document.documentElement.lang || 'fr'),
+              })}
+              {' · '}
+              {v.nom_fichier}
+            </span>
+          </span>
+          <span className="flex gap-2">
+            {v.type_mime === PDF && (
+              <button
+                type="button"
+                onClick={() => onApercu(v)}
+                className="min-h-9 rounded-lg border border-ardoise-300 bg-white px-2 text-xs font-medium text-ardoise-700"
+              >
+                {t('communal.rapportsEtudes.apercu')}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onOuvrir(v)}
+              className="min-h-9 rounded-lg border border-ardoise-300 bg-white px-2 text-xs font-medium text-ardoise-700"
+            >
+              {t('communal.rapportsEtudes.ouvrir')}
+            </button>
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
 

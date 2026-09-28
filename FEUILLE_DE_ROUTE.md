@@ -6,6 +6,7 @@ Version au 22 septembre 2026 · établie à partir du cahier des charges SIIPI (
 Mise à jour du 22 septembre 2026 : clôture du **Jalon 1** (§ 4) — huit lignes passées à Fait.
 Mise à jour du 22 septembre 2026 (suite) : **Jalon 2, lot 1** (B5.1.2, B5.2.3, B5.4.3) — le push web est réellement émis. Le mécanisme d'abonnement du citoyen (`M6`) a dû être construit avec, pour que l'envoi ait un destinataire à joindre — voir le rapport de lot avant de considérer `M6` clos.
 Mise à jour du 23 septembre 2026 : **`M6` clos** — historique « Mes notifications », préférences par canal et par type, et relance manuelle (« Renvoyer ») d'un envoi en échec.
+Mise à jour du 28 septembre 2026 : **Jalon 3** — Contacts (`C1.1`–`C1.3`), versionnement des rapports (`C3.6`) et lecteur PDF intégré (`C3.5`) ; cinq lignes passées à Fait. `C1.4` (import/export CSV) rejoint le service d'export transverse du Jalon 4.
 
 ---
 
@@ -41,9 +42,9 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 57 | 59 % |
-| 🟡 Partiel | 14 | 15 % |
-| ⬜ À faire | 23 | 24 % |
+| ✅ Fait et éprouvé | 62 | 65 % |
+| 🟡 Partiel | 13 | 13 % |
+| ⬜ À faire | 19 | 20 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
 
@@ -71,12 +72,12 @@ les tonnes et la masse salariale.
 | **5.4 Notifications ciblées** | 3 | 1 |  |  | Le push est réellement émis ; SMS et courriel restent à câbler (décision de fournisseur). |
 | **5.5 Points citoyens** | 3 |  | 1 |  | Il reste les indicateurs de communication. |
 | **3.2.6 Paramètres** | 2 | 1 | 3 |  | Langue et mot de passe seulement. |
-| **3.2.7 Contacts** |  |  | 4 |  | Rien. CRUD simple, rapide à faire. |
+| **3.2.7 Contacts** | 3 |  | 1 |  | Liste, ajout, modification et retrait faits (Jalon 3) ; l'import/export CSV attend le service d'export du Jalon 4. |
 | **3.2.8 Découpage communal** | 3 | 1 | 2 |  | Fonctionnel ; validation FNCT et historique manquent. |
-| **3.2.9 Rapports et études** | 5 | 1 | 1 |  | Dépôt, métadonnées et catégories faits (Jalon 1) ; reste le lecteur PDF intégré et le versionnement. |
+| **3.2.9 Rapports et études** | 7 |  |  |  | Complète : versionnement et lecteur PDF intégré ajoutés au Jalon 3. |
 | **3.2.10 KPI 5 axes** |  | 2 | 3 |  | Le gros morceau restant. À faire en dernier, par construction. |
 | **3.2.11 Prestataires privés** | 3 | 1 |  |  | Complète, hors tableau de bord restreint. |
-| **3.3 Application citoyenne** | 8 | 1 | 1 |  | Les fonctions y sont — mais en web, pas en application Android (§ 7). |
+| **3.3 Application citoyenne** | 9 | 1 |  |  | Les fonctions y sont — mais en web, pas en application Android (§ 7). Seul `M1` (téléphone + OTP) reste partiel. |
 
 ---
 
@@ -212,10 +213,10 @@ les tonnes et la masse salariale.
 
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
-| `C1.1` | Liste des contacts | ⬜ À faire |  |
-| `C1.2` | Ajouter un contact | ⬜ À faire |  |
-| `C1.3` | Modifier / supprimer (suppression logique) | ⬜ À faire |  |
-| `C1.4` | Import / export CSV | ⬜ À faire |  |
+| `C1.1` | Liste des contacts | ✅ Fait | Contacts.tsx (recherche, filtre par catégorie) · migration 045 · campagne contacts |
+| `C1.2` | Ajouter un contact | ✅ Fait | contacts.routes.ts (au moins un téléphone ou un courriel, garanti aussi en base) · campagne contacts |
+| `C1.3` | Modifier / supprimer (suppression logique) | ✅ Fait | app.supprimer ouvert aux contacts, journal d'audit · lecture réservée à la commune et à la FNCT (pas au prestataire) · campagne contacts |
+| `C1.4` | Import / export CSV | ⬜ À faire | rattaché au service d'export transverse (Jalon 4) |
 
 ### 3.2.8 Découpage communal
 
@@ -236,8 +237,8 @@ les tonnes et la masse salariale.
 | `C3.2` | Dépôt de document (PDF, DOCX, XLSX, PPTX) | ✅ Fait | migration 043 · services/fichiers.ts (signature ZIP, plafond 50 Mo pour l'usage `rapport_etude`) · campagne rapports |
 | `C3.3` | Métadonnées (titre, type, auteur, date) | ✅ Fait | table `rapports_etudes` (migration 043) · rapportsEtudes.routes.ts |
 | `C3.4` | Catégories d'étude | ✅ Fait | 5 catégories (étude technique, rapport d'activité, audit, plan d'action, autre) · migration 043 |
-| `C3.5` | Lecteur PDF intégré | 🟡 Partiel | le document s'ouvre dans un nouvel onglet ; pas de lecteur intégré à la page |
-| `C3.6` | Versionnement | ⬜ À faire |  |
+| `C3.5` | Lecteur PDF intégré | ✅ Fait | RapportsEtudes.tsx (« Aperçu » dans la page, pour chaque version) ; un document Office s'ouvre à part, aucun navigateur ne l'affichant nativement |
+| `C3.6` | Versionnement | ✅ Fait | migration 045 (`document_id`, `version`, garde-fous en base) · routes `/rapports-etudes/:id/versions` · campagne rapports |
 | `C3.7` | Accès FNCT / commune | ✅ Fait | RLS `rapports_etudes_select`/`_insert`/`_update` (migration 043) · campagne rapports |
 
 ### 3.2.10 KPI 5 axes
@@ -388,14 +389,44 @@ Campagne `notifications` rejouée sans régression (16/16) après le
 renommage de table. Contrat d'API vérifié, 45 migrations rejouées sur base
 neuve, typage front et back sans erreur.
 
-### Jalon 3 — Rapports et études, puis Contacts *(deux CRUD simples)*
+### Jalon 3 — Rapports et études, puis Contacts ✅ *(fait le 28 septembre 2026)*
 
-Le stockage de fichiers porte déjà l'essentiel : il reste les métadonnées, les
-catégories, le versionnement et la liste. Les contacts sont un CRUD sans
-difficulté. Deux rubriques entières fermées pour un effort modéré.
+Les rapports et études avaient été avancés au Jalon 1 (dépôt, métadonnées,
+catégories) : ce jalon en ferme la rubrique et ouvre celle des contacts.
+
+| Quoi | Débloque | Preuve |
+|---|---|---|
+| Annuaire de travail de la commune : liste, recherche, filtre par catégorie, ajout, modification, retrait logique | `C1.1`, `C1.2`, `C1.3` | `Contacts.tsx` · `contacts.routes.ts` · migration 045 · campagne `contacts` |
+| Versionnement des rapports : une version 2 est une nouvelle ligne rattachée à la première, jamais un écrasement | `C3.6` | migration 045 · `/rapports-etudes/:id/versions` · campagne `rapports` |
+| Lecteur PDF intégré à la page, pour chaque version | `C3.5` | `RapportsEtudes.tsx` |
+
+**Choix retenus.**
+- **Contacts : lecture réservée à la commune et à la FNCT.** Ce sont des
+  données personnelles de tiers ; un prestataire rattaché lit les circuits et
+  les réclamations de la commune, pas son carnet d'adresses (minimisation,
+  décret-loi 2022-54). Une fiche doit porter au moins un téléphone ou un
+  courriel — vérifié par l'API et par une contrainte en base.
+- **Versions : même table, garde-fous en base.** Une version se rattache par
+  `document_id` au document d'origine ; un déclencheur refuse qu'elle se
+  greffe sur le document d'une autre commune, ou qu'une « version 2 » existe
+  sans document. Un numéro de version n'est jamais réattribué, même après
+  retrait. Retirer un document retire toutes ses versions — sinon la version 1
+  réapparaîtrait après le retrait de la 2.
+- **`C1.4` (CSV) reporté au Jalon 4**, qui bâtit un service d'export unique
+  pour les cinq endroits qui en demandent.
+
+**Correction livrée avec le lot** : la ligne « 3.3 Application citoyenne » du
+tableau par rubrique n'avait pas été mise à jour à la clôture de `M6` (Jalon 2) ;
+elle l'est ici (9 faits, 1 partiel).
 
 **Test de validation.** Dépôt d'une version 2 d'un rapport : la version 1 reste
-consultable et datée ; un cadre d'une autre commune ne voit rien.
+consultable (son fichier se lit toujours), datée et imputée ; un cadre d'une
+autre commune ne lit pas l'historique et ne peut pas y greffer de version, pas
+même en SQL direct. Campagnes `rapports` (37/37, dont 17 nouvelles assertions
+de versionnement) et `contacts` (25/25, nouvelle) ; 46 migrations rejouées sur
+base neuve ; contrat d'API conforme (159 routes) ; typage front et back sans
+erreur ; le reste de la suite sans régression (mêmes échecs pré-existants que
+les jalons précédents, signalés à part).
 
 ### Jalon 4 — L'import et l'export, de façon transverse
 

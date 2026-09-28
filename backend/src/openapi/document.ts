@@ -57,7 +57,8 @@ import {
 } from '../routes/citoyen.routes.js';
 import { frontiereSchema } from '../routes/communes.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
-import { rapportEtudeDepotSchema } from '../routes/rapportsEtudes.routes.js';
+import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
+import { contactSchema, majContactSchema } from '../routes/contacts.routes.js';
 import {
   propositionSchema as pointSuggereSchema,
   validationSchema as pointSuggereValidationSchema,
@@ -3708,6 +3709,10 @@ const RapportEtude = registry.register(
   'RapportEtude',
   z.object({
     id: z.string().uuid(),
+    document_id: z.string().uuid().openapi({
+      description: "Identifiant commun à toutes les versions d'un même document : l'id de sa version 1.",
+    }),
+    version: z.number().int().openapi({ description: 'Numéro de version, à partir de 1. Une version antérieure n’est jamais écrasée.' }),
     commune_id: z.string(),
     titre: z.string(),
     categorie: z.enum(CATEGORIES_RAPPORT),
@@ -3733,7 +3738,13 @@ registry.registerPath({
   request: {
     query: z.object({ communeId: z.string().optional(), categorie: z.enum(CATEGORIES_RAPPORT).optional() }),
   },
-  responses: { 200: json(z.array(RapportEtude), 'Rapports et études.'), ...REPONSES_COMMUNES },
+  responses: {
+    200: json(
+      z.array(RapportEtude.extend({ nb_versions: z.number().int() })),
+      'Dernière version de chaque document, avec son nombre de versions.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 registry.registerPath({
@@ -3757,10 +3768,116 @@ registry.registerPath({
   tags: ['Rapports et études'],
   summary: 'Retirer un rapport ou une étude',
   description:
-    'Retrait LOGIQUE, comme partout : le fichier déposé reste sur le volume, seule la fiche disparaît de la liste.',
+    'Retrait LOGIQUE, comme partout, et de TOUTES les versions du document : laisser la version 1 en ligne après avoir retiré la 2 ferait réapparaître un document qu’on croyait retiré. Les fichiers déposés restent sur le volume.',
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: { 204: { description: 'Rapport retiré.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/rapports-etudes/{id}/versions',
+  tags: ['Rapports et études'],
+  summary: 'Historique des versions d’un document',
+  description: 'Toutes les versions en ligne du document auquel appartient `id`, la plus récente en tête — chacune datée et imputée.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 200: json(z.array(RapportEtude), 'Versions, de la plus récente à la plus ancienne.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/rapports-etudes/{id}/versions',
+  tags: ['Rapports et études'],
+  summary: 'Déposer une nouvelle version',
+  description:
+    "Une nouvelle ligne rattachée au même document, numérotée à la suite — la précédente reste consultable. Seul le fichier est obligatoire : titre, catégorie, auteur et date sont repris de la version courante s'ils ne sont pas fournis. Le fichier est déposé d'abord par POST /fichiers (usage « rapport_etude »).",
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: rapportEtudeVersionSchema } } },
+  },
+  responses: { 201: json(RapportEtude, 'Nouvelle version enregistrée.'), ...REPONSES_COMMUNES },
+});
+
+// ---------------------------------------------------------------------------
+// Contacts (TDR §3.2.7)
+// ---------------------------------------------------------------------------
+
+const CATEGORIES_CONTACT = ['administration', 'prestataire', 'association', 'fournisseur', 'elu', 'autre'] as const;
+
+const Contact = registry.register(
+  'Contact',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    nom_complet: z.string(),
+    organisation: z.string().nullable(),
+    fonction: z.string().nullable(),
+    categorie: z.enum(CATEGORIES_CONTACT),
+    telephone: z.string().nullable(),
+    email: z.string().nullable(),
+    notes: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/contacts',
+  tags: ['Contacts'],
+  summary: "Annuaire de travail d'une commune",
+  description:
+    'Interlocuteurs externes, sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT : un prestataire rattaché n’y a pas accès (données personnelles de tiers, décret-loi 2022-54).',
+  security: SECURISE,
+  request: {
+    query: z.object({
+      communeId: z.string().optional(),
+      categorie: z.enum(CATEGORIES_CONTACT).optional(),
+      q: z.string().optional().openapi({ description: 'Recherche sur le nom, l’organisation ou la fonction.' }),
+    }),
+  },
+  responses: { 200: json(z.array(Contact), 'Contacts, par ordre alphabétique.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/contacts',
+  tags: ['Contacts'],
+  summary: 'Ajouter un contact',
+  description: 'Au moins un téléphone ou un courriel : une fiche sans moyen de joindre la personne n’est pas un contact.',
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: z.string().optional() }),
+    body: { content: { 'application/json': { schema: contactSchema } } },
+  },
+  responses: { 201: json(Contact, 'Contact ajouté.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/contacts/{id}',
+  tags: ['Contacts'],
+  summary: 'Modifier un contact',
+  description: 'Un champ absent ne change pas ; un champ vidé (« » ou null) s’efface.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: majContactSchema } } },
+  },
+  responses: { 200: json(Contact, 'Contact modifié.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/contacts/{id}',
+  tags: ['Contacts'],
+  summary: 'Retirer un contact',
+  description: 'Retrait logique : la fiche disparaît de l’annuaire mais reste en base, datée et imputée.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 204: { description: 'Contact retiré.' }, ...REPONSES_COMMUNES },
 });
 
 // ---------------------------------------------------------------------------
@@ -3881,7 +3998,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.4.0',
+      version: '0.5.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
@@ -3929,7 +4046,8 @@ export function genererDocumentOpenApi() {
       { name: 'Flux occasionnels', description: 'Déchets verts, déchets de démolition et construction (DDC) et encombrants : demandes d’enlèvement et collecteurs agréés ANGeD.' },
       { name: 'Observatoire national', description: 'Portail FNCT : déploiement et comparaison entre territoires.' },
       { name: 'Fichiers', description: "Photos et documents déposés : preuve de traitement d'une réclamation, photo de signalement, constat de terrain, documents de projet, rapports et études. Type déduit des octets, métadonnées EXIF retirées au dépôt." },
-      { name: 'Rapports et études', description: "Métadonnées des rapports et études d'une commune (TDR §3.2.9) : titre, catégorie, auteur déclaré, date. Le fichier lui-même est déposé par POST /fichiers." },
+      { name: 'Rapports et études', description: "Métadonnées des rapports et études d'une commune (TDR §3.2.9) : titre, catégorie, auteur déclaré, date. Le fichier lui-même est déposé par POST /fichiers. Versionnement : une nouvelle version ne remplace jamais la précédente." },
+      { name: 'Contacts', description: "Annuaire de travail d'une commune (TDR §3.2.7) : interlocuteurs externes sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT." },
       { name: 'Supervision', description: "État de santé de l'API." },
     ],
   });

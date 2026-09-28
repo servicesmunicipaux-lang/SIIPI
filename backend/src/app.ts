@@ -33,6 +33,7 @@ import { publicationsCitoyenRouter } from './routes/publicationsCitoyen.routes.j
 import { passagesRouter } from './routes/passages.routes.js';
 import { fichiersRouter } from './routes/fichiers.routes.js';
 import { rapportsEtudesRouter } from './routes/rapportsEtudes.routes.js';
+import { contactsRouter } from './routes/contacts.routes.js';
 import {
   pointsSuggeresRouter,
   pointsSuggeresCitoyenRouter,
@@ -183,6 +184,7 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/enlevements', enlevementsRouter],
   ['/fichiers', fichiersRouter],
   ['/rapports-etudes', rapportsEtudesRouter],
+  ['/contacts', contactsRouter],
   ['/points-suggeres', pointsSuggeresRouter],
   // Monté sur le préfixe citoyen : la proposition et son suivi appartiennent
   // à l'espace du citoyen, l'instruction à celui de la commune. Deux publics,
