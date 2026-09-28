@@ -372,8 +372,11 @@ export function exportable(jeu: JeuExport, suffixe?: (req: Request) => string | 
 
     res.json = (corps: unknown) => {
       if (res.statusCode >= 400 || !Array.isArray(corps)) return json(corps);
+      // Une route dont les colonnes dépendent de la commune (les champs libres
+      // du Jalon 6) pose son jeu dans res.locals avant de répondre.
+      const jeuEffectif = (res.locals.jeuExport as JeuExport | undefined) ?? jeu;
       const fichier =
-        format === 'csv' ? versCsv(jeu, corps, langue) : versXlsx(jeu, corps, langue);
+        format === 'csv' ? versCsv(jeuEffectif, corps, langue) : versXlsx(jeuEffectif, corps, langue);
       const complement = suffixe?.(req)?.replace(/[^A-Za-z0-9_-]/g, '');
       const nom = `${jeu.nom}${complement ? `-${complement}` : ''}-${new Date().toISOString().slice(0, 10)}.${format}`;
       res.setHeader('Content-Type', MIME[format as FormatExport]);

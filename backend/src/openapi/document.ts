@@ -70,6 +70,20 @@ import {
   STATUTS_ECHEANCE,
 } from '../routes/maintenance.routes.js';
 import {
+  champSchema,
+  majChampSchema,
+  etiquetteSchema,
+  lotSchema,
+  attributsPointSchema,
+  actionSchema,
+  majActionSchema,
+  pointsActionSchema,
+  avancementSchema,
+  TYPES_CHAMP,
+  COULEURS,
+  STATUTS_ACTION,
+} from '../routes/attributsPoints.routes.js';
+import {
   propositionSchema as pointSuggereSchema,
   validationSchema as pointSuggereValidationSchema,
   refusSchema as pointSuggereRefusSchema,
@@ -2581,6 +2595,13 @@ const PointCollecte = registry.register(
       observation: z.string().nullable(),
       source: z.enum(['import_kml', 'saisie']),
       actif: z.boolean(),
+      attributs: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).openapi({
+        description:
+          'Valeurs des champs libres de la commune (Jalon 6), indexées par l’identifiant du champ (GET /points/champs). Une clé absente est une case vide.',
+      }),
+      etiquettes: z.array(z.string().uuid()).openapi({
+        description: 'Étiquettes du point (GET /points/etiquettes). Une étiquette retirée n’apparaît plus.',
+      }),
     })
     .passthrough()
     .openapi('PointCollecte')
@@ -2678,10 +2699,27 @@ registry.registerPath({
       circuitId: z.string().uuid().optional(),
       type: z.string().optional().openapi({ description: 'Type de point (porte_a_porte, point_noir…).' }),
       actif: z.enum(['true', 'false']).optional(),
+      etiquettes: z.string().optional().openapi({
+        description: 'Identifiants d’étiquettes séparés par des virgules : le point doit les porter toutes.',
+      }),
+      champId: z.string().uuid().optional().openapi({ description: 'Filtre sur un champ libre de la commune.' }),
+      operateur: z.enum(['egal', 'contient', 'renseigne', 'vide']).optional().openapi({
+        description:
+          'Par défaut : « renseigne » sans valeur, « contient » pour un champ texte, « egal » sinon. Pour oui/non, la valeur est oui|non (ou true|false).',
+      }),
+      valeur: z.string().optional(),
+      actionId: z.string().uuid().optional().openapi({ description: 'Les points visés par une action planifiée.' }),
       ...paramsExport,
     }),
   },
-  responses: { 200: jsonOuExport(z.array(PointCollecte), 'Arrêts de la commune, filtrés.'), 400: REPONSES_COMMUNES[400], 401: REPONSES_COMMUNES[401] },
+  responses: {
+    200: jsonOuExport(
+      z.array(PointCollecte),
+      'Arrêts de la commune, filtrés. À l’export, les étiquettes (par leur nom) et les champs libres de la commune s’ajoutent en colonnes.'
+    ),
+    400: REPONSES_COMMUNES[400],
+    401: REPONSES_COMMUNES[401],
+  },
 });
 
 registry.registerPath({
@@ -4120,6 +4158,271 @@ registry.registerPath({
 });
 
 // ---------------------------------------------------------------------------
+// Points : champs libres, étiquettes, actions planifiées (Jalon 6)
+// ---------------------------------------------------------------------------
+
+const TAG_POINTS = 'Points : champs libres et actions';
+
+const ChampPoint = registry.register(
+  'ChampPoint',
+  z
+    .object({
+      id: z.string().uuid(),
+      commune_id: z.string(),
+      libelle: z.string(),
+      libelle_ar: z.string().nullable(),
+      type: z.enum(TYPES_CHAMP),
+      options: z.array(z.string()).openapi({ description: 'Choix proposés (champ « liste » seulement).' }),
+      ordre: z.number().int(),
+      nb_renseignes: z.number().int().optional().openapi({ description: 'Points de la commune où le champ est renseigné.' }),
+    })
+    .openapi('ChampPoint')
+);
+
+const EtiquettePoint = registry.register(
+  'EtiquettePoint',
+  z
+    .object({
+      id: z.string().uuid(),
+      commune_id: z.string(),
+      nom: z.string(),
+      couleur: z.enum(COULEURS),
+      nb_points: z.number().int().optional(),
+    })
+    .openapi('EtiquettePoint')
+);
+
+const ActionPlanifiee = registry.register(
+  'ActionPlanifiee',
+  z
+    .object({
+      id: z.string().uuid(),
+      commune_id: z.string(),
+      titre: z.string(),
+      description: z.string().nullable(),
+      date_prevue: z.string(),
+      date_fin: z.string().nullable(),
+      responsable: z.string().nullable(),
+      statut: z.enum(STATUTS_ACTION),
+      etat: z.enum(['planifiee', 'en_retard', 'terminee', 'annulee']).openapi({
+        description: '« en_retard » : encore planifiée alors que sa date (de fin, à défaut prévue) est passée. Calculé, jamais saisi.',
+      }),
+      terminee_le: z.string().nullable(),
+      nb_points: z.number().int(),
+      nb_faits: z.number().int(),
+    })
+    .openapi('ActionPlanifiee')
+);
+
+const ActionDetaillee = registry.register(
+  'ActionDetaillee',
+  ActionPlanifiee.extend({
+    points: z.array(
+      z.object({
+        id: z.string().uuid(),
+        circuit_id: z.string().uuid(),
+        circuit_nom: z.string(),
+        voyage: z.number().int(),
+        ordre: z.number().int(),
+        nom: z.string().nullable(),
+        type: z.string(),
+        lat: z.number(),
+        lng: z.number(),
+        fait_le: z.string().nullable(),
+        fait_par: z.string().nullable(),
+      })
+    ),
+  }).openapi('ActionDetaillee')
+);
+
+const qCommune = z.object({ communeId: paramCommuneId.optional() });
+
+registry.registerPath({
+  method: 'get',
+  path: '/points/champs',
+  tags: [TAG_POINTS],
+  summary: 'Les champs libres du tableau des points',
+  security: SECURISE,
+  request: { query: qCommune },
+  responses: { 200: json(z.array(ChampPoint), 'Champs de la commune, dans l’ordre du tableau.'), 400: REPONSES_COMMUNES[400], 401: REPONSES_COMMUNES[401] },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/points/champs',
+  tags: [TAG_POINTS],
+  summary: 'Ajouter un champ libre',
+  description: 'Texte, nombre, oui/non, liste de choix ou date. Le type ne change plus ensuite. 40 champs au plus par commune.',
+  security: SECURISE,
+  request: { query: qCommune, body: { content: { 'application/json': { schema: champSchema } } } },
+  responses: { 201: json(ChampPoint, 'Champ créé.'), ...REPONSES_COMMUNES, 409: { description: 'Un champ de même libellé existe déjà.' } },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/points/champs/{id}',
+  tags: [TAG_POINTS],
+  summary: 'Renommer un champ, en retoucher les choix ou le rang',
+  description: 'Un changement de type est refusé (400). Un choix encore porté par des points ne peut pas être retiré (409).',
+  security: SECURISE,
+  request: { params: idUuid, body: { content: { 'application/json': { schema: majChampSchema } } } },
+  responses: { 200: json(ChampPoint, 'Champ modifié.'), ...REPONSES_COMMUNES, 409: { description: 'Libellé en double, ou choix encore utilisé.' } },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/points/champs/{id}',
+  tags: [TAG_POINTS],
+  summary: 'Retirer un champ libre',
+  description: 'Retrait logique : aucune valeur n’est réécrite, elles restent dans l’historique des points.',
+  security: SECURISE,
+  request: { params: idUuid },
+  responses: { 204: { description: 'Champ retiré.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/points/etiquettes',
+  tags: [TAG_POINTS],
+  summary: 'Les étiquettes de la commune',
+  security: SECURISE,
+  request: { query: qCommune },
+  responses: { 200: json(z.array(EtiquettePoint), 'Étiquettes, avec le nombre de points qui les portent.'), 400: REPONSES_COMMUNES[400], 401: REPONSES_COMMUNES[401] },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/points/etiquettes',
+  tags: [TAG_POINTS],
+  summary: 'Créer une étiquette',
+  security: SECURISE,
+  request: { query: qCommune, body: { content: { 'application/json': { schema: etiquetteSchema } } } },
+  responses: { 201: json(EtiquettePoint, 'Étiquette créée.'), ...REPONSES_COMMUNES, 409: { description: 'Une étiquette de même nom existe déjà.' } },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/points/etiquettes/{id}',
+  tags: [TAG_POINTS],
+  summary: 'Renommer une étiquette ou en changer la couleur',
+  security: SECURISE,
+  request: { params: idUuid, body: { content: { 'application/json': { schema: etiquetteSchema.partial() } } } },
+  responses: { 200: json(EtiquettePoint, 'Étiquette modifiée.'), ...REPONSES_COMMUNES, 409: { description: 'Nom en double.' } },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/points/etiquettes/{id}',
+  tags: [TAG_POINTS],
+  summary: 'Retirer une étiquette',
+  security: SECURISE,
+  request: { params: idUuid },
+  responses: { 204: { description: 'Étiquette retirée.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/points/lot',
+  tags: [TAG_POINTS],
+  summary: 'Renseigner un champ ou étiqueter plusieurs points d’un coup',
+  description:
+    'Tout ou rien : un point invisible donne 404, une valeur qui ne correspond pas au type du champ donne 400, et rien n’est écrit. Une valeur null efface la case.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: lotSchema } } } },
+  responses: { 200: json(z.object({ modifies: z.number().int() }), 'Points modifiés.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/points/{id}',
+  tags: [TAG_POINTS],
+  summary: 'Renseigner les champs libres ou les étiquettes d’un point',
+  description: '`attributs` se fusionne (null efface une case) ; `etiquettes` remplace la liste entière.',
+  security: SECURISE,
+  request: { params: idUuid, body: { content: { 'application/json': { schema: attributsPointSchema } } } },
+  responses: {
+    200: json(
+      z.object({ id: z.string().uuid(), attributs: z.record(z.string(), z.any()), etiquettes: z.array(z.string().uuid()), updated_at: z.string() }),
+      'Point modifié.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/points/actions',
+  tags: [TAG_POINTS],
+  summary: 'Les actions planifiées sur les points',
+  security: SECURISE,
+  request: { query: qCommune.extend({ statut: z.enum(STATUTS_ACTION).optional() }) },
+  responses: { 200: json(z.array(ActionPlanifiee), 'Actions, les planifiées d’abord, par date.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/points/actions',
+  tags: [TAG_POINTS],
+  summary: 'Planifier une action sur une sélection de points',
+  description:
+    'La commune de l’action est celle des points. Les points sont arrêtés à la création : une étiquette posée plus tard n’agrandit pas l’action.',
+  security: SECURISE,
+  request: { query: qCommune, body: { content: { 'application/json': { schema: actionSchema } } } },
+  responses: { 201: json(ActionPlanifiee, 'Action planifiée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/points/actions/{id}',
+  tags: [TAG_POINTS],
+  summary: 'Une action et ses points, avec leur avancement',
+  security: SECURISE,
+  request: { params: idUuid },
+  responses: { 200: json(ActionDetaillee, 'Action détaillée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/points/actions/{id}',
+  tags: [TAG_POINTS],
+  summary: 'Modifier, terminer ou annuler une action',
+  security: SECURISE,
+  request: { params: idUuid, body: { content: { 'application/json': { schema: majActionSchema } } } },
+  responses: { 200: json(ActionPlanifiee, 'Action modifiée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/points/actions/{id}',
+  tags: [TAG_POINTS],
+  summary: 'Retirer une action',
+  security: SECURISE,
+  request: { params: idUuid },
+  responses: { 204: { description: 'Action retirée.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/points/actions/{id}/points',
+  tags: [TAG_POINTS],
+  summary: 'Ajouter des points à une action, ou en retirer',
+  security: SECURISE,
+  request: { params: idUuid, body: { content: { 'application/json': { schema: pointsActionSchema } } } },
+  responses: { 200: json(ActionPlanifiee, 'Action mise à jour.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/points/actions/{id}/avancement',
+  tags: [TAG_POINTS],
+  summary: 'Pointer des points faits (ou les dé-pointer)',
+  description: '« Fait » porte sa date et son auteur. Un point absent de l’action donne 404, et rien n’est écrit.',
+  security: SECURISE,
+  request: { params: idUuid, body: { content: { 'application/json': { schema: avancementSchema } } } },
+  responses: { 200: json(ActionPlanifiee, 'Avancement mis à jour.'), ...REPONSES_COMMUNES },
+});
+
+// ---------------------------------------------------------------------------
 // Imports CSV (Jalon 4, lot 2) — même calque que l'import KML : sans
 // « valider », un aperçu qui n'écrit rien ; avec, une transaction.
 // ---------------------------------------------------------------------------
@@ -4341,7 +4644,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.8.0',
+      version: '0.9.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
@@ -4391,6 +4694,7 @@ export function genererDocumentOpenApi() {
       { name: 'Fichiers', description: "Photos et documents déposés : preuve de traitement d'une réclamation, photo de signalement, constat de terrain, documents de projet, rapports et études. Type déduit des octets, métadonnées EXIF retirées au dépôt." },
       { name: 'Rapports et études', description: "Métadonnées des rapports et études d'une commune (TDR §3.2.9) : titre, catégorie, auteur déclaré, date. Le fichier lui-même est déposé par POST /fichiers. Versionnement : une nouvelle version ne remplace jamais la précédente." },
       { name: 'Maintenance', description: "GMAO (TDR §3.2.2, Jalon 5) : carnet d'entretien des engins, plans d'entretien périodique et échéances calculées depuis la dernière intervention. Commune et FNCT seulement." },
+      { name: 'Points : champs libres et actions', description: "Tableau attributaire des points de collecte (TDR §3.2.3, Jalon 6) : champs libres définis par la commune, étiquettes, actions planifiées sur une sélection et leur avancement. Filtrage et export par GET /circuits/points." },
       { name: 'Contacts', description: "Annuaire de travail d'une commune (TDR §3.2.7) : interlocuteurs externes sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT." },
       { name: 'Supervision', description: "État de santé de l'API." },
     ],

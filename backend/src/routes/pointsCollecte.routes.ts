@@ -14,7 +14,8 @@ import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { exportable } from '../services/export.js';
-import { JEU_POINTS } from '../services/jeuxExport.js';
+import { JEU_POINTS, jeuPointsAvecChamps } from '../services/jeuxExport.js';
+import { champsDeCommune } from './attributsPoints.routes.js';
 import { lireKml } from '../services/kml.js';
 import { communeDemandee } from '../perimetre.js';
 
@@ -26,7 +27,13 @@ const POINT_SELECT = `
          ST_Y(p.geom)::double precision AS lat,
          ST_X(p.geom)::double precision AS lng,
          p.precision_m, p.heure_observee, p.heure_estimee,
-         p.observation, p.source, p.actif, p.created_at, p.updated_at
+         p.observation, p.source, p.actif, p.created_at, p.updated_at,
+         -- Champs libres et étiquettes (Jalon 6). Une étiquette retirée
+         -- n'est plus rendue : elle reste seulement dans l'historique.
+         p.attributs,
+         ARRAY(SELECT u.e FROM unnest(p.etiquettes) WITH ORDINALITY AS u(e, rang)
+                WHERE EXISTS (SELECT 1 FROM etiquettes_points t WHERE t.id = u.e AND t.deleted_at IS NULL)
+                ORDER BY u.rang) AS etiquettes
     FROM points_collecte p
 `;
 
@@ -42,11 +49,68 @@ const POINT_SELECT = `
 
 // Filtres facultatifs (B3.6) : l'export reprend exactement la même sélection
 // que l'écran, puisqu'il passe par cette même route.
+//
+// Jalon 6 : par étiquette(s), par valeur d'un champ libre, par action
+// planifiée. Même route, donc même export : filtrer « accès camion = non »
+// puis exporter sort exactement ces points-là.
 const filtresPointsSchema = z.object({
   circuitId: z.string().uuid().optional(),
   type: z.string().max(40).optional(),
   actif: z.enum(['true', 'false']).optional(),
+  // Plusieurs étiquettes, séparées par des virgules : le point les porte TOUTES.
+  etiquettes: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.split(',').map((x) => x.trim()).filter(Boolean) : []))
+    .pipe(z.array(z.string().uuid('Étiquette invalide.'))),
+  champId: z.string().uuid().optional(),
+  // egal (par défaut hors texte), contient (par défaut pour un texte),
+  // renseigne (par défaut sans valeur), vide.
+  operateur: z.enum(['egal', 'contient', 'renseigne', 'vide']).optional(),
+  valeur: z.string().max(500).optional(),
+  actionId: z.string().uuid().optional(),
 });
+
+/** « % » et « _ » saisis se cherchent tels quels, pas comme jokers. */
+const echapperLike = (v: string) => v.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+const OUI = ['true', 'oui', '1', 'نعم'];
+const NON = ['false', 'non', '0', 'لا'];
+
+/** La clause SQL d'un filtre sur un champ libre ; pousse ses paramètres. */
+function filtreSurChamp(
+  champ: { id: string; type: string },
+  f: { operateur?: string; valeur?: string },
+  valeurs: unknown[]
+): string {
+  const sansValeur = f.valeur === undefined || f.valeur.trim() === '';
+  const op = f.operateur ?? (sansValeur ? 'renseigne' : champ.type === 'texte' ? 'contient' : 'egal');
+  valeurs.push(champ.id);
+  const cle = `$${valeurs.length}::text`;
+  if (op === 'renseigne') return `AND p.attributs ? ${cle}`;
+  if (op === 'vide') return `AND NOT (p.attributs ? ${cle})`;
+  if (sansValeur) throw new ApiError(400, 'Valeur requise pour ce filtre.');
+  const v = f.valeur!.trim();
+  if (op === 'contient') {
+    valeurs.push(`%${echapperLike(v)}%`);
+    return `AND p.attributs ->> ${cle} ILIKE $${valeurs.length}`;
+  }
+  if (champ.type === 'oui_non') {
+    const t = v.toLowerCase();
+    if (!OUI.includes(t) && !NON.includes(t)) throw new ApiError(400, 'Valeur attendue : oui ou non.');
+    valeurs.push(OUI.includes(t));
+    return `AND p.attributs -> ${cle} = to_jsonb($${valeurs.length}::boolean)`;
+  }
+  if (champ.type === 'nombre') {
+    const n = Number(v.replace(',', '.'));
+    if (!Number.isFinite(n)) throw new ApiError(400, 'Valeur attendue : un nombre.');
+    valeurs.push(n);
+    return `AND jsonb_typeof(p.attributs -> ${cle}) = 'number' AND (p.attributs ->> ${cle})::numeric = $${valeurs.length}::numeric`;
+  }
+  // Texte, liste, date : égalité, sans tenir compte de la casse.
+  valeurs.push(v);
+  return `AND lower(p.attributs ->> ${cle}) = lower($${valeurs.length})`;
+}
 
 pointsRouter.get(
   '/points',
@@ -56,16 +120,68 @@ pointsRouter.get(
     const communeId = communeDemandee(req);
     if (!communeId) throw new ApiError(400, 'Commune requise.');
     const f = filtresPointsSchema.parse(req.query);
-    const lignes = await query(
+    const champs = await champsDeCommune(communeId);
+
+    const valeurs: unknown[] = [
+      communeId,
+      f.circuitId ?? null,
+      f.type ?? null,
+      f.actif === undefined ? null : f.actif === 'true',
+      f.etiquettes,
+      f.actionId ?? null,
+    ];
+    // Une étiquette retirée reste inscrite sur les points (pour l'historique) :
+    // filtrer dessus rendrait des points qui ne l'affichent plus.
+    if (f.etiquettes.length) {
+      const vivantes = await query(
+        'SELECT 1 FROM etiquettes_points WHERE id = ANY($1::uuid[]) AND commune_id = $2 AND deleted_at IS NULL',
+        [[...new Set(f.etiquettes)], communeId]
+      );
+      if (vivantes.length !== new Set(f.etiquettes).size) throw new ApiError(400, 'Étiquette inconnue dans cette commune.');
+    }
+    let clauseChamp = '';
+    if (f.champId) {
+      const champ = champs.find((c) => c.id === f.champId);
+      // Un champ d'une autre commune, ou retiré, n'existe pas ici.
+      if (!champ) throw new ApiError(400, 'Champ inconnu dans cette commune.');
+      clauseChamp = filtreSurChamp(champ, f, valeurs);
+    }
+
+    const lignes = await query<Record<string, unknown>>(
       `${POINT_SELECT}
          JOIN circuits c ON c.id = p.circuit_id
         WHERE p.commune_id = $1 AND p.deleted_at IS NULL AND c.deleted_at IS NULL
           AND ($2::uuid IS NULL OR p.circuit_id = $2)
           AND ($3::text IS NULL OR p.type = $3)
           AND ($4::boolean IS NULL OR p.actif = $4)
+          AND p.etiquettes @> $5::uuid[]
+          AND ($6::uuid IS NULL OR EXISTS (
+                SELECT 1 FROM actions_points ap
+                  JOIN actions_planifiees a ON a.id = ap.action_id AND a.deleted_at IS NULL
+                 WHERE ap.point_id = p.id AND ap.action_id = $6))
+          ${clauseChamp}
         ORDER BY c.nom, p.voyage, p.ordre`,
-      [communeId, f.circuitId ?? null, f.type ?? null, f.actif === undefined ? null : f.actif === 'true']
+      valeurs
     );
+
+    if (req.query.format !== undefined) {
+      // L'export prend les colonnes libres de la commune, et le nom des
+      // étiquettes plutôt que leur identifiant.
+      const noms = new Map(
+        (
+          await query<{ id: string; nom: string }>(
+            'SELECT id, nom FROM etiquettes_points WHERE commune_id = $1 AND deleted_at IS NULL',
+            [communeId]
+          )
+        ).map((e) => [e.id, e.nom])
+      );
+      res.locals.jeuExport = jeuPointsAvecChamps(champs);
+      for (const l of lignes) {
+        l.etiquettes_noms = ((l.etiquettes as string[]) ?? []).map((id) => noms.get(id)).filter(Boolean);
+        const attributs = (l.attributs ?? {}) as Record<string, unknown>;
+        for (const c of champs) l[`champ_${c.id}`] = attributs[c.id] ?? null;
+      }
+    }
     res.json(lignes);
   })
 );
@@ -488,8 +604,10 @@ pointsRouter.get(
          FROM audit_log a
          LEFT JOIN users u ON u.id = a.changed_by
         WHERE a.table_name IN ('circuits', 'points_collecte')
-          AND (a.record_id = $1
-               OR a.record_id IN (SELECT id::text FROM points_collecte WHERE circuit_id = $1))
+          -- Typé des deux côtés : record_id est un texte, circuit_id un uuid,
+          -- et PostgreSQL refusait de deviner (« uuid = text », erreur 500).
+          AND (a.record_id = $1::text
+               OR a.record_id IN (SELECT id::text FROM points_collecte WHERE circuit_id = $1::uuid))
         ORDER BY a.changed_at DESC
         LIMIT 200`,
       [req.params.id]

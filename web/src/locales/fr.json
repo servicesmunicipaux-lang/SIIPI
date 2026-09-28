@@ -123,7 +123,9 @@
     "reessayer": "Réessayer",
     "habitants": "habitants",
     "sur": "sur",
-    "annuler": "Annuler"
+    "annuler": "Annuler",
+    "oui": "Oui",
+    "non": "Non"
   },
   "export": {
     "titre": "Exporter",
@@ -376,6 +378,7 @@
       "suggestions": "Points suggérés",
       "preuve": "Preuve",
       "circuits": "Circuits",
+      "points": "Points",
       "carte": "Carte",
       "comptes": "Comptes",
       "parc": "Parc",
@@ -1144,6 +1147,156 @@
     "menu": {
       "ouvrir": "Ouvrir le menu de navigation",
       "fermer": "Fermer le menu"
+    },
+    "points": {
+      "titre": "Tableau des points",
+      "chapeau": "Tous les arrêts de la commune, avec les colonnes que vous ajoutez vous-même, vos étiquettes et les actions planifiées. Filtrez, sélectionnez, renseignez par lot, exportez : le fichier reprend exactement ce qui est affiché.",
+      "vues": {
+        "tableau": "Tableau",
+        "actions": "Actions planifiées"
+      },
+      "nbPoints_one": "{{count}} point",
+      "nbPoints_other": "{{count}} points",
+      "vide": "Aucun point de collecte dans cette commune. Les arrêts s'importent depuis la fiche d'un circuit.",
+      "aucunResultat": "Aucun point ne correspond à ces filtres.",
+      "fermer": "Fermer",
+      "gerer": "Colonnes et étiquettes",
+      "modifier": "Modifier",
+      "retirer": "Retirer",
+      "enregistrer": "Enregistrer",
+      "filtres": {
+        "titre": "Filtres",
+        "circuit": "Circuit",
+        "tousCircuits": "Tous les circuits",
+        "champ": "Colonne",
+        "aucunChamp": "Aucun filtre de colonne",
+        "operateur": "Condition",
+        "operateurs": {
+          "egal": "est égal à",
+          "contient": "contient",
+          "renseigne": "est renseigné",
+          "vide": "est vide"
+        },
+        "valeur": "Valeur",
+        "choisir": "Choisir…",
+        "etiquettes": "Étiquettes :",
+        "effacer": "Effacer les filtres",
+        "parAction": "Points d'une action planifiée.",
+        "retirerAction": "Voir tous les points"
+      },
+      "colonnes": {
+        "circuit": "Circuit",
+        "ordre": "Ordre",
+        "nom": "Nom",
+        "type": "Type",
+        "etiquettes": "Étiquettes"
+      },
+      "cellule": {
+        "modifier": "Modifier « {{champ}} » pour {{nom}}",
+        "ok": "OK"
+      },
+      "selection": {
+        "titre": "Actions sur la sélection",
+        "n_one": "{{count}} point sélectionné",
+        "n_other": "{{count}} points sélectionnés",
+        "tout": "Tout sélectionner",
+        "cocher": "Sélectionner {{nom}}",
+        "renseigner": "Renseigner une colonne",
+        "etiqueter": "Étiqueter",
+        "planifier": "Planifier une action",
+        "choisirChamp": "Colonne",
+        "choisirEtiquette": "Étiquette",
+        "appliquer": "Appliquer à la sélection",
+        "effacer": "Vider cette colonne",
+        "poser": "Poser l'étiquette",
+        "oter": "Ôter l'étiquette",
+        "sansChamp": "Aucune colonne libre : ajoutez-en une dans « Colonnes et étiquettes ».",
+        "sansEtiquette": "Aucune étiquette : créez-en une dans « Colonnes et étiquettes ».",
+        "renseignes_one": "« {{champ}} » renseigné sur {{count}} point.",
+        "renseignes_other": "« {{champ}} » renseigné sur {{count}} points.",
+        "etiquetes_one": "Étiquette « {{nom}} » posée sur {{count}} point.",
+        "etiquetes_other": "Étiquette « {{nom}} » posée sur {{count}} points.",
+        "desetiquetes_one": "Étiquette « {{nom}} » ôtée de {{count}} point.",
+        "desetiquetes_other": "Étiquette « {{nom}} » ôtée de {{count}} points."
+      },
+      "champs": {
+        "titre": "Colonnes libres",
+        "aucun": "Aucune colonne libre pour l'instant.",
+        "ajouter": "Ajouter une colonne",
+        "creer": "Ajouter la colonne",
+        "exemple": "Accès camion, nombre de bacs…",
+        "libelle": "Libellé",
+        "libelleAr": "Libellé en arabe (facultatif)",
+        "type": "Type",
+        "types": {
+          "texte": "Texte",
+          "nombre": "Nombre",
+          "oui_non": "Oui / non",
+          "liste": "Liste de choix",
+          "date": "Date"
+        },
+        "options": "Choix proposés",
+        "optionsAide": "Choix séparés par des virgules : bon, abîmé, absent",
+        "typeFixe": "Le type ne se change plus après création : les valeurs saisies ne le suivraient pas.",
+        "renseignes_one": "renseignée sur {{count}} point",
+        "renseignes_other": "renseignée sur {{count}} points",
+        "confirmerRetrait_one": "Retirer la colonne « {{nom}} » ? Elle est renseignée sur {{count}} point. Les valeurs restent dans l'historique, mais ne s'affichent plus et ne s'exportent plus.",
+        "confirmerRetrait_other": "Retirer la colonne « {{nom}} » ? Elle est renseignée sur {{count}} points. Les valeurs restent dans l'historique, mais ne s'affichent plus et ne s'exportent plus."
+      },
+      "etiquettes": {
+        "titre": "Étiquettes",
+        "aucune": "Aucune étiquette pour l'instant.",
+        "ajouter": "Nouvelle étiquette",
+        "creer": "Créer",
+        "exemple": "Déchets verts, marché du jeudi…",
+        "couleur": "Couleur",
+        "renommer": "Nouveau nom de l'étiquette",
+        "nbPoints_one": "{{count}} point",
+        "nbPoints_other": "{{count}} points",
+        "confirmerRetrait_one": "Retirer l'étiquette « {{nom}} » ? Elle est posée sur {{count}} point.",
+        "confirmerRetrait_other": "Retirer l'étiquette « {{nom}} » ? Elle est posée sur {{count}} points."
+      },
+      "couleurs": {
+        "ardoise": "Gris",
+        "rouge": "Rouge",
+        "orange": "Orange",
+        "ambre": "Ambre",
+        "vert": "Vert",
+        "emeraude": "Émeraude",
+        "bleu": "Bleu",
+        "violet": "Violet",
+        "rose": "Rose"
+      },
+      "actions": {
+        "aide": "Une action se planifie depuis le tableau : filtrez, sélectionnez les points, puis « Planifier une action ». Les points sont arrêtés à la création — une étiquette posée plus tard n'agrandit pas l'action.",
+        "aucune": "Aucune action planifiée.",
+        "titreAction": "Intitulé",
+        "exemple": "Campagne déchets verts",
+        "datePrevue": "Date prévue",
+        "dateFin": "Jusqu'au (facultatif)",
+        "responsable": "Responsable (service, équipe, prestataire)",
+        "planifier_one": "Planifier sur {{count}} point",
+        "planifier_other": "Planifier sur {{count}} points",
+        "creee_one": "Action « {{titre}} » planifiée sur {{count}} point.",
+        "creee_other": "Action « {{titre}} » planifiée sur {{count}} points.",
+        "etats": {
+          "planifiee": "Planifiée",
+          "en_retard": "En retard",
+          "terminee": "Terminée",
+          "annulee": "Annulée"
+        },
+        "avancement": "{{faits}} / {{total}} faits",
+        "retour": "Toutes les actions",
+        "voirDansTableau": "Voir dans le tableau",
+        "toutFait": "Tout marquer fait",
+        "terminer": "Terminer l'action",
+        "annuler": "Annuler l'action",
+        "reprendre": "Remettre en planifiée",
+        "confirmerRetrait": "Retirer l'action « {{titre}} » ?",
+        "fait": "Fait",
+        "faitLe": "Fait le",
+        "cocherFait": "Marquer {{nom}} comme fait"
+      }
     }
   },
   "prestataire": {

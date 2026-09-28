@@ -6,7 +6,7 @@
 // (web/src/locales) : l'API est un déploiement distinct et ne peut pas les
 // lire, d'où cette copie limitée aux seules colonnes exportées.
 
-import type { JeuExport } from './export.js';
+import type { Colonne, JeuExport, TypeColonne } from './export.js';
 
 const CATEGORIES_CONTACT = {
   administration: { fr: 'Administration', ar: 'إدارة' },
@@ -162,6 +162,34 @@ export const JEU_POINTS: JeuExport = {
     { cle: 'actif', fr: 'Actif', ar: 'نشط', type: 'booleen' },
   ],
 };
+
+const TYPE_EXPORT_CHAMP: Record<string, TypeColonne> = {
+  texte: 'texte',
+  nombre: 'nombre',
+  oui_non: 'booleen',
+  liste: 'texte',
+  date: 'date',
+};
+
+/**
+ * B3.4 — les points avec les étiquettes et les champs libres de LA commune :
+ * ses colonnes à elle, dans l'ordre de son tableau. Le jeu se construit donc à
+ * chaque export ; les valeurs arrivent sous `champ_<id>`.
+ */
+export function jeuPointsAvecChamps(
+  champs: { id: string; libelle: string; libelle_ar: string | null; type: string }[]
+): JeuExport {
+  const libres: Colonne[] = champs.map((c) => ({
+    cle: `champ_${c.id}`,
+    fr: c.libelle,
+    ar: c.libelle_ar || c.libelle,
+    type: TYPE_EXPORT_CHAMP[c.type] ?? 'texte',
+  }));
+  return {
+    ...JEU_POINTS,
+    colonnes: [...JEU_POINTS.colonnes, { cle: 'etiquettes_noms', fr: 'Étiquettes', ar: 'الوسوم' }, ...libres],
+  };
+}
 
 /** B5.2.4 — le dépouillement d'un sondage, une ligne par option. */
 export const JEU_DEPOUILLEMENT: JeuExport = {

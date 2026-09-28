@@ -29,11 +29,12 @@ import { Pesees } from '../composants/communal/Pesees';
 import { PointsSuggeres } from '../composants/communal/PointsSuggeres';
 import { RapportsEtudes } from '../composants/communal/RapportsEtudes';
 import { Contacts } from '../composants/communal/Contacts';
+import { TableauPoints } from '../composants/communal/TableauPoints';
 import { NavigationOnglets } from '../composants/NavigationOnglets';
 
-type Onglet = 'constat' | 'carte' | 'reclamations' | 'suggestions' | 'preuve' | 'circuits' | 'parc' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'contacts' | 'comptes';
+type Onglet = 'constat' | 'carte' | 'reclamations' | 'suggestions' | 'preuve' | 'circuits' | 'points' | 'parc' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'contacts' | 'comptes';
 
-const ONGLETS: Onglet[] = ['constat', 'carte', 'reclamations', 'suggestions', 'preuve', 'circuits', 'parc', 'personnel', 'pesees', 'communication', 'rapports', 'contacts', 'comptes'];
+const ONGLETS: Onglet[] = ['constat', 'carte', 'reclamations', 'suggestions', 'preuve', 'circuits', 'points', 'parc', 'personnel', 'pesees', 'communication', 'rapports', 'contacts', 'comptes'];
 
 export function EspaceCommunal({
   /** Commune imposée par l'appelant — l'annuaire national, qui vient de la
@@ -145,6 +146,7 @@ export function EspaceCommunal({
         {onglet === 'suggestions' && <PointsSuggeres communeId={communeId} />}
         {onglet === 'preuve' && <Preuve communeId={communeId} />}
         {onglet === 'circuits' && <Circuits communeId={communeId} />}
+        {onglet === 'points' && <TableauPoints communeId={communeId} />}
         {onglet === 'parc' && <Parc communeId={communeId} />}
         {onglet === 'personnel' && <Personnel communeId={communeId} />}
         {onglet === 'pesees' && <Pesees communeId={communeId} />}
