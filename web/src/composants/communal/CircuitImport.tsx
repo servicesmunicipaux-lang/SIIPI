@@ -24,6 +24,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type ApercuImport } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 
 export function CircuitImport({
   circuitId,
@@ -47,6 +48,7 @@ export function CircuitImport({
   onImporte: () => void;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [apercu, setApercu] = useState<ApercuImport | null>(null);
   const [fichier, setFichier] = useState<{ nomFichier: string; contenu: string } | null>(null);
   const [remplacer, setRemplacer] = useState(true);
@@ -144,7 +146,7 @@ export function CircuitImport({
             {dejaPose?.le
               ? t('communal.circuits.import.dejaPose', {
                   fichier: dejaPose.fichier ?? '—',
-                  date: new Date(dejaPose.le).toLocaleDateString(),
+                  date: f.date(dejaPose.le),
                 })
               : t('communal.circuits.import.provenanceInconnue')}
           </p>

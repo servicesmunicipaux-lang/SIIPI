@@ -17,6 +17,7 @@ import {
   type Commune,
   type HoraireCollecte,
 } from '../lib/api';
+import { useFormats, type Formats } from '../lib/formats';
 import { Chargement, Erreur } from '../composants/Elements';
 import { CartePublique } from '../composants/CartePublique';
 import { FormulaireSignalement } from '../composants/FormulaireSignalement';
@@ -180,6 +181,7 @@ function MaCollecte({
   onAdresseChangee: () => void;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [horaires, setHoraires] = useState<HoraireCollecte[] | null>(null);
   const [annonces, setAnnonces] = useState<AnnonceCollecte[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -257,7 +259,7 @@ function MaCollecte({
           {t('citoyen.collecte.prochainPassage')}
         </p>
         <p className="chiffres-titre mt-1 text-2xl font-bold text-siipi-800">
-          {prochain ? formaterJour(prochain, t) : t('citoyen.collecte.aucunPassage')}
+          {prochain ? formaterJour(prochain, t, f) : t('citoyen.collecte.aucunPassage')}
         </p>
       </div>
 
@@ -305,7 +307,7 @@ function MaCollecte({
             <JoursSemaine jours={h.jours_passage ?? []} />
             {h.prochain_passage && (
               <p className="mt-2 text-sm text-ardoise-600">
-                {t('citoyen.collecte.prochain')} : {formaterJour(h.prochain_passage, t)}
+                {t('citoyen.collecte.prochain')} : {formaterJour(h.prochain_passage, t, f)}
               </p>
             )}
           </article>
@@ -346,7 +348,7 @@ function messageLangue(fr: string | null | undefined, ar: string | null | undefi
   return fr ?? ar ?? '';
 }
 
-function formaterJour(iso: string, t: (cle: string) => string): string {
+function formaterJour(iso: string, t: (cle: string) => string, f: Formats): string {
   const date = new Date(`${iso}T12:00:00`);
   const aujourdhui = new Date();
   const jours = Math.round(
@@ -354,11 +356,8 @@ function formaterJour(iso: string, t: (cle: string) => string): string {
   );
   if (jours <= 0) return t('citoyen.collecte.aujourdhui');
   if (jours === 1) return t('citoyen.collecte.demain');
-  return new Intl.DateTimeFormat(document.documentElement.lang || 'fr', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(date);
+  const jour = new Intl.DateTimeFormat(document.documentElement.lang || 'fr', { weekday: 'long' }).format(date);
+  return `${jour} ${f.date(iso)}`;
 }
 
 /* ===========================================================================

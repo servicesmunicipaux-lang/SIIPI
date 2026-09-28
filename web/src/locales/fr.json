@@ -26,7 +26,8 @@
       "admin_commune": "Administration communale",
       "gestionnaire_prestataire": "Prestataire",
       "citoyen": "Citoyen"
-    }
+    },
+    "parametres": "Paramètres"
   },
   "national": {
     "titre": "Observatoire national",
@@ -380,6 +381,7 @@
       "circuits": "Circuits",
       "points": "Points",
       "carte": "Carte",
+      "decoupage": "Découpage",
       "comptes": "Comptes",
       "parc": "Parc",
       "personnel": "Personnel",
@@ -890,7 +892,12 @@
       "titre": "À vérifier",
       "voirTout": "Tout voir ({{count}})",
       "replier": "Replier",
-      "reste": "et {{count}} autre(s) point(s) à vérifier."
+      "reste": "et {{count}} autre(s) point(s) à vérifier.",
+      "masques_one": "{{count}} avis masqué par vos préférences.",
+      "masques_other": "{{count}} avis masqués par vos préférences.",
+      "afficherMasques": "Les afficher",
+      "filtreLeve": "Tous les avis sont affichés.",
+      "appliquerFiltre": "Appliquer mes préférences"
     },
     "personnel": {
       "titre": "Personnel du service",
@@ -1122,7 +1129,7 @@
       "kg": "kg",
       "enregistrer": "Enregistrer",
       "poidsInvalide": "Le poids doit être un nombre supérieur à zéro.",
-      "surcharge": "au-dessus de {{n}} t",
+      "surcharge": "au-dessus de {{n}}",
       "noteSaisie": "Seul le poids net est demandé : c’est celui qui figure sur le bon. Le brut et la tare ne se saisissent que si vous avez le ticket du pont-bascule sous les yeux — les réclamer sinon produit des tares inventées.",
       "noteKgHab": "La production spécifique (kg par habitant et par jour) est le seul chiffre qui permette de se comparer à une commune de taille différente. Elle reste vide tant que la population n’est pas renseignée.",
       "colDate": "Date",
@@ -1373,5 +1380,193 @@
     "longueur": "Dix caractères au minimum.",
     "discordance": "Les deux saisies diffèrent.",
     "valider": "Enregistrer et continuer"
+  },
+  "unites": {
+    "t": "t",
+    "kg": "kg",
+    "m3": "m³",
+    "l": "L",
+    "km2": "km²",
+    "ha": "ha"
+  },
+  "parametres": {
+    "titre": "Paramètres",
+    "chapeau": "Vos préférences s'appliquent à tout le portail dès que vous les choisissez, et vous suivent d'un poste à l'autre.",
+    "retour": "Retour",
+    "enregistre": "Préférence enregistrée.",
+    "langue": {
+      "titre": "Langue",
+      "aide": "Enregistrée sur votre compte : elle vous suit d'un poste à l'autre."
+    },
+    "date": {
+      "titre": "Format de date",
+      "aide": "Les heures sont toujours celles de Tunis (UTC+1), quel que soit le réglage de l'ordinateur.",
+      "formats": {
+        "jj/mm/aaaa": "Jour/mois/année",
+        "aaaa-mm-jj": "Année-mois-jour (ISO)",
+        "jj mois aaaa": "Mois en toutes lettres"
+      }
+    },
+    "unites": {
+      "titre": "Unités de mesure",
+      "aide": "Les valeurs restent enregistrées dans leur unité d'origine ; seul l'affichage change.",
+      "masse": "Masses (tonnages, charge utile)",
+      "volume": "Volumes",
+      "surface": "Surfaces",
+      "noms": {
+        "t": "Tonnes",
+        "kg": "Kilogrammes",
+        "m3": "Mètres cubes",
+        "l": "Litres",
+        "km2": "Kilomètres carrés",
+        "ha": "Hectares"
+      }
+    },
+    "alertes": {
+      "titre": "Alertes « À vérifier »",
+      "aide": "Ce que le panneau « À vérifier » du constat du jour vous montre.",
+      "graviteMin": "Gravité minimale affichée",
+      "gravites": {
+        "information": "Tout, informations comprises",
+        "avertissement": "Avertissements et points bloquants",
+        "bloquant": "Points bloquants seulement"
+      },
+      "domaines": "Domaines suivis",
+      "noms": {
+        "circuits": "Circuits",
+        "parc": "Parc et entretien",
+        "personnel": "Personnel",
+        "communication": "Communication",
+        "pesees": "Pesées",
+        "reclamations": "Réclamations",
+        "points": "Actions planifiées sur les points"
+      },
+      "bloquantsToujours": "Un point bloquant s'affiche toujours, quel que soit ce réglage."
+    },
+    "commune": {
+      "titre": "Seuils de la commune",
+      "aide": "Des règles de service, les mêmes pour toute l'équipe : elles décident de ce qui remonte dans « À vérifier ».",
+      "parDefaut": "Valeurs par défaut : la commune ne les a encore jamais réglées.",
+      "derniere": "Modifiés le {{date}} par {{auteur}}.",
+      "delai": "Délai d'alerte d'une réclamation (jours)",
+      "delaiAide": "Une réclamation reçue, assignée ou en cours depuis plus longtemps remonte dans « À vérifier ». Au triple du délai, elle devient bloquante.",
+      "seuilKm": "Préavis d'entretien par défaut (km)",
+      "seuilJours": "Préavis d'entretien par défaut (jours)",
+      "seuilAide": "Proposé à chaque nouveau plan d'entretien ; chaque plan garde le sien.",
+      "actions": "Signaler les actions planifiées dont la date est passée",
+      "enregistrer": "Enregistrer les seuils",
+      "enregistre": "Seuils enregistrés."
+    },
+    "motDePasse": {
+      "titre": "Mot de passe",
+      "aide": "Dix caractères au minimum.",
+      "actuel": "Mot de passe actuel",
+      "nouveau": "Nouveau mot de passe",
+      "confirmation": "Confirmer le nouveau",
+      "envoyer": "Changer le mot de passe",
+      "differents": "Les deux saisies du nouveau mot de passe diffèrent.",
+      "change": "Mot de passe changé."
+    }
+  },
+  "decoupage": {
+    "titre": "Découpage de la commune",
+    "chapeau": "Le périmètre et les secteurs de collecte. La commune propose, la FNCT valide : un découpage décide de quel circuit, de quel prestataire et de quelles adresses relève chaque rue. Chaque état validé reste consultable, et l'on peut y revenir.",
+    "proposer": "Proposer une modification",
+    "dejaEnAttente": "Une proposition attend déjà la décision de la FNCT.",
+    "bandeauAttente": "Proposition soumise le {{date}}, en attente de la décision de la FNCT. Le découpage en vigueur ne change pas d'ici là.",
+    "bandeauRefus": "Votre dernière proposition a été refusée le {{date}} : {{motif}}",
+    "voir": "Voir",
+    "etatEnVigueur": "En vigueur",
+    "jamaisVersionne": "Découpage d'origine, jamais modifié par la plateforme",
+    "sansPerimetre": "Aucun périmètre enregistré",
+    "nbSecteurs_one": "{{count}} secteur",
+    "nbSecteurs_other": "{{count}} secteurs",
+    "historique": "Historique du découpage",
+    "historiqueAide": "Chaque état validé est une version. Ouvrez-en une pour la comparer à l'état en vigueur, et, si besoin, y revenir.",
+    "aucuneVersion": "Aucune version : le découpage n'a encore jamais été modifié par la plateforme.",
+    "enVigueur": "En vigueur",
+    "statuts": {
+      "soumise": "En attente",
+      "validee": "Validée",
+      "refusee": "Refusée",
+      "retiree": "Retirée"
+    },
+    "origines": {
+      "initiale": "état d'origine",
+      "proposition": "proposition de la commune",
+      "correction_fnct": "correction de la FNCT",
+      "restauration": "retour à une version antérieure"
+    },
+    "version": "Version {{n}}",
+    "propositionDu": "Proposition du {{date}}",
+    "copieDe": "copie de la version {{n}}",
+    "soumise": "Soumise le {{date}} par {{auteur}}",
+    "decideeLe": "validée le {{date}} par {{auteur}}",
+    "refuseeLe": "refusée le {{date}} par {{auteur}}",
+    "motif": "Motif du refus : {{motif}}",
+    "retourHistorique": "Retour",
+    "legendeComparaison": "En gris pointillé : le découpage en vigueur. En couleur : la version affichée.",
+    "ecarts": {
+      "titre": "Ce qui change par rapport à l'état en vigueur",
+      "perimetre": "Périmètre modifié : {{avant}} → {{apres}}.",
+      "perimetreInchange": "Périmètre inchangé.",
+      "ajoutes_one": "{{count}} secteur ajouté :",
+      "ajoutes_other": "{{count}} secteurs ajoutés :",
+      "modifies_one": "{{count}} secteur modifié :",
+      "modifies_other": "{{count}} secteurs modifiés :",
+      "retires_one": "{{count}} secteur retiré :",
+      "retires_other": "{{count}} secteurs retirés :",
+      "secteursInchanges": "Secteurs inchangés."
+    },
+    "valider": "Valider et appliquer",
+    "refuser": "Refuser",
+    "motifRefus": "Motif du refus (la commune le lira pour corriger sa proposition)",
+    "confirmerRefus": "Confirmer le refus",
+    "retirer": "Retirer ma proposition",
+    "restaurer": "Revenir à la version {{n}}",
+    "demanderRestauration": "Demander le retour à la version {{n}}",
+    "confirmerRestauration": "Demander à la FNCT de revenir à la version {{n}} ? Le découpage en vigueur ne change qu'après sa validation.",
+    "confirmerRestaurationFnct": "Revenir à la version {{n}} ? Le découpage de la commune change aussitôt ; l'état actuel reste dans l'historique.",
+    "valideeMessage": "Découpage de {{commune}} validé et appliqué.",
+    "refuseeMessage": "Proposition de {{commune}} refusée ; la commune lira le motif.",
+    "retireeMessage": "Proposition retirée.",
+    "restaureeMessage": "Retour à la version {{n}} appliqué.",
+    "restaurationProposee": "Retour à la version {{n}} demandé à la FNCT.",
+    "soumiseMessage": "Proposition soumise à la FNCT. Le découpage en vigueur ne change pas avant sa validation.",
+    "aValider_one": "{{count}} découpage communal à valider",
+    "aValider_other": "{{count}} découpages communaux à valider",
+    "demandeRetour": "demande de retour à la version {{n}}",
+    "instruire": "Instruire →",
+    "nouvelleProposition": "Nouvelle proposition de découpage",
+    "aideEdition": "Partez du découpage en vigueur : retouchez le périmètre, déplacez les sommets d'un secteur, dessinez-en un nouveau, importez un fichier GeoJSON. Rien ne change avant la validation de la FNCT.",
+    "abandonnerProposition": "Abandonner",
+    "outils": "Outils de dessin",
+    "retoucherPerimetre": "Retoucher le périmètre",
+    "dessinerSecteur": "Dessiner un secteur",
+    "importerSecteurs": "Importer des secteurs (GeoJSON)",
+    "importerPerimetre": "Importer le périmètre (GeoJSON)",
+    "aidePerimetre": "Déplacez les sommets du périmètre. Les secteurs ne sont pas modifiables pendant ce temps.",
+    "aideDessin": "Cliquez point par point ; cliquez sur le premier point pour fermer le secteur.",
+    "aideSommets": "Déplacez les sommets d'un secteur pour le redessiner ; cliquez sur un secteur pour le retrouver dans la liste.",
+    "secteursProposes_one": "{{count}} secteur proposé",
+    "secteursProposes_other": "{{count}} secteurs proposés",
+    "aucunSecteur": "Aucun secteur.",
+    "nouveauSecteur": "Nouveau secteur {{n}}",
+    "nouveau": "nouveau",
+    "couleur": "Couleur de {{nom}}",
+    "nom": "Nom du secteur",
+    "code": "Code",
+    "retirerSecteur": "Retirer",
+    "note": "Note pour la FNCT",
+    "noteExemple": "Pourquoi ce découpage : nouveau lotissement, route qui sépare deux quartiers, relevé du géomètre…",
+    "soumettre": "Soumettre à la FNCT",
+    "rienAProposer": "Rien n'a changé : retouchez le périmètre ou les secteurs avant de soumettre.",
+    "nomRequis": "Chaque secteur a besoin d'un nom (deux caractères au moins).",
+    "fichierSansPolygone": "Ce fichier ne contient aucun polygone.",
+    "perimetreModifie": "Périmètre modifié",
+    "perimetreInchange": "Périmètre inchangé",
+    "secteursModifies": "secteurs modifiés",
+    "secteursInchanges": "secteurs inchangés",
+    "figee": "Figé le {{date}}, juste avant la première modification"
   }
 }

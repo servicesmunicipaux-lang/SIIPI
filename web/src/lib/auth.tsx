@@ -1,5 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { api, ecrireJeton, lireJeton, type Utilisateur } from './api';
+import { api, ecrireJeton, lireJeton, type ChangementPreferences, type Utilisateur } from './api';
+import { appliquerLangue } from '../i18n';
+
+/** La langue choisie sur le compte suit la personne d'un poste à l'autre. */
+function appliquerPreferences(u: Utilisateur | null) {
+  if (u?.preferences?.langue) appliquerLangue(u.preferences.langue);
+}
 
 interface ContexteAuth {
   utilisateur: Utilisateur | null;
@@ -8,6 +14,8 @@ interface ContexteAuth {
   deconnexion: () => void;
   /** Relit le compte auprès de l'API — après un changement de mot de passe. */
   rafraichir: () => Promise<void>;
+  /** Enregistre un changement de préférences et l'applique aussitôt. */
+  changerPreferences: (changement: ChangementPreferences) => Promise<void>;
 }
 
 const Contexte = createContext<ContexteAuth | undefined>(undefined);
@@ -28,7 +36,10 @@ export function FournisseurAuth({ children }: { children: ReactNode }) {
       }
       try {
         const moi = await api.moi();
-        if (!annule) setUtilisateur(moi);
+        if (!annule) {
+          setUtilisateur(moi);
+          appliquerPreferences(moi);
+        }
       } catch {
         ecrireJeton(null);
         if (!annule) setUtilisateur(null);
@@ -45,6 +56,7 @@ export function FournisseurAuth({ children }: { children: ReactNode }) {
     const reponse = await api.connexion(email, motDePasse);
     ecrireJeton(reponse.token);
     setUtilisateur(reponse.user);
+    appliquerPreferences(reponse.user);
   }, []);
 
   const deconnexion = useCallback(() => {
@@ -63,11 +75,22 @@ export function FournisseurAuth({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const changerPreferences = useCallback(async (changement: ChangementPreferences) => {
+    const preferences = await api.changerPreferences(changement);
+    setUtilisateur((u) => (u ? { ...u, preferences } : u));
+    if (changement.langue) appliquerLangue(changement.langue);
+  }, []);
+
   return (
-    <Contexte.Provider value={{ utilisateur, chargement, connexion, deconnexion, rafraichir }}>
+    <Contexte.Provider value={{ utilisateur, chargement, connexion, deconnexion, rafraichir, changerPreferences }}>
       {children}
     </Contexte.Provider>
   );
+}
+
+/** Pour un composant qui s'affiche aussi hors session (l'écran de connexion). */
+export function useAuthFacultatif(): ContexteAuth | undefined {
+  return useContext(Contexte);
 }
 
 export function useAuth(): ContexteAuth {

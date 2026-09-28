@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePortail } from '../lib/portail';
 import { api, type LigneGouvernorat, type StatutCommune } from '../lib/api';
+import { useFormats } from '../lib/formats';
 import { formaterNombre } from '../i18n';
 import { BoutonExport } from '../composants/BoutonExport';
 import { DecoupageCommunal } from '../composants/national/DecoupageCommunal';
+import { PropositionsDecoupage } from '../composants/national/PropositionsDecoupage';
 import {
   BadgeProvenance,
   BadgeStatut,
@@ -69,6 +71,7 @@ function sansAccent(texte: string): string {
 
 export function TableauDeBordNational() {
   const { t } = useTranslation();
+  const f = useFormats();
   const tableauRef = useRef<HTMLDivElement>(null);
   const { ouvrirPortail } = usePortail();
   const [gouvernorats, setGouvernorats] = useState<LigneGouvernorat[] | null>(null);
@@ -202,6 +205,8 @@ export function TableauDeBordNational() {
         <p className="mt-2 max-w-2xl text-sm text-ardoise-500">{t('national.chapeauDetail')}</p>
       </section>
 
+      <PropositionsDecoupage />
+
       <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <CarteIndicateur
           accent
@@ -241,7 +246,7 @@ export function TableauDeBordNational() {
               details: [
                 t('app.organisation'),
                 t('national.tableau.sousTitre'),
-                new Date().toLocaleString(document.documentElement.lang || 'fr'),
+                f.date(new Date(), { heure: true }),
               ],
               paysage: true,
             }}

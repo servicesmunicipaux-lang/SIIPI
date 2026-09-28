@@ -26,6 +26,7 @@ import {
   type PublicationDocument,
   type EnvoiNotification,
 } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
 
@@ -49,6 +50,7 @@ const nombre = (n: unknown) =>
 
 export function Communication({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [vue, setVue] = useState<Vue>('notification');
   const [publications, setPublications] = useState<Publication[] | null>(null);
   const [envois, setEnvois] = useState<EnvoiNotification[] | null>(null);
@@ -285,7 +287,7 @@ export function Communication({ communeId }: { communeId: string }) {
                 {envois.map((e) => (
                   <tr key={e.id}>
                     <td className="p-3 whitespace-nowrap">
-                      {new Date(e.created_at).toLocaleDateString('fr-FR')}
+                      {f.date(e.created_at)}
                     </td>
                     <td className="p-3 font-medium text-ardoise-900">{e.titre_fr}</td>
                     <td className="p-3 text-ardoise-600">
@@ -539,6 +541,7 @@ function Depouillement({
   onErreur: (m: string | null) => void;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const resultatsRef = useRef<HTMLDivElement>(null);
   const [lignes, setLignes] = useState<LigneDepouillement[] | null>(null);
 
@@ -573,7 +576,7 @@ function Depouillement({
           impression={{
             cible: resultatsRef,
             titre: `${t('communal.communication.resultatsDe')} — ${titre}`,
-            details: [new Date().toLocaleString(document.documentElement.lang || 'fr')],
+            details: [f.date(new Date(), { heure: true })],
           }}
         />
       </div>
@@ -629,6 +632,7 @@ function DocumentsProjet({
   onErreur: (m: string | null) => void;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [documents, setDocuments] = useState<PublicationDocument[] | null>(null);
   const [depotEnCours, setDepotEnCours] = useState(false);
 
@@ -678,7 +682,7 @@ function DocumentsProjet({
             <li key={d.id} className="flex items-center justify-between gap-2 text-sm">
               <span className="min-w-0 truncate text-ardoise-800">{d.nom}</span>
               <span className="shrink-0 text-xs text-ardoise-500">
-                {new Date(d.created_at).toLocaleDateString('fr-FR')}
+                {f.date(d.created_at)}
               </span>
             </li>
           ))}

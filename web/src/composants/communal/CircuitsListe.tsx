@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Circuit } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 
 const JOURS_COURTS = [1, 2, 3, 4, 5, 6, 7];
@@ -29,6 +30,7 @@ export function CircuitsListe({
   rechargement: number;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [circuits, setCircuits] = useState<Circuit[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [filtre, setFiltre] = useState<'tous' | 'en_service' | 'clos'>('en_service');
@@ -171,8 +173,8 @@ export function CircuitsListe({
                       {c.prestataire_nom ?? t('communal.circuits.regie')}
                     </td>
                     <td className="px-3 py-2.5 text-xs text-ardoise-500">
-                      {String(c.date_debut ?? '').slice(0, 10)}
-                      {c.date_fin ? ` → ${String(c.date_fin).slice(0, 10)}` : ''}
+                      {f.date(c.date_debut)}
+                      {c.date_fin ? ` → ${f.date(c.date_fin)}` : ''}
                     </td>
                   </tr>
                 );

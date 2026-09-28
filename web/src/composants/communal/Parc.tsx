@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type EcheanceEntretien, type Vehicule, type EtatDuParc } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
 import { ImportCsv } from '../ImportCsv';
@@ -32,6 +33,7 @@ const nombre = (n: unknown) =>
 
 export function Parc({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [engins, setEngins] = useState<Vehicule[] | null>(null);
   const [etatParc, setEtatParc] = useState<EtatDuParc | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -127,6 +129,9 @@ export function Parc({ communeId }: { communeId: string }) {
       <div className="rounded-xl border border-ardoise-200 bg-white p-4">
         <p className="text-lg font-semibold text-ardoise-900">
           {t('communal.parc.resume', {
+            // La phrase a une forme au singulier et une au pluriel : sans
+            // « count », i18next ne sait pas laquelle prendre et affiche la clé.
+            count: etatParc.en_service,
             enService: etatParc.en_service,
             total: etatParc.total,
           })}
@@ -134,7 +139,7 @@ export function Parc({ communeId }: { communeId: string }) {
         {etatParc.inventaire_le && (
           <p className="mt-0.5 text-xs text-ardoise-500">
             {t('communal.parc.inventaireLe', {
-              date: new Date(etatParc.inventaire_le).toLocaleDateString(),
+              date: f.date(etatParc.inventaire_le),
             })}
           </p>
         )}
@@ -213,7 +218,7 @@ export function Parc({ communeId }: { communeId: string }) {
                     </p>
                     <p className="chiffres mt-0.5 text-xs text-ardoise-500">
                       {v.age_annees != null && t('communal.parc.age', { n: v.age_annees })}
-                      {v.charge_utile_t != null && ` · ${v.charge_utile_t} t`}
+                      {v.charge_utile_t != null && ` · ${f.masse(v.charge_utile_t)}`}
                       {v.attele_a_immat && ` · ${t('communal.parc.atteleA', { immat: v.attele_a_immat })}`}
                     </p>
                     {/* Le motif est la partie utile de la ligne : il dit à qui
@@ -278,8 +283,8 @@ export function Parc({ communeId }: { communeId: string }) {
                     <dl className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
                       {(
                         [
-                          ['miseEnCirculation', v.date_premiere_circulation ? new Date(v.date_premiere_circulation).toLocaleDateString() : '—'],
-                          ['etatDepuis', v.etat_depuis ? new Date(v.etat_depuis).toLocaleDateString() : t('communal.parc.nonRenseigne')],
+                          ['miseEnCirculation', f.date(v.date_premiere_circulation)],
+                          ['etatDepuis', v.etat_depuis ? f.date(v.etat_depuis) : t('communal.parc.nonRenseigne')],
                           ['valeur', v.valeur_achat_tnd != null ? `${nombre(v.valeur_achat_tnd)} TND` : '—'],
                           ['domaine', v.domaine_emploi ?? '—'],
                         ] as const

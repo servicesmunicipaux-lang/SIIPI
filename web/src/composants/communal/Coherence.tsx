@@ -12,6 +12,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, type Incoherence } from '../../lib/api';
+import { useAuth } from '../../lib/auth';
+import { PREFERENCES_DEFAUT } from '../../lib/formats';
 
 const RANG: Record<string, number> = { bloquant: 0, avertissement: 1, information: 2 };
 
@@ -25,6 +27,9 @@ export function Coherence({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
   const [ecarts, setEcarts] = useState<Incoherence[] | null>(null);
   const [tout, setTout] = useState(false);
+  const [sansFiltre, setSansFiltre] = useState(false);
+  const { utilisateur } = useAuth();
+  const { domainesMasques, graviteMin } = (utilisateur?.preferences ?? PREFERENCES_DEFAUT).alertes;
 
   useEffect(() => {
     let annule = false;
@@ -41,7 +46,17 @@ export function Coherence({ communeId }: { communeId: string }) {
 
   if (!ecarts || ecarts.length === 0) return null;
 
-  const tries = [...ecarts].sort((a, b) => (RANG[a.gravite] ?? 9) - (RANG[b.gravite] ?? 9));
+  // Les préférences de chacun (Paramètres) règlent ce qu'on lui montre — sauf
+  // un avis bloquant, qui s'affiche toujours : un engin en panne sur un
+  // circuit du jour ne se masque pas d'une case décochée un mois plus tôt.
+  const voulu = (e: Incoherence) =>
+    e.gravite === 'bloquant' ||
+    (!domainesMasques.includes(e.domaine as never) && (RANG[e.gravite] ?? 9) <= (RANG[graviteMin] ?? 2));
+  const retenus = sansFiltre ? ecarts : ecarts.filter(voulu);
+  const masques = ecarts.length - ecarts.filter(voulu).length;
+  if (retenus.length === 0 && masques === 0) return null;
+
+  const tries = [...retenus].sort((a, b) => (RANG[a.gravite] ?? 9) - (RANG[b.gravite] ?? 9));
   const bloquants = tries.filter((e) => e.gravite === 'bloquant');
   // Sans dépliage, on montre les bloquants, et à défaut les trois premiers :
   // un écran du matin n'est pas une liste de tâches de fond.
@@ -51,15 +66,17 @@ export function Coherence({ communeId }: { communeId: string }) {
     <section className="space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-sm font-semibold text-ardoise-900">{t('communal.coherence.titre')}</h2>
-        <button
-          type="button"
-          onClick={() => setTout((x) => !x)}
-          className="text-xs font-medium text-siipi-700 hover:underline"
-        >
-          {tout
-            ? t('communal.coherence.replier')
-            : t('communal.coherence.voirTout', { count: tries.length })}
-        </button>
+        {(tout || tries.length > affiches.length) && (
+          <button
+            type="button"
+            onClick={() => setTout((x) => !x)}
+            className="text-xs font-medium text-siipi-700 hover:underline"
+          >
+            {tout
+              ? t('communal.coherence.replier')
+              : t('communal.coherence.voirTout', { count: tries.length })}
+          </button>
+        )}
       </div>
 
       <ul className="space-y-1.5">
@@ -83,6 +100,14 @@ export function Coherence({ communeId }: { communeId: string }) {
       {!tout && tries.length > affiches.length && (
         <p className="text-xs text-ardoise-500">
           {t('communal.coherence.reste', { count: tries.length - affiches.length })}
+        </p>
+      )}
+      {masques > 0 && (
+        <p className="text-xs text-ardoise-500">
+          {sansFiltre ? t('communal.coherence.filtreLeve') : t('communal.coherence.masques', { count: masques })}{' '}
+          <button type="button" onClick={() => setSansFiltre((x) => !x)} className="font-medium text-siipi-700 hover:underline">
+            {sansFiltre ? t('communal.coherence.appliquerFiltre') : t('communal.coherence.afficherMasques')}
+          </button>
         </p>
       )}
     </section>

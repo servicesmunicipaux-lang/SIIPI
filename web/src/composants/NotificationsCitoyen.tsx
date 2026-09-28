@@ -13,6 +13,7 @@ import {
   type NotificationCitoyen,
   type PreferenceNotification,
 } from '../lib/api';
+import { useFormats } from '../lib/formats';
 import { Chargement, Erreur } from './Elements';
 
 const STYLE_STATUT: Record<string, string> = {
@@ -23,17 +24,9 @@ const STYLE_STATUT: Record<string, string> = {
   sans_souscription: 'bg-ardoise-200 text-ardoise-700',
 };
 
-function formaterDate(iso: string): string {
-  return new Intl.DateTimeFormat(document.documentElement.lang || 'fr', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(iso));
-}
-
 export function MesNotifications() {
   const { t } = useTranslation();
+  const f = useFormats();
   const [lignes, setLignes] = useState<NotificationCitoyen[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
 
@@ -110,7 +103,7 @@ export function MesNotifications() {
                       {t(`citoyen.notifications.types.${n.type}`, { defaultValue: n.type })}
                     </span>
                   </span>
-                  <span className="text-xs text-ardoise-500">{formaterDate(n.date_envoi)}</span>
+                  <span className="text-xs text-ardoise-500">{f.date(n.date_envoi, { heure: true })}</span>
                 </div>
                 <p className="mt-1 font-medium text-ardoise-900">{n.titre}</p>
                 <p className="mt-0.5 text-sm text-ardoise-600">{n.corps}</p>

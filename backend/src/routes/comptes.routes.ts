@@ -22,6 +22,7 @@ import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
+import { completer, fusionner, preferencesSchema } from '../preferences.js';
 
 export const comptesRouter = Router();
 
@@ -155,6 +156,45 @@ comptesRouter.post(
       [await bcrypt.hash(d.nouveauMotDePasse, 12), req.user!.sub]
     );
     res.status(204).end();
+  })
+);
+
+
+// --- Ses propres préférences (TDR §3.2.6) -----------------------------------
+//
+// Déclarées avant « /:id », pour la même raison que le mot de passe. Ouvertes
+// à tous les rôles : chacun règle son affichage, personne ne règle celui des
+// autres (la RLS de users, migration 030, laisse chacun écrire sa ligne).
+
+comptesRouter.get(
+  '/moi/preferences',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const moi = await queryOne<{ preferences: unknown }>(
+      'SELECT preferences FROM users WHERE id = $1 AND deleted_at IS NULL',
+      [req.user!.sub]
+    );
+    if (!moi) throw new ApiError(404, 'Compte introuvable.');
+    res.json(completer(moi.preferences));
+  })
+);
+
+comptesRouter.put(
+  '/moi/preferences',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const changement = preferencesSchema.parse(req.body);
+    const moi = await queryOne<{ preferences: unknown }>(
+      'SELECT preferences FROM users WHERE id = $1 AND deleted_at IS NULL',
+      [req.user!.sub]
+    );
+    if (!moi) throw new ApiError(404, 'Compte introuvable.');
+    const nouvelles = fusionner(moi.preferences, changement);
+    await query('UPDATE users SET preferences = $1::jsonb, updated_at = now() WHERE id = $2', [
+      JSON.stringify(nouvelles),
+      req.user!.sub,
+    ]);
+    res.json(completer(nouvelles));
   })
 );
 

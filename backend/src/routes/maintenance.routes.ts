@@ -17,6 +17,7 @@ import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
 import { exportable } from '../services/export.js';
 import { JEU_ECHEANCES, JEU_INTERVENTIONS } from '../services/jeuxExport.js';
+import { parametresDeCommune } from './communes.routes.js';
 
 export const maintenanceRouter = Router();
 
@@ -246,6 +247,7 @@ maintenanceRouter.post(
   asyncHandler(async (req, res) => {
     const d = planSchema.parse(req.body);
     const v = await engin(d.vehiculeId);
+    const reglages = await parametresDeCommune(v.commune_id);
     const cree = await queryOne<{ id: string }>(
       `INSERT INTO plans_entretien
          (commune_id, vehicule_id, type, libelle, intervalle_km, intervalle_jours,
@@ -253,7 +255,9 @@ maintenanceRouter.post(
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9::date, CURRENT_DATE), $10, $11)
        RETURNING id`,
       [v.commune_id, v.id, d.type, d.libelle ?? null, d.intervalleKm ?? null, d.intervalleJours ?? null,
-       d.seuilAlerteKm ?? 1000, d.seuilAlerteJours ?? 30, d.referenceDate ?? null,
+       // Préavis non précisé : celui que la commune a fixé dans ses paramètres.
+       d.seuilAlerteKm ?? reglages.seuil_entretien_km, d.seuilAlerteJours ?? reglages.seuil_entretien_jours,
+       d.referenceDate ?? null,
        // Sans point de départ fourni, le compte au kilomètre part du
        // kilométrage connu de l'engin au moment où le plan est posé.
        d.referenceKm !== undefined ? d.referenceKm : v.kilometrage, req.user!.sub]

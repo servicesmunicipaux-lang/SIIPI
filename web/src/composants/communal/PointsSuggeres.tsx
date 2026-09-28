@@ -14,10 +14,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Circuit, type PointSuggere } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur, PhotoDeposee } from '../Elements';
 
 export function PointsSuggeres({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [propositions, setPropositions] = useState<PointSuggere[] | null>(null);
   const [circuits, setCircuits] = useState<Circuit[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -133,7 +135,7 @@ export function PointsSuggeres({ communeId }: { communeId: string }) {
                     {p.nom || t('communal.pointsSuggeres.sansNom')}
                   </p>
                   <p className="text-xs text-ardoise-500">
-                    {new Date(p.created_at).toLocaleDateString('fr-FR')}
+                    {f.date(p.created_at)}
                     {p.voisin_nom && (
                       <>
                         {' · '}

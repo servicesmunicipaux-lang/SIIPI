@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, cheminPoints, ErreurApi, type ActionDetaillee, type ActionPlanifiee } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
 
@@ -20,8 +21,6 @@ const CLASSES_ETAT: Record<string, string> = {
   terminee: 'bg-siipi-100 text-siipi-800',
   annulee: 'bg-ardoise-100 text-ardoise-600',
 };
-
-const jour = (d: string | null | undefined) => (d ? String(d).slice(0, 10) : '');
 
 function Avancement({ faits, total }: { faits: number; total: number }) {
   const { t } = useTranslation();
@@ -46,6 +45,7 @@ export function ActionsPoints({
   onVoirDansTableau: (actionId: string) => void;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [actions, setActions] = useState<ActionPlanifiee[] | null>(null);
   const [ouverte, setOuverte] = useState<ActionDetaillee | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -107,8 +107,8 @@ export function ActionsPoints({
           <div>
             <h2 className="text-lg font-semibold text-ardoise-900">{ouverte.titre}</h2>
             <p className="text-sm text-ardoise-600">
-              {jour(ouverte.date_prevue)}
-              {ouverte.date_fin && ` → ${jour(ouverte.date_fin)}`}
+              {f.date(ouverte.date_prevue)}
+              {ouverte.date_fin && ` → ${f.date(ouverte.date_fin)}`}
               {ouverte.responsable && ` · ${ouverte.responsable}`}
             </p>
             {ouverte.description && <p className="mt-1 text-sm text-ardoise-700">{ouverte.description}</p>}
@@ -205,7 +205,7 @@ export function ActionsPoints({
                   <td className="chiffres px-3 py-2">{p.ordre}</td>
                   <td className="px-3 py-2 font-medium text-ardoise-900">{p.nom ?? '—'}</td>
                   <td className="px-3 py-2 text-xs text-ardoise-500">
-                    {p.fait_le ? `${new Date(p.fait_le).toLocaleString()}${p.fait_par ? ` · ${p.fait_par}` : ''}` : '—'}
+                    {p.fait_le ? `${f.date(p.fait_le, { heure: true })}${p.fait_par ? ` · ${p.fait_par}` : ''}` : '—'}
                   </td>
                 </tr>
               ))}
@@ -238,8 +238,8 @@ export function ActionsPoints({
                 <span>
                   <span className="block font-medium text-ardoise-900">{a.titre}</span>
                   <span className="text-sm text-ardoise-600">
-                    {jour(a.date_prevue)}
-                    {a.date_fin && ` → ${jour(a.date_fin)}`}
+                    {f.date(a.date_prevue)}
+                    {a.date_fin && ` → ${f.date(a.date_fin)}`}
                     {a.responsable && ` · ${a.responsable}`}
                   </span>
                 </span>

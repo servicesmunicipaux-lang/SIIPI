@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Entete } from './composants/Entete';
 import { Chargement } from './composants/Elements';
@@ -7,11 +8,15 @@ import { TableauDeBordNational } from './pages/TableauDeBordNational';
 import { EspaceCitoyen } from './pages/EspaceCitoyen';
 import { EspaceCommunal } from './pages/EspaceCommunal';
 import { EspacePrestataire } from './pages/EspacePrestataire';
+import { Parametres } from './pages/Parametres';
 import { useAuth } from './lib/auth';
 import { FournisseurPortail, usePortail } from './lib/portail';
 
 export function App() {
   const { utilisateur, chargement } = useAuth();
+  // Les paramètres s'ouvrent par-dessus l'espace de travail, qui reste monté
+  // dessous : on les referme sur l'onglet et la commune qu'on avait quittés.
+  const [parametres, setParametres] = useState(false);
 
   if (chargement) {
     return (
@@ -39,8 +44,9 @@ export function App() {
 
   return (
     <div className="min-h-dvh">
-      <Entete />
-      <main>
+      <Entete onParametres={() => setParametres(true)} />
+      {parametres && <Parametres onFermer={() => setParametres(false)} />}
+      <main hidden={parametres}>
         {utilisateur.role === 'super_admin_fnct' && (
           <FournisseurPortail>
             <VueFnct />

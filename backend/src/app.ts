@@ -36,6 +36,7 @@ import { rapportsEtudesRouter } from './routes/rapportsEtudes.routes.js';
 import { contactsRouter } from './routes/contacts.routes.js';
 import { maintenanceRouter } from './routes/maintenance.routes.js';
 import { attributsPointsRouter } from './routes/attributsPoints.routes.js';
+import { decoupageRouter } from './routes/decoupage.routes.js';
 import {
   pointsSuggeresRouter,
   pointsSuggeresCitoyenRouter,
@@ -191,6 +192,8 @@ export const ROUTEURS: Array<[string, Router]> = [
   // Champs libres, étiquettes et actions planifiées (Jalon 6). La liste et
   // l'export des points restent sous /circuits/points.
   ['/points', attributsPointsRouter],
+  // Propositions de découpage, validation FNCT et versions (Jalon 7, C2.5/C2.6).
+  ['/decoupage', decoupageRouter],
   ['/points-suggeres', pointsSuggeresRouter],
   // Monté sur le préfixe citoyen : la proposition et son suivi appartiennent
   // à l'espace du citoyen, l'instruction à celui de la commune. Deux publics,

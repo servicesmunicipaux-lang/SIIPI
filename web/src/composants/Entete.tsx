@@ -1,14 +1,21 @@
 import { useTranslation } from 'react-i18next';
 import { appliquerLangue, type CodeLangue } from '../i18n';
-import { useAuth } from '../lib/auth';
+import { useAuth, useAuthFacultatif } from '../lib/auth';
 
 export function SelecteurLangue() {
   const { t } = useTranslation();
+  const auth = useAuthFacultatif();
   const autre = t('langue.codeAutre') as CodeLangue;
   return (
     <button
       type="button"
-      onClick={() => appliquerLangue(autre)}
+      onClick={() => {
+        appliquerLangue(autre);
+        // Connecté, la langue suit le compte d'un poste à l'autre. Un échec
+        // d'enregistrement ne doit pas empêcher de lire la page : la langue
+        // est déjà appliquée à l'écran.
+        if (auth?.utilisateur) void auth.changerPreferences({ langue: autre }).catch(() => undefined);
+      }}
       lang={autre}
       className="rounded-lg border border-ardoise-300 bg-white px-3 py-1.5 text-sm font-medium text-ardoise-700 hover:bg-ardoise-100"
     >
@@ -17,7 +24,7 @@ export function SelecteurLangue() {
   );
 }
 
-export function Entete() {
+export function Entete({ onParametres }: { onParametres?: () => void } = {}) {
   const { t } = useTranslation();
   const { utilisateur, deconnexion } = useAuth();
 
@@ -47,6 +54,15 @@ export function Entete() {
                 <p className="text-sm font-medium text-ardoise-900">{utilisateur.fullName}</p>
                 <p className="text-xs text-ardoise-500">{t(`entete.roles.${utilisateur.role}`)}</p>
               </div>
+              {onParametres && (
+                <button
+                  type="button"
+                  onClick={onParametres}
+                  className="rounded-lg border border-ardoise-300 bg-white px-3 py-1.5 text-sm font-medium text-ardoise-700 hover:bg-ardoise-100"
+                >
+                  {t('entete.parametres')}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={deconnexion}
