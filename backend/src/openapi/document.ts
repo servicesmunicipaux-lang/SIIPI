@@ -60,6 +60,16 @@ import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
 import {
+  interventionSchema,
+  majInterventionSchema,
+  planSchema,
+  majPlanSchema,
+  releveSchema,
+  TYPES_INTERVENTION,
+  NATURES_INTERVENTION,
+  STATUTS_ECHEANCE,
+} from '../routes/maintenance.routes.js';
+import {
   propositionSchema as pointSuggereSchema,
   validationSchema as pointSuggereValidationSchema,
   refusSchema as pointSuggereRefusSchema,
@@ -252,6 +262,10 @@ const Vehicule = registry.register(
         description: "Tracteur auquel cette remorque est attelée : l'unité de travail est l'attelage, pas le tracteur seul.",
       }),
       attele_a_immat: z.string().nullable(),
+      kilometrage: z.number().int().nullable().openapi({
+        description: 'Dernier kilométrage connu (Jalon 5). Relevé à l’écran, ou relevé à la hausse par une intervention qui en porte un plus élevé.',
+      }),
+      kilometrage_le: z.string().nullable(),
       lat: z.number().nullable(),
       lng: z.number().nullable(),
       zone_id: z.string().uuid().nullable(),
@@ -3881,6 +3895,231 @@ registry.registerPath({
 });
 
 // ---------------------------------------------------------------------------
+// Maintenance des engins — GMAO (Jalon 5, B2.2 et B2.3)
+// ---------------------------------------------------------------------------
+
+const Intervention = registry.register(
+  'InterventionMaintenance',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    vehicule_id: z.string(),
+    registration: z.string(),
+    date_intervention: z.string(),
+    type: z.enum(TYPES_INTERVENTION),
+    nature: z.enum(NATURES_INTERVENTION),
+    description: z.string().nullable(),
+    cout_tnd: z.string().nullable().openapi({ description: 'En dinars, au millime (NUMERIC rendu en chaîne pour ne rien arrondir).' }),
+    kilometrage: z.number().int().nullable(),
+    prestataire: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+);
+
+const PlanEntretien = registry.register(
+  'PlanEntretien',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    vehicule_id: z.string(),
+    registration: z.string(),
+    type: z.enum(TYPES_INTERVENTION),
+    libelle: z.string().nullable(),
+    intervalle_km: z.number().int().nullable(),
+    intervalle_jours: z.number().int().nullable(),
+    seuil_alerte_km: z.number().int(),
+    seuil_alerte_jours: z.number().int(),
+    reference_date: z.string(),
+    reference_km: z.number().int().nullable(),
+    created_at: z.string(),
+  })
+);
+
+const EcheanceEntretien = registry.register(
+  'EcheanceEntretien',
+  z.object({
+    plan_id: z.string().uuid(),
+    vehicule_id: z.string(),
+    registration: z.string(),
+    type_engin: z.string().nullable(),
+    type: z.enum(TYPES_INTERVENTION),
+    libelle: z.string().nullable(),
+    derniere_date: z.string().nullable(),
+    dernier_km: z.number().int().nullable(),
+    km_actuel: z.number().int().nullable(),
+    km_releve_le: z.string().nullable(),
+    echeance_date: z.string().nullable(),
+    echeance_km: z.number().int().nullable().openapi({
+      description: 'Vide si le plan a un intervalle au kilomètre mais que la dernière intervention a été saisie sans kilométrage : l’échéance est alors inconnue, jamais devinée.',
+    }),
+    jours_restants: z.number().int().nullable(),
+    km_restants: z.number().int().nullable(),
+    statut: z.enum(STATUTS_ECHEANCE),
+  })
+);
+
+const idTexte = z.object({ id: z.string() });
+const idUuid = z.object({ id: z.string().uuid() });
+
+registry.registerPath({
+  method: 'get',
+  path: '/maintenance/echeances',
+  tags: ['Maintenance'],
+  summary: "Échéances d'entretien (B2.3)",
+  description:
+    "Une ligne par plan d'entretien : échéance en date et/ou en kilomètres, calculée depuis la dernière intervention du même type — jamais stockée, si bien qu'une alerte disparaît d'elle-même dès que l'intervention est saisie. « a_prevoir » : l'échéance entre dans le seuil d'alerte du plan. En retard d'abord.",
+  security: SECURISE,
+  request: {
+    query: z.object({
+      communeId: z.string().optional(),
+      statut: z.enum(STATUTS_ECHEANCE).optional(),
+      vehiculeId: z.string().optional(),
+      ...paramsExport,
+    }),
+  },
+  responses: { 200: jsonOuExport(z.array(EcheanceEntretien), 'Échéances, en retard d’abord.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/maintenance/interventions',
+  tags: ['Maintenance'],
+  summary: "Carnet d'entretien (B2.2)",
+  security: SECURISE,
+  request: {
+    query: z.object({
+      communeId: z.string().optional(),
+      vehiculeId: z.string().optional(),
+      type: z.enum(TYPES_INTERVENTION).optional(),
+      depuis: z.string().optional(),
+      jusqua: z.string().optional(),
+      ...paramsExport,
+    }),
+  },
+  responses: { 200: jsonOuExport(z.array(Intervention), 'Interventions, les plus récentes en tête.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/maintenance/interventions',
+  tags: ['Maintenance'],
+  summary: 'Saisir une intervention',
+  description:
+    "Rattachée à la commune de l'ENGIN, pas à celle qu'annonce l'appelant. Une date future est refusée : une intervention se saisit une fois faite. Un kilométrage plus élevé que le compteur connu met celui-ci à jour ; jamais l'inverse.",
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: interventionSchema } } } },
+  responses: { 201: json(Intervention, 'Intervention enregistrée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/maintenance/interventions/{id}',
+  tags: ['Maintenance'],
+  summary: 'Corriger une intervention',
+  security: SECURISE,
+  request: { params: idUuid, body: { content: { 'application/json': { schema: majInterventionSchema } } } },
+  responses: { 200: json(Intervention, 'Intervention corrigée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/maintenance/interventions/{id}',
+  tags: ['Maintenance'],
+  summary: 'Retirer une intervention',
+  description: "Retrait logique : l'intervention sort du carnet et des échéances, mais reste en base, datée et imputée.",
+  security: SECURISE,
+  request: { params: idUuid },
+  responses: { 204: { description: 'Intervention retirée.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/maintenance/plans',
+  tags: ['Maintenance'],
+  summary: "Plans d'entretien",
+  security: SECURISE,
+  request: { query: z.object({ communeId: z.string().optional(), vehiculeId: z.string().optional() }) },
+  responses: { 200: json(z.array(PlanEntretien), 'Plans.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/maintenance/plans',
+  tags: ['Maintenance'],
+  summary: "Poser un plan d'entretien",
+  description:
+    "Un type d'intervention et un intervalle en kilomètres et/ou en jours. Point de départ tant qu'aucune intervention de ce type n'existe : la référence fournie, sinon la date du jour et le kilométrage connu de l'engin.",
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: planSchema } } } },
+  responses: { 201: json(PlanEntretien, 'Plan enregistré.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/maintenance/plans/{id}',
+  tags: ['Maintenance'],
+  summary: "Modifier un plan d'entretien",
+  security: SECURISE,
+  request: { params: idUuid, body: { content: { 'application/json': { schema: majPlanSchema } } } },
+  responses: { 200: json(PlanEntretien, 'Plan modifié.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/maintenance/plans/{id}',
+  tags: ['Maintenance'],
+  summary: "Retirer un plan d'entretien",
+  security: SECURISE,
+  request: { params: idUuid },
+  responses: { 204: { description: 'Plan retiré.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/maintenance/engins/{id}/kilometrage',
+  tags: ['Maintenance'],
+  summary: 'Relever le compteur d’un engin',
+  description:
+    'Un relevé inférieur au précédent est refusé (400), sauf `forcer: true` — le cas d’un compteur remplacé. Une date future est refusée.',
+  security: SECURISE,
+  request: { params: idTexte, body: { content: { 'application/json': { schema: releveSchema } } } },
+  responses: {
+    200: json(
+      z.object({ id: z.string(), registration: z.string(), kilometrage: z.number().int(), kilometrage_le: z.string() }),
+      'Compteur relevé.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/maintenance/bilan',
+  tags: ['Maintenance'],
+  summary: 'Ce que coûte chaque engin (12 mois glissants)',
+  description: "Nombre d'interventions, coût total et part corrective : c'est ce que l'axe 3 des KPI rapportera au tonnage (Jalon 8).",
+  security: SECURISE,
+  request: { query: z.object({ communeId: z.string().optional() }) },
+  responses: {
+    200: json(
+      z.array(
+        z.object({
+          vehicule_id: z.string(),
+          registration: z.string(),
+          interventions_12_mois: z.number().int(),
+          cout_12_mois_tnd: z.number(),
+          cout_correctif_12_mois_tnd: z.number(),
+          derniere_intervention: z.string().nullable(),
+        })
+      ),
+      'Un engin par ligne, le plus coûteux en tête.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+// ---------------------------------------------------------------------------
 // Imports CSV (Jalon 4, lot 2) — même calque que l'import KML : sans
 // « valider », un aperçu qui n'écrit rien ; avec, une transaction.
 // ---------------------------------------------------------------------------
@@ -4102,7 +4341,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.7.0',
+      version: '0.8.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
@@ -4151,6 +4390,7 @@ export function genererDocumentOpenApi() {
       { name: 'Observatoire national', description: 'Portail FNCT : déploiement et comparaison entre territoires.' },
       { name: 'Fichiers', description: "Photos et documents déposés : preuve de traitement d'une réclamation, photo de signalement, constat de terrain, documents de projet, rapports et études. Type déduit des octets, métadonnées EXIF retirées au dépôt." },
       { name: 'Rapports et études', description: "Métadonnées des rapports et études d'une commune (TDR §3.2.9) : titre, catégorie, auteur déclaré, date. Le fichier lui-même est déposé par POST /fichiers. Versionnement : une nouvelle version ne remplace jamais la précédente." },
+      { name: 'Maintenance', description: "GMAO (TDR §3.2.2, Jalon 5) : carnet d'entretien des engins, plans d'entretien périodique et échéances calculées depuis la dernière intervention. Commune et FNCT seulement." },
       { name: 'Contacts', description: "Annuaire de travail d'une commune (TDR §3.2.7) : interlocuteurs externes sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT." },
       { name: 'Supervision', description: "État de santé de l'API." },
     ],

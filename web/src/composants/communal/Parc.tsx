@@ -11,10 +11,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type Vehicule, type EtatDuParc } from '../../lib/api';
+import { api, ErreurApi, type EcheanceEntretien, type Vehicule, type EtatDuParc } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
 import { ImportCsv } from '../ImportCsv';
+import { AlertesEntretien, EntretienEngin, STYLE_STATUT } from './Entretien';
 
 const ETATS = ['en_service', 'en_panne', 'a_reformer', 'reforme'] as const;
 type Etat = (typeof ETATS)[number];
@@ -36,12 +37,20 @@ export function Parc({ communeId }: { communeId: string }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [filtre, setFiltre] = useState<Etat | 'tous'>('tous');
   const [ouvert, setOuvert] = useState<string | null>(null);
+  const [echeances, setEcheances] = useState<EcheanceEntretien[]>([]);
 
   const charger = async () => {
     try {
-      const [liste, etat] = await Promise.all([api.engins(communeId), api.etatDuParc(communeId)]);
+      // Les échéances sont facultatives : un parc sans aucun plan d'entretien
+      // doit s'afficher quand même.
+      const [liste, etat, ech] = await Promise.all([
+        api.engins(communeId),
+        api.etatDuParc(communeId),
+        api.echeancesEntretien(communeId).catch(() => [] as EcheanceEntretien[]),
+      ]);
       setEngins(liste as unknown as Vehicule[]);
       setEtatParc(etat);
+      setEcheances(ech);
       setErreur(null);
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
@@ -101,6 +110,17 @@ export function Parc({ communeId }: { communeId: string }) {
       {/* Un engin se reconnaît à son immatriculation : réimporter un export
           retouché met à jour les fiches, sans en créer de doubles. */}
       <ImportCsv envoyer={(saisie) => api.importerParc(communeId, saisie)} onFait={charger} />
+
+      {/* B2.3 : ce qui est en retard ou à prévoir, avant que la panne ne le dise. */}
+      <AlertesEntretien
+        communeId={communeId}
+        echeances={echeances}
+        onOuvrir={(id) => {
+          setFiltre('tous');
+          setOuvert(id);
+          window.setTimeout(() => document.getElementById(`engin-${id}`)?.scrollIntoView({ block: 'start' }), 0);
+        }}
+      />
 
       {/* La phrase avant les chiffres. « 16 engins sur 29 peuvent rouler » se
           retient ; un tableau de cinq nombres ne se retient pas. */}
@@ -171,8 +191,13 @@ export function Parc({ communeId }: { communeId: string }) {
           {affiches.map((v) => {
             const deplie = ouvert === v.id;
             const immobilise = v.etat === 'en_panne' || v.etat === 'a_reformer';
+            const echeancesEngin = echeances.filter((e) => e.vehicule_id === v.id);
+            // Le plus urgent des entretiens de l'engin, montré sans déplier.
+            const urgent = (['en_retard', 'a_prevoir', 'a_verifier'] as const).find((st) =>
+              echeancesEngin.some((e) => e.statut === st)
+            );
             return (
-              <li key={v.id} className="rounded-xl border border-ardoise-200 bg-white">
+              <li key={v.id} id={`engin-${v.id}`} className="scroll-mt-4 rounded-xl border border-ardoise-200 bg-white">
                 <button
                   type="button"
                   onClick={() => setOuvert(deplie ? null : v.id)}
@@ -201,6 +226,11 @@ export function Parc({ communeId }: { communeId: string }) {
                       </p>
                     )}
                   </div>
+                  {urgent && (
+                    <span className={`rounded px-2 py-1 text-xs font-semibold ${STYLE_STATUT[urgent]}`}>
+                      {t(`communal.entretien.badge.${urgent}`)}
+                    </span>
+                  )}
                   <span className={`rounded px-2 py-1 text-xs font-semibold ${COULEUR_ETAT[v.etat] ?? ''}`}>
                     {t(`communal.parc.etats.${v.etat}`)}
                   </span>
@@ -260,6 +290,8 @@ export function Parc({ communeId }: { communeId: string }) {
                         </div>
                       ))}
                     </dl>
+
+                    <EntretienEngin communeId={communeId} vehicule={v} echeances={echeancesEngin} onChange={charger} />
                   </div>
                 )}
               </li>

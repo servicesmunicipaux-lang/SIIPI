@@ -5,6 +5,57 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.8.0] — 2026-09-28 — Jalon 5 : la maintenance des engins (GMAO)
+
+### Ajouté
+- **Carnet d'entretien** (`B2.2`) : chaque intervention — date, type (vidange,
+  révision, pneumatiques, freinage…), nature préventive ou corrective, coût en
+  dinars au millime, kilométrage, garage. Dans la fiche dépliée de chaque
+  engin de l'écran Parc, avec export Excel/CSV.
+- **Alertes d'entretien** (`B2.3`) : des plans (« vidange tous les 10 000 km ou
+  tous les 180 jours », seuil d'alerte réglable) et leurs échéances, calculées
+  depuis la dernière intervention du même type. Bandeau en tête du parc (en
+  retard, à prévoir, à vérifier), badge sur la ligne de l'engin concerné,
+  export des échéances.
+- **Le compteur des engins** : `vehicules.kilometrage` et sa date de relevé,
+  relevables à l'écran ; une intervention qui porte un kilométrage plus élevé
+  le met à jour.
+- **Coût par engin** sur douze mois glissants, part corrective comprise
+  (`GET /maintenance/bilan`) : la matière de l'axe 3 des KPI (Jalon 8).
+- Migration 046, routes `/maintenance/*` (11), nouvelle campagne `maintenance`
+  (43/43) incluse dans `npm run test`.
+
+### Décisions à retenir
+- **L'échéance n'est pas stockée** : une alerte disparaît d'elle-même dès que
+  l'intervention est saisie, et revient si celle-ci est retirée — aucune
+  seconde vérité à tenir à jour.
+- **« À vérifier » plutôt que « à jour »** quand l'échéance au kilomètre ne peut
+  pas être évaluée (aucun relevé de compteur, ou intervention saisie sans
+  kilométrage) : ne pas rassurer sans rien savoir. C'est le cas, au départ, des
+  35 engins des seeds, qui n'ont jamais eu de compteur.
+- **Le compteur ne recule pas** : un relevé inférieur est refusé, sauf compteur
+  remplacé confirmé ; une intervention ancienne saisie après coup ne le
+  rajeunit pas.
+- **Commune et FNCT seulement** : un prestataire voit les engins de ses zones,
+  pas leur carnet ni leur coût. En base, un déclencheur refuse une intervention
+  ou un plan rattaché à une autre commune que celle de l'engin.
+- Une intervention se saisit une fois faite : une date future est refusée.
+
+### Vérifié
+- Campagne `maintenance` : le test de validation de la feuille de route —
+  signalé « à prévoir » à 10 jours de l'échéance, « à jour » après la saisie,
+  de retour après le retrait —, retards à la date et au kilomètre, statut « à
+  vérifier », compteur qui ne recule pas, coût au millime, bilan sur 12 mois,
+  cloisonnement (autre commune : invisible et 404 ; SQL direct refusé ;
+  prestataire : 403), engin réformé sorti des échéances, exports.
+- Navigateur : bandeau « 1 à prévoir » et badge, saisie de la vidange par le
+  formulaire (virgule décimale comprise), bandeau passé « à jour » ; relevé
+  inférieur refusé avec la raison, saisie conservée.
+- 47 migrations rejouées sur base neuve · contrat OpenAPI conforme (172 routes)
+  · typage front et back sans erreur · les 25 autres campagnes sans régression.
+
+---
+
 ## [0.7.0] — 2026-09-28 — Jalon 4, lot 2 : imports CSV et PDF (clôture du Jalon 4)
 
 ### Ajouté

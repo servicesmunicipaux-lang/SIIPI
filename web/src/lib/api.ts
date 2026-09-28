@@ -159,6 +159,9 @@ export type RapportEtude = Reponse<'/rapports-etudes', 'get'>[number];
 export type VersionRapport = Reponse<'/rapports-etudes/{id}/versions', 'get'>[number];
 export type Contact = Reponse<'/contacts', 'get'>[number];
 export type ApercuImportCsv = Reponse<'/contacts/import', 'post'>;
+export type EcheanceEntretien = Reponse<'/maintenance/echeances', 'get'>[number];
+export type InterventionMaintenance = Reponse<'/maintenance/interventions', 'get'>[number];
+export type PlanEntretien = Reponse<'/maintenance/plans', 'get'>[number];
 
 // --- Découpage communal ----------------------------------------------------
 export interface FrontiereCommune {
@@ -928,6 +931,30 @@ export const api = {
   modifierContact: (id: string, saisie: Corps<'/contacts/{id}', 'patch'>) =>
     requete<Contact>(`/contacts/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
   retirerContact: (id: string) => requete<void>(`/contacts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // --- Maintenance des engins (Jalon 5) --------------------------------------
+  echeancesEntretien: (communeId: string) =>
+    requete<EcheanceEntretien[]>(`/maintenance/echeances?communeId=${encodeURIComponent(communeId)}`),
+  interventionsEngin: (communeId: string, vehiculeId: string) =>
+    requete<InterventionMaintenance[]>(
+      `/maintenance/interventions?communeId=${encodeURIComponent(communeId)}&vehiculeId=${encodeURIComponent(vehiculeId)}`
+    ),
+  saisirIntervention: (saisie: Corps<'/maintenance/interventions', 'post'>) =>
+    requete<InterventionMaintenance>('/maintenance/interventions', { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerIntervention: (id: string) =>
+    requete<void>(`/maintenance/interventions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  plansEngin: (communeId: string, vehiculeId: string) =>
+    requete<PlanEntretien[]>(
+      `/maintenance/plans?communeId=${encodeURIComponent(communeId)}&vehiculeId=${encodeURIComponent(vehiculeId)}`
+    ),
+  poserPlan: (saisie: Corps<'/maintenance/plans', 'post'>) =>
+    requete<PlanEntretien>('/maintenance/plans', { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerPlan: (id: string) => requete<void>(`/maintenance/plans/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  releverKilometrage: (vehiculeId: string, saisie: Corps<'/maintenance/engins/{id}/kilometrage', 'put'>) =>
+    requete<unknown>(`/maintenance/engins/${encodeURIComponent(vehiculeId)}/kilometrage`, {
+      method: 'PUT',
+      body: JSON.stringify(saisie),
+    }),
 
   // --- Imports CSV (Jalon 4, lot 2) : aperçu puis validation ------------------
   importerContacts: (communeId: string, saisie: Corps<'/contacts/import', 'post'>) =>

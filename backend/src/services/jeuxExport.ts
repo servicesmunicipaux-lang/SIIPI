@@ -134,6 +134,10 @@ export const JEU_PARC: JeuExport = {
     { cle: 'charge_utile_t', fr: 'Charge utile (t)', ar: 'الحمولة (طن)', type: 'nombre', import: 'chargeUtileT' },
     { cle: 'valeur_achat_tnd', fr: "Valeur d'achat (TND)", ar: 'قيمة الشراء (دينار)', type: 'nombre', import: 'valeurAchatTnd' },
     { cle: 'domaine_emploi', fr: "Domaine d'emploi", ar: 'مجال الاستعمال', import: 'domaineEmploi' },
+    // Export seulement : un relevé passe par le contrôle du compteur (qui ne
+    // recule pas), pas par un import de masse.
+    { cle: 'kilometrage', fr: 'Kilométrage', ar: 'عدد الكيلومترات', type: 'nombre' },
+    { cle: 'kilometrage_le', fr: 'Kilométrage relevé le', ar: 'تاريخ قراءة العداد', type: 'date' },
     { cle: 'attele_a_immat', fr: 'Attelé à', ar: 'مربوط بـ' },
     { cle: 'inventaire_le', fr: 'Inventorié le', ar: 'تاريخ الجرد', type: 'date' },
   ],
@@ -199,5 +203,68 @@ export const JEU_CONTACTS: JeuExport = {
     { cle: 'email', fr: 'Courriel', ar: 'البريد الإلكتروني', import: 'email', alias: ['e-mail', 'mail', 'adresse électronique'] },
     { cle: 'notes', fr: 'Notes', ar: 'ملاحظات', import: 'notes' },
     { cle: 'updated_at', fr: 'Mis à jour le', ar: 'آخر تحديث', type: 'horodatage' },
+  ],
+};
+
+const TYPES_INTERVENTION = {
+  vidange: { fr: 'Vidange', ar: 'تغيير الزيت' },
+  revision: { fr: 'Révision', ar: 'مراجعة' },
+  pneumatiques: { fr: 'Pneumatiques', ar: 'العجلات' },
+  freinage: { fr: 'Freinage', ar: 'الفرامل' },
+  hydraulique: { fr: 'Hydraulique', ar: 'المنظومة الهيدروليكية' },
+  electricite: { fr: 'Électricité', ar: 'الكهرباء' },
+  carrosserie: { fr: 'Carrosserie', ar: 'الهيكل' },
+  controle_technique: { fr: 'Contrôle technique', ar: 'الفحص الفني' },
+  reparation: { fr: 'Réparation', ar: 'إصلاح' },
+  autre: { fr: 'Autre', ar: 'أخرى' },
+};
+
+/** B2.2 — le carnet d'entretien : une ligne par intervention. */
+export const JEU_INTERVENTIONS: JeuExport = {
+  nom: 'entretien-interventions',
+  titre: { fr: "Carnet d'entretien", ar: 'دفتر الصيانة' },
+  colonnes: [
+    { cle: 'date_intervention', fr: 'Date', ar: 'التاريخ', type: 'date' },
+    { cle: 'registration', fr: 'Immatriculation', ar: 'الترقيم' },
+    { cle: 'type', fr: 'Intervention', ar: 'التدخل', libelles: TYPES_INTERVENTION },
+    {
+      cle: 'nature',
+      fr: 'Nature',
+      ar: 'الطبيعة',
+      libelles: { preventive: { fr: 'Préventive', ar: 'وقائية' }, corrective: { fr: 'Corrective', ar: 'علاجية' } },
+    },
+    { cle: 'description', fr: 'Description', ar: 'الوصف' },
+    { cle: 'cout_tnd', fr: 'Coût (TND)', ar: 'الكلفة (دينار)', type: 'nombre' },
+    { cle: 'kilometrage', fr: 'Kilométrage', ar: 'عدد الكيلومترات', type: 'nombre' },
+    { cle: 'prestataire', fr: 'Garage / atelier', ar: 'الورشة' },
+  ],
+};
+
+/** B2.3 — les échéances d'entretien, en retard d'abord. */
+export const JEU_ECHEANCES: JeuExport = {
+  nom: 'entretien-echeances',
+  titre: { fr: "Échéances d'entretien", ar: 'آجال الصيانة' },
+  colonnes: [
+    {
+      cle: 'statut',
+      fr: 'Statut',
+      ar: 'الحالة',
+      libelles: {
+        en_retard: { fr: 'En retard', ar: 'متأخرة' },
+        a_prevoir: { fr: 'À prévoir', ar: 'يجب برمجتها' },
+        a_verifier: { fr: 'À vérifier (kilométrage inconnu)', ar: 'للتثبت (عدد الكيلومترات غير معروف)' },
+        a_jour: { fr: 'À jour', ar: 'محيّنة' },
+      },
+    },
+    { cle: 'registration', fr: 'Immatriculation', ar: 'الترقيم' },
+    { cle: 'type', fr: 'Entretien', ar: 'الصيانة', libelles: TYPES_INTERVENTION },
+    { cle: 'libelle', fr: 'Libellé', ar: 'التسمية' },
+    { cle: 'derniere_date', fr: 'Dernier entretien', ar: 'آخر صيانة', type: 'date' },
+    { cle: 'dernier_km', fr: 'Au kilométrage', ar: 'عند عدد الكيلومترات', type: 'nombre' },
+    { cle: 'echeance_date', fr: 'Échéance (date)', ar: 'الأجل (التاريخ)', type: 'date' },
+    { cle: 'echeance_km', fr: 'Échéance (km)', ar: 'الأجل (كلم)', type: 'nombre' },
+    { cle: 'jours_restants', fr: 'Jours restants', ar: 'الأيام المتبقية', type: 'nombre' },
+    { cle: 'km_actuel', fr: 'Kilométrage actuel', ar: 'عدد الكيلومترات الحالي', type: 'nombre' },
+    { cle: 'km_restants', fr: 'Km restants', ar: 'الكيلومترات المتبقية', type: 'nombre' },
   ],
 };
