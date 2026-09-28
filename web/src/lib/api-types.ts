@@ -10762,6 +10762,859 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/maintenance/echeances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Échéances d'entretien (B2.3)
+         * @description Une ligne par plan d'entretien : échéance en date et/ou en kilomètres, calculée depuis la dernière intervention du même type — jamais stockée, si bien qu'une alerte disparaît d'elle-même dès que l'intervention est saisie. « a_prevoir » : l'échéance entre dans le seuil d'alerte du plan. En retard d'abord.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    statut?: "en_retard" | "a_prevoir" | "a_verifier" | "a_jour";
+                    vehiculeId?: string;
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Échéances, en retard d’abord. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EcheanceEntretien"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/maintenance/interventions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Carnet d'entretien (B2.2) */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    vehiculeId?: string;
+                    type?: "vidange" | "revision" | "pneumatiques" | "freinage" | "hydraulique" | "electricite" | "carrosserie" | "controle_technique" | "reparation" | "autre";
+                    depuis?: string;
+                    jusqua?: string;
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Interventions, les plus récentes en tête. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InterventionMaintenance"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Saisir une intervention
+         * @description Rattachée à la commune de l'ENGIN, pas à celle qu'annonce l'appelant. Une date future est refusée : une intervention se saisit une fois faite. Un kilométrage plus élevé que le compteur connu met celui-ci à jour ; jamais l'inverse.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        vehiculeId: string;
+                        dateIntervention: string;
+                        /** @enum {string} */
+                        type: "vidange" | "revision" | "pneumatiques" | "freinage" | "hydraulique" | "electricite" | "carrosserie" | "controle_technique" | "reparation" | "autre";
+                        /** @enum {string} */
+                        nature?: "preventive" | "corrective";
+                        description?: string | null;
+                        coutTnd?: number | null;
+                        kilometrage?: number | null;
+                        prestataire?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Intervention enregistrée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InterventionMaintenance"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/maintenance/interventions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer une intervention
+         * @description Retrait logique : l'intervention sort du carnet et des échéances, mais reste en base, datée et imputée.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Intervention retirée. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Corriger une intervention */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateIntervention?: string;
+                        /** @enum {string} */
+                        type?: "vidange" | "revision" | "pneumatiques" | "freinage" | "hydraulique" | "electricite" | "carrosserie" | "controle_technique" | "reparation" | "autre";
+                        /** @enum {string} */
+                        nature?: "preventive" | "corrective";
+                        description?: string | null;
+                        coutTnd?: number | null;
+                        kilometrage?: number | null;
+                        prestataire?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Intervention corrigée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InterventionMaintenance"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/maintenance/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plans d'entretien */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    vehiculeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Plans. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlanEntretien"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Poser un plan d'entretien
+         * @description Un type d'intervention et un intervalle en kilomètres et/ou en jours. Point de départ tant qu'aucune intervention de ce type n'existe : la référence fournie, sinon la date du jour et le kilométrage connu de l'engin.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        vehiculeId: string;
+                        /** @enum {string} */
+                        type: "vidange" | "revision" | "pneumatiques" | "freinage" | "hydraulique" | "electricite" | "carrosserie" | "controle_technique" | "reparation" | "autre";
+                        libelle?: string | null;
+                        intervalleKm?: number | null;
+                        intervalleJours?: number | null;
+                        seuilAlerteKm?: number;
+                        seuilAlerteJours?: number;
+                        referenceDate?: string;
+                        referenceKm?: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Plan enregistré. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlanEntretien"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/maintenance/plans/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retirer un plan d'entretien */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Plan retiré. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Modifier un plan d'entretien */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        type?: "vidange" | "revision" | "pneumatiques" | "freinage" | "hydraulique" | "electricite" | "carrosserie" | "controle_technique" | "reparation" | "autre";
+                        libelle?: string | null;
+                        intervalleKm?: number | null;
+                        intervalleJours?: number | null;
+                        seuilAlerteKm?: number;
+                        seuilAlerteJours?: number;
+                        referenceDate?: string;
+                        referenceKm?: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Plan modifié. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlanEntretien"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/maintenance/engins/{id}/kilometrage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Relever le compteur d’un engin
+         * @description Un relevé inférieur au précédent est refusé (400), sauf `forcer: true` — le cas d’un compteur remplacé. Une date future est refusée.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        kilometrage: number;
+                        date?: string;
+                        forcer?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Compteur relevé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            registration: string;
+                            kilometrage: number;
+                            kilometrage_le: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/maintenance/bilan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ce que coûte chaque engin (12 mois glissants)
+         * @description Nombre d'interventions, coût total et part corrective : c'est ce que l'axe 3 des KPI rapportera au tonnage (Jalon 8).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Un engin par ligne, le plus coûteux en tête. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            vehicule_id: string;
+                            registration: string;
+                            interventions_12_mois: number;
+                            cout_12_mois_tnd: number;
+                            cout_correctif_12_mois_tnd: number;
+                            derniere_intervention: string | null;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/contacts/import": {
         parameters: {
             query?: never;
@@ -11685,6 +12538,9 @@ export interface components {
             /** @description Tracteur auquel cette remorque est attelée : l'unité de travail est l'attelage, pas le tracteur seul. */
             attele_a: string | null;
             attele_a_immat: string | null;
+            /** @description Dernier kilométrage connu (Jalon 5). Relevé à l’écran, ou relevé à la hausse par une intervention qui en porte un plus élevé. */
+            kilometrage: number | null;
+            kilometrage_le: string | null;
             lat: number | null;
             lng: number | null;
             /** Format: uuid */
@@ -12619,6 +13475,63 @@ export interface components {
             /** Format: uuid */
             depose_par: string | null;
             created_at: string;
+        };
+        InterventionMaintenance: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            vehicule_id: string;
+            registration: string;
+            date_intervention: string;
+            /** @enum {string} */
+            type: "vidange" | "revision" | "pneumatiques" | "freinage" | "hydraulique" | "electricite" | "carrosserie" | "controle_technique" | "reparation" | "autre";
+            /** @enum {string} */
+            nature: "preventive" | "corrective";
+            description: string | null;
+            /** @description En dinars, au millime (NUMERIC rendu en chaîne pour ne rien arrondir). */
+            cout_tnd: string | null;
+            kilometrage: number | null;
+            prestataire: string | null;
+            created_at: string;
+            updated_at: string;
+        };
+        PlanEntretien: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            vehicule_id: string;
+            registration: string;
+            /** @enum {string} */
+            type: "vidange" | "revision" | "pneumatiques" | "freinage" | "hydraulique" | "electricite" | "carrosserie" | "controle_technique" | "reparation" | "autre";
+            libelle: string | null;
+            intervalle_km: number | null;
+            intervalle_jours: number | null;
+            seuil_alerte_km: number;
+            seuil_alerte_jours: number;
+            reference_date: string;
+            reference_km: number | null;
+            created_at: string;
+        };
+        EcheanceEntretien: {
+            /** Format: uuid */
+            plan_id: string;
+            vehicule_id: string;
+            registration: string;
+            type_engin: string | null;
+            /** @enum {string} */
+            type: "vidange" | "revision" | "pneumatiques" | "freinage" | "hydraulique" | "electricite" | "carrosserie" | "controle_technique" | "reparation" | "autre";
+            libelle: string | null;
+            derniere_date: string | null;
+            dernier_km: number | null;
+            km_actuel: number | null;
+            km_releve_le: string | null;
+            echeance_date: string | null;
+            /** @description Vide si le plan a un intervalle au kilomètre mais que la dernière intervention a été saisie sans kilométrage : l’échéance est alors inconnue, jamais devinée. */
+            echeance_km: number | null;
+            jours_restants: number | null;
+            km_restants: number | null;
+            /** @enum {string} */
+            statut: "en_retard" | "a_prevoir" | "a_verifier" | "a_jour";
         };
         Contact: {
             /** Format: uuid */

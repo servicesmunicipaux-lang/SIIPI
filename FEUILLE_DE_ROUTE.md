@@ -9,6 +9,7 @@ Mise à jour du 23 septembre 2026 : **`M6` clos** — historique « Mes notifica
 Mise à jour du 28 septembre 2026 : **Jalon 3** — Contacts (`C1.1`–`C1.3`), versionnement des rapports (`C3.6`) et lecteur PDF intégré (`C3.5`) ; cinq lignes passées à Fait. `C1.4` (import/export CSV) rejoint le service d'export transverse du Jalon 4.
 Mise à jour du 28 septembre 2026 (suite) : **Jalon 4, lot 1** — le service d'export unique (CSV + Excel) branché sur les cinq écrans concernés ; `B3.6` passé à Fait, `A3.4`, `B2.4` et `C1.4` à Partiel (reste le PDF et les imports, lot 2).
 Mise à jour du 28 septembre 2026 (fin) : **Jalon 4 clos** — imports CSV (contacts, parc, points) et PDF par l'impression du navigateur ; `A3.4`, `B2.4`, `B3.1`, `B5.2.4` et `C1.4` passés à Fait.
+Mise à jour du 28 septembre 2026 (soir) : **Jalon 5 clos** — la maintenance des engins : carnet d'entretien (`B2.2`) et alertes d'entretien au kilomètre et à la date (`B2.3`).
 
 ---
 
@@ -44,9 +45,9 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 68 | 71 % |
+| ✅ Fait et éprouvé | 70 | 73 % |
 | 🟡 Partiel | 11 | 11 % |
-| ⬜ À faire | 15 | 16 % |
+| ⬜ À faire | 13 | 14 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
 
@@ -65,7 +66,7 @@ les tonnes et la masse salariale.
 | **3.1.2 Les 350 communes** | 4 | 1 |  |  | Complète, sauf la vue KPI qui attend le § 3.2.10. |
 | **3.1.3 Tableau de bord national** | 2 | 1 | 1 |  | Carte, et export Excel / CSV / PDF (Jalon 4) faits ; manquent les alertes, et l'agrégation complète des indicateurs. |
 | **3.2.1 Personnel et planning** | 4 | 2 |  |  | Le cœur est fait ; photo du cadre et envoi de courriel manquent. |
-| **3.2.2 Engins et maintenance** | 2 |  | 3 |  | L'inventaire est fait, s'exporte et se réimporte ; la GMAO ne l'est pas du tout. |
+| **3.2.2 Engins et maintenance** | 4 |  | 1 |  | Inventaire, carnet d'entretien et alertes faits (Jalon 5) ; reste l'interopérabilité GPS, optionnelle au TDR. |
 | **3.2.3 Données géolocalisées** | 4 |  | 2 |  | Import (KML, GPX, GeoJSON, CSV), carte et export des points filtrés faits ; l'exploitation par tags non. |
 | **3.2.4 Pesées** | 3 |  |  | 2 | Complète pour la part communale ; la part ANGeD est suspendue. |
 | **5.1 Réclamations** | 4 |  |  |  | Complète. |
@@ -129,8 +130,8 @@ les tonnes et la masse salariale.
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
 | `B2.1` | Fiche engin | ✅ Fait | migration 032 · campagne module3 |
-| `B2.2` | Historique de maintenance (date, type, coût, km) | ⬜ À faire | seuls l'état et le motif d'immobilisation existent |
-| `B2.3` | Alertes d'entretien (seuils km / date) | ⬜ À faire |  |
+| `B2.2` | Historique de maintenance (date, type, coût, km) | ✅ Fait | table `interventions_maintenance` (migration 046) · carnet dans la fiche de l'engin, export Excel/CSV · campagne maintenance |
+| `B2.3` | Alertes d'entretien (seuils km / date) | ✅ Fait | `plans_entretien` et `app.echeances_entretien` (migration 046) : en retard / à prévoir / à vérifier, bandeau en tête du parc · campagne maintenance |
 | `B2.4` | Import / export CSV du parc | ✅ Fait | export (campagne exports) ; import par immatriculation, création ou mise à jour, aperçu avant écriture (`POST /trucks/import` · campagne imports) |
 | `B2.5` | Interopérabilité GPS (optionnelle au TDR) | ⬜ À faire |  |
 
@@ -512,13 +513,44 @@ français et en arabe — de droite à gauche, lettres liées, en-tête répét�
 seconde page — et résultats d'un sondage. Cette vérification a révélé, et fait
 corriger, des titres de colonnes qui disparaissaient à l'impression.
 
-### Jalon 5 — La maintenance des engins (GMAO)
+### Jalon 5 — La maintenance des engins (GMAO) ✅ *(fait le 28 septembre 2026)*
 
-`B2.2` et `B2.3` sont absents. C'est la rubrique la moins avancée, et celle dont
-dépend l'axe 3 des KPI (coût de maintenance à la tonne).
+`B2.2` et `B2.3` étaient absents. C'était la rubrique la moins avancée, et
+celle dont dépend l'axe 3 des KPI (coût de maintenance à la tonne).
 
-**Test de validation.** Un engin dont l'entretien est dû est signalé avant
-l'échéance, et le signalement disparaît une fois l'intervention saisie.
+| Quoi | Débloque | Preuve |
+|---|---|---|
+| Carnet d'entretien : date, type, nature (préventive / corrective), coût au millime, kilométrage, garage | `B2.2` | `interventions_maintenance` (migration 046) · fiche de l'engin · export Excel/CSV |
+| Plans d'entretien (« vidange tous les 10 000 km ou 180 jours ») et leurs échéances | `B2.3` | `plans_entretien`, `app.echeances_entretien` · bandeau d'alertes en tête du parc |
+| Le compteur de l'engin, qui manquait | prérequis de `B2.3` | `vehicules.kilometrage` / `kilometrage_le` |
+| Coût par engin sur douze mois, part corrective | prépare l'axe 3 (Jalon 8) | `GET /maintenance/bilan` |
+
+**Choix retenus.**
+- **L'échéance n'est pas stockée** : elle se calcule depuis la dernière
+  intervention du même type. Une échéance écrite en base serait une seconde
+  vérité qu'une intervention saisie ou retirée laisserait fausse — c'est ce
+  qui fait qu'une alerte disparaît d'elle-même à la saisie, et revient si
+  l'intervention est retirée.
+- **« À vérifier » plutôt que « à jour »** : un plan au kilomètre qu'on ne peut
+  pas évaluer — aucun relevé de compteur (le cas des 35 engins des seeds), ou
+  dernière intervention saisie sans kilométrage — n'est jamais présenté comme
+  à jour.
+- **Le compteur ne recule pas** : ni par un relevé (refusé, sauf compteur
+  remplacé explicitement confirmé), ni par une intervention ancienne saisie
+  après coup.
+- **Des coûts et des pannes : la commune et la FNCT** — pas le prestataire,
+  qui voit les engins de ses zones mais pas leur carnet. Un déclencheur refuse
+  en base une intervention ou un plan rattaché à une autre commune que celle
+  de l'engin.
+
+**Test de validation.** Campagne `maintenance` (43/43, nouvelle) : une vidange
+due dans 10 jours est « à prévoir » alors que l'échéance n'est pas atteinte ;
+la saisie de la vidange la fait passer « à jour » et sortir de la liste, avec
+une nouvelle échéance à +180 j / +10 000 km ; son retrait fait revenir
+l'alerte. Vérifié aussi dans le navigateur : bandeau « 1 à prévoir », badge sur
+la ligne de l'engin, saisie de l'intervention par le formulaire, bandeau passé
+« à jour ». 47 migrations rejouées sur base neuve ; contrat conforme
+(172 routes) ; les 25 autres campagnes sans régression.
 
 ### Jalon 6 — Champs libres et planification d'actions
 
