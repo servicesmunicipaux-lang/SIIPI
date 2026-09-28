@@ -11,6 +11,8 @@ import { z } from 'zod';
 import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { exportable } from '../services/export.js';
+import { JEU_CONTACTS } from '../services/jeuxExport.js';
 import { communeDemandee } from '../perimetre.js';
 
 export const contactsRouter = Router();
@@ -47,6 +49,7 @@ contactsRouter.get(
   '/',
   requireAuth,
   requireRole('admin_commune', 'super_admin_fnct'),
+  exportable(JEU_CONTACTS, (req) => communeDemandee(req) ?? undefined),
   asyncHandler(async (req, res) => {
     const communeId = communeDemandee(req);
     if (!communeId) throw new ApiError(400, 'Commune requise.');

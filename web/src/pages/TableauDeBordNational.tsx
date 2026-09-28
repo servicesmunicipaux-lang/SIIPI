@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { usePortail } from '../lib/portail';
 import { api, type LigneGouvernorat, type StatutCommune } from '../lib/api';
 import { formaterNombre } from '../i18n';
+import { BoutonExport } from '../composants/BoutonExport';
 import { DecoupageCommunal } from '../composants/national/DecoupageCommunal';
 import {
   BadgeProvenance,
@@ -231,6 +232,7 @@ export function TableauDeBordNational() {
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-semibold text-ardoise-900">{t('national.tableau.titre')}</h2>
           <p className="text-xs text-ardoise-500">{t('national.tableau.sousTitre')}</p>
+          <BoutonExport chemin="/observatoire/gouvernorats" />
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-ardoise-200 bg-white">
@@ -320,6 +322,7 @@ export function TableauDeBordNational() {
       <section>
         <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-semibold text-ardoise-900">{t('national.communes.titre')}</h2>
+          <BoutonExport chemin="/observatoire/deploiement" />
           <p className="chiffres text-xs text-ardoise-500">
             {t('national.communes.resultats', {
               count: communesFiltrees.length,

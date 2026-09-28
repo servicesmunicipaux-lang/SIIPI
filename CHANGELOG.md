@@ -5,6 +5,65 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.6.0] — 2026-09-28 — Jalon 4, lot 1 : le service d'export unique
+
+### Ajouté
+- **Export Excel et CSV sur les cinq écrans qui en demandent** : tableau
+  national par gouvernorat et annuaire des 350 communes (`A3.4`), parc
+  (`B2.4`), points de collecte filtrés (`B3.6`), résultats d'un sondage
+  (`B5.2.4`), contacts (`C1.4`). Un seul bouton (`BoutonExport.tsx`), Excel en
+  premier.
+- `services/export.ts` : l'export n'est pas une route de plus mais une autre
+  représentation des routes de liste existantes (`?format=csv|xlsx`,
+  `&langue=fr|ar`) — même requête, mêmes filtres, mêmes rôles, même RLS.
+  XLSX écrit sans dépendance (zip et CRC32 à la main, comme le lecteur KMZ),
+  nombres et dates typés, feuille de droite à gauche en arabe, en-tête figé,
+  filtre automatique. CSV en UTF-8 avec BOM, séparateur « ; », virgule
+  décimale.
+- `services/jeuxExport.ts` : un jeu de colonnes par route, en-têtes FR/AR et
+  libellés des valeurs codées.
+- Carte communale : filtres des arrêts par circuit et par type, qui règlent à
+  la fois la couche affichée et l'export ; `GET /circuits/points` accepte
+  désormais `circuitId`, `type` et `actif`.
+- Nouvelle campagne `exports` (42/42), incluse dans `npm run test`.
+
+### Décisions à retenir
+- **Le fichier ne peut pas diverger de l'écran** : il passe par la même route.
+  Une erreur (400, 401, 403) reste une erreur JSON — jamais un fichier vide
+  qu'on prendrait pour un résultat.
+- **Injection de formule neutralisée** en CSV : un texte qui commence par
+  = + - @ est préfixé d'une apostrophe (un contact nommé « =HYPERLINK(…) » ne
+  devient pas un lien piégé). En XLSX, tout texte est une chaîne en ligne,
+  jamais une formule.
+- **CSV à la française** (« ; », virgule décimale) : c'est la convention du
+  tableur des communes. Sur un poste réglé autrement, seul le XLSX garantit
+  des nombres typés — d'où l'ordre des boutons.
+- **Aucun cache** (`Cache-Control: no-store`) : des données de commune, parfois
+  personnelles.
+- L'annuaire national s'exporte en entier (350 communes) : la recherche de
+  l'écran sert à trouver une commune, pas à constituer une sélection.
+
+### Vérifié
+- Campagne `exports` : BOM et UTF-8, noms arabes et accents intacts, cellules
+  numériques pour un `NUMERIC` que `pg` rend en chaîne, dates typées, libellés
+  à la place des codes, en-têtes et feuille en arabe, filtres identiques à
+  l'écran, cloisonnement (autre commune : en-tête seul ; prestataire : 403),
+  formule neutralisée, guillemets / point-virgule / retour à la ligne relus à
+  l'identique.
+- **Dans un Excel réel** (automatisation, lecture seule) : `أريانة`,
+  `قلعة الأندلس`, `Kalaât` intacts ; valeurs d'achat et populations lues comme
+  des nombres, dates comme des dates ; CSV découpé en 15 colonnes ; feuille
+  arabe de droite à gauche.
+- 46 migrations rejouées sur base neuve · contrat OpenAPI conforme (159 routes)
+  · typage front et back sans erreur · les 23 autres campagnes sans régression
+  (mêmes échecs pré-existants et sans rapport qu'aux jalons précédents).
+
+### Reste pour le lot 2
+Imports CSV (contacts `C1.4`, parc `B2.4`, points `B3.1`) et PDF (`A3.4`,
+`B5.2.4`).
+
+---
+
 ## [0.5.0] — 2026-09-28 — Jalon 3 : Contacts, versionnement et lecteur PDF
 
 ### Ajouté

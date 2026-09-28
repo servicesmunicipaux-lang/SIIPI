@@ -125,6 +125,12 @@
     "sur": "sur",
     "annuler": "Annuler"
   },
+  "export": {
+    "titre": "Exporter",
+    "excel": "Excel",
+    "csv": "CSV",
+    "enCours": "Préparation…"
+  },
   "citoyen": {
     "navigation": "Navigation principale",
     "annuler": "Annuler",
@@ -665,7 +671,12 @@
         "circuits": "Tracés de circuits",
         "points": "Points de collecte"
       },
-      "ouImporter": "Aucun tracé ni arrêt sur cette commune. Ils s’ajoutent depuis l’onglet Circuits : ouvrez un circuit, puis « Points de collecte » — on y importe un fichier KML, KMZ, GPX ou GeoJSON."
+      "ouImporter": "Aucun tracé ni arrêt sur cette commune. Ils s’ajoutent depuis l’onglet Circuits : ouvrez un circuit, puis « Points de collecte » — on y importe un fichier KML, KMZ, GPX ou GeoJSON.",
+      "filtresPoints": "Arrêts affichés :",
+      "filtreCircuit": "Filtrer par circuit",
+      "filtreType": "Filtrer par type d’arrêt",
+      "tousCircuits": "Tous les circuits",
+      "tousTypes": "Tous les types"
     },
     "limites": {
       "titre": "Limites de la commune",

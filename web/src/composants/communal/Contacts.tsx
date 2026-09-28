@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Contact } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
+import { BoutonExport } from '../BoutonExport';
 
 const CATEGORIES = ['administration', 'prestataire', 'association', 'fournisseur', 'elu', 'autre'] as const;
 type Categorie = (typeof CATEGORIES)[number];
@@ -55,6 +56,12 @@ export function Contacts({ communeId }: { communeId: string }) {
   if (erreur && !contacts) return <Erreur message={erreur} onReessayer={() => void charger()} />;
   if (!contacts) return <Chargement />;
 
+  // Le même filtre et la même recherche que la liste : le fichier est ce qu'on voit.
+  const params = new URLSearchParams({ communeId });
+  if (filtre !== 'tous') params.set('categorie', filtre);
+  if (recherche.trim()) params.set('q', recherche.trim());
+  const cheminListe = `/contacts?${params.toString()}`;
+
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -62,13 +69,16 @@ export function Contacts({ communeId }: { communeId: string }) {
           <h1 className="text-xl font-semibold text-ardoise-900">{t('communal.contacts.titre')}</h1>
           <p className="mt-1 text-sm text-ardoise-500">{t('communal.contacts.chapeau')}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setEdition((e) => (e === 'nouveau' ? null : 'nouveau'))}
-          className="min-h-11 rounded-lg bg-siipi-600 px-4 text-sm font-medium text-white"
-        >
-          {edition === 'nouveau' ? t('commun.annuler') : t('communal.contacts.ajouter')}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <BoutonExport chemin={cheminListe} desactive={contacts.length === 0} />
+          <button
+            type="button"
+            onClick={() => setEdition((e) => (e === 'nouveau' ? null : 'nouveau'))}
+            className="min-h-11 rounded-lg bg-siipi-600 px-4 text-sm font-medium text-white"
+          >
+            {edition === 'nouveau' ? t('commun.annuler') : t('communal.contacts.ajouter')}
+          </button>
+        </div>
       </header>
 
       {erreur && (

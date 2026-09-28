@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { exportable } from '../services/export.js';
+import { JEU_PARC } from '../services/jeuxExport.js';
 import { communeDemandee } from '../perimetre.js';
 
 export const trucksRouter = Router();
@@ -27,6 +29,7 @@ const ORDRE = `
 trucksRouter.get(
   '/',
   requireAuth,
+  exportable(JEU_PARC, (req) => communeDemandee(req) ?? undefined),
   asyncHandler(async (req, res) => {
     const communeId = communeDemandee(req) ?? undefined;
     const rows = communeId

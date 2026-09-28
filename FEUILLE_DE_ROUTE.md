@@ -7,6 +7,7 @@ Mise à jour du 22 septembre 2026 : clôture du **Jalon 1** (§ 4) — huit lign
 Mise à jour du 22 septembre 2026 (suite) : **Jalon 2, lot 1** (B5.1.2, B5.2.3, B5.4.3) — le push web est réellement émis. Le mécanisme d'abonnement du citoyen (`M6`) a dû être construit avec, pour que l'envoi ait un destinataire à joindre — voir le rapport de lot avant de considérer `M6` clos.
 Mise à jour du 23 septembre 2026 : **`M6` clos** — historique « Mes notifications », préférences par canal et par type, et relance manuelle (« Renvoyer ») d'un envoi en échec.
 Mise à jour du 28 septembre 2026 : **Jalon 3** — Contacts (`C1.1`–`C1.3`), versionnement des rapports (`C3.6`) et lecteur PDF intégré (`C3.5`) ; cinq lignes passées à Fait. `C1.4` (import/export CSV) rejoint le service d'export transverse du Jalon 4.
+Mise à jour du 28 septembre 2026 (suite) : **Jalon 4, lot 1** — le service d'export unique (CSV + Excel) branché sur les cinq écrans concernés ; `B3.6` passé à Fait, `A3.4`, `B2.4` et `C1.4` à Partiel (reste le PDF et les imports, lot 2).
 
 ---
 
@@ -42,9 +43,9 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 62 | 65 % |
-| 🟡 Partiel | 13 | 13 % |
-| ⬜ À faire | 19 | 20 % |
+| ✅ Fait et éprouvé | 63 | 66 % |
+| 🟡 Partiel | 16 | 17 % |
+| ⬜ À faire | 15 | 15 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
 
@@ -61,18 +62,18 @@ les tonnes et la masse salariale.
 |---|---:|---:|---:|---:|---|
 | **3.1.1 Authentification** | 3 |  |  |  | Complète. |
 | **3.1.2 Les 350 communes** | 4 | 1 |  |  | Complète, sauf la vue KPI qui attend le § 3.2.10. |
-| **3.1.3 Tableau de bord national** | 1 | 1 | 2 |  | Le socle et la carte sont là ; alertes et exports manquent. |
+| **3.1.3 Tableau de bord national** | 1 | 2 | 1 |  | Le socle et la carte sont là ; l'export Excel/CSV aussi (Jalon 4) ; manquent les alertes et le PDF. |
 | **3.2.1 Personnel et planning** | 4 | 2 |  |  | Le cœur est fait ; photo du cadre et envoi de courriel manquent. |
-| **3.2.2 Engins et maintenance** | 1 |  | 4 |  | L'inventaire est fait, la GMAO ne l'est pas du tout. |
-| **3.2.3 Données géolocalisées** | 2 | 1 | 3 |  | L'import et la carte sont faits ; l'exploitation par tags et l'export non. |
+| **3.2.2 Engins et maintenance** | 1 | 1 | 3 |  | L'inventaire est fait et s'exporte ; la GMAO ne l'est pas du tout. |
+| **3.2.3 Données géolocalisées** | 3 | 1 | 2 |  | Import, carte et export des points filtrés faits ; l'exploitation par tags non. |
 | **3.2.4 Pesées** | 3 |  |  | 2 | Complète pour la part communale ; la part ANGeD est suspendue. |
 | **5.1 Réclamations** | 4 |  |  |  | Complète. |
-| **5.2 Sondages** | 3 | 1 |  |  | Questionnaire, ciblage et invitation push faits ; l'export (B5.2.4) non. |
+| **5.2 Sondages** | 3 | 1 |  |  | Questionnaire, ciblage, invitation push et export Excel/CSV des résultats faits ; reste le PDF (B5.2.4). |
 | **5.3 Projets** | 4 |  |  |  | Complète. |
 | **5.4 Notifications ciblées** | 3 | 1 |  |  | Le push est réellement émis ; SMS et courriel restent à câbler (décision de fournisseur). |
 | **5.5 Points citoyens** | 3 |  | 1 |  | Il reste les indicateurs de communication. |
 | **3.2.6 Paramètres** | 2 | 1 | 3 |  | Langue et mot de passe seulement. |
-| **3.2.7 Contacts** | 3 |  | 1 |  | Liste, ajout, modification et retrait faits (Jalon 3) ; l'import/export CSV attend le service d'export du Jalon 4. |
+| **3.2.7 Contacts** | 3 | 1 |  |  | Liste, ajout, modification, retrait (Jalon 3) et export (Jalon 4) faits ; reste l'import CSV. |
 | **3.2.8 Découpage communal** | 3 | 1 | 2 |  | Fonctionnel ; validation FNCT et historique manquent. |
 | **3.2.9 Rapports et études** | 7 |  |  |  | Complète : versionnement et lecteur PDF intégré ajoutés au Jalon 3. |
 | **3.2.10 KPI 5 axes** |  | 2 | 3 |  | Le gros morceau restant. À faire en dernier, par construction. |
@@ -109,7 +110,7 @@ les tonnes et la masse salariale.
 | `A3.1` | Agrégation des indicateurs | 🟡 Partiel | déploiement et provenance agrégés ; tonnages et taux de résolution restent à joindre |
 | `A3.2` | Cartographie nationale Leaflet | ✅ Fait | DecoupageCommunal.tsx · migration 025 |
 | `A3.3` | Alertes et seuils configurables | ⬜ À faire |  |
-| `A3.4` | Export PDF / Excel / CSV | ⬜ À faire |  |
+| `A3.4` | Export PDF / Excel / CSV | 🟡 Partiel | Excel et CSV : tableau par gouvernorat et annuaire des 350 communes (services/export.ts · campagne exports). PDF : lot 2 du Jalon 4 |
 
 ### 3.2.1 Personnel et planning
 
@@ -129,7 +130,7 @@ les tonnes et la masse salariale.
 | `B2.1` | Fiche engin | ✅ Fait | migration 032 · campagne module3 |
 | `B2.2` | Historique de maintenance (date, type, coût, km) | ⬜ À faire | seuls l'état et le motif d'immobilisation existent |
 | `B2.3` | Alertes d'entretien (seuils km / date) | ⬜ À faire |  |
-| `B2.4` | Import / export CSV du parc | ⬜ À faire |  |
+| `B2.4` | Import / export CSV du parc | 🟡 Partiel | export Excel/CSV fait (campagne exports) ; import : lot 2 du Jalon 4 |
 | `B2.5` | Interopérabilité GPS (optionnelle au TDR) | ⬜ À faire |  |
 
 ### 3.2.3 Données géolocalisées
@@ -141,7 +142,7 @@ les tonnes et la masse salariale.
 | `B3.3` | Carte multicouches | ✅ Fait | CarteCommunale.tsx, CircuitCarte.tsx |
 | `B3.4` | Tableau attributaire avec champs libres | ⬜ À faire | le tableau existe, les champs libres non |
 | `B3.5` | Planification d'actions et filtrage par tags | ⬜ À faire |  |
-| `B3.6` | Export des points filtrés (Excel / CSV) | ⬜ À faire |  |
+| `B3.6` | Export des points filtrés (Excel / CSV) | ✅ Fait | filtres circuit / type / statut sur la carte, repris tels quels par l'export (même route) · campagne exports. Le filtre par étiquette suivra `B3.5` sans rien changer à l'export |
 
 ### 3.2.4 Pesées
 
@@ -169,7 +170,7 @@ les tonnes et la masse salariale.
 | `B5.2.1` | Création du questionnaire | ✅ Fait | migrations 035/037 · campagne module5 |
 | `B5.2.2` | Paramétrage et ciblage (géographique, type de foyer) | ✅ Fait | migration 035 · campagne module5 |
 | `B5.2.3` | Publication et notification push | ✅ Fait | notifierPublication (migration 044) · campagne notifications |
-| `B5.2.4` | Résultats graphiques et export CSV / PDF | 🟡 Partiel | le dépouillement existe ; l'export non |
+| `B5.2.4` | Résultats graphiques et export CSV / PDF | 🟡 Partiel | dépouillement graphique et export Excel/CSV faits (campagne exports) ; PDF : lot 2 du Jalon 4 |
 
 ### 5.3 Projets
 
@@ -216,7 +217,7 @@ les tonnes et la masse salariale.
 | `C1.1` | Liste des contacts | ✅ Fait | Contacts.tsx (recherche, filtre par catégorie) · migration 045 · campagne contacts |
 | `C1.2` | Ajouter un contact | ✅ Fait | contacts.routes.ts (au moins un téléphone ou un courriel, garanti aussi en base) · campagne contacts |
 | `C1.3` | Modifier / supprimer (suppression logique) | ✅ Fait | app.supprimer ouvert aux contacts, journal d'audit · lecture réservée à la commune et à la FNCT (pas au prestataire) · campagne contacts |
-| `C1.4` | Import / export CSV | ⬜ À faire | rattaché au service d'export transverse (Jalon 4) |
+| `C1.4` | Import / export CSV | 🟡 Partiel | export Excel/CSV fait (campagne exports) ; import : lot 2 du Jalon 4 |
 
 ### 3.2.8 Découpage communal
 
@@ -437,6 +438,34 @@ les sert tous.
 
 **Test de validation.** Un export rouvert dans un tableur affiche les accents
 arabes et français correctement, et les nombres restent des nombres.
+
+**Lot 1 — le service d'export (Excel + CSV) : fait le 28 septembre 2026.**
+
+- **Une requête** : l'export n'a pas de requête à lui. C'est une autre
+  représentation des routes de liste existantes (`?format=csv|xlsx`) — même
+  SQL, mêmes filtres, mêmes rôles, même cloisonnement RLS. Le fichier est ce
+  que l'écran montrait ; il ne peut pas en diverger.
+- **Un jeu de colonnes** par route (`services/jeuxExport.ts`) : en-têtes
+  FR/AR, type de chaque colonne, libellés des valeurs codées (« En panne »,
+  pas « en_panne »).
+- **Un fichier** (`services/export.ts`, sans dépendance) : XLSX aux nombres et
+  aux dates typés, feuille de droite à gauche en arabe, en-tête figé et filtre
+  automatique ; CSV en UTF-8 avec BOM, « ; » et virgule décimale. Les textes
+  commençant par = + - @ sont neutralisés (injection de formule).
+- Branché sur les cinq écrans (`BoutonExport.tsx`) : tableau national et
+  annuaire des communes, parc, carte communale (nouveaux filtres circuit/type
+  des arrêts, repris par l'export), résultats d'un sondage, contacts.
+
+Test de validation passé deux fois : par la campagne `exports` (42/42) sur les
+octets des fichiers, et dans un **Excel réel** : noms arabes et accents
+intacts, valeurs d'achat et populations lues comme des nombres, dates comme des
+dates, CSV découpé en colonnes, feuille arabe de droite à gauche. Réserve : le
+CSV suit la convention d'un tableur réglé en français (« ; », virgule
+décimale) ; sur un poste réglé autrement, seul le XLSX garantit le résultat —
+c'est pourquoi l'écran le propose en premier.
+
+**Lot 2 — à venir** : imports CSV (contacts `C1.4`, parc `B2.4`, points
+`B3.1`) et PDF (`A3.4`, `B5.2.4`).
 
 ### Jalon 5 — La maintenance des engins (GMAO)
 

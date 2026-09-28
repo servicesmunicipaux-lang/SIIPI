@@ -754,6 +754,8 @@ export interface paths {
             parameters: {
                 query?: {
                     communeId?: string;
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
                 };
                 header?: never;
                 path?: never;
@@ -761,13 +763,24 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Engins visibles. */
+                /** @description Engins visibles. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": components["schemas"]["Vehicule"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
                     };
                 };
                 /** @description Authentification requise, ou jeton expiré. */
@@ -2677,20 +2690,34 @@ export interface paths {
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Les 24 gouvernorats. */
+                /** @description Les 24 gouvernorats. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": components["schemas"]["LigneGouvernorat"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
                     };
                 };
                 /** @description Authentification requise, ou jeton expiré. */
@@ -2725,20 +2752,34 @@ export interface paths {
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Les 350 communes. */
+                /** @description Les 350 communes. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": components["schemas"]["StatutCommune"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
                     };
                 };
                 /** @description Authentification requise, ou jeton expiré. */
@@ -5172,7 +5213,10 @@ export interface paths {
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -5181,13 +5225,15 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Dépouillement. */
+                /** @description Dépouillement. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": components["schemas"]["LigneDepouillement"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                     };
                 };
                 /** @description Requête invalide — le détail indique les champs en cause. */
@@ -6714,6 +6760,11 @@ export interface paths {
             parameters: {
                 query?: {
                     communeId?: string;
+                    circuitId?: string;
+                    type?: string;
+                    actif?: "true" | "false";
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
                 };
                 header?: never;
                 path?: never;
@@ -6721,13 +6772,24 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Arrêts de la commune. */
+                /** @description Arrêts de la commune, filtrés. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": components["schemas"]["PointCollecte"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
                     };
                 };
                 /** @description Authentification requise, ou jeton expiré. */
@@ -10622,6 +10684,8 @@ export interface paths {
                     communeId?: string;
                     categorie?: "administration" | "prestataire" | "association" | "fournisseur" | "elu" | "autre";
                     q?: string;
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
                 };
                 header?: never;
                 path?: never;
@@ -10629,13 +10693,15 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Contacts, par ordre alphabétique. */
+                /** @description Contacts, par ordre alphabétique. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": components["schemas"]["Contact"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                     };
                 };
                 /** @description Requête invalide — le détail indique les champs en cause. */

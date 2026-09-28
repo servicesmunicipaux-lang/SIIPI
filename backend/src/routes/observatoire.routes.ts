@@ -10,6 +10,8 @@ import { z } from 'zod';
 import { query } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { exportable } from '../services/export.js';
+import { JEU_COMMUNES, JEU_GOUVERNORATS } from '../services/jeuxExport.js';
 
 export const observatoireRouter = Router();
 
@@ -17,6 +19,7 @@ export const observatoireRouter = Router();
 observatoireRouter.get(
   '/gouvernorats',
   requireAuth,
+  exportable(JEU_GOUVERNORATS),
   asyncHandler(async (_req, res) => {
     const lignes = await query('SELECT * FROM app.tableau_gouvernorats()');
     res.json(lignes);
@@ -28,6 +31,7 @@ observatoireRouter.get(
 observatoireRouter.get(
   '/deploiement',
   requireAuth,
+  exportable(JEU_COMMUNES),
   asyncHandler(async (_req, res) => {
     const lignes = await query(`
       SELECT s.commune_id, c.name, c.name_ar, c.gouvernorat, c.population,

@@ -27,6 +27,7 @@ import {
   type EnvoiNotification,
 } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
+import { BoutonExport } from '../BoutonExport';
 
 type TypePublication = 'notification' | 'sondage' | 'projet';
 
@@ -563,6 +564,9 @@ function Depouillement({
 
   return (
     <div className="space-y-3 border-t border-ardoise-200 p-3">
+      <div className="flex justify-end">
+        <BoutonExport chemin={`/communication/${encodeURIComponent(publicationId)}/depouillement`} />
+      </div>
       {Array.from(new Set(lignes.map((l) => l.question_id))).map((qid) => {
         const bloc = lignes.filter((l) => l.question_id === qid);
         const max = maxParQuestion.get(qid) ?? 0;
