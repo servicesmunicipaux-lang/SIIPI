@@ -163,6 +163,40 @@ export type EcheanceEntretien = Reponse<'/maintenance/echeances', 'get'>[number]
 export type InterventionMaintenance = Reponse<'/maintenance/interventions', 'get'>[number];
 export type PlanEntretien = Reponse<'/maintenance/plans', 'get'>[number];
 
+// --- Champs libres, étiquettes, actions sur les points (Jalon 6) -------------
+export type ChampPoint = Reponse<'/points/champs', 'get'>[number];
+export type EtiquettePoint = Reponse<'/points/etiquettes', 'get'>[number];
+export type ActionPlanifiee = Reponse<'/points/actions', 'get'>[number];
+export type ActionDetaillee = Reponse<'/points/actions/{id}', 'get'>;
+export type PointDeCommune = Reponse<'/circuits/points', 'get'>[number];
+/** Filtres de la liste des points : ceux de l'écran, repris tels quels par l'export. */
+export interface FiltresPoints {
+  circuitId?: string;
+  type?: string;
+  etiquettes?: string[];
+  champId?: string;
+  operateur?: 'egal' | 'contient' | 'renseigne' | 'vide';
+  valeur?: string;
+  actionId?: string;
+}
+export function cheminPoints(communeId: string, f: FiltresPoints = {}): string {
+  const q = new URLSearchParams({ communeId });
+  if (f.circuitId) q.set('circuitId', f.circuitId);
+  if (f.type) q.set('type', f.type);
+  if (f.etiquettes?.length) q.set('etiquettes', f.etiquettes.join(','));
+  // Une colonne choisie sans valeur ne filtre pas encore (« est égal à… »
+  // attend sa valeur) ; « renseigné » et « vide » se suffisent à eux-mêmes.
+  const sansValeur = f.valeur === undefined || f.valeur.trim() === '';
+  const complet = f.operateur === 'renseigne' || f.operateur === 'vide' || !sansValeur;
+  if (f.champId && complet) {
+    q.set('champId', f.champId);
+    if (f.operateur) q.set('operateur', f.operateur);
+    if (!sansValeur && f.operateur !== 'renseigne' && f.operateur !== 'vide') q.set('valeur', f.valeur!);
+  }
+  if (f.actionId) q.set('actionId', f.actionId);
+  return `/circuits/points?${q.toString()}`;
+}
+
 // --- Découpage communal ----------------------------------------------------
 export interface FrontiereCommune {
   id: string;
@@ -964,6 +998,58 @@ export const api = {
     }),
   importerParc: (communeId: string, saisie: Corps<'/trucks/import', 'post'>) =>
     requete<ApercuImportCsv>(`/trucks/import?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  // --- Tableau des points : champs libres, étiquettes, actions (Jalon 6) -----
+  pointsFiltres: (communeId: string, f: FiltresPoints) => requete<PointDeCommune[]>(cheminPoints(communeId, f)),
+  champsPoints: (communeId: string) =>
+    requete<ChampPoint[]>(`/points/champs?communeId=${encodeURIComponent(communeId)}`),
+  creerChampPoint: (communeId: string, saisie: Corps<'/points/champs', 'post'>) =>
+    requete<ChampPoint>(`/points/champs?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  modifierChampPoint: (id: string, saisie: Corps<'/points/champs/{id}', 'patch'>) =>
+    requete<ChampPoint>(`/points/champs/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
+  retirerChampPoint: (id: string) =>
+    requete<void>(`/points/champs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  etiquettesPoints: (communeId: string) =>
+    requete<EtiquettePoint[]>(`/points/etiquettes?communeId=${encodeURIComponent(communeId)}`),
+  creerEtiquette: (communeId: string, saisie: Corps<'/points/etiquettes', 'post'>) =>
+    requete<EtiquettePoint>(`/points/etiquettes?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  modifierEtiquette: (id: string, saisie: Corps<'/points/etiquettes/{id}', 'patch'>) =>
+    requete<EtiquettePoint>(`/points/etiquettes/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
+  retirerEtiquette: (id: string) =>
+    requete<void>(`/points/etiquettes/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  modifierPointsParLot: (saisie: Corps<'/points/lot', 'post'>) =>
+    requete<{ modifies: number }>('/points/lot', { method: 'POST', body: JSON.stringify(saisie) }),
+  modifierAttributsPoint: (id: string, saisie: Corps<'/points/{id}', 'patch'>) =>
+    requete<{ id: string; attributs: Record<string, unknown>; etiquettes: string[] }>(
+      `/points/${encodeURIComponent(id)}`,
+      { method: 'PATCH', body: JSON.stringify(saisie) }
+    ),
+  actionsPoints: (communeId: string) =>
+    requete<ActionPlanifiee[]>(`/points/actions?communeId=${encodeURIComponent(communeId)}`),
+  actionPoints: (id: string) => requete<ActionDetaillee>(`/points/actions/${encodeURIComponent(id)}`),
+  planifierAction: (communeId: string, saisie: Corps<'/points/actions', 'post'>) =>
+    requete<ActionPlanifiee>(`/points/actions?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  modifierAction: (id: string, saisie: Corps<'/points/actions/{id}', 'patch'>) =>
+    requete<ActionPlanifiee>(`/points/actions/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
+  retirerAction: (id: string) => requete<void>(`/points/actions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  pointsAction: (id: string, saisie: Corps<'/points/actions/{id}/points', 'post'>) =>
+    requete<ActionPlanifiee>(`/points/actions/${encodeURIComponent(id)}/points`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  avancementAction: (id: string, saisie: Corps<'/points/actions/{id}/avancement', 'post'>) =>
+    requete<ActionPlanifiee>(`/points/actions/${encodeURIComponent(id)}/avancement`, {
       method: 'POST',
       body: JSON.stringify(saisie),
     }),

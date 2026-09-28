@@ -10,6 +10,7 @@ Mise à jour du 28 septembre 2026 : **Jalon 3** — Contacts (`C1.1`–`C1.3`), 
 Mise à jour du 28 septembre 2026 (suite) : **Jalon 4, lot 1** — le service d'export unique (CSV + Excel) branché sur les cinq écrans concernés ; `B3.6` passé à Fait, `A3.4`, `B2.4` et `C1.4` à Partiel (reste le PDF et les imports, lot 2).
 Mise à jour du 28 septembre 2026 (fin) : **Jalon 4 clos** — imports CSV (contacts, parc, points) et PDF par l'impression du navigateur ; `A3.4`, `B2.4`, `B3.1`, `B5.2.4` et `C1.4` passés à Fait.
 Mise à jour du 28 septembre 2026 (soir) : **Jalon 5 clos** — la maintenance des engins : carnet d'entretien (`B2.2`) et alertes d'entretien au kilomètre et à la date (`B2.3`).
+Mise à jour du 28 septembre 2026 (nuit) : **Jalon 6 clos** — le tableau des points avec champs libres (`B3.4`), les étiquettes et les actions planifiées sur une sélection (`B3.5`).
 
 ---
 
@@ -45,9 +46,9 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 70 | 73 % |
+| ✅ Fait et éprouvé | 72 | 75 % |
 | 🟡 Partiel | 11 | 11 % |
-| ⬜ À faire | 13 | 14 % |
+| ⬜ À faire | 11 | 11 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
 
@@ -67,7 +68,7 @@ les tonnes et la masse salariale.
 | **3.1.3 Tableau de bord national** | 2 | 1 | 1 |  | Carte, et export Excel / CSV / PDF (Jalon 4) faits ; manquent les alertes, et l'agrégation complète des indicateurs. |
 | **3.2.1 Personnel et planning** | 4 | 2 |  |  | Le cœur est fait ; photo du cadre et envoi de courriel manquent. |
 | **3.2.2 Engins et maintenance** | 4 |  | 1 |  | Inventaire, carnet d'entretien et alertes faits (Jalon 5) ; reste l'interopérabilité GPS, optionnelle au TDR. |
-| **3.2.3 Données géolocalisées** | 4 |  | 2 |  | Import (KML, GPX, GeoJSON, CSV), carte et export des points filtrés faits ; l'exploitation par tags non. |
+| **3.2.3 Données géolocalisées** | 6 |  |  |  | Complète : import (KML, GPX, GeoJSON, CSV), carte, tableau des points à colonnes libres, étiquettes, actions planifiées et export de la sélection filtrée (Jalon 6). |
 | **3.2.4 Pesées** | 3 |  |  | 2 | Complète pour la part communale ; la part ANGeD est suspendue. |
 | **5.1 Réclamations** | 4 |  |  |  | Complète. |
 | **5.2 Sondages** | 4 |  |  |  | Complète : questionnaire, ciblage, invitation push, résultats et leur export Excel / CSV / PDF. |
@@ -142,9 +143,9 @@ les tonnes et la masse salariale.
 | `B3.1` | Import de points (CSV / GPX / KML) | ✅ Fait | KML, KMZ, GPX, GeoJSON et CSV reconnus par leur contenu (services/kml.ts) · campagnes module2 et imports |
 | `B3.2` | Import de tracés GeoTracker | ✅ Fait | services/kml.ts · campagne module2 |
 | `B3.3` | Carte multicouches | ✅ Fait | CarteCommunale.tsx, CircuitCarte.tsx |
-| `B3.4` | Tableau attributaire avec champs libres | ⬜ À faire | le tableau existe, les champs libres non |
-| `B3.5` | Planification d'actions et filtrage par tags | ⬜ À faire |  |
-| `B3.6` | Export des points filtrés (Excel / CSV) | ✅ Fait | filtres circuit / type / statut sur la carte, repris tels quels par l'export (même route) · campagne exports. Le filtre par étiquette suivra `B3.5` sans rien changer à l'export |
+| `B3.4` | Tableau attributaire avec champs libres | ✅ Fait | onglet « Points » : colonnes libres texte / nombre / oui-non / liste / date définies par la commune (`champs_points`, `points_collecte.attributs`, migration 047), saisie à la case ou par lot · campagne champs-points |
+| `B3.5` | Planification d'actions et filtrage par tags | ✅ Fait | étiquettes (`etiquettes_points`), filtre par étiquette(s) et par valeur de colonne, actions planifiées sur une sélection avec avancement point par point (`actions_planifiees`, migration 047) · campagne champs-points |
+| `B3.6` | Export des points filtrés (Excel / CSV) | ✅ Fait | filtres circuit / type / statut sur la carte, puis étiquette, colonne libre et action (Jalon 6), repris tels quels par l'export (même route) ; les colonnes libres de la commune et le nom des étiquettes s'ajoutent au fichier · campagnes exports et champs-points |
 
 ### 3.2.4 Pesées
 
@@ -552,14 +553,52 @@ la ligne de l'engin, saisie de l'intervention par le formulaire, bandeau passé
 « à jour ». 47 migrations rejouées sur base neuve ; contrat conforme
 (172 routes) ; les 25 autres campagnes sans régression.
 
-### Jalon 6 — Champs libres et planification d'actions
+### Jalon 6 — Champs libres et planification d'actions ✅ *(fait le 28 septembre 2026)*
 
 `B3.4` et `B3.5` : ajouter des colonnes libres au tableau des points, filtrer par
 étiquette, et sortir la sélection. C'est ce qui permet à une commune d'organiser
 une campagne de déchets verts sans attendre une évolution du logiciel.
 
-**Test de validation.** Une commune ajoute un champ « accès camion », le
-renseigne sur trente points, filtre dessus et exporte — sans intervention.
+| Quoi | Débloque | Preuve |
+|---|---|---|
+| Onglet « Points » : tous les arrêts de la commune, tous circuits confondus, avec les colonnes que la commune définit (texte, nombre, oui/non, liste de choix, date) | `B3.4` | `champs_points`, `points_collecte.attributs` (migration 047) · saisie à la case, ou par lot sur une sélection |
+| Étiquettes de couleur, posées ou ôtées par lot ; filtre par une ou plusieurs étiquettes | `B3.5` | `etiquettes_points`, `points_collecte.etiquettes` |
+| Actions planifiées sur une sélection (« campagne déchets verts le 12 octobre »), suivies point par point : fait, par qui, quand ; « en retard » calculé | `B3.5` | `actions_planifiees`, `actions_points` · vue « Actions planifiées » |
+| Filtres par étiquette, par valeur de colonne (égal, contient, renseigné, vide) et par action, sur la route de liste existante | `B3.6` (complété) | l'export reprend la sélection, avec les colonnes libres et le nom des étiquettes |
+| L'historique des arrêts, qui manquait | prérequis de la traçabilité | déclencheur d'audit sur `points_collecte` (l'onglet « Historique » du circuit le lisait depuis la migration 028 sans que rien ne l'écrive) |
+
+**Choix retenus.**
+- **Une colonne libre n'est pas une colonne SQL** : ajouter une colonne à une
+  table est une migration, pas un geste d'administrateur municipal. Les
+  définitions vivent dans une table, les valeurs sur le point, indexées par
+  l'identifiant du champ — renommer « accès camion » ne perd ni ne réécrit
+  rien.
+- **Le type d'un champ ne change pas** : les valeurs saisies ne le suivraient
+  pas. On crée un autre champ ; l'ancien se retire. Et un choix de liste encore
+  porté par des points ne peut pas être retiré.
+- **Une valeur se contrôle contre son champ, et un lot est tout ou rien** : une
+  valeur d'un autre type, ou un seul point introuvable, et rien n'est écrit.
+- **Une action vise des points arrêtés à sa création**, pas une étiquette : une
+  étiquette posée demain ne doit pas agrandir en silence une campagne déjà
+  annoncée aux riverains.
+- **Retirer n'efface pas** : une colonne ou une étiquette retirée ne s'affiche,
+  ne se filtre ni ne s'exporte plus, mais ses valeurs restent sur les points,
+  pour l'historique.
+- **Qui voit quoi** : le prestataire chargé d'un circuit lit les colonnes et
+  les étiquettes des arrêts qu'il voit ; seules la commune et la FNCT écrivent,
+  et les actions planifiées restent l'affaire de la commune. En base, un
+  déclencheur refuse l'étiquette ou l'action d'une autre commune.
+
+**Test de validation.** Campagne `champs-points` (75/75, nouvelle) : le champ
+« accès camion » est créé, posé à « non » sur trente points d'un coup, le filtre
+en rend exactement trente, et l'export CSV sort ces trente lignes avec la
+colonne « accès camion » (l'Excel en arabe, avec son libellé arabe). Vérifié
+aussi dans le navigateur, sans aucune intervention : colonne créée depuis
+l'écran, trente points cochés et renseignés par la barre de lot, filtre à
+trente, export identique, puis une action planifiée sur ces trente points et
+un premier point pointé « fait » ; écran relu en arabe et à la largeur d'un
+téléphone. 48 migrations rejouées sur base neuve ; contrat conforme
+(189 routes) ; les 26 autres campagnes sans régression.
 
 ### Jalon 7 — Paramètres et découpage : les finitions
 

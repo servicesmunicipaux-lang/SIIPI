@@ -5,6 +5,50 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.9.0] — 2026-09-28 — Jalon 6 : champs libres et planification d'actions
+
+### Ajouté
+- **Tableau des points** (`B3.4`), nouvel onglet « Points » de l'espace
+  communal : tous les arrêts de la commune, tous circuits confondus, avec les
+  colonnes que la commune ajoute elle-même — texte, nombre, oui/non, liste de
+  choix, date, avec libellé arabe facultatif. Saisie à la case, ou par lot sur
+  une sélection.
+- **Étiquettes** (`B3.5`) : neuf couleurs, posées ou ôtées par lot, et un filtre
+  par une ou plusieurs étiquettes (le point doit les porter toutes).
+- **Actions planifiées** (`B3.5`) : une action (« campagne déchets verts »,
+  date prévue, fin facultative, responsable) se planifie sur la sélection du
+  tableau et se suit point par point — fait, par qui, quand ; « en retard »
+  calculé ; terminer, annuler, reprendre.
+- **Filtres** par étiquette, par valeur de colonne (égal, contient, renseigné,
+  vide) et par action sur `GET /circuits/points` ; l'export Excel/CSV reprend la
+  sélection et ajoute les colonnes libres de la commune et le nom des
+  étiquettes (`B3.6` complété).
+- Migration 047, routes `/points/*` (17), nouvelle campagne `champs-points`
+  (75/75) incluse dans `npm run test`.
+
+### Corrigé
+- **L'historique des arrêts était vide** : l'onglet « Historique » d'un circuit
+  lisait les lignes d'audit de `points_collecte`, mais aucun déclencheur ne les
+  écrivait. Il est posé (migration 047).
+- `GET /circuits/:id/historique` répondait 500 (« uuid = text ») : paramètre
+  typé des deux côtés.
+
+### Décisions à retenir
+- **Une colonne libre n'est pas une colonne SQL** : les définitions sont dans
+  `champs_points`, les valeurs dans `points_collecte.attributs`, indexées par
+  l'identifiant du champ — un renommage ne perd ni ne réécrit rien.
+- **Le type d'un champ ne change pas**, et un choix de liste encore utilisé ne
+  se retire pas.
+- **Tout ou rien** : une valeur hors type ou un point introuvable, et un lot
+  n'écrit rien.
+- **Une action vise des points arrêtés à sa création**, pas une étiquette.
+- **Retirer n'efface pas** : colonnes et étiquettes retirées quittent l'écran,
+  les filtres et l'export, leurs valeurs restent sur les points.
+- **Qui voit quoi** : le prestataire lit colonnes et étiquettes des arrêts de
+  ses circuits ; la commune et la FNCT écrivent ; les actions restent à la
+  commune. Un déclencheur refuse en base l'étiquette ou l'action d'une autre
+  commune.
+
 ## [0.8.0] — 2026-09-28 — Jalon 5 : la maintenance des engins (GMAO)
 
 ### Ajouté
