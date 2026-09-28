@@ -12,6 +12,7 @@ Mise à jour du 28 septembre 2026 (fin) : **Jalon 4 clos** — imports CSV (cont
 Mise à jour du 28 septembre 2026 (soir) : **Jalon 5 clos** — la maintenance des engins : carnet d'entretien (`B2.2`) et alertes d'entretien au kilomètre et à la date (`B2.3`).
 Mise à jour du 28 septembre 2026 (nuit) : **Jalon 6 clos** — le tableau des points avec champs libres (`B3.4`), les étiquettes et les actions planifiées sur une sélection (`B3.5`).
 Mise à jour du 28 septembre 2026 (fin de nuit) : **Jalon 7 clos** — les paramètres (`B6.2`, `B6.3`, `B6.4`, `B6.6`) et le découpage validé par la FNCT et versionné (`C2.5`, `C2.6`).
+Mise à jour du 28 septembre 2026 (clôture) : **Jalon 8 clos** — le tableau de bord KPI 5 axes, la grille du Concours national de propreté (19 indicateurs, reventilation ministérielle), la préparation au décret DMA, les agrégations et les alertes nationales (`Axe 1` à `Axe 5`, `A2.3`, `A3.1`, `A3.3`, `B7.4`).
 
 ---
 
@@ -47,9 +48,9 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 78 | 81 % |
-| 🟡 Partiel | 10 | 10 % |
-| ⬜ À faire | 6 | 6 % |
+| ✅ Fait et éprouvé | 87 | 91 % |
+| 🟡 Partiel | 5 | 5 % |
+| ⬜ À faire | 2 | 2 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
 
@@ -65,8 +66,8 @@ les tonnes et la masse salariale.
 | Rubrique | ✅ | 🟡 | ⬜ | ⏸ | Lecture |
 |---|---:|---:|---:|---:|---|
 | **3.1.1 Authentification** | 3 |  |  |  | Complète. |
-| **3.1.2 Les 350 communes** | 4 | 1 |  |  | Complète, sauf la vue KPI qui attend le § 3.2.10. |
-| **3.1.3 Tableau de bord national** | 2 | 1 | 1 |  | Carte, et export Excel / CSV / PDF (Jalon 4) faits ; manquent les alertes, et l'agrégation complète des indicateurs. |
+| **3.1.2 Les 350 communes** | 5 |  |  |  | Complète : le bouton « Indicateurs » ouvre les KPI de chaque commune (Jalon 8). |
+| **3.1.3 Tableau de bord national** | 4 |  |  |  | Complète : agrégation par commune, gouvernorat, district FNCT et national, alertes à seuils configurables (Jalon 8). |
 | **3.2.1 Personnel et planning** | 4 | 2 |  |  | Le cœur est fait ; photo du cadre et envoi de courriel manquent. |
 | **3.2.2 Engins et maintenance** | 4 |  | 1 |  | Inventaire, carnet d'entretien et alertes faits (Jalon 5) ; reste l'interopérabilité GPS, optionnelle au TDR. |
 | **3.2.3 Données géolocalisées** | 6 |  |  |  | Complète : import (KML, GPX, GeoJSON, CSV), carte, tableau des points à colonnes libres, étiquettes, actions planifiées et export de la sélection filtrée (Jalon 6). |
@@ -80,8 +81,8 @@ les tonnes et la masse salariale.
 | **3.2.7 Contacts** | 4 |  |  |  | Complète : liste, ajout, modification, retrait (Jalon 3), export et import CSV (Jalon 4). |
 | **3.2.8 Découpage communal** | 5 | 1 |  |  | Proposé par la commune, validé par la FNCT, versionné et restaurable (Jalon 7) ; reste l'import Shapefile. |
 | **3.2.9 Rapports et études** | 7 |  |  |  | Complète : versionnement et lecteur PDF intégré ajoutés au Jalon 3. |
-| **3.2.10 KPI 5 axes** |  | 2 | 3 |  | Le gros morceau restant. À faire en dernier, par construction. |
-| **3.2.11 Prestataires privés** | 3 | 1 |  |  | Complète, hors tableau de bord restreint. |
+| **3.2.10 KPI 5 axes** | 5 |  |  |  | Complète : 5 axes calculés et déclarés, Concours national (19 indicateurs), préparation DMA (Jalon 8). Le barème ministériel reste à confirmer par la FNCT. |
+| **3.2.11 Prestataires privés** | 4 |  |  |  | Complète : tableau de bord restreint du prestataire (Jalon 8). |
 | **3.3 Application citoyenne** | 9 | 1 |  |  | Les fonctions y sont — mais en web, pas en application Android (§ 7). Seul `M1` (téléphone + OTP) reste partiel. |
 
 ---
@@ -103,7 +104,7 @@ les tonnes et la masse salariale.
 |---|---|---|---|
 | `A2.1` | Tableau des communes (FR/AR, gouvernorat, statut, GPS) | ✅ Fait | migrations 001/025 · campagne observatoire |
 | `A2.2` | Recherche et filtre | ✅ Fait | routes observatoire · écran national |
-| `A2.3` | Bouton « Visualiser » (KPI lecture seule) | 🟡 Partiel | l'écran existe, le tableau KPI 5 axes reste à bâtir (3.2.10) |
+| `A2.3` | Bouton « Visualiser » (KPI lecture seule) | ✅ Fait | bouton « Indicateurs » de l'annuaire et clic sur une commune des classements : ses 5 axes, sa note, sa fiche (que la FNCT valide) · campagne kpi-5-axes |
 | `A2.4` | Bouton « Modifier » (admin complète) | ✅ Fait | EspaceCommunal.tsx |
 | `A2.5` | Badge de statut vert / gris / orange | ✅ Fait | Elements.tsx · migration 016 |
 
@@ -111,9 +112,9 @@ les tonnes et la masse salariale.
 
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
-| `A3.1` | Agrégation des indicateurs | 🟡 Partiel | déploiement et provenance agrégés ; tonnages et taux de résolution restent à joindre |
+| `A3.1` | Agrégation des indicateurs | ✅ Fait | `GET /kpi/national` : 5 axes, Concours, DMA, tonnages pesés et taux de résolution (recomposé des comptes) par commune, gouvernorat, district FNCT et national · campagne kpi-5-axes |
 | `A3.2` | Cartographie nationale Leaflet | ✅ Fait | DecoupageCommunal.tsx · migration 025 |
-| `A3.3` | Alertes et seuils configurables | ⬜ À faire |  |
+| `A3.3` | Alertes et seuils configurables | ✅ Fait | `GET /kpi/alertes` : réclamations en attente (48 h par défaut), traitement, bâchage, entretien sous seuil, fiches à valider ; seuils réglés par la FNCT (`parametres_kpi`, migration 050) ; la commune reçoit les siennes dans « À vérifier » · campagne kpi-5-axes |
 | `A3.4` | Export PDF / Excel / CSV | ✅ Fait | Excel et CSV : tableau par gouvernorat et annuaire des 350 communes (services/export.ts · campagne exports) ; PDF : impression du tableau, A4 à l'italienne (lib/impression.ts) |
 
 ### 3.2.1 Personnel et planning
@@ -250,11 +251,11 @@ les tonnes et la masse salariale.
 
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
-| `Axe 1` | Efficacité opérationnelle | ⬜ À faire | les données existent (circuits, points, pesées) ; le calcul non |
-| `Axe 2` | Qualité de service | ⬜ À faire | les données existent (réclamations, sondages) ; le calcul non |
-| `Axe 3` | Performance environnementale | ⬜ À faire | carburant et valorisation ne sont pas encore saisis |
-| `Axe 4` | Performance économique | 🟡 Partiel | le coût à la tonne est calculé (module 6) ; le reste de l'axe non |
-| `Axe 5` | Sécurité et ressources humaines | 🟡 Partiel | effectif, encadrement et absentéisme sont saisissables ; accidents et formation non |
+| `Axe 1` | Efficacité opérationnelle | ✅ Fait | contrôles terrain (M1-2), entretien (M1-7), tonnages mesurés ; balayage, bâchage, espaces verts, cimetières, marchés, abattoirs déclarés dans la fiche · campagne kpi-5-axes |
+| `Axe 2` | Qualité de service | ✅ Fait | réclamations et délai (M3-1), information et consultation (M1-3), digitalisation (M3-3) mesurées ; participation et partenariats déclarés · campagne kpi-5-axes |
+| `Axe 3` | Performance environnementale | ✅ Fait | déchets verts et DDC (M1-5), part collectée séparément (DMA-4) mesurées ; décharge, innovation et préparation au décret DMA déclarées · campagne kpi-5-axes |
+| `Axe 4` | Performance économique | ✅ Fait | coût global à la tonne (salaires, carburant, maintenance, redevances), non renseigné tant qu'une composante manque ; conventions de propreté (M2-2) · campagne kpi-5-axes |
+| `Axe 5` | Sécurité et ressources humaines | ✅ Fait | effectif, encadrement, absentéisme mesurés ; EPI (M1-6), accidents et heures de formation déclarés · campagne kpi-5-axes |
 
 ### 3.2.11 Prestataires privés
 
@@ -263,7 +264,7 @@ les tonnes et la masse salariale.
 | `B7.1` | Assignation de zones | ✅ Fait | migration 020 · campagne prestataires |
 | `B7.2` | Périmètre d'action cloisonné | ✅ Fait | migrations 022/027 · campagne intercommunal |
 | `B7.3` | Traitement des réclamations transférées | ✅ Fait | campagne prestataires |
-| `B7.4` | Tableau de bord restreint | 🟡 Partiel | le cloisonnement est là ; le tableau KPI reste à bâtir |
+| `B7.4` | Tableau de bord restreint | ✅ Fait | « Mes indicateurs » dans le dossier du prestataire : passages réalisés et contrôlés, réclamations traitées, délai — ses seules lignes (`GET /kpi/prestataire`) · campagne kpi-5-axes |
 
 ### 3.3 Application citoyenne
 
@@ -647,29 +648,57 @@ avis masqués par les préférences, un secteur dessiné à la souris, proposé,
 validé par la FNCT, puis défait par un retour à la version 1. 50 migrations
 rejouées sur base neuve ; contrat conforme (200 routes).
 
-### Jalon 8 — Le tableau de bord KPI 5 axes *(en dernier, et c'est délibéré)*
+### Jalon 8 — Le tableau de bord KPI 5 axes ✅ *(fait le 28 septembre 2026)*
 
-**Il vient en dernier parce qu'il se nourrit de tout le reste.** Un indicateur
+**Il venait en dernier parce qu'il se nourrit de tout le reste.** Un indicateur
 calculé sur une donnée absente n'est pas un indicateur : c'est un chiffre faux
 qui sera lu comme vrai, et qu'on opposera un jour à un prestataire ou à un
 conseil municipal.
 
-État des cinq axes aujourd'hui :
-
-| Axe | Ce qui est déjà saisissable | Ce qui manque |
+| Quoi | Débloque | Preuve |
 |---|---|---|
-| 1 — Efficacité opérationnelle | circuits, points, tonnages, temps de tournée | rien de bloquant : c'est du calcul |
-| 2 — Qualité de service | réclamations, délais, sondages | rien de bloquant |
-| 3 — Environnement | — | carburant, valorisation : à saisir (jalon 5) |
-| 4 — Économique | coût à la tonne (module 6) | recouvrement TEOM/TIB/TNB, maintenance |
-| 5 — Sécurité et RH | effectif, encadrement, absentéisme | accidents, heures de formation |
+| Les 5 axes, par commune et par année : ce que SIIPI mesure (contrôles, réclamations, entretien, pesées, publications, personnel, usage de la plateforme) et ce que la commune déclare | `Axe 1` à `Axe 5` | `app.mesures_kpi` (migration 050), `services/kpi5Axes.ts`, onglet « Indicateurs » |
+| La grille du **Concours national de propreté** : 19 indicateurs en trois modules, note sur 100, reventilation ministérielle (ANGeD : M1-8 → M1-9 ; Innovation : M1-10 → M1-3 ; Abattoirs : M2-5 sans objet) | Concours | `indicateurs_kpi` (barème en base, réglable par la FNCT) |
+| La **fiche d'évaluation annuelle** : ce que SIIPI ne voit pas, déclaré par la commune, validé par la FNCT ; le classement officiel ne retient que les fiches validées | Concours | `evaluations_kpi`, `valeurs_kpi` |
+| La **préparation au décret DMA** (tri à la source) : conteneurs normalisés, zones pilotes, sensibilisation, part collectée séparément — un dispositif d'anticipation, sans effet sur la note | Axe 3 | famille « dma » du catalogue, vue « Préparation au tri » |
+| Quatre niveaux d'agrégation : commune, gouvernorat, district FNCT, national — tonnages et taux de résolution joints | `A3.1` | `GET /kpi/national`, `/kpi/concours-national`, `/kpi/dma` |
+| Alertes nationales à seuils réglables, et les alertes de la commune dans « À vérifier » | `A3.3` | `GET /kpi/alertes`, `parametres_kpi`, `app.incoherences_kpi` |
+| « Visualiser » une commune depuis l'observatoire ; tableau de bord restreint du prestataire | `A2.3`, `B7.4` | bouton « Indicateurs », « Mes indicateurs » |
 
-**Principe à tenir :** un indicateur dont la donnée source manque **ne s'affiche
-pas** — il n'affiche pas zéro. Un tableau de bord qui montre « 0 accident » alors
-que personne ne saisit les accidents est plus dangereux qu'un tableau vide.
+**Principe tenu — une donnée manquante n'est pas un zéro.** Une valeur saisie
+est une ligne ; pas de ligne, pas de valeur. Une mesure dont le module n'a
+jamais servi dans la commune n'a pas de ligne (la digitalisation d'une commune
+qui n'a jamais rien saisi n'est pas « 0 % » : elle est inconnue). La note du
+Concours se calcule sur les seuls points renseignés, et s'affiche avec sa base
+(« 14/19 indicateurs, 72 % des points ») ; une commune dont la couverture est
+sous le seuil (60 % des points par défaut) n'est pas classée. Le coût global à
+la tonne n'existe que si ses quatre composantes sont connues.
 
-**Test de validation.** Chaque indicateur est recalculé à la main sur Dar Chaabane
-et comparé au chiffre affiché ; tout écart est expliqué avant mise en service.
+**Choix retenus, et ce qui reste à la FNCT.**
+- **Le barème est une donnée** : la répartition des 100 points entre les 19
+  indicateurs est provisoire tant que la FNCT ne l'a pas confirmée (écran
+  Réglages) ; l'écran le dit.
+- **Les districts FNCT ne sont pas supposés** : la table existe, vide ; la FNCT
+  définit ses districts et y rattache les gouvernorats. D'ici là, la vue par
+  district le dit (« non rattaché »).
+- **Les codes** : M2-3 est lu comme « Cimetières » et M3-3 comme
+  « Digitalisation » (la spécification citait deux fois M3-3). À confirmer.
+- **Pas de vue matérialisée** : le calcul des 350 communes prend moins de
+  100 ms ; un instantané stocké serait une seconde vérité à tenir à jour.
+
+**Test de validation.** Campagne `kpi-5-axes` (64/64, nouvelle) : sur une année
+vierge, un jeu de données maîtrisé (quatre contrôles, cinq réclamations, trois
+pesées, quatre demandes d'enlèvement) ; chaque indicateur est recalculé à la
+main et comparé au chiffre rendu — couverture des circuits 62,5 %, réclamations
+75 % et note 0,708, tonnage 30 t, part séparée 20 %, coût global à la tonne ;
+la reventilation (M1-9 à 9 points, M1-3 à 10, M2-5 sans objet, 96 points
+applicables) ; la note recalculée depuis les points ; le cycle de la fiche
+(brouillon, soumise, validée, verrouillée même en SQL, rouverte) ; le
+classement officiel et provisoire ; les agrégations ; les districts ; le
+barème ; les alertes ; le cloisonnement. Vérifié aussi dans le navigateur :
+l'onglet Indicateurs de La Marsa (« non renseigné » partout où rien n'est
+connu), une valeur saisie par la fiche, la vue nationale, et la validation de
+la fiche par la FNCT depuis « Visualiser ».
 
 ### Jalon 9 — L'application mobile citoyenne
 

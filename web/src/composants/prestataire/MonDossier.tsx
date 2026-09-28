@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Contrat, type LigneConfrontation } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
+import { MesIndicateurs } from './MesIndicateurs';
 
 const STYLE_SITUATION: Record<string, string> = {
   concordant: 'bg-siipi-100 text-siipi-800',
@@ -83,6 +84,7 @@ export function MonDossier() {
 
   return (
     <div className="space-y-6">
+      <MesIndicateurs />
       <section className="space-y-2">
         <h1 className="text-lg font-semibold text-ardoise-900">
           {t('prestataire.dossier.contrats')}

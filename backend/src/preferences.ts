@@ -12,7 +12,7 @@ export const UNITES_MASSE = ['t', 'kg'] as const;
 export const UNITES_VOLUME = ['m3', 'l'] as const;
 export const UNITES_SURFACE = ['km2', 'ha'] as const;
 /** Les domaines du panneau « À vérifier » (migrations 033 à 036, et 048). */
-export const DOMAINES_ALERTE = ['circuits', 'parc', 'personnel', 'communication', 'pesees', 'reclamations', 'points'] as const;
+export const DOMAINES_ALERTE = ['circuits', 'parc', 'personnel', 'communication', 'pesees', 'reclamations', 'points', 'kpi'] as const;
 export const GRAVITES = ['information', 'avertissement', 'bloquant'] as const;
 
 export const preferencesSchema = z
