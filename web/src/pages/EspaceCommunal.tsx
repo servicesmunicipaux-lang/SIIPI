@@ -28,11 +28,12 @@ import { Communication } from '../composants/communal/Communication';
 import { Pesees } from '../composants/communal/Pesees';
 import { PointsSuggeres } from '../composants/communal/PointsSuggeres';
 import { RapportsEtudes } from '../composants/communal/RapportsEtudes';
+import { Contacts } from '../composants/communal/Contacts';
 import { NavigationOnglets } from '../composants/NavigationOnglets';
 
-type Onglet = 'constat' | 'carte' | 'reclamations' | 'suggestions' | 'preuve' | 'circuits' | 'parc' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'comptes';
+type Onglet = 'constat' | 'carte' | 'reclamations' | 'suggestions' | 'preuve' | 'circuits' | 'parc' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'contacts' | 'comptes';
 
-const ONGLETS: Onglet[] = ['constat', 'carte', 'reclamations', 'suggestions', 'preuve', 'circuits', 'parc', 'personnel', 'pesees', 'communication', 'rapports', 'comptes'];
+const ONGLETS: Onglet[] = ['constat', 'carte', 'reclamations', 'suggestions', 'preuve', 'circuits', 'parc', 'personnel', 'pesees', 'communication', 'rapports', 'contacts', 'comptes'];
 
 export function EspaceCommunal({
   /** Commune imposée par l'appelant — l'annuaire national, qui vient de la
@@ -149,6 +150,7 @@ export function EspaceCommunal({
         {onglet === 'pesees' && <Pesees communeId={communeId} />}
         {onglet === 'communication' && <Communication communeId={communeId} />}
         {onglet === 'rapports' && <RapportsEtudes communeId={communeId} />}
+        {onglet === 'contacts' && <Contacts communeId={communeId} />}
         {onglet === 'comptes' && <Comptes communeId={communeId} />}
       </div>
     </div>

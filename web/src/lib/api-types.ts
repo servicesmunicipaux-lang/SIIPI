@@ -10246,13 +10246,15 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Rapports et études. */
+                /** @description Dernière version de chaque document, avec son nombre de versions. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RapportEtude"][];
+                        "application/json": (components["schemas"]["RapportEtude"] & {
+                            nb_versions: number;
+                        })[];
                     };
                 };
                 /** @description Requête invalide — le détail indique les champs en cause. */
@@ -10388,7 +10390,7 @@ export interface paths {
         post?: never;
         /**
          * Retirer un rapport ou une étude
-         * @description Retrait LOGIQUE, comme partout : le fichier déposé reste sur le volume, seule la fiche disparaît de la liste.
+         * @description Retrait LOGIQUE, comme partout, et de TOUTES les versions du document : laisser la version 1 en ligne après avoir retiré la 2 ferait réapparaître un document qu’on croyait retiré. Les fichiers déposés restent sur le volume.
          */
         delete: {
             parameters: {
@@ -10449,6 +10451,460 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/rapports-etudes/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Historique des versions d’un document
+         * @description Toutes les versions en ligne du document auquel appartient `id`, la plus récente en tête — chacune datée et imputée.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Versions, de la plus récente à la plus ancienne. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RapportEtude"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Déposer une nouvelle version
+         * @description Une nouvelle ligne rattachée au même document, numérotée à la suite — la précédente reste consultable. Seul le fichier est obligatoire : titre, catégorie, auteur et date sont repris de la version courante s'ils ne sont pas fournis. Le fichier est déposé d'abord par POST /fichiers (usage « rapport_etude »).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        titre?: string;
+                        /** @enum {string} */
+                        categorie?: "etude_technique" | "rapport_activite" | "audit" | "plan_action" | "autre";
+                        auteur?: string;
+                        dateDocument?: string;
+                        fichierUrl: string;
+                        nomFichier: string;
+                        typeMime?: string;
+                        tailleOctets?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Nouvelle version enregistrée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RapportEtude"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Annuaire de travail d'une commune
+         * @description Interlocuteurs externes, sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT : un prestataire rattaché n’y a pas accès (données personnelles de tiers, décret-loi 2022-54).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    categorie?: "administration" | "prestataire" | "association" | "fournisseur" | "elu" | "autre";
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Contacts, par ordre alphabétique. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Contact"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Ajouter un contact
+         * @description Au moins un téléphone ou un courriel : une fiche sans moyen de joindre la personne n’est pas un contact.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomComplet: string;
+                        organisation?: string | null;
+                        fonction?: string | null;
+                        /** @enum {string} */
+                        categorie?: "administration" | "prestataire" | "association" | "fournisseur" | "elu" | "autre";
+                        telephone?: string | null;
+                        email?: string | "" | null;
+                        notes?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Contact ajouté. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Contact"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un contact
+         * @description Retrait logique : la fiche disparaît de l’annuaire mais reste en base, datée et imputée.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Contact retiré. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /**
+         * Modifier un contact
+         * @description Un champ absent ne change pas ; un champ vidé (« » ou null) s’efface.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomComplet?: string;
+                        organisation?: string | null;
+                        fonction?: string | null;
+                        /** @enum {string} */
+                        categorie?: "administration" | "prestataire" | "association" | "fournisseur" | "elu" | "autre";
+                        telephone?: string | null;
+                        email?: string | "" | null;
+                        notes?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Contact modifié. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Contact"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/citoyen/points-suggeres": {
@@ -11862,6 +12318,13 @@ export interface components {
         RapportEtude: {
             /** Format: uuid */
             id: string;
+            /**
+             * Format: uuid
+             * @description Identifiant commun à toutes les versions d'un même document : l'id de sa version 1.
+             */
+            document_id: string;
+            /** @description Numéro de version, à partir de 1. Une version antérieure n’est jamais écrasée. */
+            version: number;
             commune_id: string;
             titre: string;
             /** @enum {string} */
@@ -11877,6 +12340,21 @@ export interface components {
             /** Format: uuid */
             depose_par: string | null;
             created_at: string;
+        };
+        Contact: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            nom_complet: string;
+            organisation: string | null;
+            fonction: string | null;
+            /** @enum {string} */
+            categorie: "administration" | "prestataire" | "association" | "fournisseur" | "elu" | "autre";
+            telephone: string | null;
+            email: string | null;
+            notes: string | null;
+            created_at: string;
+            updated_at: string;
         };
         PointSuggere: {
             /** Format: uuid */

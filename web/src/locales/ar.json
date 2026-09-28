@@ -363,7 +363,8 @@
       "personnel": "الأعوان",
       "communication": "التواصل",
       "rapports": "التقارير والدراسات",
-      "pesees": "الوزن"
+      "pesees": "الوزن",
+      "contacts": "جهات الاتصال"
     },
     "etats": {
       "fait": "تم",
@@ -957,6 +958,42 @@
         "rapport_activite": "تقرير نشاط",
         "audit": "تدقيق",
         "plan_action": "خطة عمل",
+        "autre": "أخرى"
+      },
+      "nouvelleVersion": "نسخة جديدة",
+      "historique": "السجل",
+      "apercu": "معاينة",
+      "fermerApercu": "إغلاق المعاينة",
+      "nbVersions": "{{n}} نسخ",
+      "deposeLe": "أودعت في {{date}}",
+      "confirmerRetrait": "تضم هذه الوثيقة {{n}} نسخ: ستُسحب كلها. هل تريد المتابعة؟"
+    },
+    "contacts": {
+      "titre": "جهات الاتصال",
+      "chapeau": "دليل عمل البلدية: الوكالة الوطنية للتصرف في النفايات، الولاية، المتعهدون، الجمعيات، المزودون. لا يطّلع عليه إلا البلدية والجامعة.",
+      "ajouter": "إضافة جهة اتصال",
+      "rechercher": "البحث عن اسم أو هيكل أو خطة…",
+      "aucun": "لا توجد جهات اتصال في هذا العرض.",
+      "modifier": "تعديل",
+      "retirer": "سحب",
+      "confirmerRetrait": "سحب {{nom}} من الدليل؟",
+      "champNom": "الاسم الكامل",
+      "champCategorie": "الصنف",
+      "champOrganisation": "الهيكل (اختياري)",
+      "champFonction": "الخطة (اختياري)",
+      "champTelephone": "الهاتف",
+      "champEmail": "البريد الإلكتروني",
+      "champNotes": "ملاحظات (اختياري)",
+      "joignableRequis": "أدخل رقم هاتف أو بريدًا إلكترونيًا على الأقل.",
+      "enregistrer": "حفظ",
+      "enregistrementEnCours": "جارٍ الحفظ…",
+      "categories": {
+        "tous": "الكل",
+        "administration": "إدارة",
+        "prestataire": "متعهد",
+        "association": "جمعية",
+        "fournisseur": "مزود",
+        "elu": "منتخب",
         "autre": "أخرى"
       }
     },

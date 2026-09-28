@@ -355,7 +355,8 @@
       "personnel": "Personnel",
       "communication": "Communication",
       "rapports": "Rapports et études",
-      "pesees": "Pesées"
+      "pesees": "Pesées",
+      "contacts": "Contacts"
     },
     "etats": {
       "fait": "Fait",
@@ -949,6 +950,42 @@
         "rapport_activite": "Rapport d’activité",
         "audit": "Audit",
         "plan_action": "Plan d’action",
+        "autre": "Autre"
+      },
+      "nouvelleVersion": "Nouvelle version",
+      "historique": "Historique",
+      "apercu": "Aperçu",
+      "fermerApercu": "Fermer l’aperçu",
+      "nbVersions": "{{n}} versions",
+      "deposeLe": "déposée le {{date}}",
+      "confirmerRetrait": "Ce document compte {{n}} versions : toutes seront retirées. Continuer ?"
+    },
+    "contacts": {
+      "titre": "Contacts",
+      "chapeau": "L’annuaire de travail de la commune : ANGeD, gouvernorat, prestataires, associations, fournisseurs. Visible de la commune et de la FNCT seulement.",
+      "ajouter": "Ajouter un contact",
+      "rechercher": "Rechercher un nom, une organisation, une fonction…",
+      "aucun": "Aucun contact dans cette vue.",
+      "modifier": "Modifier",
+      "retirer": "Retirer",
+      "confirmerRetrait": "Retirer {{nom}} de l’annuaire ?",
+      "champNom": "Nom complet",
+      "champCategorie": "Catégorie",
+      "champOrganisation": "Organisation (facultatif)",
+      "champFonction": "Fonction (facultatif)",
+      "champTelephone": "Téléphone",
+      "champEmail": "Courriel",
+      "champNotes": "Notes (facultatif)",
+      "joignableRequis": "Indiquez au moins un téléphone ou un courriel.",
+      "enregistrer": "Enregistrer",
+      "enregistrementEnCours": "Enregistrement…",
+      "categories": {
+        "tous": "Tous",
+        "administration": "Administration",
+        "prestataire": "Prestataire",
+        "association": "Association",
+        "fournisseur": "Fournisseur",
+        "elu": "Élu",
         "autre": "Autre"
       }
     },
