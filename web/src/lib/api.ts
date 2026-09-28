@@ -158,6 +158,7 @@ export type PublicationDocument = Reponse<'/communication/{id}/documents', 'get'
 export type RapportEtude = Reponse<'/rapports-etudes', 'get'>[number];
 export type VersionRapport = Reponse<'/rapports-etudes/{id}/versions', 'get'>[number];
 export type Contact = Reponse<'/contacts', 'get'>[number];
+export type ApercuImportCsv = Reponse<'/contacts/import', 'post'>;
 
 // --- Découpage communal ----------------------------------------------------
 export interface FrontiereCommune {
@@ -325,6 +326,41 @@ export async function lireOctetsFichier(chemin: string): Promise<string> {
     );
   }
   return URL.createObjectURL(await reponse.blob());
+}
+
+/**
+ * Télécharge une liste en fichier (Jalon 4). C'est la MÊME route que l'écran,
+ * avec `format` : le fichier contient exactement les lignes affichées, avec les
+ * mêmes filtres et le même cloisonnement.
+ */
+export async function telechargerExport(chemin: string, format: 'csv' | 'xlsx', langue: string): Promise<void> {
+  const jeton = lireJeton();
+  const separateur = chemin.includes('?') ? '&' : '?';
+  const reponse = await fetch(
+    `${BASE}${chemin}${separateur}format=${format}&langue=${langue.startsWith('ar') ? 'ar' : 'fr'}`,
+    { headers: jeton ? { Authorization: `Bearer ${jeton}` } : {} }
+  );
+  if (!reponse.ok) {
+    let message = `Erreur ${reponse.status}`;
+    try {
+      const corps = await reponse.json();
+      if (corps?.error) message = corps.error;
+    } catch {
+      /* réponse non JSON */
+    }
+    throw new ErreurApi(reponse.status, message);
+  }
+  const nom =
+    /filename="([^"]+)"/.exec(reponse.headers.get('Content-Disposition') ?? '')?.[1] ?? `export.${format}`;
+  const url = URL.createObjectURL(await reponse.blob());
+  const lien = document.createElement('a');
+  lien.href = url;
+  lien.download = nom;
+  document.body.appendChild(lien);
+  lien.click();
+  lien.remove();
+  // Révoqué après coup : certains navigateurs lisent l'URL après le clic.
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 /** Un fichier choisi à l'écran, prêt à être posté : nom et contenu en base64. */
@@ -892,4 +928,16 @@ export const api = {
   modifierContact: (id: string, saisie: Corps<'/contacts/{id}', 'patch'>) =>
     requete<Contact>(`/contacts/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
   retirerContact: (id: string) => requete<void>(`/contacts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // --- Imports CSV (Jalon 4, lot 2) : aperçu puis validation ------------------
+  importerContacts: (communeId: string, saisie: Corps<'/contacts/import', 'post'>) =>
+    requete<ApercuImportCsv>(`/contacts/import?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  importerParc: (communeId: string, saisie: Corps<'/trucks/import', 'post'>) =>
+    requete<ApercuImportCsv>(`/trucks/import?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
 };

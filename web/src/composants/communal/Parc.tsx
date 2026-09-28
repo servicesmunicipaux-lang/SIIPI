@@ -13,6 +13,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Vehicule, type EtatDuParc } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
+import { BoutonExport } from '../BoutonExport';
+import { ImportCsv } from '../ImportCsv';
 
 const ETATS = ['en_service', 'en_panne', 'a_reformer', 'reforme'] as const;
 type Etat = (typeof ETATS)[number];
@@ -86,12 +88,19 @@ export function Parc({ communeId }: { communeId: string }) {
 
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-xl font-semibold text-ardoise-900">{t('communal.parc.titre')}</h1>
-        <p className="mt-1 text-sm text-ardoise-500">{t('communal.parc.sousTitre')}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ardoise-900">{t('communal.parc.titre')}</h1>
+          <p className="mt-1 text-sm text-ardoise-500">{t('communal.parc.sousTitre')}</p>
+        </div>
+        <BoutonExport chemin={`/trucks?communeId=${encodeURIComponent(communeId)}`} desactive={etatParc.total === 0} />
       </header>
 
       {erreur && <Erreur message={erreur} />}
+
+      {/* Un engin se reconnaît à son immatriculation : réimporter un export
+          retouché met à jour les fiches, sans en créer de doubles. */}
+      <ImportCsv envoyer={(saisie) => api.importerParc(communeId, saisie)} onFait={charger} />
 
       {/* La phrase avant les chiffres. « 16 engins sur 29 peuvent rouler » se
           retient ; un tableau de cinq nombres ne se retient pas. */}

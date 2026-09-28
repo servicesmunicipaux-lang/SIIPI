@@ -19,6 +19,7 @@ import { MapContainer, TileLayer, GeoJSON, CircleMarker, Popup, Tooltip } from '
 import 'leaflet/dist/leaflet.css';
 import { api, ErreurApi, type CollectionFrontieres } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
+import { BoutonExport } from '../BoutonExport';
 import { formaterNombre } from '../../i18n';
 
 type Couche = 'signalements' | 'conteneurs' | 'engins' | 'secteurs' | 'circuits' | 'points';
@@ -61,6 +62,10 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
   const [secteurs, setSecteurs] = useState<any[]>([]);
   const [circuits, setCircuits] = useState<any[]>([]);
   const [points, setPoints] = useState<any[]>([]);
+  // Filtres des arrêts (B3.6) : ils règlent la couche affichée ET l'export,
+  // pour que le fichier soit exactement ce que la carte montre.
+  const [filtreCircuit, setFiltreCircuit] = useState('');
+  const [filtreType, setFiltreType] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
   const [actives, setActives] = useState<Set<Couche>>(
     new Set<Couche>(['signalements', 'conteneurs', 'secteurs'])
@@ -127,13 +132,22 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
   if (erreur) return <Erreur message={erreur} />;
   if (!frontiere && tickets.length === 0 && conteneurs.length === 0) return <Chargement />;
 
+  const pointsAffiches = points.filter(
+    (p: any) => (!filtreCircuit || p.circuit_id === filtreCircuit) && (!filtreType || p.type === filtreType)
+  );
+  const typesPresents = Array.from(new Set(points.map((p: any) => p.type as string))).sort();
+  const circuitsAvecPoints = circuits.filter((c: any) => points.some((p: any) => p.circuit_id === c.id));
+  const exportPoints = new URLSearchParams({ communeId });
+  if (filtreCircuit) exportPoints.set('circuitId', filtreCircuit);
+  if (filtreType) exportPoints.set('type', filtreType);
+
   const compteurs: Record<Couche, number> = {
     signalements: tickets.filter((x) => x.lat != null).length,
     conteneurs: conteneurs.filter((x) => x.lat != null).length,
     engins: engins.filter((x) => x.lat != null).length,
     secteurs: secteurs.length,
     circuits: circuits.filter((c: any) => c.trace).length,
-    points: points.length,
+    points: pointsAffiches.length,
   };
 
   const proprietes = frontiere?.features[0]?.properties;
@@ -154,7 +168,7 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
             réponse qu'un chemin qu'il fallait connaître : Circuits, ouvrir un
             circuit, onglet Points. Une fonction qu'on ne trouve pas n'existe
             pas. */}
-        {compteurs.points === 0 && compteurs.circuits === 0 && (
+        {points.length === 0 && compteurs.circuits === 0 && (
           <p className="rounded-xl border border-siipi-200 bg-siipi-50 p-3 text-sm text-siipi-900">
             {t('communal.carte.ouImporter')}
           </p>
@@ -181,6 +195,44 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
             )
           )}
         </div>
+
+        {points.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-ardoise-200 bg-white p-3">
+            <span className="text-sm font-medium text-ardoise-700">{t('communal.carte.filtresPoints')}</span>
+            <select
+              value={filtreCircuit}
+              onChange={(e) => setFiltreCircuit(e.target.value)}
+              aria-label={t('communal.carte.filtreCircuit')}
+              className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-2 text-sm"
+            >
+              <option value="">{t('communal.carte.tousCircuits')}</option>
+              {circuitsAvecPoints.map((c: any) => (
+                <option key={c.id} value={c.id}>
+                  {c.nom}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filtreType}
+              onChange={(e) => setFiltreType(e.target.value)}
+              aria-label={t('communal.carte.filtreType')}
+              className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-2 text-sm"
+            >
+              <option value="">{t('communal.carte.tousTypes')}</option>
+              {typesPresents.map((ty) => (
+                <option key={ty} value={ty}>
+                  {t(`communal.circuits.typesPoint.${ty}`, { defaultValue: ty })}
+                </option>
+              ))}
+            </select>
+            <span className="ms-auto">
+              <BoutonExport
+                chemin={`/circuits/points?${exportPoints.toString()}`}
+                desactive={pointsAffiches.length === 0}
+              />
+            </span>
+          </div>
+        )}
 
         <div className="h-[60dvh] overflow-hidden rounded-xl border border-ardoise-200">
           <MapContainer center={centre} zoom={13} scrollWheelZoom className="size-full">
@@ -231,7 +283,7 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
                 semis de points identiques n'y répond pas. Le numéro reprend le
                 rang dans le voyage, pas un compteur d'affichage. */}
             {actives.has('points') &&
-              points.map((p: any) => (
+              pointsAffiches.map((p: any) => (
                 <CircleMarker
                   key={`p-${p.id}`}
                   center={[p.lat, p.lng]}

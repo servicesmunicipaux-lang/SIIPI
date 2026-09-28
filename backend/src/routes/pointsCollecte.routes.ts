@@ -13,6 +13,8 @@ import { z } from 'zod';
 import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { exportable } from '../services/export.js';
+import { JEU_POINTS } from '../services/jeuxExport.js';
 import { lireKml } from '../services/kml.js';
 import { communeDemandee } from '../perimetre.js';
 
@@ -38,18 +40,31 @@ const POINT_SELECT = `
 // soit leur circuit : c'est la vue qu'on ouvre pour savoir ce qui est desservi
 // et ce qui ne l'est pas.
 
+// Filtres facultatifs (B3.6) : l'export reprend exactement la même sélection
+// que l'écran, puisqu'il passe par cette même route.
+const filtresPointsSchema = z.object({
+  circuitId: z.string().uuid().optional(),
+  type: z.string().max(40).optional(),
+  actif: z.enum(['true', 'false']).optional(),
+});
+
 pointsRouter.get(
   '/points',
   requireAuth,
+  exportable(JEU_POINTS, (req) => communeDemandee(req) ?? undefined),
   asyncHandler(async (req, res) => {
     const communeId = communeDemandee(req);
     if (!communeId) throw new ApiError(400, 'Commune requise.');
+    const f = filtresPointsSchema.parse(req.query);
     const lignes = await query(
       `${POINT_SELECT}
          JOIN circuits c ON c.id = p.circuit_id
         WHERE p.commune_id = $1 AND p.deleted_at IS NULL AND c.deleted_at IS NULL
+          AND ($2::uuid IS NULL OR p.circuit_id = $2)
+          AND ($3::text IS NULL OR p.type = $3)
+          AND ($4::boolean IS NULL OR p.actif = $4)
         ORDER BY c.nom, p.voyage, p.ordre`,
-      [communeId]
+      [communeId, f.circuitId ?? null, f.type ?? null, f.actif === undefined ? null : f.actif === 'true']
     );
     res.json(lignes);
   })

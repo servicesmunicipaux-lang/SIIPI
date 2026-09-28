@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { exportable } from '../services/export.js';
+import { JEU_DEPOUILLEMENT } from '../services/jeuxExport.js';
 import { communeDemandee } from '../perimetre.js';
 import { notifierPublication } from '../services/notifications.js';
 
@@ -434,6 +436,7 @@ communicationRouter.put(
 communicationRouter.get(
   '/:id/depouillement',
   requireAuth,
+  exportable(JEU_DEPOUILLEMENT),
   asyncHandler(async (req, res) => {
     res.json(await query('SELECT * FROM app.depouillement_sondage($1)', [req.params.id]));
   })

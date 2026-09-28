@@ -5,6 +5,128 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.7.0] — 2026-09-28 — Jalon 4, lot 2 : imports CSV et PDF (clôture du Jalon 4)
+
+### Ajouté
+- **Import CSV des contacts** (`C1.4`, `POST /contacts/import`) et **du parc**
+  (`B2.4`, `POST /trucks/import`), avec un bouton « Importer un CSV » sur les
+  deux écrans. En deux temps, comme l'import KML : un aperçu ligne par ligne
+  qui n'écrit rien (à créer, à mettre à jour, inchangé, déjà présent, erreur —
+  avec la raison), puis la validation des seules lignes valides, en une
+  transaction.
+- **Import CSV des points de collecte** (`B3.1`) : un format de plus du lecteur
+  de relevés (`services/kml.ts`), reconnu à son contenu — l'import par circuit
+  existant sert tel quel. Ordre de passage renuméroté par voyage.
+- **PDF** du tableau national (`A3.4`, A4 à l'italienne) et des résultats d'un
+  sondage (`B5.2.4`), par l'impression du navigateur (`lib/impression.ts`) :
+  le bloc est copié dans une zone d'impression avec titre, date et organisme.
+- `services/import.ts` : lecteur CSV (RFC 4180) piloté par les jeux de
+  colonnes de l'export — en-têtes et valeurs codées reconnus en français, en
+  arabe ou par leur code.
+- Nouvelle campagne `imports` (51/51), incluse dans `npm run test`.
+
+### Décisions à retenir
+- **L'aller-retour export → tableur → import est sans effet** tant qu'on ne
+  change rien : les contacts ressortent « déjà présents » (même nom et même
+  téléphone ou courriel), les engins « inchangés ». L'apostrophe qui
+  neutralise une formule à l'export est retirée au retour.
+- **Une case vide n'efface rien** à l'import du parc : seules les cases
+  remplies sont comparées à la fiche existante. Un changement d'état sans date
+  dit « depuis aujourd'hui », comme à l'écran.
+- **Windows-1252 accepté, mais signalé** : c'est l'enregistrement « CSV »
+  classique d'un Excel français ; l'arabe y est déjà perdu, et l'aperçu le dit
+  plutôt que d'importer des « ??? » en silence.
+- **PDF par le navigateur, pas par le serveur** : il met en forme l'arabe
+  (lettres liées, droite à gauche) sans bibliothèque ni police embarquée.
+  Le reste de la page est retiré de l'impression (`display: none`), pas masqué
+  — sans quoi il laisserait des pages blanches.
+
+### Corrigé
+- `POST /trucks` : un engin existant n'était reconnu qu'à un identifiant dérivé
+  de l'immatriculation, que les fiches des seeds ne portent pas
+  (« dcef-02220943 », « trk-04 ») — ressaisir son immatriculation le
+  dédoublait. Il est désormais reconnu à l'immatriculation, espaces et casse
+  mis à part, comme à l'import.
+- Impression : les titres de colonnes cliquables (tri) disparaissaient du PDF ;
+  ils sont imprimés comme du texte, sans les flèches de tri.
+
+### Vérifié
+- Campagne `imports` : aperçu sans écriture, validation des seules lignes
+  valides, doublons dans le fichier, aller-retour export → import sans effet
+  (y compris depuis un export en arabe), arabe et accents intacts, séparateurs
+  « ; » « , » tabulation, Windows-1252, virgule décimale, cloisonnement
+  (autre commune et prestataire : 403).
+- **PDF produits réellement** avec Microsoft Edge à partir de la vue
+  d'impression de l'application : tableau national en français et en arabe
+  (de droite à gauche, lettres liées, en-tête répété page 2), résultats d'un
+  sondage.
+- Navigateur : import de contacts de bout en bout (aperçu, validation, liste
+  rafraîchie).
+- 46 migrations rejouées sur base neuve · contrat OpenAPI conforme (161 routes)
+  · typage front et back sans erreur · les 24 autres campagnes sans régression
+  (mêmes échecs pré-existants et sans rapport qu'aux jalons précédents).
+
+---
+
+## [0.6.0] — 2026-09-28 — Jalon 4, lot 1 : le service d'export unique
+
+### Ajouté
+- **Export Excel et CSV sur les cinq écrans qui en demandent** : tableau
+  national par gouvernorat et annuaire des 350 communes (`A3.4`), parc
+  (`B2.4`), points de collecte filtrés (`B3.6`), résultats d'un sondage
+  (`B5.2.4`), contacts (`C1.4`). Un seul bouton (`BoutonExport.tsx`), Excel en
+  premier.
+- `services/export.ts` : l'export n'est pas une route de plus mais une autre
+  représentation des routes de liste existantes (`?format=csv|xlsx`,
+  `&langue=fr|ar`) — même requête, mêmes filtres, mêmes rôles, même RLS.
+  XLSX écrit sans dépendance (zip et CRC32 à la main, comme le lecteur KMZ),
+  nombres et dates typés, feuille de droite à gauche en arabe, en-tête figé,
+  filtre automatique. CSV en UTF-8 avec BOM, séparateur « ; », virgule
+  décimale.
+- `services/jeuxExport.ts` : un jeu de colonnes par route, en-têtes FR/AR et
+  libellés des valeurs codées.
+- Carte communale : filtres des arrêts par circuit et par type, qui règlent à
+  la fois la couche affichée et l'export ; `GET /circuits/points` accepte
+  désormais `circuitId`, `type` et `actif`.
+- Nouvelle campagne `exports` (42/42), incluse dans `npm run test`.
+
+### Décisions à retenir
+- **Le fichier ne peut pas diverger de l'écran** : il passe par la même route.
+  Une erreur (400, 401, 403) reste une erreur JSON — jamais un fichier vide
+  qu'on prendrait pour un résultat.
+- **Injection de formule neutralisée** en CSV : un texte qui commence par
+  = + - @ est préfixé d'une apostrophe (un contact nommé « =HYPERLINK(…) » ne
+  devient pas un lien piégé). En XLSX, tout texte est une chaîne en ligne,
+  jamais une formule.
+- **CSV à la française** (« ; », virgule décimale) : c'est la convention du
+  tableur des communes. Sur un poste réglé autrement, seul le XLSX garantit
+  des nombres typés — d'où l'ordre des boutons.
+- **Aucun cache** (`Cache-Control: no-store`) : des données de commune, parfois
+  personnelles.
+- L'annuaire national s'exporte en entier (350 communes) : la recherche de
+  l'écran sert à trouver une commune, pas à constituer une sélection.
+
+### Vérifié
+- Campagne `exports` : BOM et UTF-8, noms arabes et accents intacts, cellules
+  numériques pour un `NUMERIC` que `pg` rend en chaîne, dates typées, libellés
+  à la place des codes, en-têtes et feuille en arabe, filtres identiques à
+  l'écran, cloisonnement (autre commune : en-tête seul ; prestataire : 403),
+  formule neutralisée, guillemets / point-virgule / retour à la ligne relus à
+  l'identique.
+- **Dans un Excel réel** (automatisation, lecture seule) : `أريانة`,
+  `قلعة الأندلس`, `Kalaât` intacts ; valeurs d'achat et populations lues comme
+  des nombres, dates comme des dates ; CSV découpé en 15 colonnes ; feuille
+  arabe de droite à gauche.
+- 46 migrations rejouées sur base neuve · contrat OpenAPI conforme (159 routes)
+  · typage front et back sans erreur · les 23 autres campagnes sans régression
+  (mêmes échecs pré-existants et sans rapport qu'aux jalons précédents).
+
+### Reste pour le lot 2
+Imports CSV (contacts `C1.4`, parc `B2.4`, points `B3.1`) et PDF (`A3.4`,
+`B5.2.4`).
+
+---
+
 ## [0.5.0] — 2026-09-28 — Jalon 3 : Contacts, versionnement et lecteur PDF
 
 ### Ajouté

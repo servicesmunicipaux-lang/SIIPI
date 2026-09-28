@@ -133,6 +133,33 @@
     "sur": "من",
     "annuler": "إلغاء"
   },
+  "export": {
+    "titre": "تصدير",
+    "excel": "Excel",
+    "csv": "CSV",
+    "enCours": "جارٍ التحضير…",
+    "pdf": "PDF",
+    "pdfAide": "الطباعة، أو الحفظ بصيغة PDF من نافذة الطباعة"
+  },
+  "import": {
+    "choisir": "توريد ملف CSV",
+    "lecture": "جارٍ قراءة الملف…",
+    "apercuDe": "معاينة {{fichier}}",
+    "rienEcrit": "لم يُسجَّل أي شيء بعد",
+    "actions": {
+      "creer": "للإنشاء",
+      "maj": "للتحديث",
+      "inchange": "دون تغيير",
+      "doublon": "موجود مسبقا",
+      "erreur": "خطأ"
+    },
+    "colonnesIgnorees": "أعمدة غير مورَّدة (محسوبة أو غير معروفة): {{colonnes}}",
+    "ligne": "السطر {{n}}",
+    "lignesMasquees": "{{n}} أسطر أخرى غير معروضة (الأخطاء تُعرض أولا).",
+    "valider": "تسجيل {{n}} سطر",
+    "ecriture": "جارٍ التسجيل…",
+    "bilan": "انتهى التوريد: {{crees}} أُنشئ، {{modifies}} حُدِّث."
+  },
   "citoyen": {
     "navigation": "التنقل الرئيسي",
     "annuler": "إلغاء",
@@ -584,7 +611,7 @@
         "titre_trace": "مسار الجولة",
         "aide_trace": "الطريق المتّبع، للعرض على الخريطة. ملفّ KML أو KMZ أو GPX أو GeoJSON.",
         "titre_points": "نقاط الرفع",
-        "aide_points": "المحطّات حسب ترتيب المرور. ملفّ KML أو KMZ أو GPX أو GeoJSON.",
+        "aide_points": "المحطّات حسب ترتيب المرور. ملفّ KML أو KMZ أو GPX أو GeoJSON أو CSV (خط العرض وخط الطول على الأقل).",
         "dejaPose": "موجود حالياً: {{fichier}}، مستورد بتاريخ {{date}}. أيّ استيراد جديد سيعوّضه.",
         "enPlace_points": "{{n}} نقطة توقّف مسجّلة.",
         "enPlace_trace": "المسار مسجّل.",
@@ -673,7 +700,12 @@
         "circuits": "مسارات الدورات",
         "points": "نقاط الرفع"
       },
-      "ouImporter": "لا مسار ولا محطّة بهذه البلدية. تُضاف من تبويب المسالك: افتح مسلكاً ثمّ «نقاط الرفع» — هناك يُستورد ملفّ KML أو KMZ أو GPX أو GeoJSON."
+      "ouImporter": "لا مسار ولا محطّة بهذه البلدية. تُضاف من تبويب المسالك: افتح مسلكاً ثمّ «نقاط الرفع» — هناك يُستورد ملفّ KML أو KMZ أو GPX أو GeoJSON.",
+      "filtresPoints": "نقاط التوقف المعروضة:",
+      "filtreCircuit": "تصفية حسب الدورة",
+      "filtreType": "تصفية حسب نوع نقطة التوقف",
+      "tousCircuits": "كل الدورات",
+      "tousTypes": "كل الأنواع"
     },
     "limites": {
       "titre": "حدود البلدية",
@@ -934,7 +966,8 @@
       "documents": "الوثائق ({{n}})",
       "aucunDocument": "لا وثيقة مرفقة بهذا المشروع.",
       "joindreDocument": "إرفاق وثيقة",
-      "depotEnCours": "جارٍ الإرسال…"
+      "depotEnCours": "جارٍ الإرسال…",
+      "resultatsDe": "نتائج الاستطلاع"
     },
     "rapportsEtudes": {
       "titre": "التقارير والدراسات",

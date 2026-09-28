@@ -14,7 +14,7 @@
 // CE QUE L'ÉCRAN NE MONTRE JAMAIS : qui habite dans le périmètre. L'API n'en
 // rend que le nombre, et c'est délibéré (décret-loi n° 2022-54).
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   api,
@@ -27,6 +27,7 @@ import {
   type EnvoiNotification,
 } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
+import { BoutonExport } from '../BoutonExport';
 
 type TypePublication = 'notification' | 'sondage' | 'projet';
 
@@ -254,7 +255,7 @@ export function Communication({ communeId }: { communeId: string }) {
                 </div>
 
                 {ouvert === p.id && p.type === 'sondage' && (
-                  <Depouillement publicationId={p.id} onErreur={setErreur} />
+                  <Depouillement publicationId={p.id} titre={p.titre_fr} onErreur={setErreur} />
                 )}
                 {ouvert === p.id && p.type === 'projet' && (
                   <DocumentsProjet communeId={communeId} publicationId={p.id} onErreur={setErreur} />
@@ -530,12 +531,15 @@ function Redaction({
 
 function Depouillement({
   publicationId,
+  titre,
   onErreur,
 }: {
   publicationId: string;
+  titre: string;
   onErreur: (m: string | null) => void;
 }) {
   const { t } = useTranslation();
+  const resultatsRef = useRef<HTMLDivElement>(null);
   const [lignes, setLignes] = useState<LigneDepouillement[] | null>(null);
 
   useEffect(() => {
@@ -563,6 +567,17 @@ function Depouillement({
 
   return (
     <div className="space-y-3 border-t border-ardoise-200 p-3">
+      <div className="flex justify-end">
+        <BoutonExport
+          chemin={`/communication/${encodeURIComponent(publicationId)}/depouillement`}
+          impression={{
+            cible: resultatsRef,
+            titre: `${t('communal.communication.resultatsDe')} — ${titre}`,
+            details: [new Date().toLocaleString(document.documentElement.lang || 'fr')],
+          }}
+        />
+      </div>
+      <div ref={resultatsRef} className="space-y-3">
       {Array.from(new Set(lignes.map((l) => l.question_id))).map((qid) => {
         const bloc = lignes.filter((l) => l.question_id === qid);
         const max = maxParQuestion.get(qid) ?? 0;
@@ -597,6 +612,7 @@ function Depouillement({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

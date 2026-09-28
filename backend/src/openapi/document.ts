@@ -25,7 +25,7 @@ import { z } from 'zod';
 
 import { loginSchema } from '../routes/auth.routes.js';
 import { communeUpdateSchema } from '../routes/communes.routes.js';
-import { truckPositionSchema } from '../routes/trucks.routes.js';
+import { truckPositionSchema, importParcSchema } from '../routes/trucks.routes.js';
 import {
   ticketCreateSchema,
   ticketRefuseSchema,
@@ -58,7 +58,7 @@ import {
 import { frontiereSchema } from '../routes/communes.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
-import { contactSchema, majContactSchema } from '../routes/contacts.routes.js';
+import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
 import {
   propositionSchema as pointSuggereSchema,
   validationSchema as pointSuggereValidationSchema,
@@ -347,6 +347,57 @@ const json = (schema: any, description: string) => ({
 });
 
 /**
+ * Une route de liste exportable (Jalon 4, services/export.ts) : la même
+ * réponse en JSON, ou en fichier avec `?format=csv|xlsx`. Même requête, mêmes
+ * filtres, même cloisonnement — seule la représentation change.
+ */
+const jsonOuExport = (schema: any, description: string) => ({
+  description: `${description} Avec \`?format=csv\` ou \`?format=xlsx\`, le même contenu en fichier à télécharger.`,
+  content: {
+    'application/json': { schema },
+    'text/csv': {
+      schema: z.string().openapi({
+        description: 'UTF-8 avec BOM, séparateur « ; », virgule décimale. Textes commençant par = + - @ neutralisés.',
+      }),
+    },
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
+      schema: z.string().openapi({ format: 'binary', description: 'Nombres et dates typés ; feuille de droite à gauche si `langue=ar`.' }),
+    },
+  },
+});
+
+const LigneImport = z.object({
+  numero: z.number().int().openapi({ description: 'Numéro de ligne dans le fichier, en-tête compris.' }),
+  action: z.enum(['creer', 'maj', 'inchange', 'doublon', 'erreur']),
+  libelle: z.string(),
+  erreurs: z.array(z.string()),
+  champs: z.array(z.string()).optional().openapi({ description: 'Pour une mise à jour : les colonnes modifiées.' }),
+});
+
+const ApercuImportCsv = registry.register(
+  'ApercuImportCsv',
+  z.object({
+    fichier: z.string(),
+    colonnesReconnues: z.array(z.string()),
+    colonnesIgnorees: z.array(z.string()).openapi({ description: 'Colonnes calculées ou inconnues : jamais écrites.' }),
+    avertissements: z.array(z.string()),
+    resume: z.record(z.number().int()),
+    lignes: z.array(LigneImport),
+    ecrit: z.boolean(),
+    crees: z.number().int().optional(),
+    modifies: z.number().int().optional(),
+  })
+);
+
+const DESCRIPTION_IMPORT_CSV =
+  "Le fichier en base64. En-têtes reconnus en français, en arabe ou par leur code — ceux d'un export de cet écran conviennent tels quels, valeurs codées comprises (« En panne », « معطّبة »). Séparateur « ; », « , » ou tabulation, déduit de l'en-tête ; UTF-8 (avec ou sans BOM) ou, à défaut, Windows-1252 avec un avertissement. 5 000 lignes au plus.";
+
+const paramsExport = {
+  format: z.enum(['csv', 'xlsx']).optional().openapi({ description: 'Télécharger la liste en fichier plutôt qu’en JSON.' }),
+  langue: z.enum(['fr', 'ar']).optional().openapi({ description: 'Langue des en-têtes et des libellés du fichier (défaut : fr).' }),
+};
+
+/**
  * Un écart constaté, quel qu'en soit le domaine.
  *
  * Déclaré une fois et partagé : la liste des domaines s'allonge à chaque
@@ -606,6 +657,25 @@ registry.registerPath({
 });
 
 registry.registerPath({
+  method: 'post',
+  path: '/trucks/import',
+  tags: ['Flotte'],
+  summary: 'Importer ou mettre à jour le parc depuis un CSV',
+  description:
+    "Un engin se reconnaît à son immatriculation. Inconnu : il est créé (le type est alors obligatoire). Connu : seules les cases remplies sont comparées — une case vide n'efface jamais une valeur saisie à l'écran, et réimporter un export tel quel ne change rien (« inchange »). Âge, attelage et date d'inventaire sont calculés ou gérés ailleurs : ignorés. Le fichier en base64 ; en-têtes et valeurs codées reconnus en français, en arabe ou par leur code. Sans « valider », rien n'est écrit.",
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: paramCommuneId.optional() }),
+    body: { content: { 'application/json': { schema: importParcSchema } } },
+  },
+  responses: {
+    200: json(ApercuImportCsv, "Aperçu : rien n'a été écrit."),
+    201: json(ApercuImportCsv, 'Parc mis à jour.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
   method: 'patch',
   path: '/trucks/{id}',
   tags: ['Flotte'],
@@ -640,8 +710,8 @@ registry.registerPath({
   description:
     'Cloisonné : la commune voit sa flotte, la FNCT voit tout, et un prestataire privé ne voit que les engins affectés à ses zones (TDR §3.2.11).',
   security: SECURISE,
-  request: { query: z.object({ communeId: paramCommuneId.optional() }) },
-  responses: { 200: json(z.array(Vehicule), 'Engins visibles.'), 401: REPONSES_COMMUNES[401] },
+  request: { query: z.object({ communeId: paramCommuneId.optional(), ...paramsExport }) },
+  responses: { 200: jsonOuExport(z.array(Vehicule), 'Engins visibles.'), 400: REPONSES_COMMUNES[400], 401: REPONSES_COMMUNES[401] },
 });
 
 registry.registerPath({
@@ -1016,7 +1086,8 @@ registry.registerPath({
   description:
     'Une ligne par gouvernorat : déploiement, production et collecte, qualité de service. Les moyennes sont pondérées par la population — une moyenne arithmétique donnerait le même poids à une commune de 2 000 habitants qu’au Grand Tunis.',
   security: SECURISE,
-  responses: { 200: json(z.array(LigneGouvernorat), 'Les 24 gouvernorats.'), 401: REPONSES_COMMUNES[401] },
+  request: { query: z.object(paramsExport) },
+  responses: { 200: jsonOuExport(z.array(LigneGouvernorat), 'Les 24 gouvernorats.'), 400: REPONSES_COMMUNES[400], 401: REPONSES_COMMUNES[401] },
 });
 
 registry.registerPath({
@@ -1027,7 +1098,8 @@ registry.registerPath({
   description:
     'Le statut n’est pas saisi : il se déduit du journal d’audit et des pesées importées. Une commune est active dès que quelqu’un y a écrit quelque chose.',
   security: SECURISE,
-  responses: { 200: json(z.array(StatutCommune), 'Les 350 communes.'), 401: REPONSES_COMMUNES[401] },
+  request: { query: z.object(paramsExport) },
+  responses: { 200: jsonOuExport(z.array(StatutCommune), 'Les 350 communes.'), 400: REPONSES_COMMUNES[400], 401: REPONSES_COMMUNES[401] },
 });
 
 registry.registerPath({
@@ -2079,8 +2151,8 @@ registry.registerPath({
   description:
     "Par question et par option. Aucune réponse individuelle n’en sort : le résultat d’une consultation est un agrégat, et le lire autrement serait lire l’opinion de quelqu’un.",
   security: SECURISE,
-  request: { params: z.object({ id: idPublication }) },
-  responses: { 200: json(z.array(LigneDepouillement), 'Dépouillement.'), ...REPONSES_COMMUNES },
+  request: { params: z.object({ id: idPublication }), query: z.object(paramsExport) },
+  responses: { 200: jsonOuExport(z.array(LigneDepouillement), 'Dépouillement.'), ...REPONSES_COMMUNES },
 });
 
 registry.registerPath({
@@ -2586,8 +2658,16 @@ registry.registerPath({
   description:
     "Sert la carte communale : c'est la vue qu'on ouvre pour savoir ce qui est desservi et ce qui ne l'est pas.",
   security: SECURISE,
-  request: { query: z.object({ communeId: paramCommuneId.optional() }) },
-  responses: { 200: json(z.array(PointCollecte), 'Arrêts de la commune.'), 401: REPONSES_COMMUNES[401] },
+  request: {
+    query: z.object({
+      communeId: paramCommuneId.optional(),
+      circuitId: z.string().uuid().optional(),
+      type: z.string().optional().openapi({ description: 'Type de point (porte_a_porte, point_noir…).' }),
+      actif: z.enum(['true', 'false']).optional(),
+      ...paramsExport,
+    }),
+  },
+  responses: { 200: jsonOuExport(z.array(PointCollecte), 'Arrêts de la commune, filtrés.'), 400: REPONSES_COMMUNES[400], 401: REPONSES_COMMUNES[401] },
 });
 
 registry.registerPath({
@@ -2640,9 +2720,9 @@ registry.registerPath({
   method: 'post',
   path: '/circuits/{id}/import-kml',
   tags: ['Circuits et contrôle terrain'],
-  summary: 'Importer un relevé KML ou KMZ',
+  summary: 'Importer un relevé KML, KMZ, GPX, GeoJSON ou CSV',
   description:
-    "En deux temps. Sans « valider », la réponse décrit ce qui serait créé sans rien écrire : un relevé de Dar Chaabane porte jusqu'à 113 arrêts, et les écrire au premier clic obligerait à défaire à la main ce qu'on n'a pas relu.",
+    "Le format est reconnu au contenu, pas à l'extension. Un CSV porte au moins « Latitude » et « Longitude » (les en-têtes de l'export de la carte communale sont reconnus, en français ou en arabe) ; l'ordre de passage y est renuméroté par voyage. En deux temps. Sans « valider », la réponse décrit ce qui serait créé sans rien écrire : un relevé de Dar Chaabane porte jusqu'à 113 arrêts, et les écrire au premier clic obligerait à défaire à la main ce qu'on n'a pas relu.",
   security: SECURISE,
   request: {
     params: z.object({ id: z.string().uuid() }),
@@ -3801,6 +3881,29 @@ registry.registerPath({
 });
 
 // ---------------------------------------------------------------------------
+// Imports CSV (Jalon 4, lot 2) — même calque que l'import KML : sans
+// « valider », un aperçu qui n'écrit rien ; avec, une transaction.
+// ---------------------------------------------------------------------------
+
+registry.registerPath({
+  method: 'post',
+  path: '/contacts/import',
+  tags: ['Contacts'],
+  summary: 'Importer des contacts depuis un CSV',
+  description: `${DESCRIPTION_IMPORT_CSV} Un contact déjà présent (même nom, et même téléphone ou même courriel) n'est pas recréé : réimporter un export ne double pas l'annuaire. Seules les lignes « creer » sont écrites.`,
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: z.string().optional() }),
+    body: { content: { 'application/json': { schema: importContactsSchema } } },
+  },
+  responses: {
+    200: json(ApercuImportCsv, "Aperçu : rien n'a été écrit."),
+    201: json(ApercuImportCsv, 'Contacts créés.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+// ---------------------------------------------------------------------------
 // Contacts (TDR §3.2.7)
 // ---------------------------------------------------------------------------
 
@@ -3836,9 +3939,10 @@ registry.registerPath({
       communeId: z.string().optional(),
       categorie: z.enum(CATEGORIES_CONTACT).optional(),
       q: z.string().optional().openapi({ description: 'Recherche sur le nom, l’organisation ou la fonction.' }),
+      ...paramsExport,
     }),
   },
-  responses: { 200: json(z.array(Contact), 'Contacts, par ordre alphabétique.'), ...REPONSES_COMMUNES },
+  responses: { 200: jsonOuExport(z.array(Contact), 'Contacts, par ordre alphabétique.'), ...REPONSES_COMMUNES },
 });
 
 registry.registerPath({
@@ -3998,7 +4102,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.5.0',
+      version: '0.7.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
