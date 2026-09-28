@@ -33,6 +33,9 @@ chk() {
 
 T_HS=$(tok directeur.houmtsouk@siipi.tn)
 T_MIDOUN=$(tok directeur.midoun@siipi.tn)
+# Depuis le Jalon 7, créer ou retirer un secteur relève du découpage validé :
+# la FNCT le fait directement, la commune le propose.
+T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_HS" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
 ZONES_URL="$API/zones?communeId=medenine_djerba_houmt_souk"
@@ -40,7 +43,7 @@ ZONES_URL="$API/zones?communeId=medenine_djerba_houmt_souk"
 # Le test crée son propre secteur plutôt que d'emprunter un secteur du seed :
 # il peut ainsi être rejoué autant de fois que voulu sans abîmer le jeu de
 # données de démonstration ni les autres campagnes.
-ZID=$(curl -s -X POST "$API/zones" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
+ZID=$(curl -s -X POST "$API/zones" -H "Authorization: Bearer $T_FNCT" -H 'Content-Type: application/json' \
   -d '{"communeId":"medenine_djerba_houmt_souk","name":"Secteur temporaire de test","code":"TMP-TEST","color":"#888888","geometry":{"type":"Polygon","coordinates":[[[10.85,33.87],[10.87,33.87],[10.87,33.89],[10.85,33.89],[10.85,33.87]]]}}' \
   | python3 -c "import sys,json;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
 [ -n "$ZID" ] || { echo "Impossible de créer le secteur de test." >&2; exit 1; }
@@ -49,7 +52,9 @@ AVANT=$(nb "$ZONES_URL" "$T_HS")
 echo
 echo "1. Suppression d'un secteur de collecte"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$API/zones/$ZID" -H "Authorization: Bearer $T_HS")
-chk "la suppression est acceptée" 204 "$CODE"
+chk "la commune ne retire plus un secteur directement : elle le propose" 403 "$CODE"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$API/zones/$ZID" -H "Authorization: Bearer $T_FNCT")
+chk "la suppression par la FNCT est acceptée" 204 "$CODE"
 chk "le secteur disparaît des écrans de la commune" "$((AVANT-1))" "$(nb "$ZONES_URL" "$T_HS")"
 
 echo
@@ -75,7 +80,7 @@ chk "la modification d'un secteur supprimé échoue" "t" "$([ "$CODE" != "200" ]
 
 echo
 echo "5. Cloisonnement de la suppression"
-ZID_MIDOUN=$(curl -s -X POST "$API/zones" -H "Authorization: Bearer $T_MIDOUN" -H 'Content-Type: application/json' \
+ZID_MIDOUN=$(curl -s -X POST "$API/zones" -H "Authorization: Bearer $T_FNCT" -H 'Content-Type: application/json' \
   -d '{"communeId":"medenine_djerba_midoun","name":"Secteur temporaire Midoun","code":"TMP-MID","color":"#999999","geometry":{"type":"Polygon","coordinates":[[[10.95,33.80],[10.97,33.80],[10.97,33.82],[10.95,33.82],[10.95,33.80]]]}}' \
   | python3 -c "import sys,json;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$API/zones/$ZID_MIDOUN" -H "Authorization: Bearer $T_HS")
@@ -108,6 +113,11 @@ EOF
 chk "une autre commune ne voit pas les suppressions de Houmt Souk" "t" "$([ "$(echo "$VU_PAR_MIDOUN" | tr -d ' ')" = "0" ] && echo t || echo f)"
 
 echo
+# Les secteurs de l'essai ont été posés et retirés par la FNCT : chaque geste
+# a créé une version du découpage (Jalon 7), qu'on ne laisse pas dans
+# l'historique des communes de démonstration.
+$PSQL -c "DELETE FROM versions_decoupage WHERE zones::text LIKE '%Secteur temporaire%' OR note LIKE '%Secteur temporaire%';" >/dev/null 2>&1
+
 if [ "$fail" -eq 0 ]; then
   printf '\033[32m%s tests réussis, aucun échec.\033[0m\n\n' "$pass"; exit 0
 else

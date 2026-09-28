@@ -48,6 +48,9 @@ T_HS=$(tok directeur.houmtsouk@siipi.tn)
 T_MARSA=$(tok directeur.marsa@siipi.tn)
 T_CIT=$(tok citoyen.demo@siipi.tn)
 T_PREST=$(tok prestataire.houmtsouk@siipi.tn)
+# Le découpage se valide par la FNCT depuis le Jalon 7 : c'est elle qui pose
+# les secteurs du décor.
+T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_HS" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
 COMMUNE=medenine_djerba_houmt_souk
@@ -61,16 +64,17 @@ DANS_7J=$(date -u -d '+7 days' +%F)
 $PSQL -c "DELETE FROM annonces_collecte WHERE message_fr LIKE 'TEST %';
           DELETE FROM circuits WHERE nom LIKE 'TEST circuit citoyen%';
           DELETE FROM zones_collecte WHERE name LIKE 'TEST zone citoyen%';
+          DELETE FROM versions_decoupage WHERE zones::text LIKE '%TEST zone citoyen%' OR note LIKE '%TEST zone citoyen%';
           DELETE FROM tickets WHERE title LIKE 'TEST signalement%';
           UPDATE citoyens SET commune_id = NULL, adresse = NULL, position = NULL, zone_id = NULL;" >/dev/null 2>&1
 
 echo
 echo "1. Le décor : deux secteurs, deux circuits"
-CODE=$(code -X POST "$API/zones" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
+CODE=$(code -X POST "$API/zones" -H "Authorization: Bearer $T_FNCT" -H 'Content-Type: application/json' \
   -d "{\"communeId\":\"$COMMUNE\",\"name\":\"TEST zone citoyen A\",\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[10.60,33.60],[10.62,33.60],[10.62,33.62],[10.60,33.62],[10.60,33.60]]]}}")
-chk "la commune crée le secteur A" 201 "$CODE"
+chk "la FNCT pose le secteur A" 201 "$CODE"
 ZONE_A=$(jq_ "d['id']")
-CODE=$(code -X POST "$API/zones" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
+CODE=$(code -X POST "$API/zones" -H "Authorization: Bearer $T_FNCT" -H 'Content-Type: application/json' \
   -d "{\"communeId\":\"$COMMUNE\",\"name\":\"TEST zone citoyen B\",\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[10.70,33.60],[10.72,33.60],[10.72,33.62],[10.70,33.62],[10.70,33.60]]]}}")
 ZONE_B=$(jq_ "d['id']")
 
@@ -216,6 +220,7 @@ $PSQL -c "DELETE FROM annonces_collecte WHERE message_fr LIKE 'TEST %';
           DELETE FROM tickets WHERE title LIKE 'TEST signalement%';
           DELETE FROM circuits WHERE nom LIKE 'TEST circuit citoyen%';
           DELETE FROM zones_collecte WHERE name LIKE 'TEST zone citoyen%';
+          DELETE FROM versions_decoupage WHERE zones::text LIKE '%TEST zone citoyen%' OR note LIKE '%TEST zone citoyen%';
           UPDATE citoyens SET commune_id = NULL, adresse = NULL, position = NULL, zone_id = NULL;" >/dev/null 2>&1
 
 echo

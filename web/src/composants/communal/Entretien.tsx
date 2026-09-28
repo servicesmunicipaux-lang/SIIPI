@@ -21,6 +21,7 @@ import {
   type PlanEntretien,
   type Vehicule,
 } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 import { Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
 
@@ -38,8 +39,6 @@ export const STYLE_STATUT: Record<string, string> = {
 };
 
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
-const dateLisible = (iso: string | null | undefined) =>
-  iso ? new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString(document.documentElement.lang || 'fr') : '—';
 const nombre = (n: number | string | null | undefined) =>
   n === null || n === undefined ? '—' : Number(n).toLocaleString(document.documentElement.lang || 'fr');
 
@@ -156,6 +155,7 @@ export function EntretienEngin({
   onChange: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [interventions, setInterventions] = useState<InterventionMaintenance[] | null>(null);
   const [plans, setPlans] = useState<PlanEntretien[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -237,7 +237,7 @@ export function EntretienEngin({
                     .filter(Boolean)
                     .join(t('communal.entretien.ou'))}
                   {e && ` — ${reste(e, t)}`}
-                  {e?.echeance_date && ` · ${t('communal.entretien.echeanceLe', { date: dateLisible(e.echeance_date) })}`}
+                  {e?.echeance_date && ` · ${t('communal.entretien.echeanceLe', { date: f.date(e.echeance_date) })}`}
                 </span>
                 <button
                   type="button"
@@ -283,7 +283,7 @@ export function EntretienEngin({
         <ul className="space-y-1">
           {(interventions ?? []).map((i) => (
             <li key={i.id} className="flex flex-wrap items-baseline gap-x-2 rounded-lg bg-white px-2 py-1.5 text-sm">
-              <span className="chiffres text-xs text-ardoise-500">{dateLisible(i.date_intervention)}</span>
+              <span className="chiffres text-xs text-ardoise-500">{f.date(i.date_intervention)}</span>
               <span className="font-medium text-ardoise-900">{t(`communal.entretien.types.${i.type}`)}</span>
               <span className="text-xs text-ardoise-500">{t(`communal.entretien.natures.${i.nature}`)}</span>
               {i.cout_tnd != null && <span className="chiffres text-xs text-ardoise-700">{nombre(i.cout_tnd)} TND</span>}
@@ -313,6 +313,7 @@ function Compteur({
   onReleve: (saisie: { kilometrage: number; forcer?: boolean }) => Promise<boolean>;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [km, setKm] = useState('');
   const [remplace, setRemplace] = useState(false);
   const valeur = Number(km.replace(/\s/g, ''));
@@ -322,7 +323,7 @@ function Compteur({
     <div className="flex flex-wrap items-end gap-2">
       <p className="text-sm text-ardoise-700">
         {vehicule.kilometrage != null
-          ? t('communal.entretien.compteur', { km: nombre(vehicule.kilometrage), date: dateLisible(vehicule.kilometrage_le) })
+          ? t('communal.entretien.compteur', { km: nombre(vehicule.kilometrage), date: f.date(vehicule.kilometrage_le) })
           : t('communal.entretien.compteurInconnu')}
       </p>
       <label className="text-xs">

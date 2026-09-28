@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { MapContainer, TileLayer, GeoJSON, CircleMarker, Popup, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { api, ErreurApi, type CollectionFrontieres } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
 import { formaterNombre } from '../../i18n';
@@ -55,6 +56,7 @@ interface Point {
 
 export function CarteCommunale({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [frontiere, setFrontiere] = useState<CollectionFrontieres | null>(null);
   const [tickets, setTickets] = useState<Point[]>([]);
   const [conteneurs, setConteneurs] = useState<Point[]>([]);
@@ -431,7 +433,7 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
                 <div className="rounded-xl border border-ardoise-200 bg-white p-3">
                   <dt className="text-xs text-ardoise-500">{t('communal.limites.superficie')}</dt>
                   <dd className="chiffres text-lg font-semibold text-ardoise-900">
-                    {formaterNombre(proprietes.areaKm2, 2)} km²
+                    {f.surface(proprietes.areaKm2, 2)}
                   </dd>
                 </div>
                 <div className="rounded-xl border border-ardoise-200 bg-white p-3">

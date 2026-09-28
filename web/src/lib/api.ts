@@ -115,6 +115,12 @@ type Corps<C extends keyof paths, M extends keyof paths[C]> = paths[C][M] extend
   : never;
 
 export type Utilisateur = Reponse<'/auth/me', 'get'>;
+export type ParametresCommune = Reponse<'/communes/{id}/parametres', 'get'>;
+export type ChangementPreferences = Corps<'/comptes/moi/preferences', 'put'>;
+// --- Découpage validé et versionné (Jalon 7) ---------------------------------
+export type VersionDecoupage = Reponse<'/decoupage/versions', 'get'>[number];
+export type VersionDecoupageDetail = Reponse<'/decoupage/versions/{id}', 'get'>;
+export type PropositionDecoupage = Corps<'/decoupage/propositions', 'post'>;
 export type LigneGouvernorat = Reponse<'/observatoire/gouvernorats', 'get'>[number];
 export type StatutCommune = Reponse<'/observatoire/deploiement', 'get'>[number];
 
@@ -422,6 +428,15 @@ export const api = {
       body: JSON.stringify({ email, password: motDePasse }),
     }),
   moi: () => requete<Utilisateur>('/auth/me'),
+  changerPreferences: (saisie: ChangementPreferences) =>
+    requete<Utilisateur['preferences']>('/comptes/moi/preferences', { method: 'PUT', body: JSON.stringify(saisie) }),
+  parametresCommune: (communeId: string) =>
+    requete<ParametresCommune>(`/communes/${encodeURIComponent(communeId)}/parametres`),
+  changerParametresCommune: (communeId: string, saisie: Corps<'/communes/{id}/parametres', 'put'>) =>
+    requete<ParametresCommune>(`/communes/${encodeURIComponent(communeId)}/parametres`, {
+      method: 'PUT',
+      body: JSON.stringify(saisie),
+    }),
   gouvernorats: () => requete<LigneGouvernorat[]>('/observatoire/gouvernorats'),
   deploiement: () => requete<StatutCommune[]>('/observatoire/deploiement'),
 
@@ -880,6 +895,33 @@ export const api = {
   annulerPesee: (id: string) => requete<void>(`/pesees/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   zones: (communeId: string) => requete<any[]>(`/zones?communeId=${encodeURIComponent(communeId)}`),
+
+  versionsDecoupage: (filtre: { communeId?: string; statut?: VersionDecoupage['statut'] } = {}) => {
+    const q = new URLSearchParams();
+    if (filtre.communeId) q.set('communeId', filtre.communeId);
+    if (filtre.statut) q.set('statut', filtre.statut);
+    return requete<VersionDecoupage[]>(`/decoupage/versions?${q.toString()}`);
+  },
+  versionDecoupage: (id: string) => requete<VersionDecoupageDetail>(`/decoupage/versions/${encodeURIComponent(id)}`),
+  proposerDecoupage: (communeId: string, saisie: PropositionDecoupage) =>
+    requete<VersionDecoupage>(`/decoupage/propositions?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  validerDecoupage: (id: string) =>
+    requete<VersionDecoupage>(`/decoupage/versions/${encodeURIComponent(id)}/valider`, { method: 'POST' }),
+  refuserDecoupage: (id: string, motif: string) =>
+    requete<VersionDecoupage>(`/decoupage/versions/${encodeURIComponent(id)}/refuser`, {
+      method: 'POST',
+      body: JSON.stringify({ motif }),
+    }),
+  retirerDecoupage: (id: string) =>
+    requete<VersionDecoupage>(`/decoupage/versions/${encodeURIComponent(id)}/retirer`, { method: 'POST' }),
+  restaurerDecoupage: (id: string, note?: string) =>
+    requete<VersionDecoupage>(`/decoupage/versions/${encodeURIComponent(id)}/restaurer`, {
+      method: 'POST',
+      body: JSON.stringify(note ? { note } : {}),
+    }),
 
   enregistrerFrontiere: (communeId: string, geometry: unknown) =>
     requete<unknown>(`/communes/${communeId}/frontiere`, {

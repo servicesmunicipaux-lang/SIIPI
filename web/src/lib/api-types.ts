@@ -2496,7 +2496,7 @@ export interface paths {
         put?: never;
         /**
          * Créer un secteur de collecte
-         * @description Géométrie GeoJSON en WGS 84. Réservé à l’Admin Commune pour sa commune, et à la FNCT.
+         * @description Géométrie GeoJSON en WGS 84. Réservé à la FNCT depuis le Jalon 7 : une commune propose son découpage (POST /decoupage/propositions), elle ne le modifie plus directement (403). Chaque création par la FNCT crée une version du découpage.
          */
         post: {
             parameters: {
@@ -2631,7 +2631,7 @@ export interface paths {
         post?: never;
         /**
          * Supprimer un secteur de collecte
-         * @description Suppression logique : le secteur disparaît des écrans mais reste conservé et restaurable, conformément à l’exigence d’historique du TDR (§3.2.8, C2.6).
+         * @description Suppression logique, réservée à la FNCT depuis le Jalon 7 (la commune propose le retrait d’un secteur par une proposition de découpage). Le secteur reste conservé et se rétablit en restaurant une version antérieure (C2.6).
          */
         delete: {
             parameters: {
@@ -2691,7 +2691,10 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        /** Modifier un secteur de collecte */
+        /**
+         * Modifier un secteur de collecte
+         * @description La commune modifie les attributs de service (couleur, fréquence, population, prestataire, statut). Le nom, le code et le tracé relèvent du découpage : réservés à la FNCT (403 pour la commune, qui passe par une proposition), et versionnés.
+         */
         patch: {
             parameters: {
                 query?: never;
@@ -2770,6 +2773,603 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/decoupage/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Propositions et versions du découpage
+         * @description Pour la FNCT sans commune désignée : toutes les communes (sa liste de propositions à instruire avec `statut=soumise`).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    statut?: "soumise" | "validee" | "refusee" | "retiree";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Versions, les propositions en attente d’abord. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionDecoupage"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decoupage/versions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Une version, l’état en vigueur, et ce qui les sépare */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Version détaillée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionDecoupageDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decoupage/propositions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Proposer un découpage (C2.5)
+         * @description Le périmètre et/ou l’ensemble des secteurs voulus. Un secteur en vigueur absent de la liste sera retiré à la validation. Une seule proposition en attente par commune (409).
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        perimetre?: {
+                            /** @enum {string} */
+                            type: "Polygon" | "MultiPolygon";
+                            coordinates: unknown[];
+                        } | null;
+                        zones?: {
+                            /** Format: uuid */
+                            id?: string;
+                            name: string;
+                            code?: string | null;
+                            description?: string | null;
+                            color?: string | null;
+                            collectionFrequency?: string | null;
+                            estimatedPopulation?: number | null;
+                            geometry: {
+                                /** @enum {string} */
+                                type: "Polygon" | "MultiPolygon";
+                                coordinates: unknown[];
+                            };
+                        }[];
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Proposition soumise. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionDecoupage"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Une proposition est déjà en attente. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decoupage/versions/{id}/valider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Valider une proposition (FNCT)
+         * @description Applique le périmètre et les secteurs, puis numérote la version. Fige d’abord l’état présent en version 1 si la commune n’en a aucune.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Version validée et appliquée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionDecoupage"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Déjà décidée. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decoupage/versions/{id}/refuser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refuser une proposition (FNCT), motif à l’appui */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Proposition refusée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionDecoupage"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Déjà décidée. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decoupage/versions/{id}/retirer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retirer sa proposition en attente */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Proposition retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionDecoupage"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Plus en attente. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/decoupage/versions/{id}/restaurer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revenir à une version précédente (C2.6)
+         * @description Crée une nouvelle version, copie de celle désignée : appliquée aussitôt par la FNCT, soumise à la FNCT quand c’est la commune qui la demande. L’historique ne se réécrit pas.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Restauration appliquée (FNCT) ou proposée (commune). */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["VersionDecoupage"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/observatoire/gouvernorats": {
@@ -3399,6 +3999,162 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/comptes/moi/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ses préférences : langue, format de date, unités, alertes
+         * @description Valeurs par défaut comprises : une clé jamais choisie est rendue avec son défaut.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Préférences. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Preferences"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Changer ses préférences
+         * @description Changement partiel : seules les clés envoyées changent. Ouvert à tous les rôles ; chacun ne règle que son propre compte.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        langue?: "fr" | "ar";
+                        /** @enum {string} */
+                        formatDate?: "jj/mm/aaaa" | "aaaa-mm-jj" | "jj mois aaaa";
+                        unites?: {
+                            /** @enum {string} */
+                            masse?: "t" | "kg";
+                            /** @enum {string} */
+                            volume?: "m3" | "l";
+                            /** @enum {string} */
+                            surface?: "km2" | "ha";
+                        };
+                        alertes?: {
+                            domainesMasques?: ("circuits" | "parc" | "personnel" | "communication" | "pesees" | "reclamations" | "points")[];
+                            /** @enum {string} */
+                            graviteMin?: "information" | "avertissement" | "bloquant";
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Préférences enregistrées. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Preferences"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6833,6 +7589,150 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/communes/{id}/parametres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les seuils de la commune
+         * @description Délai d’alerte des réclamations, préavis d’entretien par défaut, alerte des actions en retard. Ils alimentent le panneau « À vérifier » (GET /communes/{id}/coherence).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Paramètres, défauts compris. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ParametresCommune"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /** Changer les seuils de la commune */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        delaiReclamationJours?: number;
+                        seuilEntretienKm?: number;
+                        seuilEntretienJours?: number;
+                        alerterActionsRetard?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Paramètres enregistrés. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ParametresCommune"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -13684,6 +14584,29 @@ export interface components {
             /** @description Détail des champs invalides (erreurs 400). */
             details?: unknown;
         };
+        Preferences: {
+            /**
+             * @description null : rien de choisi, le navigateur garde sa langue.
+             * @enum {string|null}
+             */
+            langue: "fr" | "ar" | null;
+            /** @enum {string} */
+            formatDate: "jj/mm/aaaa" | "aaaa-mm-jj" | "jj mois aaaa";
+            unites: {
+                /** @enum {string} */
+                masse: "t" | "kg";
+                /** @enum {string} */
+                volume: "m3" | "l";
+                /** @enum {string} */
+                surface: "km2" | "ha";
+            };
+            alertes: {
+                /** @description Domaines du panneau « À vérifier » que la personne ne veut plus voir. Un avis bloquant reste toujours affiché. */
+                domainesMasques: ("circuits" | "parc" | "personnel" | "communication" | "pesees" | "reclamations" | "points")[];
+                /** @enum {string} */
+                graviteMin: "information" | "avertissement" | "bloquant";
+            };
+        };
         Utilisateur: {
             /** Format: uuid */
             id: string;
@@ -13702,6 +14625,7 @@ export interface components {
             communeId: string | null;
             /** @description Vrai tant que le mot de passe fixé par un tiers n'a pas été remplacé. L'application barre l'accès au reste jusque-là : autrement, celui qui l'a fixé resterait en mesure d'agir au nom de son porteur. */
             motDePasseProvisoire: boolean;
+            preferences: components["schemas"]["Preferences"];
         };
         Commune: {
             /** @example tunis_la_marsa */
@@ -13914,6 +14838,61 @@ export interface components {
             immobilises_sans_motif: number;
             /** @description Date du dernier inventaire. Un état du parc lu sans savoir de quand il date se prend pour l'état d'aujourd'hui, et l'on décide sur des pannes réparées depuis six mois. */
             inventaire_le: string | null;
+        };
+        VersionDecoupage: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            commune_nom: string;
+            /** @description Attribué à la validation (1, 2, 3… par commune). */
+            numero: number | null;
+            /** @enum {string} */
+            statut: "soumise" | "validee" | "refusee" | "retiree";
+            /** @enum {string} */
+            origine: "initiale" | "proposition" | "correction_fnct" | "restauration";
+            /** @description Action directe de la FNCT, validée aussitôt. */
+            directe: boolean;
+            perimetre_modifie: boolean;
+            zones_modifiees: boolean;
+            nb_secteurs: number;
+            surface_km2: number | null;
+            note: string | null;
+            motif_refus: string | null;
+            /** Format: uuid */
+            restaure_de: string | null;
+            restaure_de_numero: number | null;
+            soumise_par_nom: string | null;
+            soumise_le: string;
+            decidee_par_nom: string | null;
+            decidee_le: string | null;
+            en_vigueur: boolean;
+        };
+        VersionDecoupageDetail: components["schemas"]["VersionDecoupage"] & {
+            /** @description GeoJSON (MultiPolygon). */
+            perimetre?: unknown;
+            zones: {
+                [key: string]: unknown;
+            }[];
+            perimetre_actuel?: unknown;
+            zones_actuelles: {
+                [key: string]: unknown;
+            }[];
+            perimetre_change: boolean;
+            surface_actuelle_km2: number | null;
+            ajoutes: {
+                id: string;
+                name: string;
+            }[];
+            modifies: {
+                id: string;
+                name: string;
+            }[];
+            retires: {
+                id: string;
+                name: string;
+            }[];
+            /** @description Secteur qui déborde du périmètre, secteurs qui se chevauchent. */
+            avertissements: string[];
         };
         LigneGouvernorat: {
             /** @example Sfax */
@@ -14429,6 +15408,17 @@ export interface components {
             ecrit: boolean;
             crees?: number;
             remplaces?: number;
+        };
+        ParametresCommune: {
+            commune_id: string;
+            delai_reclamation_jours: number;
+            seuil_entretien_km: number;
+            seuil_entretien_jours: number;
+            alerter_actions_retard: boolean;
+            updated_at: string | null;
+            auteur: string | null;
+            /** @description Vrai tant que la commune n’a jamais enregistré ses paramètres. */
+            par_defaut: boolean;
         };
         ControleTerrain: {
             /** Format: uuid */

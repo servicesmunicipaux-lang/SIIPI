@@ -17,6 +17,7 @@ import {
   type DemandeEnlevement,
   type TypeDechetOccasionnel,
 } from '../lib/api';
+import { useFormats, type Formats } from '../lib/formats';
 import { Chargement, Erreur } from './Elements';
 
 const TYPES: TypeDechetOccasionnel[] = ['vert', 'ddc', 'encombrant', 'metal', 'autre'];
@@ -31,19 +32,21 @@ const COULEUR_STATUT: Record<string, string> = {
   annulee: 'bg-ardoise-100 text-ardoise-500',
 };
 
-/* Une date d'enlèvement se lit « jeudi 19 septembre », pas « 2026-09-19 ».
-   Midi et non minuit : à minuit, un décalage horaire d'une heure renvoie la
-   veille — le même piège que celui corrigé côté serveur sur les colonnes DATE. */
-function formaterDate(iso: string): string {
-  return new Intl.DateTimeFormat(document.documentElement.lang || 'fr', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(new Date(`${iso}T12:00:00`));
+/* Une date d'enlèvement se lit avec son jour de la semaine — « jeudi », c'est
+   ce qu'on retient pour sortir l'objet —, la date elle-même dans le format
+   choisi. Midi et non minuit : à minuit, un décalage horaire d'une heure
+   renvoie la veille — le même piège que celui corrigé côté serveur sur les
+   colonnes DATE. */
+function formaterDate(iso: string, f: Formats): string {
+  const jour = new Intl.DateTimeFormat(document.documentElement.lang || 'fr', { weekday: 'long' }).format(
+    new Date(`${iso}T12:00:00`)
+  );
+  return `${jour} ${f.date(iso)}`;
 }
 
 export function Enlevement({ adresse }: { adresse: AdresseCitoyen | null }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [demandes, setDemandes] = useState<DemandeEnlevement[] | null>(null);
   const [collecteurs, setCollecteurs] = useState<CollecteurAgree[]>([]);
   const [type, setType] = useState<TypeDechetOccasionnel>('vert');
@@ -296,11 +299,11 @@ export function Enlevement({ adresse }: { adresse: AdresseCitoyen | null }) {
               </div>
               <p className="mt-1 text-sm text-ardoise-600">
                 {t(`citoyen.typesOccasionnels.${d.type_dechet}`)}
-                {d.volume_estime_m3 ? ` · ${d.volume_estime_m3} m³` : ''}
+                {d.volume_estime_m3 ? ` · ${f.volume(d.volume_estime_m3)}` : ''}
               </p>
               {d.date_prevue && (
                 <p className="mt-1 text-sm text-ardoise-600">
-                  {t('citoyen.enlevement.datePrevue')} : {formaterDate(d.date_prevue)}
+                  {t('citoyen.enlevement.datePrevue')} : {formaterDate(d.date_prevue, f)}
                 </p>
               )}
               {d.montant_dt != null && (

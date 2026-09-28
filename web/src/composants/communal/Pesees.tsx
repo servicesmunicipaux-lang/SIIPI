@@ -26,6 +26,7 @@ import {
   type TonnageCircuit,
   type TonnageMensuel,
 } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 
 const TYPES_DECHET = ['menager', 'vert', 'ddc', 'encombrant', 'metal', 'tri', 'autre'] as const;
@@ -48,6 +49,7 @@ const aujourdhui = () => new Date().toISOString().slice(0, 10);
 
 export function Pesees({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [vue, setVue] = useState<Vue>('saisie');
   const [jour, setJour] = useState(aujourdhui());
 
@@ -111,10 +113,10 @@ export function Pesees({ communeId }: { communeId: string }) {
           valeur={`${nombre(resume.peses)} / ${nombre(resume.attendus)}`}
           accent={resume.attendus > 0 && resume.peses < resume.attendus ? 'attente' : undefined}
         />
-        <Carte libelle={t('communal.pesees.tonnageJour')} valeur={`${nombre(tonnageJour, 2)} t`} />
+        <Carte libelle={t('communal.pesees.tonnageJour')} valeur={f.masse(tonnageJour, 2)} />
         <Carte
           libelle={t('communal.pesees.tonnage30j')}
-          valeur={`${nombre(tonnages.reduce((s, x) => s + Number(x.tonnage_t), 0), 1)} t`}
+          valeur={f.masse(tonnages.reduce((s, x) => s + Number(x.tonnage_t), 0), 1)}
         />
         <Carte
           libelle={t('communal.pesees.surcharges')}
@@ -194,7 +196,7 @@ export function Pesees({ communeId }: { communeId: string }) {
                 {registre.map((p) => (
                   <tr key={p.id} className={p.surcharge ? 'bg-red-50' : undefined}>
                     <td className="p-3 whitespace-nowrap">
-                      {new Date(p.date_pesee).toLocaleDateString('fr-FR')}
+                      {f.date(p.date_pesee)}
                     </td>
                     <td className="p-3">
                       {p.circuit ?? <span className="text-ardoise-500">{t('communal.pesees.horsCircuit')}</span>}
@@ -205,10 +207,10 @@ export function Pesees({ communeId }: { communeId: string }) {
                       {t(`communal.pesees.flux.${p.type_dechet}`, { defaultValue: p.type_dechet })}
                     </td>
                     <td className="p-3 text-right tabular-nums">
-                      {nombre(p.poids_net_kg)} kg
+                      {f.masse(p.poids_net_kg / 1000, 3)}
                       {p.surcharge && (
                         <span className="ml-2 rounded bg-red-100 px-2 py-0.5 text-xs text-red-900">
-                          {t('communal.pesees.surcharge', { n: nombre(p.charge_utile_t, 1) })}
+                          {t('communal.pesees.surcharge', { n: f.masse(p.charge_utile_t, 1) })}
                         </span>
                       )}
                     </td>
@@ -243,7 +245,7 @@ export function Pesees({ communeId }: { communeId: string }) {
                       {t(`communal.pesees.flux.${x.type_dechet}`, { defaultValue: x.type_dechet })}
                     </td>
                     <td className="p-3 text-right tabular-nums">{nombre(x.pesees)}</td>
-                    <td className="p-3 text-right tabular-nums">{nombre(x.tonnage_t, 2)} t</td>
+                    <td className="p-3 text-right tabular-nums">{f.masse(x.tonnage_t, 2)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -264,7 +266,7 @@ export function Pesees({ communeId }: { communeId: string }) {
                   {mensuel.map((m) => (
                     <tr key={`${m.annee}-${m.mois}`}>
                       <td className="p-3">{MOIS[m.mois - 1]} {m.annee}</td>
-                      <td className="p-3 text-right tabular-nums">{nombre(m.tonnage_t, 2)} t</td>
+                      <td className="p-3 text-right tabular-nums">{f.masse(m.tonnage_t, 2)}</td>
                       <td className="p-3 text-right tabular-nums">
                         {m.kg_hab_jour === null ? '—' : nombre(m.kg_hab_jour, 3)}
                       </td>
@@ -299,6 +301,7 @@ function LigneSaisie({
   onErreur: (m: string | null) => void;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [poids, setPoids] = useState('');
   const [flux, setFlux] = useState<TypeDechet>((ligne.type_dechet as TypeDechet) ?? 'menager');
   const [enCours, setEnCours] = useState(false);
@@ -344,7 +347,7 @@ function LigneSaisie({
 
       {deja ? (
         <p className="text-sm font-medium text-siipi-800">
-          {Number(ligne.poids_net_kg).toLocaleString('fr-FR')} kg
+          {f.masse(Number(ligne.poids_net_kg) / 1000, 3)}
         </p>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
@@ -354,8 +357,8 @@ function LigneSaisie({
             className="min-h-11 rounded-lg border border-ardoise-300 px-2 text-sm"
             aria-label={t('communal.pesees.colFlux')}
           >
-            {TYPES_DECHET.map((f) => (
-              <option key={f} value={f}>{t(`communal.pesees.flux.${f}`)}</option>
+            {TYPES_DECHET.map((x) => (
+              <option key={x} value={x}>{t(`communal.pesees.flux.${x}`)}</option>
             ))}
           </select>
           <input

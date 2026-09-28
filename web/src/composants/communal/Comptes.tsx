@@ -12,12 +12,14 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Compte } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 
 const ROLES = ['admin_commune', 'gestionnaire_prestataire', 'citoyen'] as const;
 
 export function Comptes({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
+  const formats = useFormats();
   const { utilisateur } = useAuth();
   const [comptes, setComptes] = useState<Compte[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -204,7 +206,7 @@ export function Comptes({ communeId }: { communeId: string }) {
                   </td>
                   <td className="px-3 py-2.5 text-xs text-ardoise-500">
                     {c.derniere_connexion ? (
-                      new Date(c.derniere_connexion).toLocaleDateString()
+                      formats.date(c.derniere_connexion)
                     ) : (
                       // Un compte jamais utilisé est une information : il se
                       // ferme, ou la personne n'a jamais reçu ses accès.

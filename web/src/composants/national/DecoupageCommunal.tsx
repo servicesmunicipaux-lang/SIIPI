@@ -18,7 +18,9 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free';
 import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
-import { api, ErreurApi, type FrontiereCommune } from '../../lib/api';
+import { api, ErreurApi, type FrontiereCommune, type VersionDecoupage } from '../../lib/api';
+import { DetailVersion, HistoriqueDecoupage } from '../decoupage/VersionsDecoupage';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { formaterNombre } from '../../i18n';
 
@@ -97,6 +99,7 @@ export function DecoupageCommunal({
   onFermer: () => void;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [commune, setCommune] = useState<FrontiereCommune | null>(null);
   const [geometrie, setGeometrie] = useState<Geometrie | null>(null);
   const [modifiee, setModifiee] = useState<Geometrie | null>(null);
@@ -104,6 +107,10 @@ export function DecoupageCommunal({
   const [erreur, setErreur] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
+  // L'historique du découpage de la commune (C2.6) : chaque correction faite
+  // ici y entre comme une version, d'où l'on peut revenir.
+  const [versions, setVersions] = useState<VersionDecoupage[]>([]);
+  const [versionOuverte, setVersionOuverte] = useState<string | null>(null);
   const carteRef = useRef<CarteLeaflet | null>(null);
 
   // Nombre de sommets du tracé. Une limite officielle en compte couramment
@@ -134,6 +141,7 @@ export function DecoupageCommunal({
       }
       setCommune(f.properties);
       setGeometrie(f.geometry);
+      setVersions(await api.versionsDecoupage({ communeId }).catch(() => []));
       setModifiee(null);
       setEdition(false);
       setErreur(null);
@@ -211,7 +219,7 @@ export function DecoupageCommunal({
             {t('national.decoupage.titre', { commune: commune.name })}
           </h2>
           <p className="chiffres mt-1 text-sm text-ardoise-500">
-            {formaterNombre(commune.areaKm2, 2)} km² · {formaterNombre(commune.population)}{' '}
+            {f.surface(commune.areaKm2, 2)} · {formaterNombre(commune.population)}{' '}
             {t('commun.habitants')}
             {commune.codeMunicipalite
               ? ` · ${t('national.decoupage.code')} ${commune.codeMunicipalite}`
@@ -318,6 +326,24 @@ export function DecoupageCommunal({
       )}
 
       <p className="text-xs text-ardoise-500">{t('national.decoupage.aide')}</p>
+
+      <section className="space-y-2">
+        <h3 className="font-semibold text-ardoise-900">{t('decoupage.historique')}</h3>
+        {versionOuverte ? (
+          <DetailVersion
+            id={versionOuverte}
+            fnct
+            onFermer={() => setVersionOuverte(null)}
+            onDecide={(texte) => {
+              setMessage(texte);
+              setVersionOuverte(null);
+              void charger();
+            }}
+          />
+        ) : (
+          <HistoriqueDecoupage versions={versions} onOuvrir={setVersionOuverte} />
+        )}
+      </section>
     </div>
   );
 }

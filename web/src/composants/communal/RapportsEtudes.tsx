@@ -24,6 +24,7 @@ import {
   type RapportEtude,
   type VersionRapport,
 } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 
 const CATEGORIES = ['etude_technique', 'rapport_activite', 'audit', 'plan_action', 'autre'] as const;
@@ -38,6 +39,7 @@ function tailleLisible(octets: number | null): string {
 
 export function RapportsEtudes({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [rapports, setRapports] = useState<RapportEtude[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [filtre, setFiltre] = useState<string>('tous');
@@ -209,7 +211,7 @@ export function RapportsEtudes({ communeId }: { communeId: string }) {
                   <p className="text-xs text-ardoise-500">
                     {t(`communal.rapportsEtudes.categories.${r.categorie}`)}
                     {r.auteur ? ` · ${r.auteur}` : ''}
-                    {r.date_document ? ` · ${new Date(r.date_document).toLocaleDateString('fr-FR')}` : ''}
+                    {r.date_document ? ` · ${f.date(r.date_document)}` : ''}
                     {r.taille_octets ? ` · ${tailleLisible(r.taille_octets)}` : ''}
                     {r.nb_versions > 1 ? ` · ${t('communal.rapportsEtudes.nbVersions', { n: r.nb_versions })}` : ''}
                   </p>
@@ -245,9 +247,9 @@ export function RapportsEtudes({ communeId }: { communeId: string }) {
                       className="sr-only"
                       disabled={versionEnCours !== null}
                       onChange={(e) => {
-                        const f = e.target.files?.[0];
+                        const fichier = e.target.files?.[0];
                         e.target.value = '';
-                        if (f) void nouvelleVersion(r, f);
+                        if (fichier) void nouvelleVersion(r, fichier);
                       }}
                     />
                   </label>
@@ -295,6 +297,7 @@ function Historique({
   onApercu: (v: VersionRapport) => void;
 }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [versions, setVersions] = useState<VersionRapport[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
 
@@ -317,7 +320,7 @@ function Historique({
             <span className="text-ardoise-500">
               {' · '}
               {t('communal.rapportsEtudes.deposeLe', {
-                date: new Date(v.created_at).toLocaleString(document.documentElement.lang || 'fr'),
+                date: f.date(v.created_at, { heure: true }),
               })}
               {' · '}
               {v.nom_fichier}

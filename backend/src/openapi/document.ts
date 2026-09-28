@@ -70,6 +70,17 @@ import {
   STATUTS_ECHEANCE,
 } from '../routes/maintenance.routes.js';
 import {
+  preferencesSchema,
+  FORMATS_DATE,
+  UNITES_MASSE,
+  UNITES_VOLUME,
+  UNITES_SURFACE,
+  DOMAINES_ALERTE,
+  GRAVITES,
+} from '../preferences.js';
+import { parametresCommuneSchema } from '../routes/communes.routes.js';
+import { propositionDecoupageSchema } from '../routes/decoupage.routes.js';
+import {
   champSchema,
   majChampSchema,
   etiquetteSchema,
@@ -136,6 +147,23 @@ const Role = z
       'Rôle RBAC officiel (TDR §5, matrice de permissions). Détermine le périmètre de données accessible.',
   });
 
+const Preferences = registry.register(
+  'Preferences',
+  z
+    .object({
+      langue: z.enum(['fr', 'ar']).nullable().openapi({ description: 'null : rien de choisi, le navigateur garde sa langue.' }),
+      formatDate: z.enum(FORMATS_DATE),
+      unites: z.object({ masse: z.enum(UNITES_MASSE), volume: z.enum(UNITES_VOLUME), surface: z.enum(UNITES_SURFACE) }),
+      alertes: z.object({
+        domainesMasques: z.array(z.enum(DOMAINES_ALERTE)).openapi({
+          description: 'Domaines du panneau « À vérifier » que la personne ne veut plus voir. Un avis bloquant reste toujours affiché.',
+        }),
+        graviteMin: z.enum(GRAVITES),
+      }),
+    })
+    .openapi('Preferences')
+);
+
 const Utilisateur = registry.register(
   'Utilisateur',
   z
@@ -153,6 +181,7 @@ const Utilisateur = registry.register(
         description:
           "Vrai tant que le mot de passe fixé par un tiers n'a pas été remplacé. L'application barre l'accès au reste jusque-là : autrement, celui qui l'a fixé resterait en mesure d'agir au nom de son porteur.",
       }),
+      preferences: Preferences,
     })
     .openapi('Utilisateur')
 );
@@ -1028,7 +1057,8 @@ registry.registerPath({
   path: '/zones',
   tags: ['Découpage communal'],
   summary: 'Créer un secteur de collecte',
-  description: 'Géométrie GeoJSON en WGS 84. Réservé à l’Admin Commune pour sa commune, et à la FNCT.',
+  description:
+    'Géométrie GeoJSON en WGS 84. Réservé à la FNCT depuis le Jalon 7 : une commune propose son découpage (POST /decoupage/propositions), elle ne le modifie plus directement (403). Chaque création par la FNCT crée une version du découpage.',
   security: SECURISE,
   request: { body: { content: { 'application/json': { schema: zoneCreateSchema } } } },
   responses: { 201: json(Zone, 'Secteur créé.'), ...REPONSES_COMMUNES },
@@ -1039,6 +1069,8 @@ registry.registerPath({
   path: '/zones/{id}',
   tags: ['Découpage communal'],
   summary: 'Modifier un secteur de collecte',
+  description:
+    'La commune modifie les attributs de service (couleur, fréquence, population, prestataire, statut). Le nom, le code et le tracé relèvent du découpage : réservés à la FNCT (403 pour la commune, qui passe par une proposition), et versionnés.',
   security: SECURISE,
   request: {
     params: z.object({ id: z.string().uuid() }),
@@ -1053,10 +1085,142 @@ registry.registerPath({
   tags: ['Découpage communal'],
   summary: 'Supprimer un secteur de collecte',
   description:
-    'Suppression logique : le secteur disparaît des écrans mais reste conservé et restaurable, conformément à l’exigence d’historique du TDR (§3.2.8, C2.6).',
+    'Suppression logique, réservée à la FNCT depuis le Jalon 7 (la commune propose le retrait d’un secteur par une proposition de découpage). Le secteur reste conservé et se rétablit en restaurant une version antérieure (C2.6).',
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: { 204: { description: 'Secteur supprimé.' }, ...REPONSES_COMMUNES },
+});
+
+// --- Découpage validé et versionné (Jalon 7, C2.5 et C2.6) -----------------
+
+const TAG_DECOUPAGE = 'Découpage communal';
+
+const VersionDecoupage = registry.register(
+  'VersionDecoupage',
+  z
+    .object({
+      id: z.string().uuid(),
+      commune_id: z.string(),
+      commune_nom: z.string(),
+      numero: z.number().int().nullable().openapi({ description: 'Attribué à la validation (1, 2, 3… par commune).' }),
+      statut: z.enum(['soumise', 'validee', 'refusee', 'retiree']),
+      origine: z.enum(['initiale', 'proposition', 'correction_fnct', 'restauration']),
+      directe: z.boolean().openapi({ description: 'Action directe de la FNCT, validée aussitôt.' }),
+      perimetre_modifie: z.boolean(),
+      zones_modifiees: z.boolean(),
+      nb_secteurs: z.number().int(),
+      surface_km2: z.number().nullable(),
+      note: z.string().nullable(),
+      motif_refus: z.string().nullable(),
+      restaure_de: z.string().uuid().nullable(),
+      restaure_de_numero: z.number().int().nullable(),
+      soumise_par_nom: z.string().nullable(),
+      soumise_le: z.string(),
+      decidee_par_nom: z.string().nullable(),
+      decidee_le: z.string().nullable(),
+      en_vigueur: z.boolean(),
+    })
+    .openapi('VersionDecoupage')
+);
+
+const SecteurVersion = z.object({ id: z.string(), name: z.string() });
+
+const VersionDecoupageDetail = registry.register(
+  'VersionDecoupageDetail',
+  VersionDecoupage.extend({
+    perimetre: z.any().nullable().openapi({ description: 'GeoJSON (MultiPolygon).' }),
+    zones: z.array(z.record(z.string(), z.any())),
+    perimetre_actuel: z.any().nullable(),
+    zones_actuelles: z.array(z.record(z.string(), z.any())),
+    perimetre_change: z.boolean(),
+    surface_actuelle_km2: z.number().nullable(),
+    ajoutes: z.array(SecteurVersion),
+    modifies: z.array(SecteurVersion),
+    retires: z.array(SecteurVersion),
+    avertissements: z.array(z.string()).openapi({ description: 'Secteur qui déborde du périmètre, secteurs qui se chevauchent.' }),
+  }).openapi('VersionDecoupageDetail')
+);
+
+const idVersion = z.object({ id: z.string().uuid() });
+const STATUTS_VERSION = ['soumise', 'validee', 'refusee', 'retiree'] as const;
+
+registry.registerPath({
+  method: 'get',
+  path: '/decoupage/versions',
+  tags: [TAG_DECOUPAGE],
+  summary: 'Propositions et versions du découpage',
+  description: 'Pour la FNCT sans commune désignée : toutes les communes (sa liste de propositions à instruire avec `statut=soumise`).',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional(), statut: z.enum(STATUTS_VERSION).optional() }) },
+  responses: { 200: json(z.array(VersionDecoupage), 'Versions, les propositions en attente d’abord.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/decoupage/versions/{id}',
+  tags: [TAG_DECOUPAGE],
+  summary: 'Une version, l’état en vigueur, et ce qui les sépare',
+  security: SECURISE,
+  request: { params: idVersion },
+  responses: { 200: json(VersionDecoupageDetail, 'Version détaillée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/decoupage/propositions',
+  tags: [TAG_DECOUPAGE],
+  summary: 'Proposer un découpage (C2.5)',
+  description:
+    'Le périmètre et/ou l’ensemble des secteurs voulus. Un secteur en vigueur absent de la liste sera retiré à la validation. Une seule proposition en attente par commune (409).',
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: paramCommuneId.optional() }),
+    body: { content: { 'application/json': { schema: propositionDecoupageSchema } } },
+  },
+  responses: { 201: json(VersionDecoupage, 'Proposition soumise.'), ...REPONSES_COMMUNES, 409: { description: 'Une proposition est déjà en attente.' } },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/decoupage/versions/{id}/valider',
+  tags: [TAG_DECOUPAGE],
+  summary: 'Valider une proposition (FNCT)',
+  description: 'Applique le périmètre et les secteurs, puis numérote la version. Fige d’abord l’état présent en version 1 si la commune n’en a aucune.',
+  security: SECURISE,
+  request: { params: idVersion },
+  responses: { 200: json(VersionDecoupage, 'Version validée et appliquée.'), ...REPONSES_COMMUNES, 409: { description: 'Déjà décidée.' } },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/decoupage/versions/{id}/refuser',
+  tags: [TAG_DECOUPAGE],
+  summary: 'Refuser une proposition (FNCT), motif à l’appui',
+  security: SECURISE,
+  request: { params: idVersion, body: { content: { 'application/json': { schema: z.object({ motif: z.string().min(5) }) } } } },
+  responses: { 200: json(VersionDecoupage, 'Proposition refusée.'), ...REPONSES_COMMUNES, 409: { description: 'Déjà décidée.' } },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/decoupage/versions/{id}/retirer',
+  tags: [TAG_DECOUPAGE],
+  summary: 'Retirer sa proposition en attente',
+  security: SECURISE,
+  request: { params: idVersion },
+  responses: { 200: json(VersionDecoupage, 'Proposition retirée.'), ...REPONSES_COMMUNES, 409: { description: 'Plus en attente.' } },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/decoupage/versions/{id}/restaurer',
+  tags: [TAG_DECOUPAGE],
+  summary: 'Revenir à une version précédente (C2.6)',
+  description:
+    'Crée une nouvelle version, copie de celle désignée : appliquée aussitôt par la FNCT, soumise à la FNCT quand c’est la commune qui la demande. L’historique ne se réécrit pas.',
+  security: SECURISE,
+  request: { params: idVersion, body: { content: { 'application/json': { schema: z.object({ note: z.string().optional() }) } } } },
+  responses: { 201: json(VersionDecoupage, 'Restauration appliquée (FNCT) ou proposée (commune).'), ...REPONSES_COMMUNES },
 });
 
 // --- Observatoire national -------------------------------------------------
@@ -1363,6 +1527,27 @@ registry.registerPath({
     },
   },
   responses: { 204: { description: 'Mot de passe remplacé.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/comptes/moi/preferences',
+  tags: ['Comptes et accès'],
+  summary: 'Ses préférences : langue, format de date, unités, alertes',
+  description: 'Valeurs par défaut comprises : une clé jamais choisie est rendue avec son défaut.',
+  security: SECURISE,
+  responses: { 200: json(Preferences, 'Préférences.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/comptes/moi/preferences',
+  tags: ['Comptes et accès'],
+  summary: 'Changer ses préférences',
+  description: 'Changement partiel : seules les clés envoyées changent. Ouvert à tous les rôles ; chacun ne règle que son propre compte.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: preferencesSchema } } } },
+  responses: { 200: json(Preferences, 'Préférences enregistrées.'), ...REPONSES_COMMUNES },
 });
 
 registry.registerPath({
@@ -2683,6 +2868,47 @@ registry.registerPath({
     200: json(z.array(Incoherence), 'Écarts constatés.'),
     ...REPONSES_COMMUNES,
   },
+});
+
+const ParametresCommune = registry.register(
+  'ParametresCommune',
+  z
+    .object({
+      commune_id: z.string(),
+      delai_reclamation_jours: z.number().int(),
+      seuil_entretien_km: z.number().int(),
+      seuil_entretien_jours: z.number().int(),
+      alerter_actions_retard: z.boolean(),
+      updated_at: z.string().nullable(),
+      auteur: z.string().nullable(),
+      par_defaut: z.boolean().openapi({ description: 'Vrai tant que la commune n’a jamais enregistré ses paramètres.' }),
+    })
+    .openapi('ParametresCommune')
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/communes/{id}/parametres',
+  tags: ['Circuits et contrôle terrain'],
+  summary: 'Les seuils de la commune',
+  description:
+    'Délai d’alerte des réclamations, préavis d’entretien par défaut, alerte des actions en retard. Ils alimentent le panneau « À vérifier » (GET /communes/{id}/coherence).',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().openapi({ description: 'Identifiant de la commune.' }) }) },
+  responses: { 200: json(ParametresCommune, 'Paramètres, défauts compris.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/communes/{id}/parametres',
+  tags: ['Circuits et contrôle terrain'],
+  summary: 'Changer les seuils de la commune',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().openapi({ description: 'Identifiant de la commune.' }) }),
+    body: { content: { 'application/json': { schema: parametresCommuneSchema } } },
+  },
+  responses: { 200: json(ParametresCommune, 'Paramètres enregistrés.'), ...REPONSES_COMMUNES },
 });
 
 registry.registerPath({
@@ -4644,7 +4870,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.9.0',
+      version: '0.10.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

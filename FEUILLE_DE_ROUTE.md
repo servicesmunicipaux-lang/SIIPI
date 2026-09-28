@@ -11,6 +11,7 @@ Mise à jour du 28 septembre 2026 (suite) : **Jalon 4, lot 1** — le service d'
 Mise à jour du 28 septembre 2026 (fin) : **Jalon 4 clos** — imports CSV (contacts, parc, points) et PDF par l'impression du navigateur ; `A3.4`, `B2.4`, `B3.1`, `B5.2.4` et `C1.4` passés à Fait.
 Mise à jour du 28 septembre 2026 (soir) : **Jalon 5 clos** — la maintenance des engins : carnet d'entretien (`B2.2`) et alertes d'entretien au kilomètre et à la date (`B2.3`).
 Mise à jour du 28 septembre 2026 (nuit) : **Jalon 6 clos** — le tableau des points avec champs libres (`B3.4`), les étiquettes et les actions planifiées sur une sélection (`B3.5`).
+Mise à jour du 28 septembre 2026 (fin de nuit) : **Jalon 7 clos** — les paramètres (`B6.2`, `B6.3`, `B6.4`, `B6.6`) et le découpage validé par la FNCT et versionné (`C2.5`, `C2.6`).
 
 ---
 
@@ -46,9 +47,9 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 72 | 75 % |
-| 🟡 Partiel | 11 | 11 % |
-| ⬜ À faire | 11 | 11 % |
+| ✅ Fait et éprouvé | 78 | 81 % |
+| 🟡 Partiel | 10 | 10 % |
+| ⬜ À faire | 6 | 6 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
 
@@ -75,9 +76,9 @@ les tonnes et la masse salariale.
 | **5.3 Projets** | 4 |  |  |  | Complète. |
 | **5.4 Notifications ciblées** | 3 | 1 |  |  | Le push est réellement émis ; SMS et courriel restent à câbler (décision de fournisseur). |
 | **5.5 Points citoyens** | 3 |  | 1 |  | Il reste les indicateurs de communication. |
-| **3.2.6 Paramètres** | 2 | 1 | 3 |  | Langue et mot de passe seulement. |
+| **3.2.6 Paramètres** | 6 |  |  |  | Complète : langue, format de date, unités, alertes et mot de passe par personne ; seuils par commune (Jalon 7). |
 | **3.2.7 Contacts** | 4 |  |  |  | Complète : liste, ajout, modification, retrait (Jalon 3), export et import CSV (Jalon 4). |
-| **3.2.8 Découpage communal** | 3 | 1 | 2 |  | Fonctionnel ; validation FNCT et historique manquent. |
+| **3.2.8 Découpage communal** | 5 | 1 |  |  | Proposé par la commune, validé par la FNCT, versionné et restaurable (Jalon 7) ; reste l'import Shapefile. |
 | **3.2.9 Rapports et études** | 7 |  |  |  | Complète : versionnement et lecteur PDF intégré ajoutés au Jalon 3. |
 | **3.2.10 KPI 5 axes** |  | 2 | 3 |  | Le gros morceau restant. À faire en dernier, par construction. |
 | **3.2.11 Prestataires privés** | 3 | 1 |  |  | Complète, hors tableau de bord restreint. |
@@ -207,11 +208,11 @@ les tonnes et la masse salariale.
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
 | `B6.1` | Bascule Français / العربية | ✅ Fait | i18n.ts, RTL · tout le portail |
-| `B6.2` | Préférences de notification et seuils | ⬜ À faire |  |
-| `B6.3` | Fuseau horaire (UTC+1) | 🟡 Partiel | les dates sont protégées du décalage en base ; aucun réglage exposé |
-| `B6.4` | Format de date | ⬜ À faire |  |
-| `B6.5` | Changement de mot de passe | ✅ Fait | ChangerMotDePasse.tsx · campagne comptes |
-| `B6.6` | Unités de mesure | ⬜ À faire |  |
+| `B6.2` | Préférences de notification et seuils | ✅ Fait | préférences d'alerte de chacun (domaines, gravité minimale) sur le panneau « À vérifier » ; seuils de la commune (`parametres_commune`, migration 048 : délai des réclamations, préavis d'entretien, actions en retard) qui y déclenchent des alertes · campagne parametres |
+| `B6.3` | Fuseau horaire (UTC+1) | ✅ Fait | toute date affichée passe par `lib/formats.ts`, à l'heure de Tunis quel que soit le réglage du poste, et Paramètres le dit ; aucun autre fuseau n'est proposé, la Tunisie n'en a qu'un |
+| `B6.4` | Format de date | ✅ Fait | jour/mois/année, ISO, mois en toutes lettres — enregistré sur le compte (`users.preferences`), appliqué à tout le portail (`lib/formats.ts`) · campagne parametres |
+| `B6.5` | Changement de mot de passe | ✅ Fait | ChangerMotDePasse.tsx (mot de passe provisoire) et, depuis le Jalon 7, à tout moment dans Paramètres · campagne comptes |
+| `B6.6` | Unités de mesure | ✅ Fait | masses (t / kg), volumes (m³ / L), surfaces (km² / ha), à l'affichage seulement : les valeurs restent stockées dans leur unité · campagne parametres |
 
 ### 3.2.7 Contacts
 
@@ -230,8 +231,8 @@ les tonnes et la masse salariale.
 | `C2.2` | Import GeoJSON / Shapefile / KML | 🟡 Partiel | GeoJSON et KML : oui. Shapefile : non |
 | `C2.3` | Édition manuelle du polygone | ✅ Fait | DecoupageCommunal.tsx (Geoman) |
 | `C2.4` | Découpage en zones | ✅ Fait | migration 012 · campagne decoupage |
-| `C2.5` | Validation par le Super Admin FNCT | ⬜ À faire |  |
-| `C2.6` | Historique et retour à la version précédente | ⬜ À faire |  |
+| `C2.5` | Validation par le Super Admin FNCT | ✅ Fait | la commune propose son découpage (périmètre et secteurs), la FNCT compare, valide ou refuse motif à l'appui (`versions_decoupage`, `app.valider_version_decoupage`, migration 049) ; la commune ne modifie plus son découpage directement · campagne versions-decoupage |
+| `C2.6` | Historique et retour à la version précédente | ✅ Fait | chaque état validé est une version numérotée, réapplicable avec les identifiants des secteurs et leurs rattachements ; retour demandé par la commune ou appliqué par la FNCT · campagne versions-decoupage |
 
 ### 3.2.9 Rapports et études
 
@@ -600,10 +601,51 @@ un premier point pointé « fait » ; écran relu en arabe et à la largeur d'un
 téléphone. 48 migrations rejouées sur base neuve ; contrat conforme
 (189 routes) ; les 26 autres campagnes sans régression.
 
-### Jalon 7 — Paramètres et découpage : les finitions
+### Jalon 7 — Paramètres et découpage : les finitions ✅ *(fait le 28 septembre 2026)*
 
 `B6.2`, `B6.4`, `B6.6` (préférences, format de date, unités) et `C2.5`, `C2.6`
-(validation FNCT du découpage, retour à la version précédente).
+(validation FNCT du découpage, retour à la version précédente). En deux lots,
+une seule PR.
+
+| Quoi | Débloque | Preuve |
+|---|---|---|
+| **Lot 1.** Écran « Paramètres » (bouton en tête du portail, tous les rôles) : langue, format de date, unités, alertes, mot de passe | `B6.2`, `B6.4`, `B6.6`, `B6.5` à tout moment | `users.preferences` (migration 048), `GET/PUT /comptes/moi/preferences`, rendues aussi à la connexion |
+| Un seul module de formatage, à l'heure de Tunis, repris par dix-sept écrans | `B6.3`, `B6.4`, `B6.6` | `web/src/lib/formats.ts` |
+| Seuils de la commune, qui déclenchent vraiment : réclamations en attente, entretiens en retard, actions dépassées dans « À vérifier » ; préavis d'entretien par défaut | `B6.2` | `parametres_commune`, `app.incoherences_seuils` (migration 048) |
+| **Lot 2.** Onglet « Découpage » de la commune : état en vigueur, proposition (retouche du périmètre, secteurs dessinés ou importés en GeoJSON), historique | `C2.5`, `C2.6` | `versions_decoupage`, routes `/decoupage/*` (migration 049) |
+| File « Découpages à valider » de la FNCT, comparaison carte et écarts (secteurs ajoutés, modifiés, retirés ; débordements et chevauchements), validation ou refus motivé | `C2.5` | `app.valider_version_decoupage` |
+| Retour à une version antérieure, avec les mêmes identifiants de secteurs | `C2.6` | `POST /decoupage/versions/{id}/restaurer` |
+
+**Choix retenus.**
+- **Deux niveaux de paramètres** : ce que chacun préfère voir (sur son compte)
+  et ce que la commune décide (une règle de service pour toute l'équipe).
+- **Un seuil qui ne déclenche rien n'est pas un seuil** : les seuils de la
+  commune alimentent le panneau « À vérifier » ; un avis bloquant s'y affiche
+  toujours, quelles que soient les préférences.
+- **Les unités ne changent que l'affichage** : rien n'est converti en base.
+- **Ce qui est validé, c'est un état complet** (périmètre et ensemble des
+  secteurs), pas une retouche : c'est ce qui rend une version réapplicable.
+- **La commune ne modifie plus son découpage directement** : tracé, nom, code,
+  création et retrait d'un secteur passent par une proposition ; les attributs
+  de service (couleur, fréquence, prestataire, statut) restent à sa main. Les
+  corrections directes de la FNCT créent, elles aussi, une version.
+- **La première modification fige d'abord l'existant** en version 1, pour qu'il
+  y ait toujours une version précédente où revenir ; revenir en arrière crée
+  une version nouvelle, l'historique ne se réécrit pas.
+
+**Test de validation.** Campagne `versions-decoupage` (43/43, nouvelle) :
+Houmt Souk propose son périmètre et deux secteurs ; rien ne change avant la
+décision ; la FNCT refuse, motif à l'appui, puis valide la proposition
+corrigée ; la commune redessine ses secteurs (l'un retiré, un autre qui
+déborde, signalé à la FNCT) ; elle demande le retour à la version précédente,
+que la FNCT valide — le secteur retiré revient sous son identifiant et son
+circuit le retrouve. Campagne `parametres` (27/27, nouvelle) : les préférences
+reviennent à la connexion ; une réclamation de quatre jours remonte dans « À
+vérifier » avec un délai de trois jours, et disparaît avec un délai de sept.
+Vérifié aussi dans le navigateur : kilogrammes et dates ISO dans le parc,
+avis masqués par les préférences, un secteur dessiné à la souris, proposé,
+validé par la FNCT, puis défait par un retour à la version 1. 50 migrations
+rejouées sur base neuve ; contrat conforme (200 routes).
 
 ### Jalon 8 — Le tableau de bord KPI 5 axes *(en dernier, et c'est délibéré)*
 

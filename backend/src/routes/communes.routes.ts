@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { query, queryOne } from '../db.js';
+import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole, requireCommuneAccess } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 
@@ -162,6 +162,86 @@ communesRouter.get(
   })
 );
 
+// --- Paramètres de la commune (TDR §3.2.6, B6.2) ----------------------------
+//
+// Des règles de service, les mêmes pour toute l'équipe : au bout de combien
+// de jours une réclamation devient un retard, quel préavis par défaut pour
+// l'entretien. Sans ligne en base, les valeurs par défaut s'appliquent — et
+// l'écran les montre comme telles, pour qu'on sache qu'elles n'ont jamais été
+// choisies.
+
+const PARAMETRES_DEFAUT = {
+  delai_reclamation_jours: 7,
+  seuil_entretien_km: 1000,
+  seuil_entretien_jours: 30,
+  alerter_actions_retard: true,
+};
+
+export const parametresCommuneSchema = z
+  .object({
+    delaiReclamationJours: z.number().int().min(1).max(90).optional(),
+    seuilEntretienKm: z.number().int().min(0).max(100_000).optional(),
+    seuilEntretienJours: z.number().int().min(0).max(365).optional(),
+    alerterActionsRetard: z.boolean().optional(),
+  })
+  .strict();
+
+/** Les paramètres d'une commune, défauts compris (lus sous RLS). */
+export async function parametresDeCommune(communeId: string) {
+  const ligne = await queryOne<typeof PARAMETRES_DEFAUT & { updated_at: string; auteur: string | null }>(
+    `SELECT p.delai_reclamation_jours, p.seuil_entretien_km, p.seuil_entretien_jours,
+            p.alerter_actions_retard, p.updated_at, u.full_name AS auteur
+       FROM parametres_commune p LEFT JOIN users u ON u.id = p.updated_by
+      WHERE p.commune_id = $1`,
+    [communeId]
+  );
+  return ligne
+    ? { commune_id: communeId, ...ligne, par_defaut: false }
+    : { commune_id: communeId, ...PARAMETRES_DEFAUT, updated_at: null, auteur: null, par_defaut: true };
+}
+
+communesRouter.get(
+  '/:id/parametres',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  requireCommuneAccess((req) => req.params.id),
+  asyncHandler(async (req, res) => {
+    res.json(await parametresDeCommune(req.params.id));
+  })
+);
+
+communesRouter.put(
+  '/:id/parametres',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  requireCommuneAccess((req) => req.params.id),
+  asyncHandler(async (req, res) => {
+    const d = parametresCommuneSchema.parse(req.body);
+    const commune = await queryOne('SELECT id FROM communes WHERE id = $1', [req.params.id]);
+    if (!commune) throw new ApiError(404, 'Commune introuvable.');
+    await query(
+      `INSERT INTO parametres_commune
+         (commune_id, delai_reclamation_jours, seuil_entretien_km, seuil_entretien_jours, alerter_actions_retard, updated_by)
+       VALUES ($1, COALESCE($2, 7), COALESCE($3, 1000), COALESCE($4, 30), COALESCE($5, true), $6)
+       ON CONFLICT (commune_id) DO UPDATE SET
+         delai_reclamation_jours = COALESCE($2, parametres_commune.delai_reclamation_jours),
+         seuil_entretien_km = COALESCE($3, parametres_commune.seuil_entretien_km),
+         seuil_entretien_jours = COALESCE($4, parametres_commune.seuil_entretien_jours),
+         alerter_actions_retard = COALESCE($5, parametres_commune.alerter_actions_retard),
+         updated_by = $6`,
+      [
+        req.params.id,
+        d.delaiReclamationJours ?? null,
+        d.seuilEntretienKm ?? null,
+        d.seuilEntretienJours ?? null,
+        d.alerterActionsRetard ?? null,
+        req.user!.sub,
+      ]
+    );
+    res.json(await parametresDeCommune(req.params.id));
+  })
+);
+
 // PUT /communes/:id/frontiere — rectification d'une limite communale.
 //
 // Réservée à la FNCT. La règle est portée par un déclencheur en base
@@ -210,15 +290,24 @@ communesRouter.put(
     }
 
     try {
-      const commune = await queryOne(
-        `UPDATE communes
-            SET boundary_geom = ST_Multi(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON($2), 4326))),
-                boundary_source = 'corrige_fnct'
-          WHERE id = $1
-        RETURNING id, name, area_km2, boundary_source, boundary_maj_le, boundary_maj_par`,
-        [req.params.id, JSON.stringify(geometry)]
-      );
-      if (!commune) throw new ApiError(404, 'Commune introuvable.');
+      // Une correction directe de la FNCT est une version du découpage comme
+      // une autre (migration 049) : l'état antérieur est figé s'il ne l'était
+      // pas, et le nouvel état entre dans l'historique, d'où l'on peut revenir.
+      const existe = await queryOne('SELECT id FROM communes WHERE id = $1', [req.params.id]);
+      if (!existe) throw new ApiError(404, 'Commune introuvable.');
+      const commune = await withTransaction(async (client) => {
+        await client.query('SELECT app.avant_correction_fnct($1)', [req.params.id]);
+        const r = await client.query(
+          `UPDATE communes
+              SET boundary_geom = ST_Multi(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON($2), 4326))),
+                  boundary_source = 'corrige_fnct'
+            WHERE id = $1
+          RETURNING id, name, area_km2, boundary_source, boundary_maj_le, boundary_maj_par`,
+          [req.params.id, JSON.stringify(geometry)]
+        );
+        await client.query('SELECT app.apres_correction_fnct($1, $2)', [req.params.id, 'Périmètre corrigé directement par la FNCT.']);
+        return r.rows[0];
+      });
       res.json(commune);
     } catch (err: any) {
       if (err?.message?.includes('FRONTIERE_RESERVEE_FNCT')) {

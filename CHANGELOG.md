@@ -5,6 +5,60 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.10.0] — 2026-09-28 — Jalon 7 : paramètres et découpage validé
+
+### Ajouté — lot 1, les paramètres (TDR §3.2.6)
+- **Écran « Paramètres »**, ouvert à tous les rôles depuis l'en-tête : langue
+  (enregistrée sur le compte), format de date (`B6.4` : jour/mois/année, ISO,
+  mois en toutes lettres), unités (`B6.6` : t / kg, m³ / L, km² / ha),
+  alertes « À vérifier » (`B6.2` : gravité minimale, domaines suivis), et
+  changement de mot de passe à tout moment.
+- **Un module de formatage unique** (`web/src/lib/formats.ts`), à l'heure de
+  Tunis quel que soit le poste (`B6.3`), repris par dix-sept écrans qui
+  formataient chacun à leur façon.
+- **Seuils de la commune** (`B6.2`) : délai d'alerte des réclamations, préavis
+  d'entretien par défaut, alerte des actions planifiées dépassées. Ils
+  déclenchent de vraies alertes dans « À vérifier » (nouvelle fonction de
+  contrôle `app.incoherences_seuils`).
+- Migration 048, routes `GET/PUT /comptes/moi/preferences` et
+  `GET/PUT /communes/{id}/parametres` ; préférences rendues par la connexion
+  et par `/auth/me`. Nouvelle campagne `parametres` (27/27).
+
+### Ajouté — lot 2, le découpage validé et versionné (TDR §3.2.8)
+- **Onglet « Découpage » de la commune** : état en vigueur, proposition
+  (retouche du périmètre, secteurs dessinés sur la carte ou importés en
+  GeoJSON, note pour la FNCT), historique des versions (`C2.5`, `C2.6`).
+- **File « Découpages à valider »** en tête de l'observatoire : comparaison
+  carte avec l'état en vigueur, écarts (secteurs ajoutés, modifiés, retirés),
+  avertissements (débordement du périmètre, chevauchements), validation ou
+  refus motivé.
+- **Retour à une version antérieure** : demandé par la commune (et validé par
+  la FNCT) ou appliqué directement par la FNCT ; les secteurs reviennent sous
+  leur identifiant, avec leurs rattachements.
+- Migration 049, routes `/decoupage/*` (7). Nouvelle campagne
+  `versions-decoupage` (43/43).
+
+### Modifié
+- **La commune ne modifie plus son découpage directement** : `POST /zones`,
+  `DELETE /zones/{id}` et la modification du tracé, du nom ou du code d'un
+  secteur lui répondent 403 et renvoient à la proposition. Les attributs de
+  service (couleur, fréquence, population, prestataire, statut) restent
+  modifiables. Les campagnes `citoyen` et `suppression` posent désormais leurs
+  secteurs d'essai par la FNCT.
+- Les corrections directes de la FNCT (périmètre, secteur) créent une version.
+
+### Corrigé
+- La phrase de synthèse du parc (« 16 engins sur 29 peuvent servir ») affichait
+  sa clé de traduction : le pluriel n'était pas renseigné.
+
+### Décisions à retenir
+- **Deux niveaux de paramètres** : les préférences de chacun, sur son compte ;
+  les règles de la commune, communes à l'équipe.
+- **Un avis bloquant s'affiche toujours**, quelles que soient les préférences.
+- **Les unités ne changent que l'affichage.**
+- **Une version est un état complet**, réapplicable ; la première modification
+  fige d'abord l'existant ; revenir en arrière crée une version nouvelle.
+
 ## [0.9.0] — 2026-09-28 — Jalon 6 : champs libres et planification d'actions
 
 ### Ajouté

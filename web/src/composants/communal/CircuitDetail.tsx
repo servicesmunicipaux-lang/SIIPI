@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Circuit, type EquipeDuJour, type PointCollecte } from '../../lib/api';
+import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { CircuitCarte } from './CircuitCarte';
 import { CircuitImport } from './CircuitImport';
@@ -46,6 +47,7 @@ export function CircuitDetail({
   onModifie: () => void;
 }) {
   const { t } = useTranslation();
+  const formats = useFormats();
   const [onglet, setOnglet] = useState<Onglet>('fiche');
   const [points, setPoints] = useState<PointCollecte[] | null>(null);
   const [historique, setHistorique] = useState<Awaited<ReturnType<typeof api.historiqueCircuit>> | null>(null);
@@ -691,7 +693,7 @@ export function CircuitDetail({
               {historique.map((h, i) => (
                 <li key={i} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 p-3 text-sm">
                   <span className="chiffres text-xs text-ardoise-500">
-                    {new Date(h.changed_at).toLocaleString()}
+                    {formats.date(h.changed_at, { heure: true })}
                   </span>
                   <span className="font-medium text-ardoise-900">
                     {t(`communal.circuits.historique.${h.operation}`, { defaultValue: h.operation })}

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { query, queryOne } from '../db.js';
 import { requireAuth, signToken, type UserRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { completer } from '../preferences.js';
 
 export const authRouter = Router();
 
@@ -21,6 +22,7 @@ interface UserRow {
   commune_id: string | null;
   is_active: boolean;
   mot_de_passe_provisoire?: boolean;
+  preferences?: unknown;
 }
 
 authRouter.post(
@@ -57,6 +59,7 @@ authRouter.post(
         role: user.role,
         communeId: user.commune_id,
         motDePasseProvisoire: user.mot_de_passe_provisoire === true,
+        preferences: completer(user.preferences),
       },
     });
   })
@@ -70,7 +73,7 @@ authRouter.get(
   requireAuth,
   asyncHandler(async (req, res) => {
     const user = await queryOne<UserRow>(
-      'SELECT id, email, full_name, role, commune_id, mot_de_passe_provisoire FROM users WHERE id = $1',
+      'SELECT id, email, full_name, role, commune_id, mot_de_passe_provisoire, preferences FROM users WHERE id = $1',
       [req.user!.sub]
     );
     if (!user) throw new ApiError(401, 'Utilisateur introuvable.');
@@ -81,6 +84,7 @@ authRouter.get(
       role: user.role,
       communeId: user.commune_id,
       motDePasseProvisoire: user.mot_de_passe_provisoire === true,
+      preferences: completer(user.preferences),
     });
   })
 );
