@@ -86,7 +86,16 @@ function LigneIndicateur({ r, langue }: { r: ResultatIndicateur; langue: string 
         <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs ${CLASSES_STATUT[r.statut]}`} title={t(`kpi.statuts.aide.${r.statut}`)}>
           {t(`kpi.statuts.${r.statut}`)}
         </span>
-        <span className="ms-1 text-xs text-ardoise-400">{t(`kpi.sources.${r.mode}`)}</span>
+        {/* Mesuré par un registre, sinon déclaré dans la fiche, sinon rien :
+            le badge dit laquelle des trois sources a été retenue. */}
+        {r.statut === 'renseigne' && r.source && (
+          <span
+            className={`ms-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs ${r.source === 'mesure' ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200' : 'bg-blue-50 text-blue-800 ring-1 ring-blue-200'}`}
+            title={t(`kpi.sources.aide.${r.source}`)}
+          >
+            {t(`kpi.sources.${r.source}`)}
+          </span>
+        )}
       </td>
     </tr>
   );
@@ -184,7 +193,13 @@ export function IndicateursCommune({ communeId, fnct = false }: { communeId: str
       )}
 
       {vue === 'fiche' ? (
-        <FicheEvaluation communeId={communeId} annee={annee} fnct={fnct} onModifiee={() => void charger()} />
+        <FicheEvaluation
+          communeId={communeId}
+          annee={annee}
+          fnct={fnct}
+          sources={Object.fromEntries(kpi.indicateurs.map((r) => [r.code, r.source]))}
+          onModifiee={() => void charger()}
+        />
       ) : (
         <div ref={bloc} className="space-y-4">
           {/* --- Le Concours ------------------------------------------------ */}

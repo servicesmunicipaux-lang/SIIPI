@@ -38,6 +38,7 @@ import { maintenanceRouter } from './routes/maintenance.routes.js';
 import { attributsPointsRouter } from './routes/attributsPoints.routes.js';
 import { decoupageRouter } from './routes/decoupage.routes.js';
 import { kpi5AxesRouter } from './routes/kpi5Axes.routes.js';
+import { poiRouter, registresRouter } from './routes/sourcesKpi.routes.js';
 import {
   pointsSuggeresRouter,
   pointsSuggeresCitoyenRouter,
@@ -198,6 +199,9 @@ export const ROUTEURS: Array<[string, Router]> = [
   // Tableau de bord KPI 5 axes, Concours national, préparation DMA (Jalon 8).
   // Même préfixe que les routes KPI d'origine : chemins distincts.
   ['/kpi', kpi5AxesRouter],
+  // Les registres qui automatisent les sources des KPI (lot « sources KPI »).
+  ['/poi', poiRouter],
+  ['/registres', registresRouter],
   ['/points-suggeres', pointsSuggeresRouter],
   // Monté sur le préfixe citoyen : la proposition et son suivi appartiennent
   // à l'espace du citoyen, l'instruction à celui de la commune. Deux publics,

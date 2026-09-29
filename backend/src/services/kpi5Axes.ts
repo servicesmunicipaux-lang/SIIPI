@@ -10,7 +10,8 @@
 //     note calculée sur trois indicateurs ne se compare pas à une note
 //     calculée sur dix-neuf.
 //
-// Les mesures viennent de la base (app.mesures_kpi, migration 050) ; les
+// Les mesures viennent de la base (app.mesures_kpi, migration 050, et
+// app.mesures_kpi_auto, migration 051 — la mesure prime sur la déclaration) ; les
 // saisies de la fiche d'évaluation (valeurs_kpi). Tout le reste — notes,
 // reventilation, moyennes — se fait ici, là où il se relit et se teste.
 
@@ -68,6 +69,12 @@ export interface Resultat {
   unite: string | null;
   mode: Indicateur['mode'];
   statut: Statut;
+  /**
+   * D'où vient la valeur retenue : mesurée par un registre de la plateforme,
+   * déclarée dans la fiche d'évaluation, ou rien (non renseigné). La mesure
+   * prime ; la déclaration ne sert qu'en son absence (lot « sources KPI »).
+   */
+  source: 'mesure' | 'declare' | null;
   valeur: number | null;
   cible: number | null;
   /** Taux d'atteinte, entre 0 et 1 ; null si l'indicateur n'est pas noté ou pas renseigné. */
@@ -139,6 +146,8 @@ interface Contexte {
   fiches: Map<string, Fiche>;
   saisies: Map<string, Map<string, Saisie>>;
   mesures: Map<string, Map<string, Mesure>>;
+  /** Les mesures automatiques des indicateurs jusqu'ici déclarés (migration 051). */
+  auto: Map<string, Map<string, Mesure>>;
 }
 
 /**
@@ -147,7 +156,7 @@ interface Contexte {
  */
 export async function charger(annee: number, communeIds?: string[]): Promise<Contexte> {
   const filtre = communeIds?.length ? communeIds : null;
-  const [cat, params, communes, fiches, saisies, mesures] = await Promise.all([
+  const [cat, params, communes, fiches, saisies, mesures, automatiques] = await Promise.all([
     catalogue(),
     parametres(),
     query<Contexte['communes'][number]>(
@@ -168,6 +177,10 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
       'SELECT * FROM app.mesures_kpi($1) WHERE ($2::text[] IS NULL OR commune_id = ANY($2))',
       [annee, filtre]
     ),
+    query<{ commune_id: string; code: string; valeur: string | null; note: string | null; detail: Record<string, unknown> }>(
+      'SELECT * FROM app.mesures_kpi_auto($1) WHERE ($2::text[] IS NULL OR commune_id = ANY($2))',
+      [annee, filtre]
+    ),
   ]);
 
   const parCommune = <T>(m: Map<string, Map<string, T>>, commune: string) => {
@@ -182,14 +195,17 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
       commentaire: v.commentaire,
     });
   }
-  const m = new Map<string, Map<string, Mesure>>();
-  for (const x of mesures) {
-    parCommune(m, x.commune_id).set(x.code, {
-      valeur: x.valeur == null ? null : Number(x.valeur),
-      note: x.note == null ? null : Number(x.note),
-      detail: x.detail ?? {},
-    });
-  }
+  const ranger = (lignes: typeof mesures) => {
+    const m = new Map<string, Map<string, Mesure>>();
+    for (const x of lignes) {
+      parCommune(m, x.commune_id).set(x.code, {
+        valeur: x.valeur == null ? null : Number(x.valeur),
+        note: x.note == null ? null : Number(x.note),
+        detail: x.detail ?? {},
+      });
+    }
+    return m;
+  };
   return {
     annee,
     catalogue: cat,
@@ -197,7 +213,8 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
     communes: communes.map((c) => ({ ...c, population: c.population == null ? null : Number(c.population) })),
     fiches: new Map(fiches.map((f) => [f.commune_id, f])),
     saisies: s,
-    mesures: m,
+    mesures: ranger(mesures),
+    auto: ranger(automatiques),
   };
 }
 
@@ -218,10 +235,16 @@ function noteSaisie(ind: Indicateur, s: Saisie): number | null {
  * le tonnage pesé. Une seule composante manquante, et il n'y a pas de coût
  * global : un coût « complet » sans le carburant serait un chiffre faux.
  */
-function coutTonne(mesures: Map<string, Mesure>, saisies: Map<string, Saisie>, annee: number): Mesure {
+function coutTonne(
+  mesures: Map<string, Mesure>,
+  saisies: Map<string, Saisie>,
+  auto: Map<string, Mesure>,
+  annee: number
+): Mesure {
   const masse = mesures.get('MASSE_SALARIALE')?.valeur ?? null;
   const maintenance = mesures.get('COUT_MAINTENANCE')?.valeur ?? null;
-  const carburant = saisies.get('ECO-CARBURANT')?.valeur ?? null;
+  // Le carburant mesuré (pleins enregistrés) prime sur le carburant déclaré.
+  const carburant = auto.get('ECO-CARBURANT')?.valeur ?? saisies.get('ECO-CARBURANT')?.valeur ?? null;
   const decharge = saisies.get('ECO-DECHARGE')?.valeur ?? null;
   const tonnage = mesures.get('TONNAGE_T')?.valeur ?? null;
   const jours = Number(mesures.get('KG_HAB_J')?.detail?.jours_couverts ?? 0) || null;
@@ -250,7 +273,8 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
   const fiche = ctx.fiches.get(communeId) ?? null;
   const saisies = ctx.saisies.get(communeId) ?? new Map<string, Saisie>();
   const mesures = new Map(ctx.mesures.get(communeId) ?? new Map<string, Mesure>());
-  mesures.set('COUT_TONNE', coutTonne(mesures, saisies, ctx.annee));
+  const auto = ctx.auto.get(communeId) ?? new Map<string, Mesure>();
+  mesures.set('COUT_TONNE', coutTonne(mesures, saisies, auto, ctx.annee));
 
   const resultats: Resultat[] = ctx.catalogue.map((ind) => {
     const base = {
@@ -275,6 +299,7 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
       return {
         ...base,
         statut: renseigne ? 'renseigne' : 'non_renseigne',
+        source: renseigne ? 'mesure' : null,
         valeur: renseigne ? m!.valeur : null,
         cible: null,
         note: renseigne ? m!.note : null,
@@ -282,6 +307,37 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
       } as Resultat;
     }
     const s = saisies.get(ind.code);
+
+    // 1. LA MESURE D'ABORD. Un registre tenu (nettoyages, fins de poste,
+    //    dotations EPI, conventions, pleins, journal des incidents) donne la
+    //    valeur. Un ratio mesuré sans cible connue de la plateforme reprend la
+    //    cible déclarée ; sans cible du tout, il ne se note pas et cède la
+    //    place à la déclaration.
+    const a = auto.get(ind.code);
+    if (a && a.valeur != null) {
+      const cibleAuto = typeof a.detail.cible === 'number' ? a.detail.cible : a.detail.cible != null ? Number(a.detail.cible) : null;
+      const cible = cibleAuto ?? s?.cible ?? null;
+      const noteAuto =
+        ind.saisie === 'ratio'
+          ? a.note ?? (cible && cible > 0 ? Math.min(1, a.valeur / cible) : null)
+          : ind.saisie === 'taux'
+            ? a.note
+            : null;
+      const utilisable = ind.saisie === 'nombre' || ind.saisie === 'montant' || noteAuto != null;
+      if (utilisable) {
+        return {
+          ...base,
+          statut: 'renseigne',
+          source: 'mesure',
+          valeur: a.valeur,
+          cible: ind.saisie === 'ratio' ? cible : null,
+          note: noteAuto,
+          detail: a.detail,
+        } as Resultat;
+      }
+    }
+
+    // 2. SINON, LA DÉCLARATION. 3. Sinon, non renseigné.
     const note = s ? noteSaisie(ind, s) : null;
     // Un ratio sans cible ne se note pas : il reste « non renseigné » pour
     // le Concours, mais sa valeur saisie s'affiche.
@@ -289,6 +345,7 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
     return {
       ...base,
       statut: renseigne ? 'renseigne' : 'non_renseigne',
+      source: renseigne ? 'declare' : null,
       valeur: s ? s.valeur : null,
       cible: s ? s.cible : null,
       note: renseigne ? note : null,
@@ -306,6 +363,7 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
     b.points_effectifs = (b.points_effectifs ?? 0) + (a.points_effectifs ?? 0);
     b.recoit_de.push(de);
     a.statut = 'reventile';
+    a.source = null;
     a.reventile_vers = vers;
     a.points_effectifs = 0;
     a.note = null;
@@ -319,6 +377,7 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
     const a = parCode.get('M2-5');
     if (a) {
       a.statut = 'sans_objet';
+      a.source = null;
       a.points_effectifs = 0;
       a.note = null;
     }

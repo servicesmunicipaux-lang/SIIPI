@@ -238,6 +238,22 @@ citoyenRouter.get(
   })
 );
 
+// ---------------------------------------------------------------------------
+// GET /citoyen/lieux?communeId= — les marchés et cimetières d'une commune et
+// leur état de propreté (lot « sources KPI »). Publique comme la carte : c'est
+// une fonction qui ne laisse sortir que ces deux types de lieux, jamais un
+// abattoir, et jamais sans commune désignée.
+// ---------------------------------------------------------------------------
+
+citoyenRouter.get(
+  '/lieux',
+  asyncHandler(async (req, res) => {
+    const communeId = typeof req.query.communeId === 'string' && req.query.communeId ? req.query.communeId : null;
+    if (!communeId) throw new ApiError(400, 'Commune requise.');
+    res.json(await query('SELECT * FROM app.lieux_publics($1)', [communeId]));
+  })
+);
+
 // Validation de la photo par la commune : le geste qui autorise sa
 // publication. Un clic dans l'écran de traitement, pas un travail de
 // modération — la commune regarde déjà la photo pour traiter le signalement.

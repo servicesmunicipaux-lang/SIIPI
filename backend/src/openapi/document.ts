@@ -82,6 +82,16 @@ import { parametresCommuneSchema } from '../routes/communes.routes.js';
 import { propositionDecoupageSchema } from '../routes/decoupage.routes.js';
 import { baremeSchema, parametresKpiSchema, districtsSchema, ficheSchema } from '../routes/kpi5Axes.routes.js';
 import {
+  poiSchema,
+  pleinSchema,
+  finDePosteSchema,
+  dotationSchema,
+  incidentSchema as incidentTravailSchema,
+  commerceSchema,
+  conventionSchema,
+  TYPES_POI,
+} from '../routes/sourcesKpi.routes.js';
+import {
   champSchema,
   majChampSchema,
   etiquetteSchema,
@@ -1243,6 +1253,9 @@ const ResultatIndicateur = registry.register(
       statut: z.enum(['renseigne', 'non_renseigne', 'sans_objet', 'reventile']).openapi({
         description: 'Une donnée manquante est « non_renseigne », jamais un zéro.',
       }),
+      source: z.enum(['mesure', 'declare']).nullable().openapi({
+        description: 'Mesuré par un registre de la plateforme, sinon déclaré dans la fiche d’évaluation, sinon null (non renseigné). La mesure prime.',
+      }),
       valeur: z.number().nullable(),
       cible: z.number().nullable(),
       note: z.number().nullable().openapi({ description: 'Taux d’atteinte entre 0 et 1 ; null si non noté ou non renseigné.' }),
@@ -1456,6 +1469,99 @@ registry.registerPath({
   security: SECURISE,
   request: { query: z.object({ annee: z.number().int().optional() }) },
   responses: { 200: json(z.object({ annee: z.number().int(), lignes: z.array(z.record(z.string(), z.any())) }), 'Ses indicateurs de service.'), ...REPONSES_COMMUNES },
+});
+
+// --- Les registres qui automatisent les sources des KPI (lot « sources KPI ») -
+
+const TAG_SOURCES = 'Registres et lieux';
+const Ligne = z.record(z.string(), z.any());
+const pId = z.object({ id: z.string().uuid() });
+const qCommuneSeule = z.object({ communeId: paramCommuneId.optional() });
+
+const Lieu = registry.register(
+  'Lieu',
+  z
+    .object({
+      id: z.string().uuid(),
+      commune_id: z.string(),
+      nom: z.string(),
+      type: z.enum(TYPES_POI),
+      lat: z.number(),
+      lng: z.number(),
+      adresse: z.string().nullable(),
+      actif: z.boolean(),
+      zone_id: z.string().uuid().nullable(),
+      zone_nom: z.string().nullable(),
+      dernier_nettoyage: z.string().nullable(),
+      prochain_nettoyage: z.string().nullable(),
+      nettoyages_en_retard: z.number().int(),
+      etat: z.enum(['non_renseigne', 'en_retard', 'propre', 'nettoyage_prevu', 'a_surveiller']),
+    })
+    .openapi('Lieu')
+);
+
+registry.registerPath({
+  method: 'get', path: '/poi', tags: [TAG_SOURCES],
+  summary: 'Les lieux de la commune (marchés, cimetières, abattoirs, écoles, santé)',
+  description: 'Avec leur état de propreté, lu sur les actions de nettoyage : jamais nettoyé et rien de prévu, c’est « non renseigné ».',
+  security: SECURISE,
+  request: { query: qCommuneSeule.extend({ type: z.enum(TYPES_POI).optional() }) },
+  responses: { 200: json(z.array(Lieu), 'Lieux.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/poi', tags: [TAG_SOURCES], summary: 'Ajouter un lieu', security: SECURISE,
+  description: 'Le secteur de collecte se déduit de la position quand il n’est pas précisé.',
+  request: { query: qCommuneSeule, body: { content: { 'application/json': { schema: poiSchema } } } },
+  responses: { 201: json(Lieu, 'Lieu créé.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'patch', path: '/poi/{id}', tags: [TAG_SOURCES], summary: 'Modifier un lieu', security: SECURISE,
+  request: { params: pId, body: { content: { 'application/json': { schema: poiSchema.partial() } } } },
+  responses: { 200: json(Lieu, 'Lieu modifié.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'delete', path: '/poi/{id}', tags: [TAG_SOURCES], summary: 'Retirer un lieu', security: SECURISE,
+  request: { params: pId }, responses: { 204: { description: 'Lieu retiré.' }, ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/citoyen/lieux', tags: ['Espace citoyen'],
+  summary: 'Les marchés et cimetières d’une commune et leur état de propreté (public)',
+  description: 'Sans authentification, comme la carte publique. Seuls les marchés et les cimetières sortent — jamais un abattoir — et seulement pour la commune désignée.',
+  request: { query: z.object({ communeId: z.string() }) },
+  responses: {
+    200: json(z.array(z.object({ id: z.string().uuid(), nom: z.string(), type: z.enum(['marche', 'cimetiere']), lat: z.number(), lng: z.number(),
+      dernier_nettoyage: z.string().nullable(), prochain_nettoyage: z.string().nullable(),
+      etat: z.enum(['non_renseigne', 'propre', 'nettoyage_prevu', 'a_surveiller']) })), 'Lieux publics.'),
+    400: REPONSES_COMMUNES[400],
+  },
+});
+
+for (const [chemin, nom, schema, resume] of [
+  ['carburant', 'Plein', pleinSchema, 'Les pleins de carburant des engins (coût global à la tonne)'],
+  ['fins-de-poste', 'Fin de poste', finDePosteSchema, 'La check-list de fin de poste — « benne bâchée avant transit », obligatoire (M1-9)'],
+  ['epi', 'Dotation', dotationSchema, 'La dotation en équipements de protection individuelle (M1-6)'],
+  ['incidents', 'Incident', incidentTravailSchema, 'Le journal des incidents du travail (axe 5) — un journal vide ne dit pas « zéro accident »'],
+  ['commerces', 'Commerce', commerceSchema, 'Les commerces et institutions à conventionner (M2-2)'],
+  ['conventions', 'Convention', conventionSchema, 'Les conventions de propreté des commerces (M2-2)'],
+] as const) {
+  registry.registerPath({
+    method: 'get', path: `/registres/${chemin}`, tags: [TAG_SOURCES], summary: resume, security: SECURISE,
+    request: { query: qCommuneSeule }, responses: { 200: json(z.array(Ligne), 'Registre.'), ...REPONSES_COMMUNES },
+  });
+  registry.registerPath({
+    method: 'post', path: `/registres/${chemin}`, tags: [TAG_SOURCES], summary: `${nom} : saisie`, security: SECURISE,
+    request: { query: qCommuneSeule, body: { content: { 'application/json': { schema: schema as any } } } },
+    responses: { 201: json(Ligne, 'Ligne enregistrée.'), ...REPONSES_COMMUNES },
+  });
+  registry.registerPath({
+    method: 'delete', path: `/registres/${chemin}/{id}`, tags: [TAG_SOURCES], summary: `${nom} : retrait logique`, security: SECURISE,
+    request: { params: pId }, responses: { 204: { description: 'Retiré.' }, ...REPONSES_COMMUNES },
+  });
+}
+registry.registerPath({
+  method: 'patch', path: '/registres/commerces/{id}', tags: [TAG_SOURCES], summary: 'Modifier un commerce', security: SECURISE,
+  request: { params: pId, body: { content: { 'application/json': { schema: commerceSchema.partial() } } } },
+  responses: { 200: json(Ligne, 'Commerce modifié.'), ...REPONSES_COMMUNES },
 });
 
 // --- Observatoire national -------------------------------------------------
@@ -3114,6 +3220,7 @@ const ParametresCommune = registry.register(
       seuil_entretien_km: z.number().int(),
       seuil_entretien_jours: z.number().int(),
       alerter_actions_retard: z.boolean(),
+      objectif_balayage_ml_j: z.number().nullable().openapi({ description: 'Cible du balayage mesuré (M1-1), en mètres linéaires par jour.' }),
       updated_at: z.string().nullable(),
       auteur: z.string().nullable(),
       par_defaut: z.boolean().openapi({ description: 'Vrai tant que la commune n’a jamais enregistré ses paramètres.' }),
@@ -4671,6 +4778,11 @@ const ActionPlanifiee = registry.register(
       terminee_le: z.string().nullable(),
       nb_points: z.number().int(),
       nb_faits: z.number().int(),
+      type: z.enum(['generale', 'nettoyage']),
+      poi_id: z.string().uuid().nullable(),
+      poi_nom: z.string().nullable(),
+      poi_type: z.string().nullable(),
+      metres_lineaires: z.number().nullable().openapi({ description: 'Saisis à la clôture d’un nettoyage : source mesurée du balayage (M1-1).' }),
     })
     .openapi('ActionPlanifiee')
 );
@@ -5105,7 +5217,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.11.0',
+      version: '0.12.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
@@ -5156,6 +5268,7 @@ export function genererDocumentOpenApi() {
       { name: 'Rapports et études', description: "Métadonnées des rapports et études d'une commune (TDR §3.2.9) : titre, catégorie, auteur déclaré, date. Le fichier lui-même est déposé par POST /fichiers. Versionnement : une nouvelle version ne remplace jamais la précédente." },
       { name: 'Maintenance', description: "GMAO (TDR §3.2.2, Jalon 5) : carnet d'entretien des engins, plans d'entretien périodique et échéances calculées depuis la dernière intervention. Commune et FNCT seulement." },
       { name: 'Points : champs libres et actions', description: "Tableau attributaire des points de collecte (TDR §3.2.3, Jalon 6) : champs libres définis par la commune, étiquettes, actions planifiées sur une sélection et leur avancement. Filtrage et export par GET /circuits/points." },
+      { name: 'Registres et lieux', description: "Lieux (marchés, cimetières, abattoirs…), pleins de carburant, fins de poste, dotations EPI, incidents du travail, commerces et conventions : les registres qui font mesurer par la plateforme ce que la fiche d’évaluation faisait déclarer." },
       { name: 'Contacts', description: "Annuaire de travail d'une commune (TDR §3.2.7) : interlocuteurs externes sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT." },
       { name: 'Supervision', description: "État de santé de l'API." },
     ],

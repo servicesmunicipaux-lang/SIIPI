@@ -234,7 +234,7 @@ export function Parametres({ onFermer }: { onFermer: () => void }) {
 function SeuilsCommune({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
   const [parametres, setParametres] = useState<ParametresCommune | null>(null);
-  const [saisie, setSaisie] = useState({ delai: '', km: '', jours: '', actions: true });
+  const [saisie, setSaisie] = useState({ delai: '', km: '', jours: '', actions: true, balayage: '' });
   const [etat, setEtat] = useState<{ type: 'ok' | 'erreur'; texte: string } | null>(null);
   const [enCours, setEnCours] = useState(false);
   const { date } = useFormats();
@@ -246,6 +246,7 @@ function SeuilsCommune({ communeId }: { communeId: string }) {
       km: String(p.seuil_entretien_km),
       jours: String(p.seuil_entretien_jours),
       actions: p.alerter_actions_retard,
+      balayage: p.objectif_balayage_ml_j == null ? '' : String(p.objectif_balayage_ml_j),
     });
   };
 
@@ -266,6 +267,7 @@ function SeuilsCommune({ communeId }: { communeId: string }) {
           seuilEntretienKm: Number(saisie.km),
           seuilEntretienJours: Number(saisie.jours),
           alerterActionsRetard: saisie.actions,
+          objectifBalayageMlJ: saisie.balayage.trim() === '' ? null : Number(saisie.balayage.replace(',', '.')),
         })
       );
       setEtat({ type: 'ok', texte: t('parametres.commune.enregistre') });
@@ -326,6 +328,17 @@ function SeuilsCommune({ communeId }: { communeId: string }) {
               className="size-4"
             />
             {t('parametres.commune.actions')}
+          </label>
+          <label className="block text-sm">
+            <span className="block font-medium text-ardoise-700">{t('parametres.commune.balayage')}</span>
+            <input
+              inputMode="decimal"
+              value={saisie.balayage}
+              onChange={(e) => setSaisie((s) => ({ ...s, balayage: e.target.value }))}
+              placeholder={t('kpi.statuts.non_renseigne')}
+              className={`${champ} mt-1 w-40`}
+            />
+            <span className="mt-1 block text-xs text-ardoise-500">{t('parametres.commune.balayageAide')}</span>
           </label>
           <button type="submit" disabled={enCours} className={boutonPrincipal}>
             {t('parametres.commune.enregistrer')}

@@ -30,11 +30,14 @@ export function FicheEvaluation({
   communeId,
   annee,
   fnct,
+  sources = {},
   onModifiee,
 }: {
   communeId: string;
   annee: number;
   fnct: boolean;
+  /** La source retenue pour chaque indicateur (tableau de bord) : « mesure » signale une déclaration inutile. */
+  sources?: Record<string, string | null>;
   onModifiee: () => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -202,6 +205,9 @@ export function FicheEvaluation({
                       {i.points != null && <span className="ms-2 text-xs text-ardoise-500">{t('kpi.fiche.points', { n: i.points })}</span>}
                     </p>
                     <p className="text-xs text-ardoise-500">{i.description}</p>
+                    {sources[i.code] === 'mesure' && (
+                      <p className="mt-1 rounded bg-emerald-50 px-2 py-1 text-xs text-emerald-800">{t('kpi.fiche.supplanteeParMesure')}</p>
+                    )}
                   </div>
                   <div className="flex flex-wrap items-end gap-2">
                     <label className="text-xs text-ardoise-600">

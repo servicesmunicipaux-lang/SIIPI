@@ -175,6 +175,7 @@ const PARAMETRES_DEFAUT = {
   seuil_entretien_km: 1000,
   seuil_entretien_jours: 30,
   alerter_actions_retard: true,
+  objectif_balayage_ml_j: null as number | null,
 };
 
 export const parametresCommuneSchema = z
@@ -183,6 +184,8 @@ export const parametresCommuneSchema = z
     seuilEntretienKm: z.number().int().min(0).max(100_000).optional(),
     seuilEntretienJours: z.number().int().min(0).max(365).optional(),
     alerterActionsRetard: z.boolean().optional(),
+    // La cible du balayage mesuré (M1-1) ; null l'efface.
+    objectifBalayageMlJ: z.number().positive().max(10_000_000).nullable().optional(),
   })
   .strict();
 
@@ -190,7 +193,8 @@ export const parametresCommuneSchema = z
 export async function parametresDeCommune(communeId: string) {
   const ligne = await queryOne<typeof PARAMETRES_DEFAUT & { updated_at: string; auteur: string | null }>(
     `SELECT p.delai_reclamation_jours, p.seuil_entretien_km, p.seuil_entretien_jours,
-            p.alerter_actions_retard, p.updated_at, u.full_name AS auteur
+            p.alerter_actions_retard, p.objectif_balayage_ml_j::float AS objectif_balayage_ml_j,
+            p.updated_at, u.full_name AS auteur
        FROM parametres_commune p LEFT JOIN users u ON u.id = p.updated_by
       WHERE p.commune_id = $1`,
     [communeId]
@@ -221,13 +225,15 @@ communesRouter.put(
     if (!commune) throw new ApiError(404, 'Commune introuvable.');
     await query(
       `INSERT INTO parametres_commune
-         (commune_id, delai_reclamation_jours, seuil_entretien_km, seuil_entretien_jours, alerter_actions_retard, updated_by)
-       VALUES ($1, COALESCE($2, 7), COALESCE($3, 1000), COALESCE($4, 30), COALESCE($5, true), $6)
+         (commune_id, delai_reclamation_jours, seuil_entretien_km, seuil_entretien_jours, alerter_actions_retard, updated_by,
+          objectif_balayage_ml_j)
+       VALUES ($1, COALESCE($2, 7), COALESCE($3, 1000), COALESCE($4, 30), COALESCE($5, true), $6, $8)
        ON CONFLICT (commune_id) DO UPDATE SET
          delai_reclamation_jours = COALESCE($2, parametres_commune.delai_reclamation_jours),
          seuil_entretien_km = COALESCE($3, parametres_commune.seuil_entretien_km),
          seuil_entretien_jours = COALESCE($4, parametres_commune.seuil_entretien_jours),
          alerter_actions_retard = COALESCE($5, parametres_commune.alerter_actions_retard),
+         objectif_balayage_ml_j = CASE WHEN $7::boolean THEN $8 ELSE parametres_commune.objectif_balayage_ml_j END,
          updated_by = $6`,
       [
         req.params.id,
@@ -236,6 +242,8 @@ communesRouter.put(
         d.seuilEntretienJours ?? null,
         d.alerterActionsRetard ?? null,
         req.user!.sub,
+        d.objectifBalayageMlJ !== undefined,
+        d.objectifBalayageMlJ ?? null,
       ]
     );
     res.json(await parametresDeCommune(req.params.id));

@@ -32,11 +32,12 @@ import { Contacts } from '../composants/communal/Contacts';
 import { TableauPoints } from '../composants/communal/TableauPoints';
 import { DecoupageCommune } from '../composants/communal/DecoupageCommune';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
+import { Registres } from '../composants/registres/Registres';
 import { NavigationOnglets } from '../composants/NavigationOnglets';
 
-type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'circuits' | 'points' | 'parc' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'contacts' | 'comptes';
+type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'circuits' | 'points' | 'registres' | 'parc' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'contacts' | 'comptes';
 
-const ONGLETS: Onglet[] = ['constat', 'carte', 'decoupage', 'reclamations', 'suggestions', 'preuve', 'indicateurs', 'circuits', 'points', 'parc', 'personnel', 'pesees', 'communication', 'rapports', 'contacts', 'comptes'];
+const ONGLETS: Onglet[] = ['constat', 'carte', 'decoupage', 'reclamations', 'suggestions', 'preuve', 'indicateurs', 'circuits', 'points', 'registres', 'parc', 'personnel', 'pesees', 'communication', 'rapports', 'contacts', 'comptes'];
 
 export function EspaceCommunal({
   /** Commune imposée par l'appelant — l'annuaire national, qui vient de la
@@ -151,6 +152,7 @@ export function EspaceCommunal({
         {onglet === 'indicateurs' && <IndicateursCommune communeId={communeId} fnct={estFnct} />}
         {onglet === 'circuits' && <Circuits communeId={communeId} />}
         {onglet === 'points' && <TableauPoints communeId={communeId} />}
+        {onglet === 'registres' && <Registres communeId={communeId} />}
         {onglet === 'parc' && <Parc communeId={communeId} />}
         {onglet === 'personnel' && <Personnel communeId={communeId} />}
         {onglet === 'pesees' && <Pesees communeId={communeId} />}

@@ -12,6 +12,7 @@ Mise à jour du 28 septembre 2026 (fin) : **Jalon 4 clos** — imports CSV (cont
 Mise à jour du 28 septembre 2026 (soir) : **Jalon 5 clos** — la maintenance des engins : carnet d'entretien (`B2.2`) et alertes d'entretien au kilomètre et à la date (`B2.3`).
 Mise à jour du 28 septembre 2026 (nuit) : **Jalon 6 clos** — le tableau des points avec champs libres (`B3.4`), les étiquettes et les actions planifiées sur une sélection (`B3.5`).
 Mise à jour du 28 septembre 2026 (fin de nuit) : **Jalon 7 clos** — les paramètres (`B6.2`, `B6.3`, `B6.4`, `B6.6`) et le découpage validé par la FNCT et versionné (`C2.5`, `C2.6`).
+Mise à jour du 29 septembre 2026 : **lot d'optimisation des sources KPI** — lieux sur carte, nettoyages en mètres linéaires, fin de poste, carburant, EPI, incidents, conventions ; la plateforme mesure ce que la fiche faisait déclarer, avec un badge de source par indicateur.
 Mise à jour du 28 septembre 2026 (clôture) : **Jalon 8 clos** — le tableau de bord KPI 5 axes, la grille du Concours national de propreté (19 indicateurs, reventilation ministérielle), la préparation au décret DMA, les agrégations et les alertes nationales (`Axe 1` à `Axe 5`, `A2.3`, `A3.1`, `A3.3`, `B7.4`).
 
 ---
@@ -251,11 +252,11 @@ les tonnes et la masse salariale.
 
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
-| `Axe 1` | Efficacité opérationnelle | ✅ Fait | contrôles terrain (M1-2), entretien (M1-7), tonnages mesurés ; balayage, bâchage, espaces verts, cimetières, marchés, abattoirs déclarés dans la fiche · campagne kpi-5-axes |
+| `Axe 1` | Efficacité opérationnelle | ✅ Fait | contrôles terrain (M1-2), entretien (M1-7), tonnages mesurés ; balayage (ml des nettoyages), bâchage (fins de poste), cimetières, marchés, abattoirs (nettoyages des lieux) mesurés dès que le registre est tenu, déclarés sinon ; espaces verts déclarés · campagnes kpi-5-axes, kpi-sources |
 | `Axe 2` | Qualité de service | ✅ Fait | réclamations et délai (M3-1), information et consultation (M1-3), digitalisation (M3-3) mesurées ; participation et partenariats déclarés · campagne kpi-5-axes |
 | `Axe 3` | Performance environnementale | ✅ Fait | déchets verts et DDC (M1-5), part collectée séparément (DMA-4) mesurées ; décharge, innovation et préparation au décret DMA déclarées · campagne kpi-5-axes |
-| `Axe 4` | Performance économique | ✅ Fait | coût global à la tonne (salaires, carburant, maintenance, redevances), non renseigné tant qu'une composante manque ; conventions de propreté (M2-2) · campagne kpi-5-axes |
-| `Axe 5` | Sécurité et ressources humaines | ✅ Fait | effectif, encadrement, absentéisme mesurés ; EPI (M1-6), accidents et heures de formation déclarés · campagne kpi-5-axes |
+| `Axe 4` | Performance économique | ✅ Fait | coût global à la tonne (salaires, carburant — mesuré par les pleins —, maintenance, redevances), non renseigné tant qu'une composante manque ; conventions de propreté (M2-2) mesurées par le registre des commerces · campagnes kpi-5-axes, kpi-sources |
+| `Axe 5` | Sécurité et ressources humaines | ✅ Fait | effectif, encadrement, absentéisme mesurés ; EPI (M1-6) et accidents mesurés par leurs registres, déclarés sinon ; heures de formation déclarées · campagnes kpi-5-axes, kpi-sources |
 
 ### 3.2.11 Prestataires privés
 
@@ -699,6 +700,48 @@ barème ; les alertes ; le cloisonnement. Vérifié aussi dans le navigateur :
 l'onglet Indicateurs de La Marsa (« non renseigné » partout où rien n'est
 connu), une valeur saisie par la fiche, la vue nationale, et la validation de
 la fiche par la FNCT depuis « Visualiser ».
+
+### Lot d'optimisation — Les sources automatiques des KPI ✅ *(fait le 29 septembre 2026)*
+
+**Pourquoi après le Jalon 8.** Le tableau de bord tenait, mais une bonne part
+de la grille reposait sur la fiche d'évaluation : une déclaration annuelle, que
+la FNCT valide sans pouvoir la vérifier. Ce lot fait mesurer par la plateforme
+ce que les services tiennent déjà sur papier — sans supprimer la fiche, qui
+reste la source tant qu'un registre n'est pas tenu.
+
+| Quoi | Indicateur | Preuve |
+|---|---|---|
+| Lieux sur carte : marchés, cimetières, abattoirs, écoles, santé | — | `poi` (migration 051), onglet « Registres » › « Lieux et nettoyages » |
+| Actions « Nettoyage » sur un lieu ou des points, closes avec les mètres linéaires réalisés | M1-1, M2-3, M2-4, M2-5 | `actions_planifiees.type`, `.poi_id`, `.metres_lineaires` ; objectif de balayage dans Paramètres |
+| Check-list de fin de poste, « Benne bâchée avant transit » obligatoire | M1-9 | `fins_de_poste` |
+| Pleins de carburant | coût global à la tonne | `fuel_logs` |
+| Dotation EPI | M1-6 | `dotations_epi` |
+| Journal des incidents du travail | Axe 5 (accidents) | `incidents_travail` |
+| Commerces et conventions de propreté | M2-2 | `commerces`, `conventions_commerciales` |
+| Moteur de fusion : mesuré › déclaré › non renseigné, badge de source | tous | `app.mesures_kpi_auto`, `services/kpi5Axes.ts` |
+| Marchés et cimetières sur la carte citoyenne, avec leur état | — | `GET /citoyen/lieux` (`app.lieux_publics`) |
+
+**Principe tenu — un registre vide n'est pas un zéro.** Une mesure n'existe que
+si son registre est tenu dans l'année ; sinon la valeur déclarée reste la
+source, et à défaut l'indicateur est « non renseigné ». Le balayage mesuré sans
+objectif connu (ni dans Paramètres, ni dans la fiche) n'a pas de note. Un lieu
+jamais nettoyé ni planifié est « non renseigné », pas « sale ».
+
+**Cloisonnement.** Un lieu n'est visible que dans sa commune ; une action ne
+peut viser un lieu d'une autre commune. La route citoyenne ne rend que les
+marchés et cimetières actifs — jamais un abattoir.
+
+**Test de validation.** Campagne `kpi-sources` (40/40, nouvelle), sur une année
+vierge : bâchage en quatre temps (déclaré seul ; 3 fins de poste bâchées sur 4, mesuré, qui prime ; mesure retirée, la déclaration reprend ; ni l'une ni l'autre, non renseigné) ;
+balayage à 140,2 ml/j sans puis avec objectif ; marchés à 50 % mesuré,
+abattoirs à 100 %, cimetières restés déclarés faute de nettoyage échu ; EPI,
+conventions, carburant (387,9 TND, compteur relevé), accidents à 0 sur journal
+tenu ; route citoyenne (sans abattoir, 400 sans commune) ; cloisonnement. La
+campagne `kpi-5-axes` reste à 64/64. Vérifié aussi dans le navigateur : un
+marché créé sur la carte de La Marsa, un nettoyage planifié puis clos à
+850 ml, une fin de poste sans bâchage refusée puis enregistrée, les badges
+« Source : mesuré » (M1-9, M2-4), et le marché « propre » sur la carte
+citoyenne.
 
 ### Jalon 9 — L'application mobile citoyenne
 
