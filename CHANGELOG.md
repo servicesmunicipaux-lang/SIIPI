@@ -5,6 +5,33 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.14.0] — 2026-09-29 — Les fichiers géographiques de chaque circuit
+
+### Ajouté
+- **Onglet « Données géographiques »** dans la fiche d'un circuit : le dépôt
+  de l'itinéraire et des arrêts (GPX, KML, KMZ, GeoJSON, CSV), jusqu'ici
+  logé sous « Points de collecte », et le **téléchargement du circuit** en
+  GPX (GPS), KML (Google Earth) ou GeoJSON (QGIS) : tracé et arrêts, avec le
+  type, le voyage, le rang, l'heure relevée, les champs libres et les
+  étiquettes (`GET /circuits/{id}/fichier`).
+- **Un fichier téléchargé se réimporte à l'identique** : types, ordre, heure
+  et tracé reviennent tels quels, dans les trois formats.
+- **Fichiers joints dès la création d'un circuit** (facultatif) : itinéraire
+  et arrêts sont importés juste après l'enregistrement, et la fiche s'ouvre
+  sur l'onglet qui les montre ; un fichier refusé est signalé en tête de la
+  fiche, sans annuler le circuit.
+
+### Corrigé
+- **Carte de la commune** : les tracés étaient tous violets, et le filtre
+  « circuit » ne s'appliquait qu'aux arrêts — vingt-trois circuits se
+  fondaient en une seule tache. Chaque circuit a désormais sa couleur, et le
+  filtre isole aussi son tracé.
+- **Lecteur de relevés** : un KML d'arrêts accompagné d'un tracé perdait le
+  tracé ; un GPX perdait le type de ses points ; un GeoJSON perdait le
+  voyage, l'heure et la précision, et lisait « centre_transfert » comme
+  « autre ». En import « auto », un itinéraire en place n'est toujours pas
+  remplacé d'office par le tracé d'un relevé d'arrêts.
+
 ## [0.13.0] — 2026-09-29 — Données réelles de Djerba (Houmt Souk, Midoun, Ajim)
 
 ### Ajouté

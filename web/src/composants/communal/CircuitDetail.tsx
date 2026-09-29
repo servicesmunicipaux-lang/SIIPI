@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type Circuit, type EquipeDuJour, type PointCollecte } from '../../lib/api';
+import { api, ErreurApi, telechargerCircuit, type Circuit, type EquipeDuJour, type PointCollecte } from '../../lib/api';
 import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { CircuitCarte } from './CircuitCarte';
@@ -33,22 +33,28 @@ function nombreOuNul(champs: Record<string, string | number>): Record<string, nu
   );
 }
 
-type Onglet = 'fiche' | 'points' | 'carte' | 'historique';
+export type OngletCircuit = 'fiche' | 'geo' | 'points' | 'carte' | 'historique';
+type Onglet = OngletCircuit;
 
 export function CircuitDetail({
   circuit,
   communeId,
   onFerme,
   onModifie,
+  ongletInitial = 'fiche',
 }: {
   circuit: Circuit;
   communeId: string;
   onFerme: () => void;
   onModifie: () => void;
+  /** L'onglet ouvert d'emblée — « geo » juste après la création avec fichiers. */
+  ongletInitial?: OngletCircuit;
 }) {
   const { t } = useTranslation();
   const formats = useFormats();
-  const [onglet, setOnglet] = useState<Onglet>('fiche');
+  const [onglet, setOnglet] = useState<Onglet>(ongletInitial);
+  const [telechargement, setTelechargement] = useState<string | null>(null);
+  const [erreurTelechargement, setErreurTelechargement] = useState<string | null>(null);
   const [points, setPoints] = useState<PointCollecte[] | null>(null);
   const [historique, setHistorique] = useState<Awaited<ReturnType<typeof api.historiqueCircuit>> | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -284,7 +290,7 @@ export function CircuitDetail({
       </header>
 
       <nav className="flex flex-wrap gap-1.5 border-b border-ardoise-200">
-        {(['fiche', 'points', 'carte', 'historique'] as const).map((o) => (
+        {(['fiche', 'geo', 'points', 'carte', 'historique'] as const).map((o) => (
           <button
             key={o}
             type="button"
@@ -578,13 +584,12 @@ export function CircuitDetail({
         </form>
       )}
 
-      {onglet === 'points' && (
+      {onglet === 'geo' && (
         <div className="space-y-4">
+          <p className="max-w-3xl text-sm text-ardoise-600">{t('communal.circuits.geo.aide')}</p>
           {/* Deux dépôts distincts, parce qu'un circuit a deux choses à
               recevoir et qu'elles arrivent dans des fichiers différents :
-              l'itinéraire dessiné d'un côté, les arrêts relevés de l'autre.
-              Une zone unique devait deviner, et sa devinette écrasait
-              parfois l'itinéraire prévu par le trajet suivi un matin. */}
+              l'itinéraire dessiné d'un côté, les arrêts relevés de l'autre. */}
           <div className="grid gap-4 lg:grid-cols-2">
             <CircuitImport
               circuitId={circuit.id}
@@ -604,6 +609,47 @@ export function CircuitDetail({
               }}
             />
           </div>
+          <section className="rounded-xl border border-ardoise-200 bg-white p-4">
+            <h2 className="text-sm font-semibold text-ardoise-900">{t('communal.circuits.geo.telecharger')}</h2>
+            <p className="mt-1 max-w-3xl text-xs text-ardoise-500">{t('communal.circuits.geo.telechargerAide')}</p>
+            {!circuit.trace && (points?.length ?? 0) === 0 ? (
+              <p className="mt-3 text-sm text-ardoise-500">{t('communal.circuits.geo.rien')}</p>
+            ) : (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(['gpx', 'kml', 'geojson'] as const).map((format) => (
+                  <button
+                    key={format}
+                    type="button"
+                    disabled={telechargement !== null}
+                    onClick={() => {
+                      setTelechargement(format);
+                      setErreurTelechargement(null);
+                      telechargerCircuit(circuit.id, format)
+                        .catch((err) =>
+                          setErreurTelechargement(err instanceof ErreurApi ? err.message : t('commun.erreur'))
+                        )
+                        .finally(() => setTelechargement(null));
+                    }}
+                    className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-4 text-sm font-medium text-ardoise-700 hover:bg-ardoise-50 disabled:opacity-50"
+                  >
+                    {telechargement === format ? t('export.enCours') : t(`communal.circuits.geo.formats.${format}`)}
+                  </button>
+                ))}
+              </div>
+            )}
+            {erreurTelechargement && <p className="mt-2 text-sm text-red-700">{erreurTelechargement}</p>}
+          </section>
+        </div>
+      )}
+
+      {onglet === 'points' && (
+        <div className="space-y-4">
+          <p className="text-sm text-ardoise-600">
+            {t('communal.circuits.geo.renvoi')}{' '}
+            <button type="button" onClick={() => setOnglet('geo')} className="font-medium text-siipi-700 underline">
+              {t('communal.circuits.onglets.geo')}
+            </button>
+          </p>
           {!points ? (
             <Chargement />
           ) : points.length === 0 ? (

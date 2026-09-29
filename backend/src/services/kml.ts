@@ -101,6 +101,9 @@ const TAGS: Record<string, TypePoint> = {
   'fin collecte': 'fin_collecte',
   'point noir': 'point_noir',
   'centre de transfert': 'centre_transfert',
+  // Le code de la plateforme lui-même (« centre_transfert »), tel qu'un
+  // export GeoJSON ou QGIS l'écrit.
+  'centre transfert': 'centre_transfert',
   'sortie centre': 'centre_transfert',
   'hors conteneur': 'hors_conteneur',
   'parc municipal': 'parc_municipal',
@@ -440,7 +443,18 @@ export function lireKml(contenuFichier: Buffer | string): ResultatKml {
       );
     }
 
-    return { famille: 'waypoints', nom, points, trace: [], statistiques: {}, avertissements };
+    // Un tracé peut accompagner les arrêts (fichier exporté par SIIPI, ou
+    // dessiné dans Google Earth) : on le lit, sans le poser d'office — c'est
+    // à l'appelant de demander l'itinéraire (voir la route d'import).
+    const traceJointe: [number, number][] = [];
+    for (const l of tousLes(doc, 'LineString')) {
+      for (const bloc of (texte(l.coordinates) ?? '').trim().split(/\s+/)) {
+        const c = coord(bloc);
+        if (c) traceJointe.push(c);
+      }
+    }
+
+    return { famille: 'waypoints', nom, points, trace: traceJointe, statistiques: {}, avertissements };
   }
 
   // --- Famille C : itinéraire dessiné ---------------------------------------
@@ -513,7 +527,7 @@ function lireGpx(xml: string): ResultatKml {
     contenu(tousLes(doc, 'trk')[0]?.name) ??
     null;
 
-  const arretsBruts: { nom: string | null; lat: number; lng: number; when: string | null; desc: string | null }[] = [];
+  const arretsBruts: { nom: string | null; lat: number; lng: number; when: string | null; desc: string | null; type: string | null }[] = [];
   const lirePoints = (noeuds: Record<string, unknown>[]) => {
     for (const n of noeuds) {
       const lat = Number(n['@lat']);
@@ -525,6 +539,8 @@ function lireGpx(xml: string): ResultatKml {
         lng,
         when: texte(n.time),
         desc: contenu(n.desc) ?? contenu(n.cmt),
+        // <type> : la catégorie du point, quand le fichier la porte (export SIIPI).
+        type: contenu(n.type),
       });
     }
   };
@@ -554,7 +570,7 @@ function lireGpx(xml: string): ResultatKml {
     voyage: 1,
     ordre: i + 1,
     nom: p.nom,
-    type: classerLibelle(p.nom),
+    type: p.type ? classer([p.type]) : classerLibelle(p.nom),
     lat: p.lat,
     lng: p.lng,
     precisionM: null,
@@ -721,8 +737,14 @@ function lireGeoJson(texteJson: string): ResultatKml {
     if (type === 'Point' && Array.isArray(c) && typeof c[0] === 'number' && typeof c[1] === 'number') {
       const nomPoint = propriete(props, ['name', 'nom', 'libelle', 'label', 'titre', 'title']);
       const typeBrut = propriete(props, ['type', 'categorie', 'category', 'tags', 'tag']);
+      // Le voyage, l'heure relevée et la précision, quand le fichier les
+      // porte — c'est le cas d'un circuit exporté par SIIPI. Une valeur hors
+      // forme est ignorée plutôt que devinée.
+      const voyage = Number(propriete(props, ['voyage', 'rotation']) ?? NaN);
+      const heure = propriete(props, ['heure observee', 'heure relevee', 'heure']);
+      const precision = propriete(props, ['precision m', 'precision', 'accuracy']);
       points.push({
-        voyage: 1,
+        voyage: Number.isInteger(voyage) && voyage >= 1 && voyage <= 6 ? voyage : 1,
         ordre: ++rang,
         nom: nomPoint,
         // Une propriété « type » ou « tags » est une étiquette délibérée : on
@@ -730,8 +752,8 @@ function lireGeoJson(texteJson: string): ResultatKml {
         type: typeBrut ? classer(typeBrut.split(',')) : classerLibelle(nomPoint),
         lat: c[1],
         lng: c[0],
-        precisionM: null,
-        heureObservee: null,
+        precisionM: precision !== null && Number.isFinite(Number(precision)) ? Number(precision) : null,
+        heureObservee: heure && /^\d{2}:\d{2}(:\d{2})?$/.test(heure) ? `${heure}:00`.slice(0, 8) : null,
         observation: propriete(props, ['description', 'commentaire', 'observation', 'remarque']),
       });
     } else if (type === 'LineString') {
@@ -764,12 +786,22 @@ function lireGeoJson(texteJson: string): ResultatKml {
   if (points.length === 0 && trace.length === 0) {
     avertissements.push("Aucun point ni ligne exploitable dans ce fichier.");
   }
+  // Le rang se compte dans chaque voyage, comme partout ailleurs : deux
+  // rotations ne partagent pas la même suite de numéros.
+  const rangs = new Map<number, number>();
+  for (const p of points) {
+    const r = (rangs.get(p.voyage) ?? 0) + 1;
+    rangs.set(p.voyage, r);
+    p.ordre = r;
+  }
   // Un GeoJSON n'a pas d'ordre garanti : l'ordre du fichier est repris tel
   // quel, et il faut le dire plutôt que de laisser croire à une tournée.
-  if (points.length > 1) {
+  if (points.length > 1 && !points.some((p) => p.heureObservee)) {
     avertissements.push(
       "L'ordre de passage repris est celui du fichier. Un GeoJSON ne porte aucune heure de relevé : vérifiez-le, et complétez les heures à la main si nécessaire."
     );
+  } else if (points.length > 1) {
+    avertissements.push("L'ordre de passage repris est celui du fichier : vérifiez-le.");
   }
 
   return {
