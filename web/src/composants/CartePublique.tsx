@@ -14,8 +14,9 @@ import { useTranslation } from 'react-i18next';
 import { MapContainer, TileLayer, CircleMarker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { api, ErreurApi, type PointCarte } from '../lib/api';
+import { api, ErreurApi, type LieuPublic, type PointCarte } from '../lib/api';
 import { Chargement, Erreur } from './Elements';
+import { useFormats } from '../lib/formats';
 
 const COULEURS: Record<string, string> = {
   recu: '#dc2626',
@@ -23,6 +24,15 @@ const COULEURS: Record<string, string> = {
   en_cours: '#ca8a04',
   resolu: '#16a34a',
   rejete: '#64748b',
+};
+
+// L'état de propreté d'un marché ou d'un cimetière (cercle à fond blanc, pour
+// ne pas le confondre avec un signalement).
+const COULEURS_LIEU: Record<string, string> = {
+  propre: '#16a34a',
+  nettoyage_prevu: '#2563eb',
+  a_surveiller: '#d97706',
+  non_renseigne: '#94a3b8',
 };
 
 // La Tunisie entière : ce n'est qu'un repli, le temps que la limite de la
@@ -46,6 +56,7 @@ function CadrerSurCommune({ limite }: { limite: GeoJSON.GeoJsonObject | null }) 
 
 export function CartePublique({ communeId }: { communeId?: string }) {
   const { t } = useTranslation();
+  const f = useFormats();
   const [points, setPoints] = useState<PointCarte[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [filtre, setFiltre] = useState<string>('tous');
@@ -55,6 +66,21 @@ export function CartePublique({ communeId }: { communeId?: string }) {
   // décompte, l'écran annonce « 0 signalement » à quelqu'un qui vient d'en
   // déposer un, et le service passe pour défaillant alors qu'il a marché.
   const [sansPosition, setSansPosition] = useState(0);
+  // Les marchés et cimetières de la commune, avec leur état de propreté. Un
+  // lieu jamais nettoyé ni planifié est « non renseigné », pas « sale ».
+  const [lieux, setLieux] = useState<LieuPublic[]>([]);
+
+  useEffect(() => {
+    if (!communeId) return;
+    let annule = false;
+    api.lieuxPublics(communeId).then(
+      (l) => !annule && setLieux(l),
+      () => undefined // Un confort : son absence ne doit pas vider la carte.
+    );
+    return () => {
+      annule = true;
+    };
+  }, [communeId]);
 
   useEffect(() => {
     let annule = false;
@@ -206,8 +232,27 @@ export function CartePublique({ communeId }: { communeId?: string }) {
                 </Popup>
               </CircleMarker>
             ))}
+          {lieux.map((l) => (
+            <CircleMarker
+              key={l.id}
+              center={[l.lat, l.lng]}
+              radius={11}
+              pathOptions={{ color: COULEURS_LIEU[l.etat] ?? '#64748b', fillColor: '#ffffff', fillOpacity: 0.9, weight: 4 }}
+            >
+              <Popup>
+                <p className="font-semibold">{l.nom}</p>
+                <p className="text-xs">
+                  {t(`citoyen.lieux.types.${l.type}`)} · {t(`citoyen.lieux.etats.${l.etat}`)}
+                </p>
+                {l.dernier_nettoyage && <p className="text-xs">{t('citoyen.lieux.dernier', { date: f.date(l.dernier_nettoyage) })}</p>}
+                {l.prochain_nettoyage && <p className="text-xs">{t('citoyen.lieux.prochain', { date: f.date(l.prochain_nettoyage) })}</p>}
+              </Popup>
+            </CircleMarker>
+          ))}
         </MapContainer>
       </div>
+
+      {lieux.length > 0 && <p className="text-xs text-ardoise-500">{t('citoyen.lieux.legende')}</p>}
 
       {/* La position affichée est approximative, et le dire fait partie de la
           protection : un citoyen doit savoir qu'on ne publie pas sa porte. */}

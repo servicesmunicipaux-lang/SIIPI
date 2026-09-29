@@ -369,6 +369,21 @@
       "orientee_collecteur": "Collecteur agréé",
       "refusee": "Refusée",
       "annulee": "Annulée"
+    },
+    "lieux": {
+      "types": {
+        "marche": "Marché",
+        "cimetiere": "Cimetière"
+      },
+      "etats": {
+        "propre": "propre",
+        "nettoyage_prevu": "nettoyage prévu",
+        "a_surveiller": "à surveiller",
+        "non_renseigne": "état non renseigné"
+      },
+      "dernier": "Nettoyé le {{date}}",
+      "prochain": "Prochain nettoyage le {{date}}",
+      "legende": "Les cercles à fond blanc sont les marchés et cimetières de la commune : vert, propre ; bleu, nettoyage prévu ; orange, à surveiller ; gris, non renseigné."
     }
   },
   "communal": {
@@ -382,6 +397,7 @@
       "indicateurs": "Indicateurs",
       "circuits": "Circuits",
       "points": "Points",
+      "registres": "Registres",
       "carte": "Carte",
       "decoupage": "Découpage",
       "comptes": "Comptes",
@@ -1304,7 +1320,8 @@
         "confirmerRetrait": "Retirer l'action « {{titre}} » ?",
         "fait": "Fait",
         "faitLe": "Fait le",
-        "cocherFait": "Marquer {{nom}} comme fait"
+        "cocherFait": "Marquer {{nom}} comme fait",
+        "lieu": "lieu : {{nom}}"
       }
     }
   },
@@ -1467,7 +1484,9 @@
       "seuilAide": "Proposé à chaque nouveau plan d'entretien ; chaque plan garde le sien.",
       "actions": "Signaler les actions planifiées dont la date est passée",
       "enregistrer": "Enregistrer les seuils",
-      "enregistre": "Seuils enregistrés."
+      "enregistre": "Seuils enregistrés.",
+      "balayage": "Objectif de balayage (mètres linéaires par jour)",
+      "balayageAide": "La cible du balayage mesuré par les nettoyages (M1-1), selon la taille de la commune. Vide : la cible déclarée dans la fiche sert."
     },
     "motDePasse": {
       "titre": "Mot de passe",
@@ -1604,8 +1623,12 @@
       }
     },
     "sources": {
-      "calcule": "mesuré par SIIPI",
-      "saisi": "déclaré"
+      "mesure": "Source : mesuré",
+      "declare": "Source : déclaré",
+      "aide": {
+        "mesure": "Mesuré par un registre de la plateforme : cette valeur prime sur la fiche d'évaluation.",
+        "declare": "Déclaré dans la fiche d'évaluation, faute de mesure par la plateforme."
+      }
     },
     "reventileVers": "Points reportés sur {{code}}",
     "recoitDe": "Reçoit les points de {{codes}}",
@@ -1704,7 +1727,8 @@
       "validee": "Fiche validée : elle entre au classement officiel.",
       "motifRenvoi": "Motif du renvoi (la commune le lira)",
       "rouvrir": "Rouvrir la fiche",
-      "rouverte": "Fiche rouverte et renvoyée à la commune."
+      "rouverte": "Fiche rouverte et renvoyée à la commune.",
+      "supplanteeParMesure": "Mesuré par la plateforme cette année : cette valeur déclarée n'est pas utilisée."
     },
     "national": {
       "titre": "Indicateurs et Concours national de propreté",
@@ -1774,6 +1798,216 @@
       "retirer": "Retirer",
       "ajouterDistrict": "Ajouter un district",
       "districtsEnregistres": "Districts enregistrés."
+    }
+  },
+  "registres": {
+    "titre": "Registres",
+    "chapeau": "Tenus au fil de l'eau, ces registres font mesurer par la plateforme ce que la fiche d'évaluation faisait déclarer. Tant qu'un registre n'est pas tenu, la déclaration reste la source.",
+    "vues": {
+      "lieux": "Lieux et nettoyages",
+      "fins-de-poste": "Fins de poste",
+      "carburant": "Carburant",
+      "epi": "Dotation EPI",
+      "incidents": "Incidents du travail",
+      "conventions": "Commerces et conventions"
+    },
+    "requis": "« {{champ}} » est obligatoire.",
+    "enregistre": "Enregistré.",
+    "confirmerRetrait": "Retirer cette ligne ? Elle reste dans l'historique.",
+    "ajouter": "Ajouter",
+    "retirer": "Retirer",
+    "fins-de-poste": {
+      "aide": "La check-list du chauffeur en fin de poste. « Benne bâchée avant transit » est obligatoire : son taux de oui mesure le bâchage (M1-9).",
+      "vide": "Aucune fin de poste saisie : le bâchage reste celui de la fiche d'évaluation.",
+      "champs": {
+        "vehiculeId": "Engin",
+        "jour": "Jour",
+        "benneBachee": "Benne bâchée avant transit",
+        "chauffeurId": "Chauffeur",
+        "observation": "Observation"
+      },
+      "colonnes": {
+        "jour": "Jour",
+        "registration": "Engin",
+        "chauffeur": "Chauffeur",
+        "benne_bachee": "Bâchée",
+        "observation": "Observation"
+      }
+    },
+    "carburant": {
+      "aide": "Les pleins des engins. Leur montant entre dans le coût global à la tonne ; un kilométrage plus élevé relève le compteur de l'engin.",
+      "vide": "Aucun plein saisi : le carburant reste celui de la fiche d'évaluation.",
+      "champs": {
+        "vehiculeId": "Engin",
+        "datePlein": "Date",
+        "litres": "Litres",
+        "montantTnd": "Montant (TND)",
+        "kilometrage": "Kilométrage"
+      },
+      "colonnes": {
+        "date_plein": "Date",
+        "registration": "Engin",
+        "litres": "Litres",
+        "montant_tnd": "Montant",
+        "kilometrage": "Kilométrage"
+      }
+    },
+    "epi": {
+      "aide": "Les équipements remis à chaque agent. Les agents de terrain dotés, sur l'effectif de terrain, mesurent l'indicateur EPI (M1-6).",
+      "vide": "Aucune dotation saisie : l'indicateur EPI reste celui de la fiche d'évaluation.",
+      "champs": {
+        "personnelId": "Agent",
+        "typeEpi": "Équipement",
+        "dateRemise": "Remis le",
+        "dateRenouvellement": "À renouveler le"
+      },
+      "colonnes": {
+        "nom_complet": "Agent",
+        "type_epi": "Équipement",
+        "date_remise": "Remis le",
+        "date_renouvellement": "À renouveler le",
+        "en_cours": "En cours"
+      },
+      "options": {
+        "typeEpi": {
+          "kit_complet": "Kit complet",
+          "gants": "Gants",
+          "chaussures": "Chaussures de sécurité",
+          "gilet": "Gilet haute visibilité",
+          "tenue": "Tenue de travail",
+          "masque": "Masque",
+          "casque": "Casque",
+          "lunettes": "Lunettes",
+          "autre": "Autre"
+        }
+      }
+    },
+    "incidents": {
+      "aide": "Le journal des incidents du travail. Un journal tenu dans l'année, même sans accident, dit « 0 accident » ; un journal vide ne dit rien.",
+      "vide": "Aucun incident saisi cette année : les accidents restent ceux de la fiche d'évaluation.",
+      "champs": {
+        "dateIncident": "Date",
+        "type": "Type",
+        "gravite": "Gravité",
+        "personnelId": "Agent",
+        "joursArret": "Jours d'arrêt",
+        "description": "Description"
+      },
+      "colonnes": {
+        "date_incident": "Date",
+        "type": "Type",
+        "gravite": "Gravité",
+        "nom_complet": "Agent",
+        "jours_arret": "Jours d'arrêt"
+      },
+      "options": {
+        "type": {
+          "accident": "Accident",
+          "presque_accident": "Presque-accident",
+          "agression": "Agression",
+          "maladie_professionnelle": "Maladie professionnelle",
+          "autre": "Autre"
+        },
+        "gravite": {
+          "benin": "Bénin",
+          "avec_arret": "Avec arrêt",
+          "grave": "Grave"
+        }
+      }
+    },
+    "commerces": {
+      "aide": "Les commerces et institutions publiques que la commune cible pour une convention de propreté.",
+      "vide": "Aucun commerce saisi : les conventions restent celles de la fiche d'évaluation.",
+      "champs": {
+        "nom": "Nom",
+        "categorie": "Catégorie",
+        "activite": "Activité",
+        "adresse": "Adresse"
+      },
+      "colonnes": {
+        "nom": "Nom",
+        "categorie": "Catégorie",
+        "activite": "Activité",
+        "sous_convention": "Sous convention"
+      },
+      "options": {
+        "categorie": {
+          "commerce": "Commerce",
+          "institution": "Institution publique"
+        }
+      }
+    },
+    "conventions": {
+      "aide": "Les conventions de propreté. Les commerces sous convention active, sur les commerces ciblés, mesurent l'indicateur M2-2.",
+      "vide": "Aucune convention saisie.",
+      "champs": {
+        "commerceId": "Commerce",
+        "type": "Type",
+        "dateDebut": "Début",
+        "dateFin": "Fin",
+        "tonnageEstime": "Tonnage estimé (t)"
+      },
+      "colonnes": {
+        "commerce": "Commerce",
+        "type": "Type",
+        "date_debut": "Début",
+        "date_fin": "Fin",
+        "tonnage_estime": "Tonnage estimé",
+        "active": "Active"
+      },
+      "options": {
+        "type": {
+          "collecte": "Collecte",
+          "nettoyage": "Nettoyage",
+          "tri": "Tri",
+          "autre": "Autre"
+        }
+      }
+    },
+    "lieux": {
+      "aide": "Les lieux où la propreté se suit : on y planifie des nettoyages, et on les clôt avec les mètres linéaires réalisés. Cela mesure le balayage, les marchés, les cimetières et les abattoirs.",
+      "type": "Type",
+      "tousTypes": "Tous les types",
+      "types": {
+        "marche": "Marché",
+        "cimetiere": "Cimetière",
+        "abattoir": "Abattoir",
+        "ecole": "École",
+        "sante": "Santé",
+        "autre": "Autre"
+      },
+      "ajouter": "Ajouter un lieu",
+      "cliquerCarte": "Cliquez sur la carte pour placer le lieu.",
+      "positionRequise": "Position à choisir sur la carte",
+      "nom": "Nom du lieu",
+      "adresse": "Adresse (facultatif)",
+      "creer": "Créer le lieu",
+      "cree": "Lieu créé.",
+      "vide": "Aucun lieu enregistré.",
+      "dernier": "nettoyé le {{date}}",
+      "etats": {
+        "propre": "Propre",
+        "nettoyage_prevu": "Nettoyage prévu",
+        "a_surveiller": "À surveiller",
+        "en_retard": "Nettoyage en retard",
+        "non_renseigne": "Non renseigné"
+      },
+      "jamaisPublic": "jamais montré au public",
+      "deplacer": "Déplacer",
+      "deplace": "Lieu déplacé.",
+      "desactiver": "Désactiver",
+      "activer": "Réactiver",
+      "retire": "Lieu retiré.",
+      "nettoyages": "Nettoyages",
+      "titreNettoyage": "Nettoyage — {{nom}}",
+      "datePrevue": "Date prévue",
+      "planifier": "Planifier un nettoyage",
+      "planifie": "Nettoyage planifié.",
+      "aucunNettoyage": "Aucun nettoyage : l'état du lieu est « non renseigné ».",
+      "ml": "{{n}} ml",
+      "mlRealises": "Mètres linéaires réalisés",
+      "terminer": "Terminer",
+      "termine": "Nettoyage terminé."
     }
   }
 }

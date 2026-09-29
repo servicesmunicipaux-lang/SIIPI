@@ -110,6 +110,8 @@ export function ActionsPoints({
               {f.date(ouverte.date_prevue)}
               {ouverte.date_fin && ` → ${f.date(ouverte.date_fin)}`}
               {ouverte.responsable && ` · ${ouverte.responsable}`}
+              {ouverte.poi_nom && ` · ${t('communal.points.actions.lieu', { nom: ouverte.poi_nom })}`}
+              {ouverte.metres_lineaires != null && ` · ${t('registres.lieux.ml', { n: ouverte.metres_lineaires })}`}
             </p>
             {ouverte.description && <p className="mt-1 text-sm text-ardoise-700">{ouverte.description}</p>}
           </div>
@@ -138,7 +140,13 @@ export function ActionsPoints({
                 type="button"
                 className={boutonPrincipal}
                 disabled={enCours}
-                onClick={() => void agir(() => api.modifierAction(ouverte.id, { statut: 'terminee' }))}
+                onClick={() => {
+                  // Un nettoyage se clôt avec ses mètres linéaires : c'est la
+                  // source mesurée du balayage (M1-1). Laisser vide est permis.
+                  const ml = ouverte.type === 'nettoyage' ? window.prompt(t('registres.lieux.mlRealises')) : null;
+                  const n = ml && ml.trim() ? Number(ml.trim().replace(',', '.')) : undefined;
+                  void agir(() => api.modifierAction(ouverte.id, { statut: 'terminee', ...(n != null && Number.isFinite(n) ? { metresLineaires: n } : {}) }));
+                }}
               >
                 {t('communal.points.actions.terminer')}
               </button>

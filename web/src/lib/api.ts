@@ -127,6 +127,11 @@ export type ResultatIndicateur = KpiCommune['indicateurs'][number];
 export type LigneClassement = Reponse<'/kpi/concours-national', 'get'> extends (infer U)[] ? U : never;
 export type SaisieFiche = Corps<'/kpi/evaluations/{communeId}/{annee}', 'put'>;
 export type NiveauKpi = 'commune' | 'gouvernorat' | 'district' | 'national';
+// --- Registres et lieux : les sources automatisées des KPI -------------------
+export type Lieu = Reponse<'/poi', 'get'>[number];
+export type SaisieLieu = Corps<'/poi', 'post'>;
+export type LieuPublic = Reponse<'/citoyen/lieux', 'get'>[number];
+export type NomRegistre = 'carburant' | 'fins-de-poste' | 'epi' | 'incidents' | 'commerces' | 'conventions';
 export type LigneGouvernorat = Reponse<'/observatoire/gouvernorats', 'get'>[number];
 export type StatutCommune = Reponse<'/observatoire/deploiement', 'get'>[number];
 
@@ -490,6 +495,9 @@ export const api = {
     requete<PointCarte[]>(
       `/citoyen/carte${communeId ? `?communeId=${encodeURIComponent(communeId)}` : ''}`
     ),
+  // Les marchés et cimetières de la commune et leur état de propreté —
+  // jamais un abattoir : le serveur ne les renvoie pas.
+  lieuxPublics: (communeId: string) => requete<LieuPublic[]>(`/citoyen/lieux?communeId=${encodeURIComponent(communeId)}`),
   signaler: (saisie: SaisieSignalement) =>
     requete<{ id: string; ticket_number: string }>('/tickets', {
       method: 'POST',
@@ -968,6 +976,25 @@ export const api = {
   enregistrerDistricts: (saisie: Corps<'/kpi/districts', 'put'>) =>
     requete<{ districts: number; rattaches: number }>('/kpi/districts', { method: 'PUT', body: JSON.stringify(saisie) }),
   kpiPrestataire: (annee: number) => requete<{ annee: number; lignes: any[] }>(`/kpi/prestataire?annee=${annee}`),
+
+  // --- Lieux et registres (sources automatisées des KPI) ----------------------
+  lieux: (communeId: string) => requete<Lieu[]>(`/poi?communeId=${encodeURIComponent(communeId)}`),
+  creerLieu: (communeId: string, saisie: SaisieLieu) =>
+    requete<Lieu>(`/poi?communeId=${encodeURIComponent(communeId)}`, { method: 'POST', body: JSON.stringify(saisie) }),
+  modifierLieu: (id: string, saisie: Partial<SaisieLieu>) =>
+    requete<Lieu>(`/poi/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
+  retirerLieu: (id: string) => requete<void>(`/poi/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  nettoyagesLieu: (communeId: string, poiId: string) =>
+    requete<ActionPlanifiee[]>(`/points/actions?communeId=${encodeURIComponent(communeId)}&poiId=${encodeURIComponent(poiId)}`),
+  registre: (nom: NomRegistre, communeId: string) =>
+    requete<Record<string, any>[]>(`/registres/${nom}?communeId=${encodeURIComponent(communeId)}`),
+  ajouterAuRegistre: (nom: NomRegistre, communeId: string, saisie: Record<string, unknown>) =>
+    requete<Record<string, any>>(`/registres/${nom}?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  retirerDuRegistre: (nom: NomRegistre, id: string) =>
+    requete<void>(`/registres/${nom}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   enregistrerFrontiere: (communeId: string, geometry: unknown) =>
     requete<unknown>(`/communes/${communeId}/frontiere`, {

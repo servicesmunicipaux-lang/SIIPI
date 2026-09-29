@@ -5,6 +5,46 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.12.0] — 2026-09-29 — Lot d'optimisation : les sources automatiques des KPI
+
+### Ajouté
+- **Onglet « Registres »** de l'espace communal : six registres tenus au fil de
+  l'eau, qui font MESURER par la plateforme ce que la fiche d'évaluation
+  faisait déclarer.
+- **Lieux sur carte** (`poi`) : marchés, cimetières, abattoirs, écoles,
+  centres de santé — créés, déplacés, désactivés sur la carte de la commune,
+  secteur rattaché automatiquement. Un lieu hors de la commune est refusé.
+- **Actions de type « Nettoyage »**, rattachées à un lieu ou à des points, et
+  closes avec les **mètres linéaires réalisés**. Elles mesurent le balayage
+  (M1-1, ml/jour face à l'objectif de la commune, réglable dans Paramètres),
+  les marchés (M2-4), les cimetières (M2-3) et les abattoirs (M2-5) : nettoyages
+  faits sur nettoyages échus.
+- **Check-list de fin de poste** : « Benne bâchée avant transit » obligatoire,
+  sans valeur par défaut ; le taux de oui mesure le bâchage (M1-9).
+- **Carburant** (`fuel_logs`) : les pleins entrent dans le coût global à la
+  tonne ; un kilométrage plus élevé relève le compteur de l'engin.
+- **Dotation EPI** (M1-6 : agents de terrain dotés sur l'effectif de terrain),
+  **journal des incidents du travail** (axe 5), **commerces et conventions de
+  propreté** (M2-2 : commerces sous convention active sur commerces ciblés).
+- **Moteur de fusion** : la mesure automatique d'abord, sinon la valeur
+  déclarée dans la fiche, sinon « Non renseigné ». Chaque indicateur porte un
+  badge « Source : mesuré » ou « Source : déclaré » ; la fiche signale une
+  déclaration supplantée par une mesure. La fiche et sa validation par la FNCT
+  restent inchangées.
+- **Carte citoyenne** : les marchés et cimetières de la commune et leur état
+  de propreté (`GET /citoyen/lieux`, public). Jamais un abattoir, ni un lieu
+  d'une autre commune.
+- Migration 051, 24 routes (`/poi`, `/registres/*`, `/citoyen/lieux`),
+  nouvelle campagne `kpi-sources` (40/40) ; `kpi-5-axes` reste à 64/64.
+
+### Décisions à retenir
+- **Un registre vide n'est pas un zéro** : la mesure n'existe que si le
+  registre est tenu dans l'année ; sinon la déclaration reste la source. Un
+  journal d'incidents tenu sans accident dit « 0 accident » ; un journal vide
+  ne dit rien.
+- **Un lieu jamais nettoyé ni planifié est « non renseigné »**, pas « sale ».
+- **Cimetières = M2-3, Digitalisation = M3-3** (lecture du Jalon 8 conservée).
+
 ## [0.11.0] — 2026-09-28 — Jalon 8 : KPI 5 axes, Concours national de propreté, préparation DMA
 
 ### Ajouté

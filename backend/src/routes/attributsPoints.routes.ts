@@ -517,6 +517,10 @@ attributsPointsRouter.patch(
 const ACTION_SELECT = `
   SELECT a.id, a.commune_id, a.titre, a.description, a.date_prevue, a.date_fin, a.responsable,
          a.statut, a.terminee_le, a.created_at, a.updated_at,
+         -- Lot « sources KPI » : une action de nettoyage, rattachée à un lieu,
+         -- avec les mètres linéaires saisis à la clôture.
+         a.type, a.poi_id, (SELECT nom FROM poi WHERE id = a.poi_id) AS poi_nom,
+         (SELECT type FROM poi WHERE id = a.poi_id) AS poi_type, a.metres_lineaires::float AS metres_lineaires,
          (SELECT count(*)::int FROM actions_points ap
             JOIN points_collecte p ON p.id = ap.point_id AND p.deleted_at IS NULL
            WHERE ap.action_id = a.id) AS nb_points,
@@ -535,13 +539,16 @@ attributsPointsRouter.get(
   requireRole(...ROLES),
   asyncHandler(async (req, res) => {
     const communeId = communeRequise(req);
-    const q = z.object({ statut: z.enum(STATUTS_ACTION).optional() }).parse(req.query);
+    const q = z
+      .object({ statut: z.enum(STATUTS_ACTION).optional(), poiId: z.string().uuid().optional(), type: z.enum(TYPES_ACTION).optional() })
+      .parse(req.query);
     res.json(
       await query(
         `${actionSelect(3)}
           WHERE a.commune_id = $1 AND a.deleted_at IS NULL AND ($2::text IS NULL OR a.statut = $2)
+            AND ($4::uuid IS NULL OR a.poi_id = $4) AND ($5::text IS NULL OR a.type = $5)
           ORDER BY (a.statut = 'planifiee') DESC, a.date_prevue, a.created_at`,
-        [communeId, q.statut ?? null, aujourdhui()]
+        [communeId, q.statut ?? null, aujourdhui(), q.poiId ?? null, q.type ?? null]
       )
     );
   })
@@ -590,9 +597,21 @@ const periodeCoherente = {
   path: ['dateFin'],
 };
 
+export const TYPES_ACTION = ['generale', 'nettoyage'] as const;
+
 export const actionSchema = z
-  .object({ ...champsAction, pointIds: z.array(z.string().uuid()).min(1).max(MAX_POINTS_LOT) })
-  .refine((d) => !d.dateFin || d.dateFin >= d.datePrevue, periodeCoherente);
+  .object({
+    ...champsAction,
+    type: z.enum(TYPES_ACTION).optional(),
+    // Un nettoyage rattaché à un lieu peut ne viser aucun point de collecte.
+    poiId: z.string().uuid().nullable().optional(),
+    pointIds: z.array(z.string().uuid()).max(MAX_POINTS_LOT).default([]),
+  })
+  .refine((d) => !d.dateFin || d.dateFin >= d.datePrevue, periodeCoherente)
+  .refine((d) => d.pointIds.length > 0 || !!d.poiId, {
+    message: 'Une action vise des points de collecte, un lieu, ou les deux.',
+    path: ['pointIds'],
+  });
 
 attributsPointsRouter.post(
   '/actions',
@@ -600,24 +619,34 @@ attributsPointsRouter.post(
   requireRole(...ROLES),
   asyncHandler(async (req, res) => {
     const d = actionSchema.parse(req.body);
-    // La commune est celle des points : une action n'est pas planifiable sur
-    // les points d'une autre commune, quelle que soit celle qu'on annonce.
-    const lot = await pointsDuLot(d.pointIds);
+    // La commune est celle des points, ou celle du lieu : une action n'est pas
+    // planifiable chez une autre commune, quelle que soit celle qu'on annonce.
+    const lot = d.pointIds.length ? await pointsDuLot(d.pointIds) : null;
+    let communeId = lot?.communeId ?? null;
+    if (d.poiId) {
+      const lieu = await queryOne<{ commune_id: string }>('SELECT commune_id FROM poi WHERE id = $1 AND deleted_at IS NULL', [d.poiId]);
+      if (!lieu) throw new ApiError(404, 'Lieu introuvable.');
+      if (communeId && lieu.commune_id !== communeId) throw new ApiError(400, "Le lieu et les points ne sont pas de la même commune.");
+      communeId = lieu.commune_id;
+    }
     const demandee = communeDemandee(req);
-    if (req.user!.role === 'super_admin_fnct' && demandee && demandee !== lot.communeId) {
+    if (req.user!.role === 'super_admin_fnct' && demandee && demandee !== communeId) {
       throw new ApiError(400, 'Les points désignés ne sont pas de cette commune.');
     }
     const id = await withTransaction(async (client) => {
       const cree = await client.query<{ id: string }>(
-        `INSERT INTO actions_planifiees (commune_id, titre, description, date_prevue, date_fin, responsable, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-        [lot.communeId, d.titre, d.description || null, d.datePrevue, d.dateFin ?? null, d.responsable || null, req.user!.sub]
+        `INSERT INTO actions_planifiees (commune_id, titre, description, date_prevue, date_fin, responsable, type, poi_id, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+        [communeId, d.titre, d.description || null, d.datePrevue, d.dateFin ?? null, d.responsable || null,
+         d.type ?? (d.poiId ? 'nettoyage' : 'generale'), d.poiId ?? null, req.user!.sub]
       );
-      await client.query(
-        `INSERT INTO actions_points (action_id, point_id, commune_id)
-         SELECT $1, unnest($2::uuid[]), $3`,
-        [cree.rows[0].id, lot.ids, lot.communeId]
-      );
+      if (lot) {
+        await client.query(
+          `INSERT INTO actions_points (action_id, point_id, commune_id)
+           SELECT $1, unnest($2::uuid[]), $3`,
+          [cree.rows[0].id, lot.ids, communeId]
+        );
+      }
       return cree.rows[0].id;
     });
     res.status(201).json(await action(id));
@@ -631,6 +660,8 @@ export const majActionSchema = z.object({
   dateFin: champsAction.dateFin,
   responsable: champsAction.responsable,
   statut: z.enum(STATUTS_ACTION).optional(),
+  // Saisis à la clôture d'un nettoyage : la source mesurée du balayage (M1-1).
+  metresLineaires: z.number().min(0).max(10_000_000).nullable().optional(),
 });
 
 attributsPointsRouter.patch(
@@ -654,7 +685,8 @@ attributsPointsRouter.patch(
               terminee_le = CASE
                 WHEN $9 = 'terminee' AND statut <> 'terminee' THEN now()
                 WHEN $9 IS NOT NULL AND $9 <> 'terminee' THEN NULL
-                ELSE terminee_le END
+                ELSE terminee_le END,
+              metres_lineaires = CASE WHEN $10::boolean THEN $11 ELSE metres_lineaires END
         WHERE id = $1 AND deleted_at IS NULL`,
       [
         a.id,
@@ -666,6 +698,8 @@ attributsPointsRouter.patch(
         d.responsable !== undefined,
         d.responsable || null,
         d.statut ?? null,
+        d.metresLineaires !== undefined,
+        d.metresLineaires ?? null,
       ]
     );
     res.json(await action(a.id));
