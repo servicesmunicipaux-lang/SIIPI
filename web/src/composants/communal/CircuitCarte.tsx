@@ -8,7 +8,7 @@
 // numérotation : deux rotations ne desservent pas les mêmes rues, les fondre
 // dans une suite unique donnerait un itinéraire qui n'a jamais existé.
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -28,17 +28,33 @@ const COULEURS_TYPE: Record<string, string> = {
   parc_municipal: '#0369a1',
 };
 
+// Deux pièges, révélés par les circuits de Djerba (un tracé de 3 000 sommets,
+// une centaine d'arrêts) :
+//   - cadrer PENDANT le rendu, c'est cadrer une carte qui ne connaît pas encore
+//     sa taille : Leaflet prend alors le zoom maximal, et l'on ouvre l'onglet
+//     sur un champ vide à deux rues du circuit. On cadre donc après
+//     l'affichage, taille relue ;
+//   - le tracé arrive recalculé à chaque rendu de la fiche : le prendre pour
+//     dépendance recadrait la carte sous la main de l'utilisateur. On ne
+//     recadre que si le contenu change.
 function Cadrer({ points, trace }: { points: PointCollecte[]; trace: [number, number][] }) {
   const carte = useMap();
-  useMemo(() => {
+  const cle = `${points.length}|${points[0]?.id ?? ''}|${trace.length}|${trace[0]?.join(',') ?? ''}`;
+  useEffect(() => {
     const coords: [number, number][] = [
       ...points.map((p) => [p.lat, p.lng] as [number, number]),
       ...trace.map(([lng, lat]) => [lat, lng] as [number, number]),
     ];
     if (coords.length === 0) return;
     const cadre = L.latLngBounds(coords);
-    if (cadre.isValid()) carte.fitBounds(cadre, { padding: [24, 24] });
-  }, [points, trace, carte]);
+    if (!cadre.isValid()) return;
+    const minuteur = window.setTimeout(() => {
+      carte.invalidateSize();
+      carte.fitBounds(cadre, { padding: [24, 24] });
+    }, 0);
+    return () => window.clearTimeout(minuteur);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cle, carte]);
   return null;
 }
 

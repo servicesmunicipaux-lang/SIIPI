@@ -118,16 +118,60 @@ const sansAccent = (s: string) =>
     .toLowerCase()
     .trim();
 
+// Le vocabulaire des relevés de Djerba (mission FNCT, février-juin 2026) : les
+// agents y ont compté les contenants plutôt que d'écrire « point de collecte »
+// — « 3 conteneur metallique », « 2 demi-fût », « 240 L Plastique x2 »,
+// « bac 120 L » — et noté le ramassage manuel (« hand picked », « sot en
+// plastique ») plutôt que « porte à porte ». Un nombre en tête et un « xN » en
+// queue sont retirés avant la lecture (voir reconnaitre()).
+const MOTIFS: [RegExp, TypePoint][] = [
+  [/^conteneurs? (metallique|plastique)s?$/, 'point_de_collecte'],
+  [/^demi futs?$/, 'point_de_collecte'],
+  [/^(\d+ )?l plastique$/, 'point_de_collecte'],
+  [/^bacs?( \d+ l)?$/, 'point_de_collecte'],
+  [/^(hand picked|sot en plastique|(debut|fin) porte a porte)$/, 'porte_a_porte'],
+];
+
+/** Le type que désigne UNE étiquette, ou null si elle ne désigne pas un type. */
+function reconnaitre(tag: string): TypePoint | null {
+  const s = sansAccent(tag);
+  if (TAGS[s]) return TAGS[s];
+  const nu = s.replace(/^\d+\s*/, '').replace(/\s*x\s*\d+$/, '');
+  if (TAGS[nu]) return TAGS[nu];
+  for (const [motif, type] of MOTIFS) if (motif.test(nu)) return type;
+  return null;
+}
+
+// Quand un point porte plusieurs étiquettes de type, la plus parlante
+// l'emporte, quel que soit l'ordre de saisie. « 4 conteneur metallique, point
+// noir » est un point noir ; « 2 conteneur metallique, Hors conteneur » est un
+// point de collecte dont les déchets débordent — le débordement est un ÉTAT
+// du point, pas sa nature.
+const PRIORITE: TypePoint[] = [
+  'debut_collecte',
+  'fin_collecte',
+  'centre_transfert',
+  'parc_municipal',
+  'point_noir',
+  'point_de_collecte',
+  'hors_conteneur',
+  'porte_a_porte',
+];
+
 /**
  * Classe un point d'après ses ÉTIQUETTES. Une étiquette présente mais inconnue
  * rend « autre » : le terrain a voulu dire quelque chose qu'on ne sait pas
  * lire, et le ranger d'office en porte-à-porte effacerait cette information.
+ * Les étiquettes d'état (« CASSÉ », « vide », « dechet vert »…) ne désignent
+ * pas un type : elles n'empêchent pas un point d'être reconnu.
  */
-function classer(tags: string[]): TypePoint {
+export function classer(tags: string[]): TypePoint {
+  let meilleur: TypePoint | null = null;
   for (const t of tags) {
-    const cle = TAGS[sansAccent(t)];
-    if (cle) return cle;
+    const type = reconnaitre(t);
+    if (type && (meilleur === null || PRIORITE.indexOf(type) < PRIORITE.indexOf(meilleur))) meilleur = type;
   }
+  if (meilleur) return meilleur;
   return tags.length > 0 ? 'autre' : 'porte_a_porte';
 }
 
