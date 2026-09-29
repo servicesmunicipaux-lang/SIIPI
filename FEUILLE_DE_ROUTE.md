@@ -12,6 +12,7 @@ Mise à jour du 28 septembre 2026 (fin) : **Jalon 4 clos** — imports CSV (cont
 Mise à jour du 28 septembre 2026 (soir) : **Jalon 5 clos** — la maintenance des engins : carnet d'entretien (`B2.2`) et alertes d'entretien au kilomètre et à la date (`B2.3`).
 Mise à jour du 28 septembre 2026 (nuit) : **Jalon 6 clos** — le tableau des points avec champs libres (`B3.4`), les étiquettes et les actions planifiées sur une sélection (`B3.5`).
 Mise à jour du 28 septembre 2026 (fin de nuit) : **Jalon 7 clos** — les paramètres (`B6.2`, `B6.3`, `B6.4`, `B6.6`) et le découpage validé par la FNCT et versionné (`C2.5`, `C2.6`).
+Mise à jour du 29 septembre 2026 (soir) : **v0.13.0 en service** — données réelles de Djerba chargées, démonstration fictive retirée ; **Jalon 9 (application mobile) mis en attente**, priorités suivantes : Jalon 10 (refonte graphique et expérience du portail web / PWA), puis Jalon 11 (GMAO étendue et dépôts municipaux).
 Mise à jour du 29 septembre 2026 (suite) : **données réelles de Djerba** — 36 circuits observés au GPS, 2 855 points de collecte et 12 engins pour Houmt Souk, Midoun et Ajim, depuis la mission de la FNCT.
 Mise à jour du 29 septembre 2026 : **lot d'optimisation des sources KPI** — lieux sur carte, nettoyages en mètres linéaires, fin de poste, carburant, EPI, incidents, conventions ; la plateforme mesure ce que la fiche faisait déclarer, avec un badge de source par indicateur.
 Mise à jour du 28 septembre 2026 (clôture) : **Jalon 8 clos** — le tableau de bord KPI 5 axes, la grille du Concours national de propreté (19 indicateurs, reventilation ministérielle), la préparation au décret DMA, les agrégations et les alertes nationales (`Axe 1` à `Axe 5`, `A2.3`, `A3.1`, `A3.3`, `B7.4`).
@@ -778,13 +779,17 @@ terrain différent, qui éprouve le lecteur de relevés.
 maximal sur un champ vide à côté du circuit (cadrage fait avant que la carte
 connaisse sa taille) ; elle se cadre désormais sur le tracé et les arrêts.
 
-**À trancher par la FNCT et les communes.**
-- Les données de démonstration fictives créées à l'installation pour ces trois
-  communes (2 circuits à Houmt Souk, 3 engins aux immatriculations inventées,
-  3 secteurs) côtoient désormais les données réelles. Les retirer est une
-  décision de la FNCT.
+**Tranché par la FNCT (29 septembre 2026).**
+- Les données de démonstration fictives de ces trois communes ont été
+  **retirées** de la base de production (suppression logique, tracée au
+  journal) : 2 circuits de test et leur contrôle, 3 engins aux
+  immatriculations inventées, 3 conteneurs fictifs, 3 secteurs de
+  démonstration et une réclamation fictive — pour ne pas fausser l'axe 1 ni le
+  Concours national. Elles restent dans le jeu d'essai des campagnes de tests,
+  qui en ont besoin.
 - Les jours de passage des circuits ne figurent pas au relevé : ils restent
-  vides, à renseigner par chaque commune.
+  vides, et seront renseignés par les administrateurs de chaque commune depuis
+  l'espace communal.
 - Les engins de Houmt Souk suivis en février n'ont pas d'immatriculation au
   relevé : ils sont décrits dans la fiche du circuit, pas créés au parc.
 
@@ -798,9 +803,55 @@ depuis le parc de Midoun, 8,7 km depuis celui de Sedwikech). Vérifié dans le
 navigateur : la liste des 23 circuits de Midoun, la fiche et la carte de
 Mahboubine-Abbatoir, le tableau des points avec ses champs et étiquettes.
 
-### Jalon 9 — L'application mobile citoyenne
+### Jalon 9 — L'application mobile citoyenne ⏸ *(en attente — décision FNCT du 29 septembre 2026)*
 
-Voir § 7 : c'est une décision avant d'être un chantier.
+Mis en attente. Une application mobile distribuée aux 350 communes suppose
+d'abord un **système de personnalisation multi-communes (marquage blanc)** :
+chaque commune doit pouvoir y paraître sous son nom, son logo et son identité
+visuelle, sans une application par commune. Ce socle sera traité plus tard ;
+d'ici là, l'espace citoyen web reste le canal (voir § 7.1).
+
+### Jalon 10 — Refonte graphique et expérience utilisateur du portail web / PWA *(prochaine priorité)*
+
+**Pourquoi maintenant.** Les fonctions sont là ; c'est leur usage qui freine.
+Ce que l'on constate déjà en recette :
+- l'espace communal compte **dix-sept onglets** dans une barre qui défile à
+  l'horizontale : sur un téléphone, la moitié en est invisible ;
+- chaque écran a fini par porter son propre style de formulaire, de tableau et
+  de message, au fil des jalons ;
+- l'usage visé est le téléphone d'un chef de service le matin, et l'écran
+  citoyen sur un réseau mobile.
+
+| Quoi | Ce que cela recouvre |
+|---|---|
+| Un système graphique unique | couleurs, typographies latine et arabe, composants (boutons, champs, tableaux, cartes, états vides et d'erreur) partagés par tous les écrans ; mode sombre |
+| La navigation | regroupement des onglets de l'espace communal par métier (collecte, parc, personnel, citoyens, pilotage), recherche, raccourcis du constat du matin |
+| Le mobile d'abord | tableaux lisibles sur téléphone, cartes plein écran, formulaires courts |
+| L'application web progressive (PWA) | installation sur l'écran d'accueil, fonctionnement hors connexion pour la saisie terrain — la voie recommandée au § 7.1 |
+| Accessibilité et bilinguisme | libellés associés à chaque champ, contrastes, parcours complet en arabe (RTL) |
+
+**Préalable** : maquettes validées par la FNCT avant d'écrire une ligne ; le
+marquage blanc du Jalon 9 s'y préparera (les couleurs et le logo deviennent
+des paramètres, pas du code).
+
+### Jalon 11 — La GMAO étendue et la gestion des dépôts municipaux *(ensuite)*
+
+**Ce qui existe** : le carnet d'entretien et les alertes au kilomètre et à la
+date (Jalon 5), l'état du parc, et depuis le lot « sources KPI » le registre
+des pleins de carburant. **Ce qui manque** pour qu'un parc municipal se gère
+dans SIIPI plutôt qu'à côté :
+
+| Quoi | Ce que cela recouvre |
+|---|---|
+| Les processus administratifs | demande d'intervention, validation, bon de commande, réception, clôture — avec qui a validé quoi, et quand |
+| Les pièces de rechange | magasin du dépôt : entrées, sorties imputées à une intervention et à un engin, seuils de réapprovisionnement, coût de maintenance par engin |
+| Le carburant | bons et pleins rapprochés du kilométrage, consommation par engin et par circuit, écarts signalés |
+| Les dépôts municipaux | parcs et magasins de la commune : ce qui y est, ce qui en sort, les engins immobilisés |
+| Les documents légaux | générés depuis les données : PV de réforme, fiches d'engin, échéances de visite technique et d'assurance, états pour le conseil municipal |
+
+**À préciser avec la FNCT avant de commencer** : la liste des documents légaux
+attendus et leurs modèles officiels, et le circuit de validation d'une
+commune type.
 
 ---
 
@@ -888,6 +939,10 @@ Trois voies :
 | **Rester en web** | rien | tout sauf le push et le hors-ligne ; pas de présence sur le Play Store |
 | **Application web progressive (PWA)** | faible — l'existant est réutilisé | installation sur l'écran d'accueil, push sur Android, hors-ligne partiel |
 | **Flutter natif** | un chantier complet, et une seconde base de code à maintenir | conformité stricte au TDR, présence sur le Play Store, iOS possible |
+
+**Décision du 29 septembre 2026 :** l'application mobile (Jalon 9) est mise en
+attente jusqu'à ce qu'existe un marquage blanc par commune ; la PWA entre dans
+la refonte du portail (Jalon 10).
 
 **Recommandation :** la voie PWA en premier. Elle rend le push et l'installation
 sans dupliquer la base de code, et laisse la décision Flutter ouverte une fois que

@@ -52,6 +52,18 @@ charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 - **Un temps de collecte ne se mesure qu'entre les repères** « début
   collecte » et « fin collecte » : sans eux, il reste vide.
 
+### Mise en service (29 septembre 2026)
+- Données de Djerba chargées en production : 36 circuits, 2 855 points de
+  collecte, 12 engins.
+- Démonstration fictive des trois communes retirée de la production
+  (suppression logique) : 2 circuits de test et leur contrôle, 3 engins,
+  3 conteneurs, 3 secteurs, 1 réclamation. Le jeu d'essai des tests n'est pas
+  modifié.
+- Feuille de route : Jalon 9 (application mobile) en attente d'un marquage
+  blanc multi-communes ; priorités suivantes, Jalon 10 (refonte graphique et
+  expérience du portail web / PWA) puis Jalon 11 (GMAO étendue et dépôts
+  municipaux).
+
 ## [0.12.0] — 2026-09-29 — Lot d'optimisation : les sources automatiques des KPI
 
 ### Ajouté
