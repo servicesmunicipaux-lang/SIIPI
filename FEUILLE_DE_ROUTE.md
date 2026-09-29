@@ -12,6 +12,7 @@ Mise à jour du 28 septembre 2026 (fin) : **Jalon 4 clos** — imports CSV (cont
 Mise à jour du 28 septembre 2026 (soir) : **Jalon 5 clos** — la maintenance des engins : carnet d'entretien (`B2.2`) et alertes d'entretien au kilomètre et à la date (`B2.3`).
 Mise à jour du 28 septembre 2026 (nuit) : **Jalon 6 clos** — le tableau des points avec champs libres (`B3.4`), les étiquettes et les actions planifiées sur une sélection (`B3.5`).
 Mise à jour du 28 septembre 2026 (fin de nuit) : **Jalon 7 clos** — les paramètres (`B6.2`, `B6.3`, `B6.4`, `B6.6`) et le découpage validé par la FNCT et versionné (`C2.5`, `C2.6`).
+Mise à jour du 29 septembre 2026 (suite) : **données réelles de Djerba** — 36 circuits observés au GPS, 2 855 points de collecte et 12 engins pour Houmt Souk, Midoun et Ajim, depuis la mission de la FNCT.
 Mise à jour du 29 septembre 2026 : **lot d'optimisation des sources KPI** — lieux sur carte, nettoyages en mètres linéaires, fin de poste, carburant, EPI, incidents, conventions ; la plateforme mesure ce que la fiche faisait déclarer, avec un badge de source par indicateur.
 Mise à jour du 28 septembre 2026 (clôture) : **Jalon 8 clos** — le tableau de bord KPI 5 axes, la grille du Concours national de propreté (19 indicateurs, reventilation ministérielle), la préparation au décret DMA, les agrégations et les alertes nationales (`Axe 1` à `Axe 5`, `A2.3`, `A3.1`, `A3.3`, `B7.4`).
 
@@ -742,6 +743,60 @@ marché créé sur la carte de La Marsa, un nettoyage planifié puis clos à
 850 ml, une fin de poste sans bâchage refusée puis enregistrée, les badges
 « Source : mesuré » (M1-9, M2-4), et le marché « propre » sur la carte
 citoyenne.
+
+### Lot — Les données réelles de Djerba ✅ *(fait le 29 septembre 2026)*
+
+**Pourquoi maintenant.** La plateforme n'avait qu'une commune réelle, Dar
+Chaabane. La mission de suivi GPS de la FNCT à Djerba (février-juin 2026) en
+apporte trois d'un coup — Houmt Souk, Midoun, Ajim — et un vocabulaire de
+terrain différent, qui éprouve le lecteur de relevés.
+
+| Quoi | Ce qui en sort | Preuve |
+|---|---|---|
+| L'index des sorties (`Mission_FNCT.xlsx`) : commune, arrondissement, circuit, engin, pesées | 36 circuits, 12 engins, la campagne d'observation de chaque circuit | `seed/djerba.ts` |
+| Les tracés GPX (UTC véritable) | le tracé observé de chaque circuit ; les trajets parc → collecte, collecte, collecte → pont-bascule, retour, en minutes et en kilomètres | `circuits.trace`, `etude_*` |
+| Les 3 497 arrêts, tous circuits confondus, dans un seul fichier | 2 855 points de collecte, rattachés à leur sortie par l'heure, contenants comptés en champs libres, état en étiquettes | `points_collecte`, `champs_points`, `etiquettes_points` |
+| Le vocabulaire de Djerba (« 3 conteneur metallique », « demi-fût », « hand picked ») | reconnu par le lecteur de relevés, aussi à l'import depuis l'écran | `services/kml.ts`, campagne `releves-terrain` |
+
+**Principes tenus.**
+- **Rien d'inventé.** Pas de lieu (marché, cimetière, abattoir) : aucun n'est
+  situé dans le relevé. Pas de temps de collecte sans les repères de début et
+  de fin posés par l'agent. Une valeur marquée « Fill Later » ou « Missing »
+  reste vide.
+- **Pas de chiffre faux présenté comme mesuré.** Les pesées de la mission sont
+  un échantillon : entrées en table, elles afficheraient Midoun à 0,03 kg par
+  habitant et par jour. Elles restent dans la fiche de chaque circuit, datées,
+  et ne se chargent en table que sur demande (`DJERBA_PESEES=1`).
+- **Aucun nom de personne.** Les chauffeurs ne sont pas repris, ni sous leur
+  nom ni sous un nom fictif (qui fausserait l'effectif) ; les noms d'arrêts où
+  l'agent avait écrit le sien, ou qui désignent une habitation privée, sont
+  retirés. Le dossier brut n'entre pas dans le dépôt, qui est public.
+- **Cloisonnement.** Chaque commune est écrite dans une transaction ouverte au
+  nom de son directeur, sous RLS.
+
+**Correction livrée avec le lot** : la carte d'un circuit s'ouvrait au zoom
+maximal sur un champ vide à côté du circuit (cadrage fait avant que la carte
+connaisse sa taille) ; elle se cadre désormais sur le tracé et les arrêts.
+
+**À trancher par la FNCT et les communes.**
+- Les données de démonstration fictives créées à l'installation pour ces trois
+  communes (2 circuits à Houmt Souk, 3 engins aux immatriculations inventées,
+  3 secteurs) côtoient désormais les données réelles. Les retirer est une
+  décision de la FNCT.
+- Les jours de passage des circuits ne figurent pas au relevé : ils restent
+  vides, à renseigner par chaque commune.
+- Les engins de Houmt Souk suivis en février n'ont pas d'immatriculation au
+  relevé : ils sont décrits dans la fiche du circuit, pas créés au parc.
+
+**Test de validation.** Campagne `releves-terrain` (17/17, nouvelle) : les
+contenants comptés, le ramassage à la main, la priorité des types (un point
+noir équipé d'un conteneur reste un point noir) et le vocabulaire de Dar
+Chaabane toujours lu. Import vérifié sur la pile d'essai : 3 497 arrêts sur
+3 497 rattachés, relancé trois fois sans doublon ; aucun nom de personne en
+base ; les trajets retour mesurés concordent d'un circuit à l'autre (13,1 km
+depuis le parc de Midoun, 8,7 km depuis celui de Sedwikech). Vérifié dans le
+navigateur : la liste des 23 circuits de Midoun, la fiche et la carte de
+Mahboubine-Abbatoir, le tableau des points avec ses champs et étiquettes.
 
 ### Jalon 9 — L'application mobile citoyenne
 

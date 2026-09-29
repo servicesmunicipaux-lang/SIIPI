@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# =============================================================================
+# Le vocabulaire des relevés de terrain — lecture des étiquettes des arrêts.
+#
+# Les agents n'écrivent pas tous la même chose. À Dar Chaabane ils nommaient le
+# type (« porte à porte », « point de collecte ») ; à Djerba (mission FNCT de
+# 2026) ils comptaient les contenants (« 3 conteneur metallique », « 2
+# demi-fût », « 240 L Plastique x2 ») et notaient l'état à côté (« CASSÉ »,
+# « Hors conteneur »). La campagne vérifie que les deux vocabulaires se lisent,
+# et que le type le plus parlant l'emporte quel que soit l'ordre de saisie :
+# un point noir équipé d'un conteneur reste un point noir.
+#
+# Aperçu seulement : rien n'est écrit, sinon le circuit d'essai, retiré à la fin.
+#
+#   docker compose exec -T api npm run test:releves-terrain
+# =============================================================================
+
+set -u
+API="${API_URL:-http://localhost:4000}"
+PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
+pass=0; fail=0
+T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+
+tok() {
+  curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$1\",\"password\":\"${2:-Siipi2026!}\"}" \
+    | python3 -c "import sys,json;print(json.load(sys.stdin).get('token',''))" 2>/dev/null
+}
+sql()  { $PSQL -c "$1" 2>/dev/null | tr -d ' '; }
+chk() {
+  if [ "$2" = "$3" ]; then printf '  \033[32m✓\033[0m %s\n' "$1"; pass=$((pass+1))
+  else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
+}
+
+DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
+T_DIR=$(tok "$DIR_EMAIL")
+[ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
+COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
+
+nettoyer() { $PSQL -c "DELETE FROM circuits WHERE code = 'TEST-RELEVES';" >/dev/null 2>&1; }
+nettoyer
+CIRCUIT=$(sql "INSERT INTO circuits (commune_id, nom, code) VALUES ('$COMMUNE', 'Essai relevés', 'TEST-RELEVES') RETURNING id")
+
+# Un relevé « GPS Waypoints » : nom de l'arrêt → étiquettes saisies par l'agent.
+KML=$(python3 - <<'PY'
+import base64
+arrets = [
+  ('DEB',  'début collecte'),
+  ('MET',  '3 conteneur metallique'),
+  ('CAS',  '2 conteneur metallique,CASSÉ'),
+  ('DFU',  'demi-fût'),
+  ('DF4',  '4 demi-fût '),
+  ('LPX',  '240 L Plastique x2'),
+  ('BAC',  'bac 120 L'),
+  ('MAN',  'hand picked,sot en plastique'),
+  ('NOI',  '4 conteneur metallique,point noir,CASSÉ'),
+  ('HOR',  'Hors conteneur'),
+  ('DEB2', '2 conteneur metallique,Hors conteneur'),
+  ('PAP',  'porte à porte'),
+  ('PDC',  'point de collecte'),
+  ('PAU',  'pause/appel/autre'),
+  ('FIN',  'fin collecte,demi-fût'),
+]
+c = ['<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><Folder><name>Waypoints</name>']
+for i, (nom, tags) in enumerate(arrets):
+    c.append(f'<Placemark><name>{nom}</name><TimeStamp><when>2026-03-07T08:{i:02d}:00Z</when></TimeStamp>'
+             f'<Point><coordinates>10.99{i:02d},33.79{i:02d},0</coordinates></Point>'
+             f'<ExtendedData><Data name="tags"><value>{tags}</value></Data></ExtendedData></Placemark>')
+c.append('</Folder></Document></kml>')
+print(base64.b64encode(''.join(c).encode()).decode())
+PY
+)
+CODE=$(curl -s -o "$T/r.json" -w '%{http_code}' -X POST "$API/circuits/$CIRCUIT/import-kml" \
+  -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+  -d "{\"nomFichier\":\"djerba.kml\",\"contenu\":\"$KML\"}")
+type_de() { python3 -c "import json;d=json.load(open('$T/r.json'));print(next((p['type'] for p in d['points'] if p['nom']=='$1'),'absent'))" 2>/dev/null; }
+
+echo
+echo "1. L'aperçu"
+chk "l'aperçu répond" 200 "$CODE"
+chk "les 15 arrêts entre début et fin de collecte sont lus" 15 \
+    "$(python3 -c "import json;print(json.load(open('$T/r.json'))['nbPoints'])" 2>/dev/null)"
+chk "rien n'est écrit" 0 "$(sql "SELECT count(*) FROM points_collecte WHERE circuit_id='$CIRCUIT'")"
+
+echo
+echo "2. Les contenants comptés désignent un point de collecte"
+chk "« 3 conteneur metallique »" point_de_collecte "$(type_de MET)"
+chk "« demi-fût »" point_de_collecte "$(type_de DFU)"
+chk "« 4 demi-fût » (espace final compris)" point_de_collecte "$(type_de DF4)"
+chk "« 240 L Plastique x2 »" point_de_collecte "$(type_de LPX)"
+chk "« bac 120 L »" point_de_collecte "$(type_de BAC)"
+chk "un état à côté ne l'empêche pas (« CASSÉ »)" point_de_collecte "$(type_de CAS)"
+
+echo
+echo "3. Le ramassage à la main est du porte-à-porte"
+chk "« hand picked, sot en plastique »" porte_a_porte "$(type_de MAN)"
+
+echo
+echo "4. Le type le plus parlant l'emporte, quel que soit l'ordre"
+chk "un point noir équipé d'un conteneur reste un point noir" point_noir "$(type_de NOI)"
+chk "« Hors conteneur » seul : un dépôt hors conteneur" hors_conteneur "$(type_de HOR)"
+chk "un conteneur qui déborde reste un point de collecte" point_de_collecte "$(type_de DEB2)"
+chk "« fin collecte » l'emporte sur le demi-fût qui l'accompagne" fin_collecte "$(type_de FIN)"
+
+echo
+echo "5. Le vocabulaire de Dar Chaabane se lit toujours"
+chk "« porte à porte »" porte_a_porte "$(type_de PAP)"
+chk "« point de collecte »" point_de_collecte "$(type_de PDC)"
+chk "une étiquette inconnue reste « autre », sans être devinée" autre "$(type_de PAU)"
+
+nettoyer
+echo
+if [ "$fail" -eq 0 ]; then
+  printf '\033[32m%s tests réussis, aucun échec.\033[0m\n\n' "$pass"; exit 0
+else
+  printf '\033[31m%s réussis, %s ÉCHOUÉS.\033[0m\n\n' "$pass" "$fail"; exit 1
+fi

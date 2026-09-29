@@ -31,6 +31,7 @@ _to_delete/
 /acces.txt
 /correction-personnel.txt
 /dar-chaabane.txt
+/djerba.txt
 /demarrage.txt
 /migration.txt
 /module2.txt
@@ -39,3 +40,7 @@ _to_delete/
 # --- Archives de livraison, reconstruites à la demande ---
 *.zip
 *.tgz
+
+# --- Données de terrain brutes (noms de personnes) : jamais dans un dépôt public ---
+# Le script seed/djerba.ts les lit là où on les pose (DJERBA_DIR).
+backend/seed/data/djerba/

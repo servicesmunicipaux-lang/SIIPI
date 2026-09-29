@@ -5,6 +5,53 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.13.0] — 2026-09-29 — Données réelles de Djerba (Houmt Souk, Midoun, Ajim)
+
+### Ajouté
+- **Import des relevés de la mission GPS de la FNCT** (février-juin 2026) :
+  `npm run seed:djerba`, ou `CHARGER_DJERBA.bat` en y glissant le dossier de
+  la mission. 52 sorties à l'index, 43 tracés GPX, 3 497 arrêts relevés.
+- **36 circuits** (Houmt Souk 11, Midoun 23, Ajim 2) avec leur tracé observé,
+  leur arrondissement, leur engin et leur **campagne d'observation** mesurée
+  sur la sortie de référence : parc → début de collecte, collecte pure,
+  trajet jusqu'au pont-bascule, retour au parc (minutes et kilomètres),
+  tonnage net.
+- **2 855 points de collecte**, rattachés à leur sortie par l'heure (tous les
+  arrêts trouvent leur sortie), avec les contenants comptés (conteneurs
+  métalliques et plastique, demi-fûts, bacs) en champs libres, le relevé
+  brut de l'agent et la date, et l'état en étiquettes de couleur (conteneur
+  cassé, déchets hors conteneur, déchets verts, fumier, encombrants…).
+- **12 engins** immatriculés (bennes tasseuses et basculantes).
+- **Le vocabulaire des relevés de Djerba** dans le lecteur de relevés
+  (`services/kml.ts`) : « 3 conteneur metallique », « demi-fût », « 240 L
+  Plastique x2 », « hand picked »… sont reconnus, et le type le plus parlant
+  l'emporte quel que soit l'ordre de saisie (un point noir équipé d'un
+  conteneur reste un point noir). Profite aussi à l'import depuis l'écran.
+- Nouvelle campagne `releves-terrain` (17/17).
+
+### Corrigé
+- **Carte d'un circuit** : elle s'ouvrait sur un champ vide, au zoom maximal,
+  à côté du circuit — le cadrage se faisait avant que la carte connaisse sa
+  taille. Elle se cadre désormais sur le tracé et les arrêts, et ne se
+  recadre plus sous la main de l'utilisateur.
+
+### Décisions à retenir
+- **Les données brutes ne sont pas versionnées** : elles contiennent les noms
+  des chauffeurs, et le dépôt est public. Le script les lit là où on les pose.
+- **Aucun nom de personne n'entre en base** : ni chauffeur, ni nom d'arrêt où
+  l'agent avait écrit le sien, ni nom d'une habitation privée. Aucun agent
+  fictif non plus : il fausserait l'effectif, qui entre dans les indicateurs.
+- **Écriture au nom du directeur de chaque commune**, sous RLS : le script ne
+  s'accorde aucun privilège que le directeur n'a pas.
+- **Pas de pesées par défaut** : la mission a pesé un échantillon de sorties,
+  que les indicateurs liraient comme l'année entière (Midoun à 0,03 kg par
+  habitant et par jour). Le tonnage reste dans la fiche de chaque circuit,
+  daté ; `DJERBA_PESEES=1` pour créer les pesées malgré tout.
+- **Aucun lieu (marché, cimetière, abattoir) créé** : aucun n'est situé dans
+  le relevé, et un nom de circuit ne dit pas où est l'abattoir.
+- **Un temps de collecte ne se mesure qu'entre les repères** « début
+  collecte » et « fin collecte » : sans eux, il reste vide.
+
 ## [0.12.0] — 2026-09-29 — Lot d'optimisation : les sources automatiques des KPI
 
 ### Ajouté
