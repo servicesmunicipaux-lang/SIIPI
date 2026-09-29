@@ -14,7 +14,7 @@ import { useAuth } from '../lib/auth';
 import { api, ErreurApi, type ChangementPreferences, type ParametresCommune } from '../lib/api';
 import { creerFormats, PREFERENCES_DEFAUT, useFormats } from '../lib/formats';
 
-const DOMAINES = ['circuits', 'parc', 'personnel', 'communication', 'pesees', 'reclamations', 'points'] as const;
+const DOMAINES = ['circuits', 'parc', 'personnel', 'communication', 'pesees', 'reclamations', 'points', 'kpi'] as const;
 const GRAVITES = ['information', 'avertissement', 'bloquant'] as const;
 
 const champ = 'min-h-11 rounded-lg border border-ardoise-300 bg-white px-3 text-base';

@@ -5,6 +5,46 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.11.0] — 2026-09-28 — Jalon 8 : KPI 5 axes, Concours national de propreté, préparation DMA
+
+### Ajouté
+- **Onglet « Indicateurs »** de l'espace communal : les 5 axes (indice sur 100
+  et sa base), la note du Concours national de propreté (19 indicateurs, trois
+  modules, sur 100), la préparation au tri à la source, la grille complète et
+  son impression en PDF.
+- **Fiche d'évaluation annuelle** : ce que SIIPI ne voit pas (balayage,
+  bâchage, EPI, espaces verts, cimetières, marchés, abattoirs, conventions,
+  participation, partenariats, carburant, redevances, formation, accidents,
+  préparation DMA), déclaré par la commune et validé par la FNCT. Brouillon,
+  soumise, validée ; une fiche validée est verrouillée jusqu'à ce que la FNCT
+  la rouvre, motif à l'appui.
+- **Mesures calculées** par la plateforme (`app.mesures_kpi`) : contrôles
+  terrain, réclamations et délais, entretien, déchets verts et DDC, pesées,
+  publications, usage des modules, effectifs, absentéisme, coût de
+  maintenance, coût global à la tonne.
+- **Reventilation ministérielle** : décharge contrôlée par l'ANGeD (M1-8 →
+  M1-9), aucune expérience innovante (M1-10 → M1-3), pas d'abattoir (M2-5 sans
+  objet, hors du dénominateur).
+- **Vue nationale** (observatoire FNCT) : classement du Concours (officiel ou
+  provisoire, export Excel/CSV), 5 axes, préparation au tri, alertes, réglages
+  — par commune, gouvernorat, district FNCT ou national (`A3.1`).
+- **Alertes nationales à seuils réglables** (`A3.3`) et alertes de la commune
+  dans « À vérifier » (fiche de l'année, bâchage sous le seuil).
+- **« Visualiser »** une commune depuis l'annuaire (`A2.3`) ; **« Mes
+  indicateurs »** dans le dossier du prestataire (`B7.4`).
+- **Réglages de la FNCT** : barème des 19 indicateurs (provisoire jusqu'à
+  confirmation), seuils, état du décret DMA, districts FNCT.
+- Migration 050, 16 routes `/kpi/*`, nouvelle campagne `kpi-5-axes` (64/64).
+
+### Décisions à retenir
+- **Une donnée manquante n'est pas un zéro** : ni en base, ni dans les
+  moyennes, ni à l'écran ; toute note s'affiche avec sa base.
+- **Le barème et les districts sont des données de la FNCT**, pas des
+  hypothèses de la plateforme.
+- **Le classement officiel ne retient que les fiches validées.**
+- **La préparation DMA n'entre pas dans la note** tant que le décret n'est pas
+  en vigueur.
+
 ## [0.10.0] — 2026-09-28 — Jalon 7 : paramètres et découpage validé
 
 ### Ajouté — lot 1, les paramètres (TDR §3.2.6)

@@ -163,6 +163,43 @@ export const JEU_POINTS: JeuExport = {
   ],
 };
 
+/** Jalon 8 — le classement du Concours national de propreté. */
+export const JEU_CONCOURS: JeuExport = {
+  nom: 'concours-proprete',
+  titre: { fr: 'Concours national de propreté', ar: 'المسابقة الوطنية للنظافة' },
+  colonnes: [
+    { cle: 'rang', fr: 'Rang', ar: 'الترتيب', type: 'nombre' },
+    { cle: 'nom', fr: 'Commune', ar: 'البلدية' },
+    { cle: 'gouvernorat', fr: 'Gouvernorat', ar: 'الولاية' },
+    { cle: 'district', fr: 'District FNCT', ar: 'المقاطعة' },
+    { cle: 'score', fr: 'Note sur 100', ar: 'العدد من 100', type: 'nombre' },
+    { cle: 'indicateurs_renseignes', fr: 'Indicateurs renseignés', ar: 'المؤشرات المعمرة', type: 'nombre' },
+    { cle: 'indicateurs_applicables', fr: 'Indicateurs applicables', ar: 'المؤشرات المنطبقة', type: 'nombre' },
+    { cle: 'couverture', fr: 'Points renseignés (%)', ar: 'النقاط المعمرة (%)', type: 'nombre' },
+    {
+      cle: 'fiche',
+      fr: 'Fiche d’évaluation',
+      ar: 'بطاقة التقييم',
+      libelles: {
+        brouillon: { fr: 'Brouillon', ar: 'مسودة' },
+        soumise: { fr: 'Soumise', ar: 'مقدمة' },
+        validee: { fr: 'Validée', ar: 'مصادق عليها' },
+      },
+    },
+    {
+      cle: 'motif_non_classe',
+      fr: 'Non classée',
+      ar: 'غير مرتبة',
+      libelles: {
+        couverture_insuffisante: { fr: 'Couverture insuffisante', ar: 'تغطية غير كافية' },
+        fiche_non_validee: { fr: 'Fiche non validée', ar: 'بطاقة غير مصادق عليها' },
+        aucun_indicateur: { fr: 'Aucun indicateur', ar: 'لا مؤشر' },
+      },
+    },
+    { cle: 'dma_indice', fr: 'Préparation DMA (indice)', ar: 'الاستعداد للفرز (مؤشر)', type: 'nombre' },
+  ],
+};
+
 const TYPE_EXPORT_CHAMP: Record<string, TypeColonne> = {
   texte: 'texte',
   nombre: 'nombre',

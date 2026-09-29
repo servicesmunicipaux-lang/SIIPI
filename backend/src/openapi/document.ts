@@ -80,6 +80,7 @@ import {
 } from '../preferences.js';
 import { parametresCommuneSchema } from '../routes/communes.routes.js';
 import { propositionDecoupageSchema } from '../routes/decoupage.routes.js';
+import { baremeSchema, parametresKpiSchema, districtsSchema, ficheSchema } from '../routes/kpi5Axes.routes.js';
 import {
   champSchema,
   majChampSchema,
@@ -1221,6 +1222,240 @@ registry.registerPath({
   security: SECURISE,
   request: { params: idVersion, body: { content: { 'application/json': { schema: z.object({ note: z.string().optional() }) } } } },
   responses: { 201: json(VersionDecoupage, 'Restauration appliquée (FNCT) ou proposée (commune).'), ...REPONSES_COMMUNES },
+});
+
+// --- Tableau de bord KPI 5 axes, Concours national, préparation DMA (Jalon 8)
+
+const TAG_KPI = 'Indicateurs';
+
+const ResultatIndicateur = registry.register(
+  'ResultatIndicateur',
+  z
+    .object({
+      code: z.string().openapi({ example: 'M1-2' }),
+      famille: z.enum(['concours', 'dma', 'donnee']),
+      module: z.string().nullable(),
+      axe: z.number().int(),
+      libelle_fr: z.string(),
+      libelle_ar: z.string(),
+      unite: z.string().nullable(),
+      mode: z.enum(['calcule', 'saisi']),
+      statut: z.enum(['renseigne', 'non_renseigne', 'sans_objet', 'reventile']).openapi({
+        description: 'Une donnée manquante est « non_renseigne », jamais un zéro.',
+      }),
+      valeur: z.number().nullable(),
+      cible: z.number().nullable(),
+      note: z.number().nullable().openapi({ description: 'Taux d’atteinte entre 0 et 1 ; null si non noté ou non renseigné.' }),
+      points_base: z.number().nullable(),
+      points_effectifs: z.number().nullable().openapi({ description: 'Après reventilation (règles ANGeD, Innovation, Abattoirs).' }),
+      points_obtenus: z.number().nullable(),
+      reventile_vers: z.string().nullable(),
+      recoit_de: z.array(z.string()),
+      detail: z.record(z.string(), z.any()),
+      commentaire: z.string().nullable(),
+    })
+    .openapi('ResultatIndicateur')
+);
+
+const Concours = z.object({
+  score: z.number().nullable().openapi({ description: 'Sur 100, calculé sur les seuls points renseignés.' }),
+  indicateurs_renseignes: z.number().int(),
+  indicateurs_applicables: z.number().int(),
+  points_renseignes: z.number(),
+  points_applicables: z.number(),
+  couverture: z.number().nullable(),
+  classe: z.boolean(),
+  motif_non_classe: z.string().nullable(),
+});
+const Axe = z.object({ axe: z.number().int(), indice: z.number().nullable(), renseignes: z.number().int(), notes: z.number().int() });
+const Dma = z.object({
+  indice: z.number().nullable(),
+  niveau: z.enum(['non_evalue', 'initial', 'en_preparation', 'avance', 'pret']),
+  renseignes: z.number().int(),
+  total: z.number().int(),
+});
+
+const KpiCommune = registry.register(
+  'KpiCommune',
+  z
+    .object({
+      annee: z.number().int(),
+      parametres: z.record(z.string(), z.number()),
+      commune_id: z.string(),
+      nom: z.string(),
+      nom_ar: z.string().nullable(),
+      gouvernorat: z.string(),
+      district: z.string().nullable(),
+      population: z.number().nullable(),
+      fiche: z.object({ statut: z.enum(['brouillon', 'soumise', 'validee']).nullable(), id: z.string().uuid().nullable() }),
+      indicateurs: z.array(ResultatIndicateur),
+      concours: Concours,
+      axes: z.array(Axe),
+      dma: Dma,
+    })
+    .openapi('KpiCommune')
+);
+
+const Agregat = registry.register(
+  'AgregatKpi',
+  z
+    .object({
+      cle: z.string(),
+      nom: z.string().nullable(),
+      communes: z.number().int(),
+      concours: z.object({ communes_classees: z.number().int(), score_moyen: z.number().nullable(), couverture_moyenne: z.number().nullable() }),
+      axes: z.array(z.object({ axe: z.number().int(), indice_moyen: z.number().nullable(), communes_renseignees: z.number().int() })),
+      dma: z.object({ indice_moyen: z.number().nullable(), communes_evaluees: z.number().int() }),
+      tonnage_t: z.number().nullable(),
+      communes_pesees: z.number().int(),
+      reclamations: z.number().nullable(),
+      taux_resolution: z.number().nullable(),
+    })
+    .openapi('AgregatKpi')
+);
+
+const LigneClassement = registry.register(
+  'LigneClassement',
+  z
+    .object({
+      rang: z.number().int().nullable(),
+      commune_id: z.string(),
+      nom: z.string(),
+      nom_ar: z.string().nullable(),
+      gouvernorat: z.string(),
+      district: z.string().nullable(),
+      score: z.number().nullable(),
+      indicateurs_renseignes: z.number().int(),
+      indicateurs_applicables: z.number().int(),
+      couverture: z.number().nullable(),
+      fiche: z.string().nullable(),
+      classe: z.boolean(),
+      motif_non_classe: z.string().nullable(),
+      dma_indice: z.number().nullable(),
+    })
+    .openapi('LigneClassement')
+);
+
+const qKpiNiveau = z.object({
+  annee: z.number().int().optional(),
+  niveau: z.enum(['commune', 'gouvernorat', 'district', 'national']).optional(),
+});
+const pFiche = z.object({ communeId: z.string(), annee: z.number().int() });
+const Fiche = z.record(z.string(), z.any()).openapi({ description: 'La fiche d’évaluation (evaluations_kpi).' });
+
+registry.registerPath({
+  method: 'get', path: '/kpi/indicateurs', tags: [TAG_KPI],
+  summary: 'Le catalogue des indicateurs, le barème du Concours et les paramètres nationaux',
+  security: SECURISE,
+  responses: { 200: json(z.object({ indicateurs: z.array(z.record(z.string(), z.any())), parametres: z.record(z.string(), z.number()) }), 'Catalogue.'), 401: REPONSES_COMMUNES[401] },
+});
+registry.registerPath({
+  method: 'put', path: '/kpi/bareme', tags: [TAG_KPI],
+  summary: 'Fixer le barème des 19 indicateurs du Concours (FNCT)',
+  description: 'Les 19 indicateurs, et eux seuls ; total de 100 points. `confirmer` : la FNCT atteste que c’est le barème ministériel.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: baremeSchema } } } },
+  responses: { 200: json(z.record(z.string(), z.any()), 'Barème enregistré.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'put', path: '/kpi/parametres', tags: [TAG_KPI],
+  summary: 'Seuils d’alerte nationaux et état du décret DMA (FNCT, A3.3)',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: parametresKpiSchema } } } },
+  responses: { 200: json(z.record(z.string(), z.number()), 'Paramètres.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/districts', tags: [TAG_KPI],
+  summary: 'Les districts FNCT et le rattachement des gouvernorats',
+  description: 'Vides tant que la FNCT ne les a pas définis : aucune liste n’est supposée.',
+  security: SECURISE,
+  responses: { 200: json(z.record(z.string(), z.any()), 'Districts.'), 401: REPONSES_COMMUNES[401] },
+});
+registry.registerPath({
+  method: 'put', path: '/kpi/districts', tags: [TAG_KPI],
+  summary: 'Définir les districts FNCT (FNCT)',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: districtsSchema } } } },
+  responses: { 200: json(z.object({ districts: z.number().int(), rattaches: z.number().int() }), 'Districts enregistrés.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/evaluations/{communeId}/{annee}', tags: [TAG_KPI],
+  summary: 'La fiche d’évaluation d’une commune pour une année',
+  description: 'Les valeurs saisies (une valeur absente est non renseignée) et des indications pour les cibles (effectif, conteneurs, secteurs).',
+  security: SECURISE,
+  request: { params: pFiche },
+  responses: { 200: json(z.object({ fiche: Fiche.nullable(), valeurs: z.array(z.record(z.string(), z.any())), indications: z.record(z.string(), z.any()) }), 'Fiche.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'put', path: '/kpi/evaluations/{communeId}/{annee}', tags: [TAG_KPI],
+  summary: 'Saisir la fiche d’évaluation',
+  description: 'Crée la fiche en brouillon au besoin. `null` retire une valeur. Une fiche validée se rouvre d’abord (409) ; une fiche soumise retouchée par la commune repasse en brouillon.',
+  security: SECURISE,
+  request: { params: pFiche, body: { content: { 'application/json': { schema: ficheSchema } } } },
+  responses: { 200: json(Fiche, 'Fiche enregistrée.'), ...REPONSES_COMMUNES, 409: { description: 'Fiche validée.' } },
+});
+for (const [etape, resume, role] of [
+  ['soumettre', 'Soumettre la fiche à la FNCT', 'commune ou FNCT'],
+  ['valider', 'Valider la fiche (FNCT) : elle entre au classement officiel', 'FNCT'],
+  ['rouvrir', 'Rouvrir une fiche soumise ou validée (FNCT), motif à l’appui', 'FNCT'],
+] as const) {
+  registry.registerPath({
+    method: 'post', path: `/kpi/evaluations/{communeId}/{annee}/${etape}`, tags: [TAG_KPI],
+    summary: resume, description: `Réservé : ${role}.`,
+    security: SECURISE,
+    request: etape === 'rouvrir'
+      ? { params: pFiche, body: { content: { 'application/json': { schema: z.object({ motif: z.string().min(5) }) } } } }
+      : { params: pFiche },
+    responses: { 200: json(Fiche, 'Fiche.'), ...REPONSES_COMMUNES, 409: { description: 'Étape impossible depuis le statut actuel.' } },
+  });
+}
+registry.registerPath({
+  method: 'get', path: '/kpi/5-axes', tags: [TAG_KPI],
+  summary: 'Les 5 axes, la note du Concours et la préparation DMA d’une commune',
+  description: 'Chaque indicateur porte son statut ; un indicateur sans source reste non renseigné et sort des moyennes.',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional(), annee: z.number().int().optional() }) },
+  responses: { 200: json(KpiCommune, 'Indicateurs de la commune.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/concours-national', tags: [TAG_KPI],
+  summary: 'Le Concours national de propreté : classement ou agrégation (FNCT)',
+  description: 'Niveau commune : le classement (communes classées d’abord ; non classées : couverture insuffisante ou fiche non validée). `officiel=false` : classement provisoire, fiches non validées comprises. Autres niveaux : moyennes des communes classées.',
+  security: SECURISE,
+  request: { query: qKpiNiveau.extend({ officiel: z.enum(['true', 'false']).optional(), ...paramsExport }) },
+  responses: { 200: jsonOuExport(z.union([z.array(LigneClassement), z.array(Agregat)]), 'Classement ou agrégats.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/national', tags: [TAG_KPI],
+  summary: 'Les 5 axes agrégés par commune, gouvernorat, district ou national (FNCT, A3.1)',
+  description: 'Les agrégats joignent tonnages pesés et taux de résolution recomposé depuis les comptes.',
+  security: SECURISE,
+  request: { query: qKpiNiveau },
+  responses: { 200: json(z.array(z.record(z.string(), z.any())), 'Agrégats.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/dma', tags: [TAG_KPI],
+  summary: 'Préparation au tri à la source (décret DMA, dispositif d’anticipation) — FNCT',
+  security: SECURISE,
+  request: { query: qKpiNiveau },
+  responses: { 200: json(z.object({ en_vigueur: z.boolean(), lignes: z.array(z.record(z.string(), z.any())) }), 'Maturité.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/alertes', tags: [TAG_KPI],
+  summary: 'Alertes nationales selon les seuils de la FNCT (A3.3)',
+  security: SECURISE,
+  request: { query: z.object({ annee: z.number().int().optional() }) },
+  responses: {
+    200: json(z.array(z.object({ commune_id: z.string(), nom: z.string(), gouvernorat: z.string(), gravite: z.string(), code: z.string(), constat: z.string() })), 'Alertes.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/prestataire', tags: [TAG_KPI],
+  summary: 'Tableau de bord restreint du prestataire (B7.4)',
+  security: SECURISE,
+  request: { query: z.object({ annee: z.number().int().optional() }) },
+  responses: { 200: json(z.object({ annee: z.number().int(), lignes: z.array(z.record(z.string(), z.any())) }), 'Ses indicateurs de service.'), ...REPONSES_COMMUNES },
 });
 
 // --- Observatoire national -------------------------------------------------
@@ -4870,7 +5105,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.10.0',
+      version: '0.11.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

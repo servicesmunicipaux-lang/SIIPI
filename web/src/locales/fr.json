@@ -74,7 +74,8 @@
       "modifier": "Modifier",
       "ouvrirPortail": "Ouvrir le portail",
       "ouvrirPortailDe": "Ouvrir le portail municipal de {{nom}}",
-      "modifierLimite": "Limite"
+      "modifierLimite": "Limite",
+      "indicateurs": "Indicateurs"
     },
     "statuts": {
       "active": "Active",
@@ -378,6 +379,7 @@
       "reclamations": "Réclamations",
       "suggestions": "Points suggérés",
       "preuve": "Preuve",
+      "indicateurs": "Indicateurs",
       "circuits": "Circuits",
       "points": "Points",
       "carte": "Carte",
@@ -1369,6 +1371,15 @@
         "tous": "Tout"
       },
       "tronque": "{{affichees}} lignes affichées sur {{total}}. Affinez la période pour voir le reste."
+    },
+    "indicateurs": {
+      "titre": "Mes indicateurs {{annee}}",
+      "aide": "Vos passages contrôlés par la commune et les réclamations qui vous ont été transférées ; « — » tant qu'il n'y a rien à mesurer.",
+      "commune": "Commune",
+      "realisation": "Passages réalisés",
+      "couverture": "Passages contrôlés",
+      "reclamations": "Réclamations traitées",
+      "delai": "Délai moyen"
     }
   },
   "motDePasse": {
@@ -1439,7 +1450,8 @@
         "communication": "Communication",
         "pesees": "Pesées",
         "reclamations": "Réclamations",
-        "points": "Actions planifiées sur les points"
+        "points": "Actions planifiées sur les points",
+        "kpi": "Indicateurs et fiche d'évaluation"
       },
       "bloquantsToujours": "Un point bloquant s'affiche toujours, quel que soit ce réglage."
     },
@@ -1568,5 +1580,200 @@
     "secteursModifies": "secteurs modifiés",
     "secteursInchanges": "secteurs inchangés",
     "figee": "Figé le {{date}}, juste avant la première modification"
+  },
+  "kpi": {
+    "titre": "Indicateurs — {{commune}}",
+    "chapeau": "Les 5 axes de performance, la note du Concours national de propreté et la préparation au tri à la source. Une donnée absente reste « non renseignée » : elle n'est jamais comptée comme zéro.",
+    "annee": "Année",
+    "vues": {
+      "tableau": "Tableau de bord",
+      "fiche": "Fiche d'évaluation"
+    },
+    "baremeProvisoire": "Barème provisoire : la répartition des 100 points entre les 19 indicateurs attend la confirmation de la FNCT (grille ministérielle).",
+    "renseignes": "{{n}} / {{total}} indicateurs renseignés",
+    "statuts": {
+      "renseigne": "Renseigné",
+      "non_renseigne": "Non renseigné",
+      "sans_objet": "Sans objet",
+      "reventile": "Reventilé",
+      "aide": {
+        "renseigne": "La valeur vient d'une mesure de la plateforme ou de la fiche d'évaluation.",
+        "non_renseigne": "Aucune donnée : l'indicateur n'entre pas dans le calcul, et ne compte pas pour zéro.",
+        "sans_objet": "Ne concerne pas la commune (par exemple : pas d'abattoir municipal) ; il sort du calcul sans pénalité.",
+        "reventile": "Ses points sont reportés sur un autre indicateur, selon la méthodologie ministérielle."
+      }
+    },
+    "sources": {
+      "calcule": "mesuré par SIIPI",
+      "saisi": "déclaré"
+    },
+    "reventileVers": "Points reportés sur {{code}}",
+    "recoitDe": "Reçoit les points de {{codes}}",
+    "colonnes": {
+      "indicateur": "Indicateur",
+      "valeur": "Valeur",
+      "atteinte": "Atteinte",
+      "points": "Points",
+      "statut": "Statut"
+    },
+    "concours": {
+      "titre": "Concours national de propreté",
+      "aide": "Note sur 100, calculée sur les seuls indicateurs renseignés.",
+      "couverture": "{{renseignes}} points renseignés sur {{applicables}} ({{pct}} %)",
+      "classable": "Assez d'indicateurs renseignés pour être classée.",
+      "motifs": {
+        "couverture_insuffisante": "Pas encore classée : trop peu de points renseignés.",
+        "fiche_non_validee": "Hors classement officiel : fiche d'évaluation non validée par la FNCT.",
+        "aucun_indicateur": "Aucun indicateur renseigné."
+      },
+      "grille": "Grille du Concours (19 indicateurs)"
+    },
+    "dma": {
+      "titre": "Préparation au tri à la source",
+      "anticipation": "Dispositif d'anticipation : le décret sur le tri à la source n'est pas encore en vigueur. Ces indicateurs mesurent la préparation, sans effet sur la note du Concours.",
+      "enVigueur": "Le décret sur le tri à la source est en vigueur.",
+      "niveaux": {
+        "non_evalue": "Non évaluée",
+        "initial": "Initial",
+        "en_preparation": "En préparation",
+        "avance": "Avancée",
+        "pret": "Prête"
+      }
+    },
+    "axe": "Axe {{n}}",
+    "axes": {
+      "1": "Efficacité opérationnelle et propreté urbaine",
+      "2": "Qualité de service et engagement citoyen",
+      "3": "Environnement et préparation au tri",
+      "4": "Performance économique",
+      "5": "Sécurité, RH et bien-être au travail"
+    },
+    "modules": {
+      "M1": "Module 1 — propreté urbaine et service de collecte",
+      "M2": "Module 2 — espaces et équipements",
+      "M3": "Module 3 — citoyens, participation et gouvernance"
+    },
+    "impression": {
+      "titre": "Fiche d'évaluation — {{commune}} — {{annee}}",
+      "note": "Note : {{score}} / 100 sur {{n}} / {{total}} indicateurs renseignés",
+      "bouton": "Imprimer la fiche (PDF)"
+    },
+    "fiche": {
+      "statuts": {
+        "aucune": "Fiche non commencée",
+        "brouillon": "Brouillon",
+        "soumise": "Soumise à la FNCT",
+        "validee": "Validée par la FNCT"
+      },
+      "aide": "Une case vide reste « non renseignée ». Pour dire « aucun », saisir 0.",
+      "soumiseLe": "soumise le {{date}}",
+      "valideeLe": "validée le {{date}}",
+      "renvoi": "Fiche renvoyée par la FNCT : {{motif}}",
+      "situation": "La situation de la commune",
+      "drapeaux": {
+        "a_abattoir": "La commune a-t-elle un abattoir municipal ?",
+        "decharge_controlee_anged": "La décharge finale est-elle contrôlée par l'ANGeD ?",
+        "experience_innovante": "Une expérience innovante a-t-elle été menée cette année ?",
+        "agent_reclamations": "Un agent est-il dédié au suivi des réclamations ?"
+      },
+      "effets": {
+        "a_abattoir": "Non : l'indicateur « Abattoirs » est sans objet et sort du calcul.",
+        "decharge_controlee_anged": "Oui : les points de la décharge passent sur le bâchage des bennes.",
+        "experience_innovante": "Non : les points de l'innovation passent sur la propreté générale et la communication.",
+        "agent_reclamations": "Une information pour la FNCT ; elle ne change pas la note."
+      },
+      "oui": "Oui",
+      "non": "Non",
+      "nonDit": "Non renseigné",
+      "groupes": {
+        "M1": "Module 1 — propreté urbaine et service de collecte",
+        "M2": "Module 2 — espaces et équipements",
+        "M3": "Module 3 — citoyens, participation et gouvernance",
+        "dma": "Préparation au tri à la source",
+        "donnee": "Données des axes économique et RH"
+      },
+      "points": "{{n}} points",
+      "taux": "Taux",
+      "suggestion": "Reprendre {{n}} (connu de SIIPI)",
+      "commentaire": "Commentaire, pièce justificative…",
+      "enregistrer": "Enregistrer la fiche",
+      "enregistree": "Fiche enregistrée.",
+      "soumettre": "Soumettre à la FNCT",
+      "soumise": "Fiche soumise à la FNCT.",
+      "valider": "Valider la fiche",
+      "validee": "Fiche validée : elle entre au classement officiel.",
+      "motifRenvoi": "Motif du renvoi (la commune le lira)",
+      "rouvrir": "Rouvrir la fiche",
+      "rouverte": "Fiche rouverte et renvoyée à la commune."
+    },
+    "national": {
+      "titre": "Indicateurs et Concours national de propreté",
+      "niveau": "Niveau",
+      "niveaux": {
+        "commune": "Communes",
+        "gouvernorat": "Gouvernorats",
+        "district": "Districts FNCT",
+        "national": "National"
+      },
+      "vues": {
+        "concours": "Concours",
+        "axes": "5 axes",
+        "dma": "Préparation au tri",
+        "alertes": "Alertes",
+        "reglages": "Réglages"
+      },
+      "nonRattache": "Non rattaché à un district",
+      "officiel": "Classement officiel (fiches validées seulement)",
+      "aideConcours": "Une commune n'est classée que si assez de points sont renseignés ; les moyennes par niveau ne portent que sur les communes classées.",
+      "aucuneCommune": "Aucune commune n'a encore d'indicateur renseigné pour cette année.",
+      "aideAxes": "Chaque indice est la moyenne des taux d'atteinte renseignés ; sous chaque moyenne, le nombre de communes sur lequel elle repose.",
+      "surCommunes_one": "sur {{count}} commune",
+      "surCommunes_other": "sur {{count}} communes",
+      "aucuneDma": "Aucune commune n'a encore renseigné sa préparation au tri à la source.",
+      "aucuneAlerte": "Aucune alerte selon les seuils actuels.",
+      "colonnes": {
+        "rang": "Rang",
+        "commune": "Commune",
+        "gouvernorat": "Gouvernorat",
+        "note": "Note /100",
+        "renseignes": "Renseignés",
+        "couverture": "Points renseignés",
+        "fiche": "Fiche",
+        "communes": "Communes",
+        "classees": "Classées",
+        "noteMoyenne": "Note moyenne",
+        "couvertureMoyenne": "Couverture moyenne",
+        "tonnage": "Tonnage pesé",
+        "resolution": "Réclamations résolues",
+        "indiceDma": "Indice de préparation",
+        "niveauDma": "Niveau",
+        "evaluees": "Communes évaluées"
+      }
+    },
+    "reglages": {
+      "bareme": "Barème du Concours (19 indicateurs, 100 points)",
+      "baremeConfirme": "Barème confirmé par la FNCT.",
+      "total": "Total : {{n}} points",
+      "enregistrer": "Enregistrer",
+      "confirmerBareme": "Enregistrer et confirmer comme barème officiel",
+      "baremeEnregistre": "Barème enregistré.",
+      "seuils": "Seuils d'alerte nationaux",
+      "cles": {
+        "reclamation_delai_heures": "Réclamation en attente au-delà de (heures)",
+        "taux_resolution_min": "Traitement des réclamations minimal (%)",
+        "bachage_min": "Bâchage des bennes minimal (%)",
+        "maintenance_min": "Plans d'entretien à jour minimal (%)",
+        "couverture_classement_min": "Points renseignés pour être classée (%)",
+        "dma_en_vigueur": "Le décret sur le tri à la source est en vigueur"
+      },
+      "seuilsEnregistres": "Seuils enregistrés.",
+      "districts": "Districts FNCT",
+      "districtsAide": "La plateforme ne suppose aucun découpage : définissez les districts et rattachez-y les gouvernorats.",
+      "code": "Code",
+      "nom": "Nom",
+      "retirer": "Retirer",
+      "ajouterDistrict": "Ajouter un district",
+      "districtsEnregistres": "Districts enregistrés."
+    }
   }
 }

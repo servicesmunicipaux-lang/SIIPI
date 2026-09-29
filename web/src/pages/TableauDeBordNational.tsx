@@ -7,6 +7,8 @@ import { formaterNombre } from '../i18n';
 import { BoutonExport } from '../composants/BoutonExport';
 import { DecoupageCommunal } from '../composants/national/DecoupageCommunal';
 import { PropositionsDecoupage } from '../composants/national/PropositionsDecoupage';
+import { KpiNational } from '../composants/national/KpiNational';
+import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import {
   BadgeProvenance,
   BadgeStatut,
@@ -80,6 +82,9 @@ export function TableauDeBordNational() {
   // carte d'édition dans une fenêtre superposée se manipule mal, et l'on y
   // perd le fil de ce qu'on était en train de faire.
   const [communeADecouper, setCommuneADecouper] = useState<string | null>(null);
+  // A2.3 — « Visualiser » : les indicateurs d'une commune, en lecture et en
+  // validation de sa fiche, sans ouvrir tout son portail.
+  const [communeKpi, setCommuneKpi] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [triCle, setTriCle] = useState<Cle>('communes_actives');
   const [triAscendant, setTriAscendant] = useState(true);
@@ -157,6 +162,17 @@ export function TableauDeBordNational() {
   if (erreur) return <Erreur message={erreur} onReessayer={() => void charger()} />;
   if (!gouvernorats || !communes || !totaux) return <Chargement />;
 
+  if (communeKpi) {
+    return (
+      <div className="mx-auto max-w-[1400px] space-y-4 px-4 py-6 sm:px-6">
+        <button type="button" onClick={() => setCommuneKpi(null)} className="text-sm font-medium text-siipi-700 hover:underline">
+          ← {t('national.retourObservatoire')}
+        </button>
+        <IndicateursCommune communeId={communeKpi} fnct />
+      </div>
+    );
+  }
+
   if (communeADecouper) {
     return (
       <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
@@ -230,6 +246,11 @@ export function TableauDeBordNational() {
           detail={t('national.cartes.reclamationsDetail')}
         />
       </section>
+
+      {/* Jalon 8 : le Concours national, les 5 axes, la préparation au tri à
+          la source et les alertes — avant le tableau par gouvernorat, qui
+          montre le déploiement ; ceci montre la performance. */}
+      <KpiNational onOuvrirCommune={setCommuneKpi} />
 
       {/* -------------------------------------------------------------------
           Tableau par gouvernorat
@@ -410,6 +431,13 @@ export function TableauDeBordNational() {
                         communale : le libellé le dit, parce qu'à côté d'un
                         bouton qui ouvre tout le portail, « Modifier » seul
                         laissait croire qu'on allait éditer la commune. */}
+                    <button
+                      type="button"
+                      onClick={() => setCommuneKpi(c.commune_id)}
+                      className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-100"
+                    >
+                      {t('national.communes.indicateurs')}
+                    </button>
                     <button
                       type="button"
                       onClick={() => setCommuneADecouper(c.commune_id)}
