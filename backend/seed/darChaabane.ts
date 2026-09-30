@@ -13,7 +13,7 @@
 //
 // PERSONNEL. Le dossier de la commune contient les noms des agents et leur
 // masse salariale. Rien de cela n'est repris : les agents sont créés sous des
-// noms fictifs, de même forme et longueur, conformément au décret-loi 2022-54
+// noms fictifs, de même forme et longueur, conformément à la loi organique 2004-63
 // et à la consigne de la FNCT. Affecter un agent à une tournée n'a jamais eu
 // besoin de son vrai nom.
 // ---------------------------------------------------------------------------

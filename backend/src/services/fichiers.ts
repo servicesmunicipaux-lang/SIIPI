@@ -13,7 +13,7 @@
 //    parfois le nom de son propriétaire. Un citoyen qui signale un dépôt
 //    sauvage devant chez lui transmettrait ainsi, sans le savoir, les
 //    coordonnées de son domicile — et la commune les conserverait des années.
-//    Le décret-loi n° 2022-54 appelle cela une collecte sans finalité ni
+//    La loi organique n° 2004-63 appelle cela une collecte sans finalité ni
 //    consentement ; c'en est une.
 //
 //    La position n'est pas jetée pour autant : elle est RENDUE À L'APPELANT,

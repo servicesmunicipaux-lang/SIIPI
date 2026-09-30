@@ -10,7 +10,7 @@
 #
 # Vérifie surtout ce que la carte publique NE doit PAS laisser sortir : ni nom,
 # ni téléphone, ni description libre, ni coordonnée exacte, ni photo non
-# validée (décret-loi n° 2022-54, principe de minimisation).
+# validée (loi organique n° 2004-63, principe de minimisation).
 #
 #   docker compose run --rm api npm run test:citoyen
 #

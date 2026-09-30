@@ -29,7 +29,7 @@ REM         vers les citoyens.
 REM    034  MODULE 4 - personnel : effectif, affectation aux circuits,
 REM         pointage quotidien, masse salariale du SERVICE.
 REM         Ni CIN, ni telephone, ni salaire individuel, ni donnee de sante :
-REM         la base n'a pas ces colonnes (decret-loi 2022-54). Les 60 ouvriers
+REM         la base n'a pas ces colonnes (loi organique 2004-63). Les 60 ouvriers
 REM         et le technicien principal de Dar Chaabane sont charges sous des
 REM         NOMS FICTIFS ; grades, classes et echelons sont les vrais.
 REM
@@ -140,29 +140,14 @@ echo --- typage du front --- >> %LOG%
 !DC! run --rm web npx tsc --noEmit -p tsconfig.json >> %LOG% 2>&1
 if errorlevel 1 (echo   ATTENTION : le typage du front signale des erreurs, voir %LOG%) else (echo   Typage du front : OK)
 echo. >> %LOG%
-echo --- campagne du module 2 (circuits) --- >> %LOG%
-!DC! exec -T api npm run test:module2 >> %LOG% 2>&1
-echo. >> %LOG%
-echo --- campagne des acces --- >> %LOG%
-!DC! exec -T api npm run test:comptes >> %LOG% 2>&1
-echo. >> %LOG%
-echo --- campagne du module 3 (parc) --- >> %LOG%
-!DC! exec -T api npm run test:module3 >> %LOG% 2>&1
-echo. >> %LOG%
-echo --- campagne du module 4 (personnel) --- >> %LOG%
-!DC! exec -T api npm run test:module4 >> %LOG% 2>&1
-echo. >> %LOG%
-echo --- campagne du module 5 (communication) --- >> %LOG%
-!DC! exec -T api npm run test:module5 >> %LOG% 2>&1
-echo. >> %LOG%
-echo --- campagne du module 6 (pesees) --- >> %LOG%
-!DC! exec -T api npm run test:module6 >> %LOG% 2>&1
-echo. >> %LOG%
-echo --- campagne du stockage de fichiers --- >> %LOG%
-!DC! exec -T api npm run test:fichiers >> %LOG% 2>&1
-echo. >> %LOG%
-echo --- campagne des points proposes par les citoyens --- >> %LOG%
-!DC! exec -T api npm run test:suggestions >> %LOG% 2>&1
+REM  Les campagnes : TOUTES, par npm test, qui enchaine le controle du contrat
+REM  d'API et chaque campagne inscrite dans backend/package.json (CLAUDE.md,
+REM  paragraphe 7). Cette liste en nommait huit a la main : les autres n'etaient
+REM  jamais lancees ici, et rien ne le disait. npm test s'arrete a la premiere
+REM  campagne qui echoue : le journal dit laquelle.
+echo --- npm test : contrat d'API et toutes les campagnes --- >> %LOG%
+!DC! exec -T api npm test >> %LOG% 2>&1
+if errorlevel 1 (echo   ATTENTION : le contrat d'API ou une campagne echoue, voir %LOG%) else (echo   Contrat d'API et campagnes : tout passe.)
 
 echo. >> %LOG%
 echo --- etat des conteneurs --- >> %LOG%

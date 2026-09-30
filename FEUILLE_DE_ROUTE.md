@@ -33,7 +33,7 @@ de l'observatoire national (contrôlée au typage, non commitée).
 
 | # | Jalon | Contenu | Pourquoi à cette place | Prêt ? |
 |---|---|---|---|---|
-| **S0** | Assainissement (v0.15.2) | Commit du Lot 0 ; retrait des anciennes références légales dans le code, les commentaires et l'OpenAPI ; import des KMZ issus d'ArcGIS | Le dépôt doit être propre avant qu'un lot s'y ajoute ; le KMZ est le préalable des données de M'hamdia | **Oui** |
+| **S0** | Assainissement (v0.15.2) | Commit du Lot 0 ; retrait des anciennes références légales dans le code, les commentaires et l'OpenAPI ; import des KMZ issus d'ArcGIS | Le dépôt doit être propre avant qu'un lot s'y ajoute ; le KMZ est le préalable des données de M'hamdia | ✅ **Fait** (v0.15.2) — voir le CHANGELOG |
 | **S1** | Jumeau numérique | Jeu de données simulé de trois mois (structure de Dar Chaâbane), campagne `test:simulation-3mois`, écran « Mode démo » (§ 6bis) | Donne à tous les lots suivants un banc d'essai chiffré sans attendre une commune ; chaque lot y ajoute ses propres données | **Oui**, dès que S0 est clos |
 | **11** | v0.16 — Conformité et pièces opposables | 16.1 barbechas · 16.2 documents à numérotation scellée · 16.3 carnet de bord et carburant · 16.4 dossier de déclassement | 16.1 d'abord : on **retire** des colonnes avant que de vraies données n'y entrent. 16.2 avant 16.3 : le bon de carburant emprunte la séquence scellée | **Oui** — rien ne bloque |
 | **R1** | Recette **Dar Chaâbane** — *différée* | Un mois d'usage réel du lot 11 (parc, personnel, 13 circuits déjà chargés). En attendant, le jumeau numérique (§ 6bis) | Reste l'objectif de **clôture de la version** (§ 6), mais ne bloque plus l'ouverture des jalons suivants | Dès que la commune est disponible |
@@ -85,7 +85,7 @@ prospectif (axes 6 et 7) le suivent.
 > jalon 11 dans l'ordre 16.1 → 16.2 → 16.3 → 16.4. Un lot = une migration, une
 > campagne `backend/tests/<lot>.sh` enregistrée dans `package.json` et
 > `MIGRER.bat`, qui commence par ce que la base **refuse**. Avant de déclarer un
-> lot terminé : `npm run verifier:contrat` et les 32 campagnes passent, et les
+> lot terminé : `npm run verifier:contrat` et toutes les campagnes passent, et les
 > deux commandes de recomptage donnent le même nombre. Aucun nombre de tests
 > ne s'écrit sans avoir été lu dans une sortie. Bump de version à la clôture du
 > lot, dans le même commit que l'entrée du CHANGELOG. Après S0, fais S1 (jumeau
@@ -1062,7 +1062,7 @@ registre des pleins de carburant (lot « sources KPI »).
 classement de chauffeurs.
 
 **Clôture de la version :** le critère d'acceptation passe (`verifier:contrat`
-et les 32 campagnes) **et** le lot a tourné un mois complet chez Dar Chaâbane
+et toutes les campagnes) **et** le lot a tourné un mois complet chez Dar Chaâbane
 (R1) **et** les défauts trouvés sont consignés au journal des corrections.
 Sinon la version est *développée*, pas *livrée*. R1 étant différée, la version
 reste *développée* et éprouvée sur le jumeau numérique (§ 6bis) jusqu'à ce que la
@@ -1306,8 +1306,8 @@ d'accueil de deux pages et une vidéo de cinq minutes.
 
 ### Niveau 1 — Les campagnes automatisées *(en place)*
 
-**Trente-deux campagnes rejouables**, lancées par `backend/tests/executer.sh
-<campagne>` et enchaînées par `npm test` (`audit`, `champs-points`, `circuits`,
+**Trente-trois campagnes rejouables** au 30/09/2026, lancées par `backend/tests/executer.sh
+<campagne>` et enchaînées par `npm test` (`assainissement`, `audit`, `champs-points`, `circuits`,
 `citoyen`, `cloisonnement`, `comptes`, `contacts`, `decoupage`, `enlevements`,
 `exports`, `fichiers`, `imports`, `intercommunal`, `kpi-5-axes`, `kpi-sources`,
 `maintenance`, `module2` à `module6`, `notifications`, `notifications-citoyen`,
@@ -1316,7 +1316,7 @@ d'accueil de deux pages et une vidéo de cinq minutes.
 campagne de plus, `simulation-3mois`, s'y ajoute à la création du lot S1 (§ 6bis).
 
 **Le critère d'acceptation** est celui de `CLAUDE.md` § 7 : `npm run
-verifier:contrat` et ces trente-deux campagnes passent, et les deux commandes de
+verifier:contrat` et toutes ces campagnes passent, et les deux commandes de
 recomptage donnent le même nombre. Aucun nombre de tests ne s'écrit sans avoir
 été lu dans la sortie d'une commande.
 
@@ -1468,7 +1468,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **52 migrations**, rejouées sur base neuve à chaque livraison |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **54 migrations** au 30/09/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

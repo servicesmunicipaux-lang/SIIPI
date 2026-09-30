@@ -5,6 +5,80 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.2] — 2026-09-30 — S0 : assainissement
+
+### Ajouté
+- **Import des KMZ exportés d'ArcGIS** (préalable des données de M'hamdia). Un tel
+  fichier porte toute une base d'étude, une couche par dossier, avec les
+  attributs dans un tableau HTML. L'aperçu d'import décrit désormais les
+  **couches** (points, lignes, surfaces, attributs et leurs valeurs) ; on choisit
+  la couche, au besoin un **filtre** sur un attribut (les points d'un seul
+  circuit) et le **type** des points qui n'en portent pas (une couche de
+  dépotoirs → points noirs). Valider sans choisir est refusé. Les surfaces sont
+  écartées avec leur raison. Éprouvé sur le KMZ réel des circuits existants de
+  M'hamdia (PCGD 2026) : neuf couches reconnues, là où l'import mêlait 125 points
+  et trois tracés en un seul.
+- **Empreinte des migrations.** Le migrateur ne suivait que le NOM d'une
+  migration : un fichier déjà appliqué pouvait changer sans que rien ne le dise,
+  et la modification n'atteignait que les bases créées après. Il garde désormais
+  l'empreinte SHA-256 de chaque migration et s'arrête, en nommant le fichier et en
+  disant quoi faire, si un fichier ne lui correspond plus.
+- Campagne **`assainissement`** : elle commence par ce que la plateforme refuse
+  (migration modifiée, fichier à plusieurs couches validé sans choix, ancienne
+  référence légale dans la base ou le contrat d'API).
+
+### Corrigé
+- **La référence légale** : les commentaires, les migrations, le contrat d'API,
+  les seeds, les tests et le libellé FR/AR citaient le décret-loi n° 2022-54
+  (cybercriminalité). Le texte qui régit les données à caractère personnel est la
+  **loi organique n° 2004-63** ; 43 occurrences corrigées. Les cinq commentaires
+  de la base concernés sont réécrits sur les bases existantes par la migration
+  053 — corriger les fichiers seuls n'aurait changé que les bases neuves.
+- **Un citoyen inscrit par l'application ne pouvait ni proposer un point de
+  collecte ni déposer une photo dans sa propre commune** (« Action hors du
+  périmètre de votre commune ») : les deux politiques exigeaient la commune du
+  COMPTE, qu'un citoyen inscrit n'a pas — la sienne est celle de son adresse
+  déclarée. Migration 054.
+- **Des campagnes qui ne vérifiaient rien, ou pas ce qu'elles annonçaient** :
+  - `suggestions` s'arrêtait en succès, « sans objet », faute de compte citoyen :
+    elle ne testait rien et cachait le défaut précédent. Elle crée désormais son
+    citoyen d'essai ;
+  - `module4` jetait le message d'erreur qu'elle cherchait (le refus d'affecter
+    un agent d'une autre commune ne pouvait jamais être constaté) ;
+  - `module6` attendait `t` là où PostgreSQL 16 écrit `true` ;
+  - `circuits` et `prestataires` créaient leur circuit sans date de début :
+    dû à partir d'aujourd'hui, il n'avait aucun passage prévu la semaine
+    contrôlée ;
+  - `module2` dépendait de l'ordre des chargements (agents fictifs du module 2).
+- **Les agents fictifs de Dar Chaabane** (MAT-*) sont retirés par `seed:personnel`
+  dès que le registre réel est chargé — ce que faisait `CORRIGER_PERSONNEL.bat` à
+  la main ; les affectations sont closes, rien n'est effacé.
+- **`MIGRER.bat` ne lançait que huit campagnes** sur trente-deux, nommées à la
+  main. Il lance désormais `npm test` : le contrat d'API et toutes les campagnes.
+- `test:kpi-sources` lançait aussi `releves-terrain` (défaut de la v0.13.0).
+- Libellé manquant de la famille d'import « CSV ».
+
+### Vérifié (critère d'acceptation, `CLAUDE.md` § 7)
+- Sur une base neuve, dans l'ordre d'une installation réelle (`migrate`, `seed`,
+  `import:decoupage`, `seed:dar-chaabane`, `seed:parc`, `seed:personnel`,
+  `seed:communication`) : 54 migrations appliquées, la dernière rejouée une
+  seconde fois sans effet.
+- `npm test` : code de sortie 0 — contrat 241 routes servies / 241 documentées,
+  **33 campagnes, 1 159 tests réussis, aucun échec** (somme des 33 bilans lus
+  dans la sortie).
+- Recomptage : 33 campagnes présentes, 33 enchaînées par `npm test`.
+- `npm run lint` (backend et web, TypeScript 5.8.3) : aucun écart.
+
+### Décisions à retenir
+- **Une campagne ne se déclare jamais « sans objet »** : elle bâtit ses données
+  ou elle échoue.
+- **Une migration appliquée ne se modifie pas** — c'est désormais vérifié, pas
+  seulement écrit.
+- **Un fichier SIG n'est pas une tournée** : SIIPI ne devine pas quelle couche
+  porte les arrêts d'un circuit ; il les décrit et laisse choisir.
+- Les anciennes entrées de ce journal qui citent le décret-loi 2022-54 restent
+  telles quelles : c'est l'histoire du dépôt.
+
 ## [0.15.1] — 2026-09-30 — Changement de stratégie : jumeau numérique et jalons en parallèle
 
 Version **documentaire** : aucun code applicatif ne change.

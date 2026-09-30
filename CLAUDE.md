@@ -16,7 +16,7 @@ est prêt et ce qui bloque. Les pièces métier sont dans `docs/specs_metier/` (
 l'objectif de clôture d'une version mais ne bloque plus l'ouverture des jalons
 suivants. Les lots 17.1, 17.3 et 17.5 peuvent avancer en parallèle de R1 ; 17.2 et
 17.4 restent suspendus à leurs préalables externes. Ordre : S0, S1 (jumeau
-numérique), jalon 11.
+numérique), jalon 11. **S0 est clos (v0.15.2) : la suite est S1.**
 
 ---
 
@@ -122,7 +122,7 @@ données personnelles). Jusqu'à confirmation par un juriste de la FNCT :
 |---|---|
 | `DEMARRER.bat` | Premier démarrage : conteneurs, migrations, jeu de démonstration |
 | `RELANCER.bat` | Redémarrage simple |
-| `MIGRER.bat` | **Le passage obligé après toute modification** : migrations, seeds, régénération des types du front, contrat d'API, typage, et les 33 campagnes de tests |
+| `MIGRER.bat` | **Le passage obligé après toute modification** : migrations, seeds, régénération des types du front, typage, puis `npm test` — le contrat d'API et **toutes** les campagnes inscrites dans `backend/package.json` |
 | `TESTS.bat` | Les campagnes seules |
 | `VERIFIER.bat` | Diagnostic en lecture seule |
 | `CHARGER_DJERBA.bat` / `RECHARGER_DAR_CHAABANE.bat` | Rechargement des jeux réels |
@@ -133,7 +133,7 @@ données personnelles). Jusqu'à confirmation par un juriste de la FNCT :
 ```bash
 docker compose exec -T api npm run migrate            # migrations en attente
 docker compose exec -T api npm run verifier:contrat   # toute route servie est documentée
-docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (32 au 30/09/2026)
+docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (33 au 30/09/2026)
 docker compose exec -T api npm run test:module4       # une seule campagne
 docker compose run  --rm web npx tsc --noEmit         # typage du front
 ```
@@ -153,7 +153,7 @@ docker compose run --rm web npx openapi-typescript http://api:4000/openapi.json 
 
 | Couche | Choix | Note |
 |---|---|---|
-| Base | PostgreSQL 16 + PostGIS 3.4 | 52 migrations, rejouées sur base neuve à chaque livraison |
+| Base | PostgreSQL 16 + PostGIS 3.4 | 54 migrations au 30/09/2026, rejouées sur base neuve à chaque livraison |
 | API | Node 22 + Express + TypeScript (ESM) | zod pour la validation |
 | Contrat | OpenAPI 3.1 **généré depuis les schémas zod d'exécution** | la documentation ne peut pas décrire autre chose que ce qui est contrôlé |
 | Front | React 19 + Vite + Tailwind v4 + Leaflet | PWA (`manifest.webmanifest`, `sw.js`) |
@@ -213,7 +213,12 @@ son pôle et ses deux libellés (FR et AR).
 ### Base de données
 
 - Une migration est **numérotée, jamais modifiée après application** : on en
-  ajoute une nouvelle.
+  ajoute une nouvelle. Depuis la v0.15.2, **le migrateur le vérifie** : il garde
+  l'empreinte SHA-256 de chaque migration appliquée (`schema_migrations.empreinte`,
+  fins de ligne ramenées à LF) et **s'arrête** si un fichier ne lui correspond
+  plus. Un changement de texte dans une migration ancienne (un `COMMENT ON`, par
+  exemple) se porte donc par une migration nouvelle — sinon il n'atteindrait que
+  les bases créées après lui (voir `053_references_legales.sql`).
 - Idempotente : `IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP ... IF EXISTS`.
 - `CREATE OR REPLACE FUNCTION` ne peut pas changer un type de retour :
   `DROP FUNCTION IF EXISTS app.f(args);` d'abord — et **le `GRANT` qui suit
@@ -270,8 +275,9 @@ sans erreur de :**
 
 1. **`npm run verifier:contrat`** — toute route servie est documentée ;
 2. **toutes les campagnes `backend/tests/*.sh`** — pas « celles qui concernent
-   la tâche ». Elles étaient 32 au 30/09/2026 ; **`simulation-3mois`**
-   (`npm run test:simulation-3mois`, lot S1) s'y ajoute à sa création.
+   la tâche ». Elles étaient 33 au 30/09/2026 (S0 a ajouté `assainissement`) ;
+   **`simulation-3mois`** (`npm run test:simulation-3mois`, lot S1) s'y ajoute à
+   sa création.
 
 Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 
@@ -279,18 +285,31 @@ Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 docker compose exec -T api npm test
 ```
 
-Le dossier `backend/tests/` contenait **33 fichiers `.sh`** au 30/09/2026 : 32
+Le dossier `backend/tests/` contenait **34 fichiers `.sh`** au 30/09/2026 : 33
 campagnes et `executer.sh`, le lanceur, qui n'est pas une campagne. Ces chiffres
 ne sont pas des valeurs à retenir mais à **recalculer** — un critère d'acceptation qui se
 dessèche sans bruit est pire qu'aucun :
 
 ```bash
 ls backend/tests/*.sh | grep -vc executer                       # campagnes présentes
-grep -o 'executer.sh [a-z0-9-]*' backend/package.json | sort -u | wc -l   # campagnes enchaînées par npm test
+grep -o '"test": "[^"]*"' backend/package.json | grep -o 'executer.sh [a-z0-9-]*' | sort -u | wc -l   # campagnes enchaînées par npm test
 ```
 
 Les deux nombres doivent être **égaux**. S'ils diffèrent, une campagne existe
-sans être exécutée : la tâche n'est pas terminée.
+sans être exécutée : la tâche n'est pas terminée. *(La seconde commande ne lit
+que la chaîne `test` depuis la v0.15.2 : l'ancienne comptait aussi les scripts
+`test:<campagne>`, si bien qu'une campagne retirée de la chaîne mais gardée en
+script à part restait comptée.)*
+
+**Une campagne ne se déclare jamais « sans objet ».** Jusqu'à la v0.15.2,
+`suggestions` s'arrêtait en SUCCÈS quand elle ne trouvait pas de compte citoyen :
+`npm test` la comptait réussie alors qu'aucun de ses contrôles n'avait tourné — et
+ce silence cachait un défaut réel (migration 054). Une campagne bâtit ses propres
+données ; si elle ne le peut pas, elle **échoue**.
+
+**Ordre de chargement de référence** (celui d'une installation réelle, et celui
+dans lequel les campagnes sont écrites) : `migrate`, `seed`, `import:decoupage`,
+`seed:dar-chaabane`, `seed:parc`, `seed:personnel`, `seed:communication`.
 
 **Aucun nombre de tests ne s'écrit** dans un message de commit, un rapport ou
 un CHANGELOG sans avoir été lu dans la sortie d'une commande. Un chiffre
@@ -341,12 +360,12 @@ valeurs attendues sont calculées par un script indépendant du code testé. Voi
 
 ```
 backend/
-  migrations/      052 fichiers numérotés — l'ordre fait foi
+  migrations/      054 fichiers numérotés au 30/09/2026 — l'ordre fait foi, l'empreinte aussi
   src/routes/      une route par domaine ; les littéraux avant /:id
   src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF)
   src/openapi/     document.ts — le contrat, généré depuis les schémas zod
   seed/            jeux réels : Dar Chaabane, Djerba (Houmt Souk, Midoun, Ajim)
-  tests/           33 campagnes, lancées par tests/executer.sh
+  tests/           33 campagnes au 30/09/2026, lancées par tests/executer.sh
 web/
   src/composants/  communal/ · national/ · prestataire/ · kpi/ · registres/
   src/lib/api.ts   client HTTP ; api-types.ts est GÉNÉRÉ, ne pas l'écrire à la main

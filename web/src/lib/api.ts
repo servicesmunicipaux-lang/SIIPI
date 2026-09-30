@@ -294,8 +294,17 @@ export interface ApercuImport {
   /** Ce qui sera réellement posé, une fois la demande croisée au contenu. */
   poseraPoints: boolean;
   poseraTrace: boolean;
-  famille: 'waypoints' | 'trace_gps' | 'itineraire_dessine' | 'gpx' | 'geojson' | 'inconnu';
+  famille: 'waypoints' | 'trace_gps' | 'itineraire_dessine' | 'gpx' | 'geojson' | 'csv' | 'multicouche' | 'inconnu';
   nomReleve: string | null;
+  /** Les couches d'un KML/KMZ — plusieurs pour un export ArcGIS, à choisir. */
+  couches?: {
+    chemin: string;
+    nom: string;
+    points: number;
+    lignes: number;
+    surfaces: number;
+    attributs: { nom: string; valeurs: string[]; plusDeValeurs: boolean }[];
+  }[];
   nbPoints: number;
   nbVoyages: number;
   nbSommetsTrace: number;
@@ -581,6 +590,10 @@ export const api = {
       valider?: boolean;
       remplacer?: boolean;
       cible?: 'auto' | 'trace' | 'points';
+      /** Couche d'un fichier à plusieurs couches (export ArcGIS). */
+      couche?: string;
+      filtre?: { attribut: string; valeur: string; operateur?: 'egal' | 'commence_par' };
+      typePoints?: string;
     }
   ) =>
     requete<ApercuImport>(`/circuits/${circuitId}/import-kml`, {

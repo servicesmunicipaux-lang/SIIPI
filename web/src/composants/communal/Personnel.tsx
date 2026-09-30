@@ -3,7 +3,7 @@
 // CE QUE CET ÉCRAN MONTRE, ET CE QU'IL NE MONTRERA JAMAIS. Il montre qui est
 // là ce matin et sur quel circuit. Il ne montre aucun salaire individuel,
 // aucune donnée de santé, aucun numéro de CIN : la base n'en porte pas, donc
-// l'écran ne peut pas les afficher, même par accident (décret-loi n° 2022-54).
+// l'écran ne peut pas les afficher, même par accident (loi organique n° 2004-63).
 //
 // POURQUOI LE POINTAGE EST LA PREMIÈRE CHOSE À L'ÉCRAN. Le service propreté de
 // Dar Chaabane compte soixante et une personnes et UN seul cadre technique.

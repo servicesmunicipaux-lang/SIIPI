@@ -39,7 +39,7 @@ ticketsRouter.get(
         [req.user.sub]
       );
       // Les réclamations portent le nom et le téléphone déclarés par le citoyen :
-      // toute consultation par un agent est journalisée (décret-loi 2022-54).
+      // toute consultation par un agent est journalisée (loi organique 2004-63).
       await journaliserAccesCitoyens('GET /tickets?assignedToMe', rows);
       return res.json(rows);
     }

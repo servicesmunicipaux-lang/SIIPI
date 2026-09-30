@@ -37,20 +37,30 @@ T_DIR=$(tok "$DIR_EMAIL")
 [ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
 
-CIT_EMAIL=$(sql "SELECT u.email FROM users u JOIN citoyens c ON c.user_id=u.id WHERE u.role='citoyen' AND u.commune_id='$COMMUNE' AND u.deleted_at IS NULL AND u.is_active ORDER BY u.created_at LIMIT 1")
-if [ -z "$CIT_EMAIL" ]; then
-  echo "Aucun compte citoyen sur $COMMUNE — campagne sans objet." >&2
-  exit 0
-fi
-T_CIT=$(tok "$CIT_EMAIL")
-CIT_ID=$(sql "SELECT c.id FROM users u JOIN citoyens c ON c.user_id=u.id WHERE u.email='$CIT_EMAIL'")
+# Le citoyen d'essai est créé par la campagne elle-même. Jusqu'à la v0.15.2,
+# elle cherchait un compte citoyen existant sur la commune et, faute d'en
+# trouver, s'arrêtait en SUCCÈS sans avoir rien vérifié (« campagne sans
+# objet », code 0) : sur une base neuve, npm test la comptait réussie alors
+# qu'aucun de ses contrôles n'avait tourné.
+CIT_EMAIL="test-sug-citoyen@example.test"
 
 nettoyer() {
   $PSQL -c "DELETE FROM points_collecte WHERE observation LIKE '%TEST-SUG%' OR nom LIKE 'TEST-SUG%';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM points_suggeres WHERE nom LIKE 'TEST-SUG%';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM circuits WHERE nom = 'TEST-SUG circuit';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email = '$CIT_EMAIL');" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM users WHERE email = '$CIT_EMAIL';" >/dev/null 2>&1
 }
 nettoyer
+
+code -X POST "$API/citizens/register" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$CIT_EMAIL\",\"password\":\"Siipi2026!\",\"fullName\":\"TEST-SUG Citoyen\"}" >/dev/null
+T_CIT=$(tok "$CIT_EMAIL")
+CIT_ID=$(sql "SELECT c.id FROM users u JOIN citoyens c ON c.user_id=u.id WHERE u.email='$CIT_EMAIL'")
+[ -n "$T_CIT" ] && [ -n "$CIT_ID" ] || { echo "Le citoyen d'essai n'a pas pu être créé." >&2; exit 1; }
+# Un citoyen ne propose un point que dans SA commune : il y déclare son adresse.
+code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' \
+  -d "{\"communeId\":\"$COMMUNE\",\"adresse\":\"TEST-SUG, rue de test\"}" >/dev/null
 
 # Un circuit à soi, avec trois arrêts alignés d'ouest en est. Travailler sur un
 # circuit réel abîmerait le jeu de Dar Chaabane à chaque passage — le défaut
@@ -64,7 +74,14 @@ $PSQL -c "INSERT INTO points_collecte (circuit_id, commune_id, voyage, ordre, no
 
 # -----------------------------------------------------------------------------
 echo
-echo "1. Le citoyen propose"
+echo "1. Le citoyen propose — dans sa commune, et nulle part ailleurs"
+AUTRE_COMMUNE=$(sql "SELECT id FROM communes WHERE id <> '$COMMUNE' ORDER BY id LIMIT 1")
+chk "une proposition dans une autre commune que la sienne est refusée" 403 \
+    "$(code -X POST -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' \
+       -d "{\"communeId\":\"$AUTRE_COMMUNE\",\"nom\":\"TEST-SUG ailleurs\",\"lat\":36.4560,\"lng\":10.7402}" \
+       "$API/citoyen/points-suggeres")"
+# « Sa commune » est celle de son adresse déclarée : un citoyen inscrit par
+# l'application n'en a pas sur son compte (migration 054).
 CODE=$(code -X POST -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' \
   -d "{\"communeId\":\"$COMMUNE\",\"nom\":\"TEST-SUG en face de l'école\",\"lat\":36.4560,\"lng\":10.7402,\"precisionM\":8}" \
   "$API/citoyen/points-suggeres")

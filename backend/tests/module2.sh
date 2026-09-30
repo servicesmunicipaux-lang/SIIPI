@@ -126,8 +126,14 @@ echo "5. Aucune donnée personnelle réelle dans le personnel importé"
 # salariale. Le jeu de démarrage doit être entièrement fictif.
 chk "aucune colonne CIN, téléphone ou salaire sur la table personnel" 0 \
     "$(sql "SELECT count(*) FROM information_schema.columns WHERE table_name='personnel' AND (column_name ILIKE '%cin%' OR column_name ILIKE '%tel%' OR column_name ILIKE '%phone%' OR column_name ILIKE '%salaire%' OR column_name ILIKE '%salary%')")"
-chk "des agents sont bien affectés aux circuits" "t" \
-    "$(sql "SELECT (count(*) > 0) FROM circuit_equipe ce JOIN circuits c ON c.id=ce.circuit_id WHERE c.commune_id='$COMMUNE'")"
+# Les agents fictifs du chargement de démonstration (MAT-*) n'ont de raison
+# d'être que tant que le registre réel (DCF-*) est absent. S'ils restaient
+# actifs à côté de lui, l'effectif serait faux (78 pour 61) et des postes
+# seraient « tenus » par des personnes qui n'existent pas. Ce contrôle vaut
+# quel que soit l'ordre des chargements.
+chk "aucun agent fictif ne reste actif à côté du registre réel" 0 \
+    "$(sql "SELECT count(*) FROM personnel WHERE commune_id='$COMMUNE' AND matricule LIKE 'MAT-%' AND deleted_at IS NULL
+             AND EXISTS (SELECT 1 FROM personnel r WHERE r.commune_id='$COMMUNE' AND r.matricule LIKE 'DCF-%' AND r.deleted_at IS NULL)")"
 
 echo
 echo "6. Points de collecte : saisie, ordre et cloisonnement"

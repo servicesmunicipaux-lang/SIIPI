@@ -292,7 +292,7 @@ CREATE POLICY collecteurs_update ON collecteurs_agrees FOR UPDATE
 -- Le jour où une commune sous-traitera ces enlèvements, l'accès du
 -- prestataire devra passer par une affectation explicite, demande par
 -- demande — c'est-à-dire par une décision, pas par un effet de bord de son
--- rattachement (décret-loi 2022-54, principe de finalité).
+-- rattachement (loi organique 2004-63, principe de finalité).
 DROP POLICY IF EXISTS demandes_select ON demandes_enlevement;
 CREATE POLICY demandes_select ON demandes_enlevement FOR SELECT
   USING (

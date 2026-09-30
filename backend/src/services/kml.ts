@@ -81,6 +81,7 @@ export interface ResultatKml {
     | 'gpx'
     | 'geojson'
     | 'csv'
+    | 'multicouche'
     | 'inconnu';
   nom: string | null;
   points: PointReleve[];
@@ -90,6 +91,171 @@ export interface ResultatKml {
   statistiques: Record<string, string>;
   /** Ce qui a été écarté, et pourquoi. Remonté à l'écran avant validation. */
   avertissements: string[];
+  /** Les couches d'un KML/KMZ (ses dossiers), pour choisir laquelle importer. */
+  couches?: CoucheReleve[];
+}
+
+// ---------------------------------------------------------------------------
+// LES FICHIERS À PLUSIEURS COUCHES — les exports ArcGIS (v0.15.2).
+//
+// Un KMZ exporté d'ArcGIS (« Layer to KML ») ne décrit pas UNE tournée : il
+// porte TOUTE la base d'une étude, une couche par dossier. Celui des circuits
+// existants de M'hamdia (PCGD 2026) contient les points de collecte des trois
+// bennes tasseuses, les noms des cités, les dépotoirs sauvages, trois tracés
+// de circuit, douze circuits de tracteur dessinés en SURFACES, la zone non
+// couverte et la limite de la commune. Lu d'un bloc, il rendait 125 « arrêts »
+// (points de collecte, noms de cités et dépotoirs mêlés) et UN tracé fait des
+// trois circuits mis bout à bout.
+//
+// Les attributs d'une entité n'y sont pas dans <ExtendedData> mais dans un
+// TABLEAU HTML de sa <description> (« Circuit | Circuit Benne Taseuse 01 »).
+//
+// On lit donc les couches, on les décrit, et on laisse CHOISIR : la couche à
+// importer, et au besoin un filtre sur un attribut — les points d'un seul
+// circuit. Un fichier qui n'a qu'une couche de points et qu'une couche de
+// lignes (un relevé terrain, un fichier exporté par SIIPI) se lit comme avant.
+// ---------------------------------------------------------------------------
+
+export interface CoucheReleve {
+  /** Identifiant de la couche : le chemin de ses dossiers. */
+  chemin: string;
+  /** Le nom du dossier, tel qu'on le montre. */
+  nom: string;
+  points: number;
+  lignes: number;
+  surfaces: number;
+  /** Attributs métier de la couche, avec leurs valeurs distinctes (40 au plus). */
+  attributs: { nom: string; valeurs: string[]; plusDeValeurs: boolean }[];
+}
+
+export interface OptionsLecture {
+  /** Chemin de la couche à importer (voir CoucheReleve.chemin). */
+  couche?: string;
+  /** Ne garder que les entités dont l'attribut vaut (ou commence par) la valeur. « Nom » désigne le nom de l'entité. */
+  filtre?: { attribut: string; valeur: string; operateur?: 'egal' | 'commence_par' };
+  /** Type donné aux points qui n'en portent aucun (une couche de dépotoirs → point noir). */
+  typePoints?: TypePoint;
+}
+
+// Les champs techniques d'ArcGIS, qui ne disent rien de la tournée.
+const ATTRIBUTS_TECHNIQUES = new Set(
+  ['oid', 'oid_', 'fid', 'id', 'objectid', 'symbolid', 'altmode', 'base', 'snippet', 'popupinfo', 'haslabel',
+    'labelid', 'folderpath', 'shape', 'shape_length', 'shape_area', 'shape_leng', 'x', 'y', 'z']
+);
+
+const nettoyerHtml = (s: string) =>
+  s
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/** Les attributs d'une entité, d'où qu'ils viennent : ExtendedData, SchemaData, ou le tableau HTML d'ArcGIS. */
+function attributsDe(pm: Record<string, unknown>): Record<string, string> {
+  const a: Record<string, string> = {};
+  for (const d of tousLes(pm.ExtendedData, 'Data')) {
+    const k = texte(d['@name']);
+    const v = texte(d.value);
+    if (k && v !== null) a[k] = v;
+  }
+  for (const d of tousLes(pm.ExtendedData, 'SimpleData')) {
+    const k = texte(d['@name']);
+    const v = texte(d);
+    if (k && v !== null) a[k] = v;
+  }
+  const desc = contenu(pm.description);
+  if (desc && /<td/i.test(desc)) {
+    // ArcGIS imbrique le tableau des attributs dans une cellule d'un autre
+    // (dont la première ligne porte le nom de l'entité). On ne lit que les
+    // tableaux les plus intérieurs, et leurs lignes à deux cellules :
+    // « clé | valeur ». Lu d'un bloc, le nom de l'entité se collait à la
+    // première clé (« PT_a3PP FID »).
+    for (const [, corps] of desc.matchAll(/<table[^>]*>((?:(?!<table)[\s\S])*?)<\/table>/gi)) {
+      for (const [, k, v] of corps.matchAll(
+        /<tr[^>]*>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi
+      )) {
+        const cle = nettoyerHtml(k);
+        if (cle && !(cle in a)) a[cle] = nettoyerHtml(v);
+      }
+    }
+  }
+  return a;
+}
+
+const attributsMetier = (a: Record<string, string>) =>
+  Object.entries(a).filter(([k]) => !ATTRIBUTS_TECHNIQUES.has(k.toLowerCase()) && k.toLowerCase() !== 'name');
+
+interface ElementCouche {
+  pm: Record<string, unknown>;
+  chemin: string;
+  nom: string;
+}
+
+/** Chaque Placemark, avec le dossier qui le contient. */
+function placemarksParCouche(doc: unknown): ElementCouche[] {
+  const res: ElementCouche[] = [];
+  const visiter = (n: unknown, chemin: string[]) => {
+    if (n === null || typeof n !== 'object') return;
+    if (Array.isArray(n)) return n.forEach((x) => visiter(x, chemin));
+    for (const [cle, val] of Object.entries(n as Record<string, unknown>)) {
+      if (cle === 'Placemark') {
+        for (const pm of tableau(val as unknown) as Record<string, unknown>[]) {
+          res.push({ pm, chemin: chemin.join(' / '), nom: chemin[chemin.length - 1] ?? '' });
+        }
+      } else if (cle === 'Folder' || cle === 'Document') {
+        for (const f of tableau(val as unknown) as Record<string, unknown>[]) {
+          visiter(f, [...chemin, contenu(f?.name) ?? '(sans nom)']);
+        }
+      } else if (typeof val === 'object') {
+        visiter(val, chemin);
+      }
+    }
+  };
+  visiter(doc, []);
+  return res;
+}
+
+function resumerCouches(elements: ElementCouche[]): CoucheReleve[] {
+  const parChemin = new Map<string, { nom: string; items: ElementCouche[] }>();
+  for (const e of elements) {
+    const c = parChemin.get(e.chemin) ?? { nom: e.nom, items: [] };
+    c.items.push(e);
+    parChemin.set(e.chemin, c);
+  }
+  return [...parChemin.entries()].map(([chemin, { nom, items }]) => {
+    const valeurs = new Map<string, Set<string>>();
+    for (const { pm } of items) {
+      for (const [k, v] of attributsMetier(attributsDe(pm))) {
+        if (!v) continue;
+        const s = valeurs.get(k) ?? new Set<string>();
+        s.add(v);
+        valeurs.set(k, s);
+      }
+    }
+    return {
+      chemin,
+      nom,
+      points: items.filter(({ pm }) => tousLes(pm, 'Point').length > 0 && tousLes(pm, 'LineString').length === 0).length,
+      lignes: items.filter(({ pm }) => tousLes(pm, 'LineString').length > 0).length,
+      surfaces: items.filter(({ pm }) => tousLes(pm, 'Polygon').length > 0).length,
+      attributs: [...valeurs.entries()].map(([k, s]) => ({
+        nom: k,
+        valeurs: [...s].sort((a, b) => a.localeCompare(b, 'fr')).slice(0, 40),
+        plusDeValeurs: s.size > 40,
+      })),
+    };
+  });
+}
+
+function retenir(e: ElementCouche, filtre: NonNullable<OptionsLecture['filtre']>): boolean {
+  const a = attributsDe(e.pm);
+  const v = filtre.attribut === 'Nom' ? contenu(e.pm.name) ?? '' : a[filtre.attribut] ?? '';
+  return filtre.operateur === 'commence_par' ? v.startsWith(filtre.valeur) : v === filtre.valeur;
 }
 
 // Le vocabulaire des agents, tel qu'il figure dans les fichiers. La clé est
@@ -265,7 +431,7 @@ function tousLes(racine: unknown, nom: string): Record<string, unknown>[] {
   return trouves;
 }
 
-export function lireKml(contenuFichier: Buffer | string): ResultatKml {
+export function lireKml(contenuFichier: Buffer | string, options: OptionsLecture = {}): ResultatKml {
   const brut = Buffer.isBuffer(contenuFichier) ? contenuFichier : Buffer.from(contenuFichier);
 
   // GeoJSON : reconnu à son contenu et non à son extension. Un fichier renommé
@@ -327,8 +493,51 @@ export function lireKml(contenuFichier: Buffer | string): ResultatKml {
     return { famille: 'trace_gps', nom, points: [], trace, statistiques, avertissements };
   }
 
+  // --- Les couches -----------------------------------------------------------
+  const elements = placemarksParCouche(doc);
+  const couches = resumerCouches(elements);
+  const plusieurs = couches.filter((c) => c.points > 0).length > 1 || couches.filter((c) => c.lignes > 0).length > 1;
+
+  if (plusieurs && !options.couche) {
+    // Rien n'est deviné : quelle couche porte les arrêts du circuit, et lesquels,
+    // c'est à l'agent de le dire.
+    return {
+      famille: 'multicouche',
+      nom,
+      points: [],
+      trace: [],
+      statistiques: {},
+      avertissements: [
+        `Ce fichier contient ${couches.length} couches (${couches.map((c) => c.nom).join(', ')}). ` +
+          'Choisissez celle à importer, et au besoin filtrez-la sur un attribut — les points d’un seul circuit.',
+      ],
+      couches,
+    };
+  }
+
+  let choisis = options.couche ? elements.filter((e) => e.chemin === options.couche) : elements;
+  if (options.couche && choisis.length === 0) {
+    avertissements.push(`La couche « ${options.couche} » n'existe pas dans ce fichier.`);
+  }
+  if (options.filtre) {
+    const avant = choisis.length;
+    choisis = choisis.filter((e) => retenir(e, options.filtre!));
+    avertissements.push(
+      `Filtre « ${options.filtre.attribut} ${options.filtre.operateur === 'commence_par' ? 'commence par' : '='} ` +
+        `${options.filtre.valeur} » : ${choisis.length} entité(s) retenue(s) sur ${avant}.`
+    );
+  }
+  const selection = choisis.map((e) => e.pm);
+  const surfaces = selection.filter((pm) => tousLes(pm, 'Polygon').length > 0).length;
+  if (surfaces > 0) {
+    avertissements.push(
+      `${surfaces} surface(s) ignorée(s) : une surface délimite une zone (secteur, circuit de porte-à-porte dessiné en ` +
+        "polygone), elle ne décrit ni un itinéraire ni des arrêts. Les secteurs s'importent par le découpage communal."
+    );
+  }
+
   // --- Famille A : waypoints -------------------------------------------------
-  const avecPoint = placemarks.filter((p) => p.Point);
+  const avecPoint = selection.filter((p) => p.Point);
   if (avecPoint.length > 0) {
     const bruts = avecPoint.map((pm) => {
       const c = coord(texte((pm.Point as Record<string, unknown>).coordinates) ?? '');
@@ -343,12 +552,12 @@ export function lireKml(contenuFichier: Buffer | string): ResultatKml {
       const precision = lire('accuracy');
       return {
         nom: contenu(pm.name),
-        type: classer(tags),
+        type: tags.length === 0 && options.typePoints ? options.typePoints : classer(tags),
         lng: c?.[0] ?? null,
         lat: c?.[1] ?? null,
         precisionM: precision !== null && Number.isFinite(Number(precision)) ? Number(precision) : null,
         heureObservee: when ? heureLocale(when) : null,
-        observation: contenu(pm.description),
+        observation: observationDe(pm),
         when,
       };
     });
@@ -366,6 +575,13 @@ export function lireKml(contenuFichier: Buffer | string): ResultatKml {
     if (heures.length > 1 && !croissant) {
       avertissements.push(
         "Les horodatages ne suivent pas l'ordre du fichier : l'ordre de passage proposé est celui du fichier, à vérifier."
+      );
+    } else if (heures.length === 0 && retenus.length > 1) {
+      // Une couche SIG (ArcGIS, QGIS) n'est pas un relevé : ses points sont
+      // rangés dans l'ordre de leur saisie dans la base, qui n'est pas celui
+      // de la tournée. Le dire, plutôt que présenter cet ordre comme observé.
+      avertissements.push(
+        "Ce fichier ne porte aucune heure : l'ordre de passage proposé est celui du fichier, pas celui de la tournée. À vérifier et corriger."
       );
     }
 
@@ -447,18 +663,18 @@ export function lireKml(contenuFichier: Buffer | string): ResultatKml {
     // dessiné dans Google Earth) : on le lit, sans le poser d'office — c'est
     // à l'appelant de demander l'itinéraire (voir la route d'import).
     const traceJointe: [number, number][] = [];
-    for (const l of tousLes(doc, 'LineString')) {
+    for (const l of tousLes(selection, 'LineString')) {
       for (const bloc of (texte(l.coordinates) ?? '').trim().split(/\s+/)) {
         const c = coord(bloc);
         if (c) traceJointe.push(c);
       }
     }
 
-    return { famille: 'waypoints', nom, points, trace: traceJointe, statistiques: {}, avertissements };
+    return { famille: 'waypoints', nom, points, trace: traceJointe, statistiques: {}, avertissements, couches };
   }
 
   // --- Famille C : itinéraire dessiné ---------------------------------------
-  const lignes = tousLes(doc, 'LineString');
+  const lignes = tousLes(selection, 'LineString');
   if (lignes.length > 0) {
     const trace: [number, number][] = [];
     for (const l of lignes) {
@@ -474,8 +690,10 @@ export function lireKml(contenuFichier: Buffer | string): ResultatKml {
       trace,
       statistiques: {},
       avertissements: [
+        ...avertissements,
         "Ce fichier est un itinéraire dessiné à la main : il montre le chemin prévu, non un relevé de terrain.",
       ],
+      couches,
     };
   }
 
@@ -485,8 +703,21 @@ export function lireKml(contenuFichier: Buffer | string): ResultatKml {
     points: [],
     trace: [],
     statistiques: {},
-    avertissements: ['Aucun point ni tracé reconnu dans ce fichier.'],
+    avertissements: [...avertissements, 'Aucun point ni tracé reconnu dans ce fichier.'],
+    couches,
   };
+}
+
+/**
+ * L'observation d'un arrêt : sa description, sauf quand c'est le tableau
+ * d'attributs d'ArcGIS — on en garde alors les attributs métier, lisibles
+ * (« Circuit : Circuit Benne Taseuse 01 »), et non le HTML.
+ */
+function observationDe(pm: Record<string, unknown>): string | null {
+  const d = contenu(pm.description);
+  if (!d || !/<td/i.test(d)) return d;
+  const utiles = attributsMetier(attributsDe(pm)).filter(([, v]) => v);
+  return utiles.length ? utiles.map(([k, v]) => `${k} : ${v}`).join(' ; ') : null;
 }
 
 

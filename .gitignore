@@ -4,7 +4,7 @@ build/
 dist/
 coverage/
 
-# --- Secrets : ne JAMAIS versionner (cf. décret-loi 2022-54) ---
+# --- Secrets : ne JAMAIS versionner (cf. loi organique 2004-63) ---
 .env*
 !.env.example
 *.pem

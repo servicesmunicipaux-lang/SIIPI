@@ -14,7 +14,7 @@ export const personnelRouter = Router();
  * salaire individuel, aucun numéro de CIN, aucun téléphone, aucune donnée de
  * santé. Ce n'est pas une omission qu'on comblera plus tard : la table
  * `personnel` ne porte pas ces colonnes, précisément pour qu'aucune route ne
- * puisse un jour les servir par inadvertance (décret-loi n° 2022-54,
+ * puisse un jour les servir par inadvertance (loi organique n° 2004-63,
  * minimisation).
  *
  * L'argent existe dans ce module, mais au niveau du SERVICE et de l'ANNÉE :

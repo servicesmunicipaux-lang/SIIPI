@@ -141,7 +141,7 @@ chk "correction du poids" 200 \
 chk "annulation" 204 \
     "$(code -X DELETE -H "Authorization: Bearer $T_DIR" "$API/pesees/$PESEE")"
 # Un registre numérique conforme au décret ne perd pas de lignes.
-chk "la ligne annulée RESTE en base, datée et imputée" "1|t|t" \
+chk "la ligne annulée RESTE en base, datée et imputée" "1|true|true" \
     "$(sql "SELECT count(*)||'|'||bool_or(deleted_at IS NOT NULL)||'|'||bool_or(deleted_by IS NOT NULL) FROM pesees WHERE id='$PESEE'")"
 chk "mais elle sort du registre" 0 \
     "$(sql "SELECT count(*) FROM pesees WHERE id='$PESEE' AND deleted_at IS NULL")"

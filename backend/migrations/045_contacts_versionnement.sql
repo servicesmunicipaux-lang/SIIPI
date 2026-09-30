@@ -12,7 +12,7 @@
 -- est donc réservée à la commune qui les tient et à la FNCT. Un prestataire
 -- rattaché lit les circuits et les réclamations de la commune
 -- (app.can_read_commune), mais pas son carnet d'adresses — rien dans sa
--- mission ne l'exige (décret-loi 2022-54, principe de minimisation).
+-- mission ne l'exige (loi organique 2004-63, principe de minimisation).
 --
 -- VERSIONNEMENT. Une version 2 d'un rapport est une NOUVELLE ligne de
 -- `rapports_etudes`, rattachée à la première par `document_id` et numérotée
@@ -56,7 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_contacts_commune
   ON contacts (commune_id, nom_complet) WHERE deleted_at IS NULL;
 
 COMMENT ON TABLE contacts IS
-  'Annuaire de travail d''une commune (TDR §3.2.7) : interlocuteurs externes, sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT — un prestataire rattaché n''y a pas accès (minimisation, décret-loi 2022-54).';
+  'Annuaire de travail d''une commune (TDR §3.2.7) : interlocuteurs externes, sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT — un prestataire rattaché n''y a pas accès (minimisation, loi organique 2004-63).';
 
 ALTER TABLE contacts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contacts FORCE  ROW LEVEL SECURITY;

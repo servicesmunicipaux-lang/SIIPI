@@ -171,7 +171,7 @@ COMMENT ON COLUMN points_collecte.heure_observee IS
 -- besoin de gérer les carrières. On pose donc le strict nécessaire, en
 -- laissant la place au module 4 sans rien préjuger.
 --
--- Protection des données (décret-loi 2022-54) : ni CIN, ni téléphone, ni
+-- Protection des données (loi organique 2004-63) : ni CIN, ni téléphone, ni
 -- salaire ici. Ces informations existent dans les fichiers de la commune ;
 -- elles n'ont aucune utilité pour affecter un agent à une tournée, et la
 -- minimisation veut qu'on ne les collecte pas plutôt qu'on les protège.
@@ -200,7 +200,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_personnel_matricule
   ON personnel (commune_id, matricule) WHERE matricule IS NOT NULL AND deleted_at IS NULL;
 
 COMMENT ON TABLE personnel IS
-  'Amorce du module 4. Ni CIN, ni téléphone, ni salaire : affecter un agent à une tournée n''en a pas besoin (décret-loi 2022-54, minimisation).';
+  'Amorce du module 4. Ni CIN, ni téléphone, ni salaire : affecter un agent à une tournée n''en a pas besoin (loi organique 2004-63, minimisation).';
 
 -- ---------------------------------------------------------------------------
 -- 4. Équipe affectée à un circuit

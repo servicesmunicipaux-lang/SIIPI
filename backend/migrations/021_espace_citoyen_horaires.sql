@@ -38,7 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_citoyens_commune  ON citoyens (commune_id);
 CREATE INDEX IF NOT EXISTS idx_citoyens_position ON citoyens USING GIST (position);
 
 COMMENT ON COLUMN citoyens.position IS
-  'Domicile déclaré. Donnée à caractère personnel : n''est jamais exposée par les vues publiques (décret-loi 2022-54).';
+  'Domicile déclaré. Donnée à caractère personnel : n''est jamais exposée par les vues publiques (loi organique 2004-63).';
 COMMENT ON COLUMN citoyens.zone_id IS
   'Zone de collecte contenant le domicile, résolue par app.resoudre_zone(). NULL si la commune n''a pas encore découpé son territoire.';
 
@@ -306,7 +306,7 @@ GRANT EXECUTE ON FUNCTION app.horaires_citoyen(integer) TO siipi_app;
 -- Décision : couverture complète (tous les signalements, tous les statuts),
 -- identification nulle.
 --
--- Le décret-loi 2022-54 n'interdit pas de publier ; il impose de ne publier
+-- La loi organique 2004-63 n'interdit pas de publier ; elle impose de ne publier
 -- que ce qui sert le but poursuivi. Le but ici est de montrer que les
 -- signalements existent et qu'ils sont traités. Ce but n'a besoin ni du nom
 -- du déclarant, ni de son téléphone, ni de sa description en texte libre
