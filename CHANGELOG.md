@@ -5,6 +5,37 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.1] — 2026-09-30 — Changement de stratégie : jumeau numérique et jalons en parallèle
+
+Version **documentaire** : aucun code applicatif ne change.
+
+### Modifié
+- **La recette terrain est différée** (les communes ne sont pas disponibles). Elle
+  reste l'objectif de clôture d'une version mais ne bloque plus l'ouverture des
+  jalons suivants. `FEUILLE_DE_ROUTE.md` § 0, § 4 (R1, R2, jalon 12), § 6.
+- **Le jalon 12 avance en parallèle de R1** pour les lots 17.1, 17.3 et 17.5. Les lots
+  17.2 et 17.4 restent suspendus à leurs préalables externes.
+- **Inscription citoyenne (§ 7.2) tranchée** : courriel et push web en phase 1 ;
+  téléphone et OTP en phase 2, après R1. Écart assumé à `M1` du cahier des charges.
+- `CLAUDE.md` : `simulation-3mois` inscrite au critère d'acceptation ; consigne de
+  reprise mise à jour ; les nombres de campagnes sont datés du 30/09/2026 et se
+  recalculent par les deux commandes de recomptage.
+- `FEUILLE_DE_ROUTE.md` : deux risques ajoutés (illusion de maturité ; données
+  simulées confondues avec des données réelles) et une décision ouverte (date de la
+  recette).
+
+### Ajouté
+- **Le jumeau numérique** (`FEUILLE_DE_ROUTE.md` § 6bis) : jeu de données simulé de
+  trois mois d'activité, campagne `test:simulation-3mois`, écran « Mode démo ». Lot
+  **S1**, à réaliser après S0. Il porte les garde-fous qui le séparent du réel :
+  données fictives, provenance `simule`, commune de démonstration exclue des
+  agrégations nationales, valeurs attendues calculées hors du code testé.
+
+### Numérotation
+- Cette entrée porte **0.15.1** et non 0.16.1 : la version 0.16.0 est celle de la
+  clôture du jalon 11 et n'existe pas encore. L'étape S0 (assainissement) devient
+  **0.15.2**.
+
 ## [0.15.0] — 2026-09-30 — Jalon 10, phase 1 : navigation par pôles et carte unifiée
 
 ### Ajouté

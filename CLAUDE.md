@@ -6,7 +6,17 @@ règles qu'on ne discute pas.
 
 > **Système d'Information Intelligent pour la Propreté Intercommunale**
 > Fédération Nationale des Communes Tunisiennes — 350 communes.
-> Propriété intellectuelle : FNCT. Hébergement : Tunisie (décret-loi n° 2022-54).
+> Propriété intellectuelle : FNCT. Hébergement : Tunisie. Données personnelles :
+> voir « Références légales » au §2.
+
+**Où reprendre :** `FEUILLE_DE_ROUTE.md` § 0 donne l'ordre des jalons (S0, puis v0.16 → v0.19), ce qui
+est prêt et ce qui bloque. Les pièces métier sont dans `docs/specs_metier/` (lire `SPEC_v0.16.md`).
+
+**Consigne de reprise (30/09/2026, nuit).** La recette terrain est différée : elle reste
+l'objectif de clôture d'une version mais ne bloque plus l'ouverture des jalons
+suivants. Les lots 17.1, 17.3 et 17.5 peuvent avancer en parallèle de R1 ; 17.2 et
+17.4 restent suspendus à leurs préalables externes. Ordre : S0, S1 (jumeau
+numérique), jalon 11.
 
 ---
 
@@ -68,8 +78,9 @@ commune.
 
 ## 2. Ce qu'on ne stocke jamais
 
-Décret-loi n° 2022-54. La base **n'a pas** ces colonnes, et c'est vérifié par
-les campagnes de tests avant toute autre chose :
+Protection des données personnelles (voir « Références légales » ci-dessous).
+La base **n'a pas** ces colonnes, et c'est vérifié par les campagnes de tests
+avant toute autre chose :
 
 | Interdit | Pourquoi |
 |---|---|
@@ -85,6 +96,21 @@ de même longueur**.
 **Photos :** les métadonnées EXIF sont retirées au dépôt. La position GPS qu'elles
 contiennent est **rendue à l'appelant** pour qu'il la propose — jamais conservée
 à l'insu de la personne qui a pris la photo.
+
+### Références légales
+
+Le texte qui régit les données à caractère personnel est la **loi organique n° 2004-63
+du 27 juillet 2004**, appliquée par l'**INPDP** (Instance nationale de protection des
+données personnelles). Jusqu'à confirmation par un juriste de la FNCT :
+
+- dans tout document neuf, citer la **loi 2004-63** pour la minimisation, la
+  finalité, l'information des personnes et la déclaration des traitements ;
+- les anciennes références légales qui subsistent dans des commentaires, des
+  migrations ou le contrat OpenAPI sont **retirées au lot S0** (voir
+  `FEUILLE_DE_ROUTE.md` § 0) ; avant de toucher à une migration déjà appliquée,
+  vérifier si le migrateur en contrôle l'empreinte ;
+- la règle « toute donnée personnelle fournie en test est remplacée par une
+  valeur fictive de même format et de même longueur » reste **inchangée**.
 
 ---
 
@@ -107,7 +133,7 @@ contiennent est **rendue à l'appelant** pour qu'il la propose — jamais conser
 ```bash
 docker compose exec -T api npm run migrate            # migrations en attente
 docker compose exec -T api npm run verifier:contrat   # toute route servie est documentée
-docker compose exec -T api npm test                   # les 33 campagnes
+docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (32 au 30/09/2026)
 docker compose exec -T api npm run test:module4       # une seule campagne
 docker compose run  --rm web npx tsc --noEmit         # typage du front
 ```
@@ -175,6 +201,15 @@ code, écrivant `NULL` dans toutes les colonnes d'imputation.
   jamais `ml-`/`mr-`/`left-`/`right-`.
 - Toute mise en page se vérifie dans les deux sens.
 
+### Navigation
+
+Tout espace de travail à plusieurs écrans — portail communal **et** observatoire
+national de la FNCT — navigue par `BarreLaterale` (pôles métier, rétractable,
+tiroir sur téléphone, tiroir à droite en arabe). Pas de barre d'onglets
+horizontale : sur téléphone, elle cache la majorité de ses onglets sans le dire.
+Un nouvel écran se déclare dans le tableau `ENTREES` de l'espace concerné, avec
+son pôle et ses deux libellés (FR et AR).
+
 ### Base de données
 
 - Une migration est **numérotée, jamais modifiée après application** : on en
@@ -228,20 +263,63 @@ continue, signatures. Ils sont **bilingues** et imprimables en A4.
 
 ## 7. Protocole de validation — avant toute livraison
 
-Dans cet ordre, sans en sauter un :
+### Le critère d'acceptation
+
+**Avant de commiter, l'unique critère d'acceptation technique est le passage
+sans erreur de :**
+
+1. **`npm run verifier:contrat`** — toute route servie est documentée ;
+2. **toutes les campagnes `backend/tests/*.sh`** — pas « celles qui concernent
+   la tâche ». Elles étaient 32 au 30/09/2026 ; **`simulation-3mois`**
+   (`npm run test:simulation-3mois`, lot S1) s'y ajoute à sa création.
+
+Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
+
+```bash
+docker compose exec -T api npm test
+```
+
+Le dossier `backend/tests/` contenait **33 fichiers `.sh`** au 30/09/2026 : 32
+campagnes et `executer.sh`, le lanceur, qui n'est pas une campagne. Ces chiffres
+ne sont pas des valeurs à retenir mais à **recalculer** — un critère d'acceptation qui se
+dessèche sans bruit est pire qu'aucun :
+
+```bash
+ls backend/tests/*.sh | grep -vc executer                       # campagnes présentes
+grep -o 'executer.sh [a-z0-9-]*' backend/package.json | sort -u | wc -l   # campagnes enchaînées par npm test
+```
+
+Les deux nombres doivent être **égaux**. S'ils diffèrent, une campagne existe
+sans être exécutée : la tâche n'est pas terminée.
+
+**Aucun nombre de tests ne s'écrit** dans un message de commit, un rapport ou
+un CHANGELOG sans avoir été lu dans la sortie d'une commande. Un chiffre
+recopié d'un prompt ou d'un souvenir (« 240/240 ») n'a jamais été mesuré.
+
+### Ce que le critère ne couvre pas
+
+Les campagnes interrogent l'API et la base ; elles ne voient ni le front ni la
+rejouabilité des migrations. Ces deux contrôles restent des **préconditions** :
 
 1. **Chaîne de migrations rejouée sur une base neuve** (000 → la dernière), puis
    la nouvelle migration **rejouée une seconde fois** pour prouver son
    idempotence.
 2. **`npm run lint`** côté backend **et** côté web. Le front n'est pas typé par
    Vite : il se transpile sans vérifier, et c'est ainsi qu'un composant a planté
-   au rendu sur une propriété jamais déclarée.
-3. **`npm run verifier:contrat`** : toute route servie est documentée.
-4. **Les campagnes concernées**, et `npm test` avant une version.
-5. **Relecture de la taille ET du contenu des fichiers livrés.** Cinq livraisons
+   au rendu sur une propriété jamais déclarée. Typage de référence : TypeScript
+   **5.8.x** (la 5.9 signale à tort une erreur dans `AbonnementPush.tsx`).
+
+### Après le critère
+
+3. **Relecture de la taille ET du contenu des fichiers livrés.** Cinq livraisons
    ont rapporté un succès en posant une version périmée sur le disque. Une
    comparaison de taille ne suffit pas sur un fichier accentué : chercher une
    phrase que seule la nouvelle version contient.
+4. **Version.** Les deux `package.json` et leurs `package-lock.json` portent la
+   version de la **dernière entrée du `CHANGELOG.md`**. On ne la monte qu'en
+   clôturant un lot, dans le même commit que l'entrée du CHANGELOG — jamais
+   avant, jamais après. Un décalage entre le commit annoncé et les fichiers est
+   un défaut (constaté : v0.15.0 annoncée, fichiers restés à 0.14.0).
 
 ### Écrire une campagne de tests
 
@@ -249,6 +327,13 @@ Elle commence par ce que la plateforme **refuse** : un module se juge d'abord à
 ce qu'il n'a pas laissé entrer. Elle bâtit ses propres données (`TEST-…`) et les
 nettoie — travailler sur le jeu de Dar Chaabane l'abîme à chaque passage.
 Enregistrement dans `backend/package.json` et dans `MIGRER.bat`.
+
+**Exception assumée : `simulation-3mois`.** Elle charge un jeu de trois mois
+d'activité, non pas sur le jeu de Dar Chaabane, mais sur une **base neuve**, dans
+une commune de démonstration fictive (`est_demo`). Ses lignes portent
+`provenance = 'simule'`, elle refuse de charger sur une commune réelle, et ses
+valeurs attendues sont calculées par un script indépendant du code testé. Voir
+`FEUILLE_DE_ROUTE.md` § 6bis.
 
 ---
 

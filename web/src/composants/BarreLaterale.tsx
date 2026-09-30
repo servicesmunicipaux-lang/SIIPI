@@ -1,4 +1,4 @@
-// La navigation du portail communal, en cinq pôles métier.
+// La navigation du portail communal — et de l'observatoire national — en pôles métier.
 //
 // CE QUI NE MARCHAIT PAS. Dix-sept onglets sur une barre horizontale : sur un
 // téléphone, treize d'entre eux vivaient hors de l'écran, derrière un
@@ -68,6 +68,7 @@ export function BarreLaterale<T extends string>({
   actif,
   onChoisir,
   etiquette,
+  etiquettePole,
   libelle,
 }: {
   entrees: EntreeNavigation<T>[];
@@ -75,10 +76,15 @@ export function BarreLaterale<T extends string>({
   onChoisir: (cle: T) => void;
   /** Le libellé d'un écran, traduit par l'appelant. */
   etiquette: (cle: T) => string;
+  /** Le libellé d'un pôle. Absent : ceux du portail communal. L'observatoire
+      national regroupe autrement — « Terrain & opérations » n'y désignerait
+      rien — et fournit donc les siens. */
+  etiquettePole?: (pole: ClePole) => string;
   /** Le nom de la navigation, pour les lecteurs d'écran. */
   libelle: string;
 }) {
   const { t } = useTranslation();
+  const nomPole = etiquettePole ?? ((p: ClePole) => t(`communal.poles.${p}`));
   const idPanneau = useId();
   const [tiroirOuvert, setTiroirOuvert] = useState(false);
   const [replie, setReplie] = useState(() => {
@@ -148,12 +154,12 @@ export function BarreLaterale<T extends string>({
             className={`flex items-center gap-2 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-ardoise-500 ${
               replie ? 'justify-center' : ''
             }`}
-            title={replie ? t(`communal.poles.${pole}`) : undefined}
+            title={replie ? nomPole(pole) : undefined}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 shrink-0 fill-current">
               <path d={CHEMIN_ICONE[pole]} />
             </svg>
-            {!replie && <span>{t(`communal.poles.${pole}`)}</span>}
+            {!replie && <span>{nomPole(pole)}</span>}
             {replie && attentionPole(pole) > 0 && (
               <span className="absolute size-2 translate-x-3 -translate-y-2 rounded-full bg-red-600" />
             )}

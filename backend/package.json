@@ -1,6 +1,6 @@
 {
   "name": "siipi-backend",
-  "version": "0.14.0",
+  "version": "0.15.1",
   "private": true,
   "type": "module",
   "description": "API REST SIIPI - Système d'Information Intelligent pour la Propreté Intercommunale (FNCT / ANGeD)",

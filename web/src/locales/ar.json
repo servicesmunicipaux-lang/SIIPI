@@ -125,7 +125,19 @@
       "observatoire": "المرصد الوطني",
       "communal": "البوّابة البلدية"
     },
-    "retourObservatoire": "العودة إلى المرصد الوطني"
+    "retourObservatoire": "العودة إلى المرصد الوطني",
+    "navigation": "التنقل في المرصد الوطني",
+    "poles": {
+      "cockpit": "الملخص الوطني",
+      "terrain": "البلديات",
+      "pilotage": "الأداء والانتشار"
+    },
+    "onglets": {
+      "synthese": "الملخص",
+      "communes": "دليل البلديات",
+      "performance": "المسابقة والمحاور الخمسة",
+      "deploiement": "الانتشار حسب الولاية"
+    }
   },
   "commun": {
     "chargement": "جاري التحميل…",

@@ -117,7 +117,19 @@
       "observatoire": "Observatoire national",
       "communal": "Portail municipal"
     },
-    "retourObservatoire": "Retour à l'observatoire national"
+    "retourObservatoire": "Retour à l'observatoire national",
+    "navigation": "Navigation de l'observatoire national",
+    "poles": {
+      "cockpit": "Synthèse nationale",
+      "terrain": "Communes",
+      "pilotage": "Performance & déploiement"
+    },
+    "onglets": {
+      "synthese": "Synthèse",
+      "communes": "Annuaire des communes",
+      "performance": "Concours & 5 axes",
+      "deploiement": "Déploiement par gouvernorat"
+    }
   },
   "commun": {
     "chargement": "Chargement…",
