@@ -17,6 +17,16 @@ import { exportable } from '../services/export.js';
 import { JEU_POINTS, jeuPointsAvecChamps } from '../services/jeuxExport.js';
 import { champsDeCommune } from './attributsPoints.routes.js';
 import { lireKml } from '../services/kml.js';
+import {
+  FORMATS_FICHIER,
+  TYPES_MIME,
+  nomFichier,
+  versGeoJson,
+  versGpx,
+  versKml,
+  type CircuitFichier,
+  type PointFichier,
+} from '../services/fichierCircuit.js';
 import { communeDemandee } from '../perimetre.js';
 
 export const pointsRouter = Router();
@@ -438,7 +448,12 @@ pointsRouter.post(
 
     // Ce que le fichier permet de poser, et ce que l'appelant a demandé.
     const posePoints = d.cible !== 'trace' && lu.points.length > 0;
-    const poseTrace = d.cible !== 'points' && lu.trace.length >= 2;
+    // Un relevé d'arrêts peut porter un tracé en plus (export SIIPI, dessin
+    // Google Earth). En « auto », il ne le pose pas : c'est ce que faisait
+    // l'import avant de savoir le lire, et un itinéraire prévu ne doit pas
+    // être remplacé sans qu'on l'ait demandé. Déposé comme itinéraire, si.
+    const poseTrace =
+      d.cible !== 'points' && lu.trace.length >= 2 && !(d.cible === 'auto' && lu.famille === 'waypoints');
 
     const avertissements = [...lu.avertissements];
     if (d.cible === 'points' && lu.points.length === 0) {
@@ -613,5 +628,84 @@ pointsRouter.get(
       [req.params.id]
     );
     res.json(lignes);
+  })
+);
+
+// --- Le fichier géographique du circuit -------------------------------------
+//
+// Le circuit tel qu'il est en base — tracé et arrêts — en GPX, KML ou
+// GeoJSON, prêt à ouvrir dans QGIS, Google Earth ou un GPS, et à réimporter
+// dans SIIPI. Lecture seule : quiconque voit le circuit peut le télécharger.
+
+const fichierSchema = z.object({ format: z.enum(FORMATS_FICHIER).default('geojson') });
+
+pointsRouter.get(
+  '/:id/fichier',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { format } = fichierSchema.parse(req.query);
+    const circuit = await queryOne<{
+      commune_id: string;
+      nom: string;
+      code: string | null;
+      date_reference: string | null;
+      trace_source: string | null;
+      trace: { type: string; coordinates: [number, number][][] } | null;
+    }>(
+      `SELECT commune_id, nom, code, COALESCE(etude_date, date_debut)::text AS date_reference, trace_source,
+              ST_AsGeoJSON(ST_Multi(trace))::json AS trace
+         FROM circuits WHERE id = $1 AND deleted_at IS NULL`,
+      [req.params.id]
+    );
+    if (!circuit) throw new ApiError(404, 'Circuit introuvable.');
+
+    const [points, champs, etiquettes] = await Promise.all([
+      query<any>(`${POINT_SELECT} WHERE p.circuit_id = $1 AND p.deleted_at IS NULL ORDER BY p.voyage, p.ordre`, [
+        req.params.id,
+      ]),
+      champsDeCommune(circuit.commune_id),
+      query<{ id: string; nom: string }>('SELECT id, nom FROM etiquettes_points WHERE commune_id = $1', [
+        circuit.commune_id,
+      ]),
+    ]);
+    const libelleChamp = new Map(champs.map((c) => [c.id, c.libelle]));
+    const nomEtiquette = new Map(etiquettes.map((e) => [e.id, e.nom]));
+
+    const c: CircuitFichier = {
+      nom: circuit.nom,
+      code: circuit.code,
+      dateReference: circuit.date_reference,
+      traceSource: circuit.trace_source,
+      lignes: circuit.trace?.coordinates ?? [],
+    };
+    const arrets: PointFichier[] = points.map((p) => ({
+      voyage: p.voyage,
+      ordre: p.ordre,
+      nom: p.nom,
+      type: p.type,
+      lat: p.lat,
+      lng: p.lng,
+      precision_m: p.precision_m,
+      heure_observee: p.heure_observee,
+      heure_estimee: p.heure_estimee,
+      observation: p.observation,
+      // Un champ retiré par la commune n'est plus exporté.
+      champs: Object.fromEntries(
+        Object.entries((p.attributs ?? {}) as Record<string, unknown>)
+          .filter(([id]) => libelleChamp.has(id))
+          .map(([id, v]) => [libelleChamp.get(id)!, v])
+      ),
+      etiquettes: ((p.etiquettes ?? []) as string[]).map((id) => nomEtiquette.get(id)).filter((n): n is string => !!n),
+    }));
+
+    const contenu =
+      format === 'gpx' ? versGpx(c, arrets) : format === 'kml' ? versKml(c, arrets) : versGeoJson(c, arrets);
+    const nom = nomFichier(c, format);
+    res.setHeader('Content-Type', `${TYPES_MIME[format]}; charset=utf-8`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${nom.replace(/[^\x20-\x7e]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(nom)}`
+    );
+    res.send(contenu);
   })
 );

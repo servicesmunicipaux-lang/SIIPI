@@ -567,6 +567,7 @@
       },
       "onglets": {
         "fiche": "Fiche",
+        "geo": "Données géographiques",
         "points": "Points de collecte",
         "carte": "Carte",
         "historique": "Historique"
@@ -702,7 +703,26 @@
       "supprimerAide": "Suppression logique : le circuit cesse d’être compté et affiché, mais lui et ses contrôles terrain restent conservés en base.",
       "equipeAffectee": "Équipe affectée",
       "equipeAucune": "Aucun agent affecté : on ne saura pas qui a fait cette tournée.",
-      "equipeOu": "L’équipe se modifie dans Personnel › Équipes, où les tournées se voient côte à côte."
+      "equipeOu": "L’équipe se modifie dans Personnel › Équipes, où les tournées se voient côte à côte.",
+      "geo": {
+        "aide": "Déposez ici le tracé du circuit et ses arrêts, depuis un relevé GPS ou un dessin : GPX, KML, KMZ, GeoJSON ou CSV. Chaque dépôt montre d'abord ce qui sera créé ; rien n'est écrit avant votre validation.",
+        "renvoi": "Pour importer des arrêts depuis un fichier, ou télécharger ce circuit :",
+        "telecharger": "Télécharger ce circuit",
+        "telechargerAide": "Le tracé et les arrêts tels qu'ils sont dans SIIPI — type, voyage, rang, heure relevée, champs et étiquettes. À ouvrir dans QGIS, Google Earth ou un GPS, ou à réimporter dans un autre circuit.",
+        "rien": "Ni tracé ni arrêt pour l'instant : rien à télécharger.",
+        "formats": {
+          "gpx": "GPX (GPS)",
+          "kml": "KML (Google Earth)",
+          "geojson": "GeoJSON (QGIS)"
+        }
+      },
+      "creationFichiers": {
+        "titre": "Données géographiques (facultatif)",
+        "aide": "Si vous avez déjà le relevé du circuit, joignez-le : il sera importé dès la création. Formats : GPX, KML, KMZ, GeoJSON, CSV. Vous pourrez aussi le faire plus tard, depuis l'onglet « Données géographiques » de la fiche.",
+        "trace": "Itinéraire (tracé)",
+        "points": "Arrêts (points de collecte)",
+        "echec": "« {{fichier}} » n'a pas été importé : {{message}} Vous pouvez réessayer depuis l'onglet « Données géographiques »."
+      }
     },
     "carte": {
       "titre": "Carte de la commune",
@@ -716,7 +736,7 @@
         "points": "Points de collecte"
       },
       "ouImporter": "Aucun tracé ni arrêt sur cette commune. Ils s’ajoutent depuis l’onglet Circuits : ouvrez un circuit, puis « Points de collecte » — on y importe un fichier KML, KMZ, GPX ou GeoJSON.",
-      "filtresPoints": "Arrêts affichés :",
+      "filtresPoints": "Circuits et arrêts affichés :",
       "filtreCircuit": "Filtrer par circuit",
       "filtreType": "Filtrer par type d’arrêt",
       "tousCircuits": "Tous les circuits",

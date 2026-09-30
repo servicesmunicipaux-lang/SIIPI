@@ -108,6 +108,69 @@ chk "« porte à porte »" porte_a_porte "$(type_de PAP)"
 chk "« point de collecte »" point_de_collecte "$(type_de PDC)"
 chk "une étiquette inconnue reste « autre », sans être devinée" autre "$(type_de PAU)"
 
+# -----------------------------------------------------------------------------
+# Le fichier d'un circuit : il sort comme il est entré, et se réimporte à
+# l'identique — type, voyage, rang, heure relevée, tracé.
+# -----------------------------------------------------------------------------
+importer() { # <circuit> <nom> <contenu base64> <cible> <valider>
+  curl -s -o "$T/r.json" -w '%{http_code}' -X POST "$API/circuits/$1/import-kml" \
+    -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+    -d "{\"nomFichier\":\"$2\",\"contenu\":\"$3\",\"cible\":\"$4\",\"valider\":$5}"
+}
+champ() { python3 -c "import json;print(json.load(open('$T/r.json'))$1)" 2>/dev/null; }
+types_apercu() { python3 -c "import json;print(','.join(p['type'] for p in json.load(open('$T/r.json'))['points']))" 2>/dev/null; }
+
+echo
+echo "6. Le fichier d'un circuit, en trois formats"
+importer "$CIRCUIT" djerba.kml "$KML" points true >/dev/null
+TRACE=$(python3 -c "
+import base64
+pts = ''.join(f'<trkpt lat=\"33.79{i}\" lon=\"10.99{i}\"><time>2026-03-07T07:0{i}:00Z</time></trkpt>' for i in range(5))
+print(base64.b64encode(f'<?xml version=\"1.0\"?><gpx version=\"1.1\"><trk><trkseg>{pts}</trkseg></trk></gpx>'.encode()).decode())")
+importer "$CIRCUIT" trace.gpx "$TRACE" trace true >/dev/null
+ORIGINE=$(sql "SELECT string_agg(type, ',' ORDER BY voyage, ordre) FROM points_collecte WHERE circuit_id='$CIRCUIT' AND deleted_at IS NULL")
+chk "le circuit d'essai porte ses 15 arrêts et son tracé" "15|5" \
+    "$(sql "SELECT (SELECT count(*) FROM points_collecte WHERE circuit_id='$CIRCUIT' AND deleted_at IS NULL)||'|'||ST_NPoints(trace) FROM circuits WHERE id='$CIRCUIT'")"
+for f in gpx kml geojson; do
+  CODE=$(curl -s -D "$T/h.txt" -o "$T/c.$f" -w '%{http_code}' -H "Authorization: Bearer $T_DIR" "$API/circuits/$CIRCUIT/fichier?format=$f")
+  chk "$f : le fichier se télécharge" 200 "$CODE"
+  chk "$f : en pièce jointe, nommé d'après le code du circuit" 1 \
+      "$(grep -ci "content-disposition: attachment; filename=\"TEST-RELEVES.$f\"" "$T/h.txt")"
+done
+chk "gpx : 15 arrêts et 5 sommets de tracé" "15|5" "$(grep -c '<wpt' "$T/c.gpx")|$(grep -c '<trkpt' "$T/c.gpx")"
+chk "gpx : l'heure relevée (locale) est écrite en UTC" 1 "$(grep -c '<time>2026-01-01T07:00:00Z</time>\|<time>[0-9-]*T07:00:00Z</time>' "$T/c.gpx")"
+chk "geojson : une entité par arrêt, plus le tracé" 16 \
+    "$(python3 -c "import json;print(len(json.load(open('$T/c.geojson'))['features']))" 2>/dev/null)"
+
+nettoyer_bis() { $PSQL -c "DELETE FROM circuits WHERE code = 'TEST-RELEVES-2';" >/dev/null 2>&1; }
+nettoyer_bis
+CIRCUIT2=$(sql "INSERT INTO circuits (commune_id, nom, code) VALUES ('$COMMUNE', 'Essai réimport', 'TEST-RELEVES-2') RETURNING id")
+
+echo
+echo "7. Réimportés, les trois fichiers redonnent le même circuit"
+for f in gpx kml geojson; do
+  B64=$(base64 -w0 "$T/c.$f")
+  importer "$CIRCUIT2" "c.$f" "$B64" points false >/dev/null
+  chk "$f : les 15 arrêts, avec leurs types, dans le même ordre" "$ORIGINE" "$(types_apercu)"
+  importer "$CIRCUIT2" "c.$f" "$B64" trace false >/dev/null
+  chk "$f : le tracé, ses 5 sommets" "True|5" "$(champ "['poseraTrace']")|$(champ "['nbSommetsTrace']")"
+done
+importer "$CIRCUIT2" c.kml "$(base64 -w0 "$T/c.kml")" auto false >/dev/null
+chk "kml en « auto » : les arrêts sont posés, l'itinéraire n'est pas remplacé d'office" "True|False" \
+    "$(champ "['poseraPoints']")|$(champ "['poseraTrace']")"
+importer "$CIRCUIT2" c.geojson "$(base64 -w0 "$T/c.geojson")" points false >/dev/null
+chk "geojson : l'heure relevée revient avec l'arrêt" "08:00:00" \
+    "$(python3 -c "import json;print(json.load(open('$T/r.json'))['points'][0]['heureObservee'])" 2>/dev/null)"
+
+echo
+echo "8. Cloisonnement du fichier"
+T_AUTRE=$(tok "$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id <> '$COMMUNE' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")")
+chk "une autre commune ne télécharge pas ce circuit (404)" 404 \
+    "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $T_AUTRE" "$API/circuits/$CIRCUIT/fichier?format=gpx")"
+chk "un format inconnu est refusé (400)" 400 \
+    "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $T_DIR" "$API/circuits/$CIRCUIT/fichier?format=shp")"
+
+nettoyer_bis
 nettoyer
 echo
 if [ "$fail" -eq 0 ]; then

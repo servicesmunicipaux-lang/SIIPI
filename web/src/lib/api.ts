@@ -388,12 +388,23 @@ export async function lireOctetsFichier(chemin: string): Promise<string> {
  * mêmes filtres et le même cloisonnement.
  */
 export async function telechargerExport(chemin: string, format: 'csv' | 'xlsx', langue: string): Promise<void> {
-  const jeton = lireJeton();
   const separateur = chemin.includes('?') ? '&' : '?';
-  const reponse = await fetch(
-    `${BASE}${chemin}${separateur}format=${format}&langue=${langue.startsWith('ar') ? 'ar' : 'fr'}`,
-    { headers: jeton ? { Authorization: `Bearer ${jeton}` } : {} }
+  await telecharger(
+    `${chemin}${separateur}format=${format}&langue=${langue.startsWith('ar') ? 'ar' : 'fr'}`,
+    `export.${format}`
   );
+}
+
+/** Le fichier géographique d'un circuit — tracé et arrêts — en GPX, KML ou GeoJSON. */
+export type FormatFichierCircuit = 'gpx' | 'kml' | 'geojson';
+export function telechargerCircuit(circuitId: string, format: FormatFichierCircuit): Promise<void> {
+  return telecharger(`/circuits/${circuitId}/fichier?format=${format}`, `circuit.${format}`);
+}
+
+/** Enregistre sur le poste le fichier que renvoie une route authentifiée. */
+async function telecharger(chemin: string, nomParDefaut: string): Promise<void> {
+  const jeton = lireJeton();
+  const reponse = await fetch(`${BASE}${chemin}`, { headers: jeton ? { Authorization: `Bearer ${jeton}` } : {} });
   if (!reponse.ok) {
     let message = `Erreur ${reponse.status}`;
     try {
@@ -404,8 +415,7 @@ export async function telechargerExport(chemin: string, format: 'csv' | 'xlsx', 
     }
     throw new ErreurApi(reponse.status, message);
   }
-  const nom =
-    /filename="([^"]+)"/.exec(reponse.headers.get('Content-Disposition') ?? '')?.[1] ?? `export.${format}`;
+  const nom = /filename="([^"]+)"/.exec(reponse.headers.get('Content-Disposition') ?? '')?.[1] ?? nomParDefaut;
   const url = URL.createObjectURL(await reponse.blob());
   const lien = document.createElement('a');
   lien.href = url;

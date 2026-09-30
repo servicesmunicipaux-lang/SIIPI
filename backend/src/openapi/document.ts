@@ -3357,6 +3357,31 @@ registry.registerPath({
 
 registry.registerPath({
   method: 'get',
+  path: '/circuits/{id}/fichier',
+  tags: ['Circuits et contrôle terrain'],
+  summary: 'Télécharger le circuit (tracé et arrêts) en GPX, KML ou GeoJSON',
+  description:
+    "Le circuit tel qu'il est en base, prêt à ouvrir dans QGIS, Google Earth ou un GPS, et à réimporter dans SIIPI sans perte : le type de chaque arrêt, son voyage, son rang et son heure relevée y sont écrits dans la forme que le lecteur de relevés reconnaît. Le GeoJSON porte aussi les champs libres de la commune (sous leur libellé) et les étiquettes.",
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    query: z.object({ format: z.enum(['gpx', 'kml', 'geojson']).default('geojson') }),
+  },
+  responses: {
+    200: {
+      description: 'Le fichier, en pièce jointe nommée d’après le code du circuit.',
+      content: {
+        'application/gpx+xml': { schema: z.string() },
+        'application/vnd.google-earth.kml+xml': { schema: z.string() },
+        'application/geo+json': { schema: z.string() },
+      },
+    },
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'get',
   path: '/circuits/{id}/historique',
   tags: ['Circuits et contrôle terrain'],
   summary: 'Historique des modifications du circuit et de ses arrêts',
@@ -5217,7 +5242,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.13.0',
+      version: '0.14.0',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

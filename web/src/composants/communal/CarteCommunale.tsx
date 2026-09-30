@@ -25,6 +25,19 @@ import { formaterNombre } from '../../i18n';
 
 type Couche = 'signalements' | 'conteneurs' | 'engins' | 'secteurs' | 'circuits' | 'points';
 
+// Couleurs des tracés : contrastées entre elles et sur le fond de carte, et
+// attribuées d'après l'identifiant du circuit — un circuit garde sa couleur
+// d'une visite à l'autre, quel que soit l'ordre de la liste.
+const COULEURS_CIRCUIT = [
+  '#7c3aed', '#db2777', '#ea580c', '#0891b2', '#65a30d', '#b91c1c',
+  '#4f46e5', '#ca8a04', '#0d9488', '#c026d3', '#1d4ed8', '#9a3412',
+];
+function couleurCircuit(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return COULEURS_CIRCUIT[h % COULEURS_CIRCUIT.length];
+}
+
 // Couleurs des arrêts, par type relevé sur le terrain. Les repères de début et
 // de fin encadrent la tournée ; un point noir n'est pas un arrêt de collecte
 // mais un dépôt sauvage constaté en passant, et il doit sauter aux yeux.
@@ -267,15 +280,19 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
                   </GeoJSON>
                 ))}
 
+            {/* Un circuit, une couleur : vingt-trois tracés d'une même teinte
+                se fondaient en une seule tache, sans qu'on puisse suivre l'un
+                d'eux. Le filtre « circuit » vaut aussi pour les tracés. */}
             {actives.has('circuits') &&
               circuits
-                .filter((c: any) => c.trace)
+                .filter((c: any) => c.trace && (!filtreCircuit || c.id === filtreCircuit))
                 .map((c: any) => (
                   <GeoJSON
                     key={`c-${c.id}`}
                     data={c.trace as never}
-                    style={{ color: '#7c3aed', weight: 3 }}
+                    style={{ color: couleurCircuit(c.id), weight: filtreCircuit ? 4 : 3, opacity: 0.85 }}
                   >
+                    <Tooltip sticky>{c.nom}</Tooltip>
                     <Popup>{c.nom}</Popup>
                   </GeoJSON>
                 ))}

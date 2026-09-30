@@ -12,6 +12,7 @@ Mise à jour du 28 septembre 2026 (fin) : **Jalon 4 clos** — imports CSV (cont
 Mise à jour du 28 septembre 2026 (soir) : **Jalon 5 clos** — la maintenance des engins : carnet d'entretien (`B2.2`) et alertes d'entretien au kilomètre et à la date (`B2.3`).
 Mise à jour du 28 septembre 2026 (nuit) : **Jalon 6 clos** — le tableau des points avec champs libres (`B3.4`), les étiquettes et les actions planifiées sur une sélection (`B3.5`).
 Mise à jour du 28 septembre 2026 (fin de nuit) : **Jalon 7 clos** — les paramètres (`B6.2`, `B6.3`, `B6.4`, `B6.6`) et le découpage validé par la FNCT et versionné (`C2.5`, `C2.6`).
+Mise à jour du 29 septembre 2026 (nuit) : **v0.14.0** — les fichiers géographiques de chaque circuit : téléchargement GPX / KML / GeoJSON, dépôt dès la création, une couleur par circuit sur la carte.
 Mise à jour du 29 septembre 2026 (soir) : **v0.13.0 en service** — données réelles de Djerba chargées, démonstration fictive retirée ; **Jalon 9 (application mobile) mis en attente**, priorités suivantes : Jalon 10 (refonte graphique et expérience du portail web / PWA), puis Jalon 11 (GMAO étendue et dépôts municipaux).
 Mise à jour du 29 septembre 2026 (suite) : **données réelles de Djerba** — 36 circuits observés au GPS, 2 855 points de collecte et 12 engins pour Houmt Souk, Midoun et Ajim, depuis la mission de la FNCT.
 Mise à jour du 29 septembre 2026 : **lot d'optimisation des sources KPI** — lieux sur carte, nettoyages en mètres linéaires, fin de poste, carburant, EPI, incidents, conventions ; la plateforme mesure ce que la fiche faisait déclarer, avec un badge de source par indicateur.
@@ -145,7 +146,7 @@ les tonnes et la masse salariale.
 
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
-| `B3.1` | Import de points (CSV / GPX / KML) | ✅ Fait | KML, KMZ, GPX, GeoJSON et CSV reconnus par leur contenu (services/kml.ts) · campagnes module2 et imports |
+| `B3.1` | Import de points (CSV / GPX / KML) | ✅ Fait | KML, KMZ, GPX, GeoJSON et CSV reconnus par leur contenu (services/kml.ts), dès la création du circuit ; téléchargement du circuit en GPX / KML / GeoJSON · campagnes module2, imports, releves-terrain |
 | `B3.2` | Import de tracés GeoTracker | ✅ Fait | services/kml.ts · campagne module2 |
 | `B3.3` | Carte multicouches | ✅ Fait | CarteCommunale.tsx, CircuitCarte.tsx |
 | `B3.4` | Tableau attributaire avec champs libres | ✅ Fait | onglet « Points » : colonnes libres texte / nombre / oui-non / liste / date définies par la commune (`champs_points`, `points_collecte.attributs`, migration 047), saisie à la case ou par lot · campagne champs-points |
@@ -802,6 +803,32 @@ base ; les trajets retour mesurés concordent d'un circuit à l'autre (13,1 km
 depuis le parc de Midoun, 8,7 km depuis celui de Sedwikech). Vérifié dans le
 navigateur : la liste des 23 circuits de Midoun, la fiche et la carte de
 Mahboubine-Abbatoir, le tableau des points avec ses champs et étiquettes.
+
+### Lot — Les fichiers géographiques de chaque circuit ✅ *(fait le 29 septembre 2026)*
+
+**Pourquoi.** À la mise en service des données de Djerba, trois manques sont
+apparus à l'usage : la carte de la commune affichait les 23 tracés de Midoun
+d'une seule couleur, sans qu'on puisse en suivre un ; le dépôt des fichiers
+d'un circuit, caché sous l'onglet « Points de collecte », était introuvable
+— y compris à la création ; et un circuit ne pouvait pas sortir de la
+plateforme sous forme de fichier.
+
+| Quoi | Preuve |
+|---|---|
+| Une couleur par circuit sur la carte de la commune ; le filtre « circuit » isole son tracé et ses arrêts | `CarteCommunale.tsx` |
+| Onglet « Données géographiques » : dépôt (itinéraire, arrêts) et téléchargement GPX / KML / GeoJSON | `GET /circuits/{id}/fichier`, `services/fichierCircuit.ts` |
+| Fichiers joints dès la création d'un circuit | `Circuits.tsx` |
+| Aller-retour sans perte : un fichier exporté se réimporte à l'identique (types, ordre, heure, tracé) | `services/kml.ts`, campagne `releves-terrain` |
+
+**Test de validation.** Campagne `releves-terrain` portée à 37/37 : les trois
+formats se téléchargent, en pièce jointe nommée d'après le code du circuit ;
+réimportés, ils redonnent les mêmes 15 arrêts dans le même ordre avec les
+mêmes types, et le même tracé ; l'import « auto » d'un KML d'arrêts ne
+remplace pas l'itinéraire ; une autre commune ne télécharge pas le circuit
+(404). Vérifié dans le navigateur (Midoun) : les tracés colorés et le filtre
+sur Mahboubine-Abbatoir, l'onglet « Données géographiques », la création
+d'un circuit avec ses fichiers (tracé et 92 arrêts posés) puis avec un
+fichier illisible (circuit créé, avertissement en tête de fiche).
 
 ### Jalon 9 — L'application mobile citoyenne ⏸ *(en attente — décision FNCT du 29 septembre 2026)*
 

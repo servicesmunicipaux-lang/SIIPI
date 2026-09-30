@@ -4,32 +4,54 @@
 // exécutant, une date de début. Tout le reste se règle dans la fiche, une fois
 // le circuit créé. Un formulaire de création qui demande quinze champs fait
 // abandonner avant le premier enregistrement.
+//
+// Seule exception : les fichiers géographiques (itinéraire, arrêts), facultatifs.
+// Une commune qui crée un circuit a souvent son relevé GPS en main ; lui faire
+// chercher ensuite où le déposer, c'est le lui faire perdre. Ils sont importés
+// juste après la création, et la fiche s'ouvre sur l'onglet qui les montre.
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type Circuit } from '../../lib/api';
+import { api, ErreurApi, lireFichierLocal, type Circuit } from '../../lib/api';
 import { Erreur } from '../Elements';
 import { CircuitsListe } from './CircuitsListe';
-import { CircuitDetail } from './CircuitDetail';
+import { CircuitDetail, type OngletCircuit } from './CircuitDetail';
 
 const JOURS = [1, 2, 3, 4, 5, 6, 7];
 
 export function Circuits({ communeId }: { communeId: string }) {
   const [ouvert, setOuvert] = useState<Circuit | null>(null);
+  const [ongletOuvert, setOngletOuvert] = useState<OngletCircuit>('fiche');
+  // Ce que l'import des fichiers joints à la création n'a pas pu faire : dit
+  // en tête de la fiche, plutôt que perdu avec le formulaire.
+  const [avisCreation, setAvisCreation] = useState<string[]>([]);
   const [creation, setCreation] = useState(false);
   const [rechargement, setRechargement] = useState(0);
 
   if (ouvert) {
     return (
-      <CircuitDetail
-        circuit={ouvert}
-        communeId={communeId}
-        onFerme={() => {
-          setOuvert(null);
-          setRechargement((n) => n + 1);
-        }}
-        onModifie={() => setRechargement((n) => n + 1)}
-      />
+      <div className="space-y-3">
+        {avisCreation.length > 0 && (
+          <ul className="space-y-1 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="status">
+            {avisCreation.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ul>
+        )}
+        <CircuitDetail
+          key={ouvert.id}
+          circuit={ouvert}
+          communeId={communeId}
+          ongletInitial={ongletOuvert}
+          onFerme={() => {
+            setOuvert(null);
+            setOngletOuvert('fiche');
+            setAvisCreation([]);
+            setRechargement((n) => n + 1);
+          }}
+          onModifie={() => setRechargement((n) => n + 1)}
+        />
+      </div>
     );
   }
 
@@ -38,11 +60,14 @@ export function Circuits({ communeId }: { communeId: string }) {
       <FormulaireCreation
         communeId={communeId}
         onAnnule={() => setCreation(false)}
-        onCree={(c) => {
+        onCree={(c, avecFichiers, avis) => {
           setCreation(false);
           setRechargement((n) => n + 1);
           // On ouvre directement la fiche : c'est là que se règlent les points
-          // de collecte et l'import, qui sont l'étape suivante évidente.
+          // de collecte et l'import, qui sont l'étape suivante évidente — sur
+          // l'onglet des données géographiques si des fichiers ont été joints.
+          setOngletOuvert(avecFichiers ? 'geo' : 'fiche');
+          setAvisCreation(avis);
           setOuvert(c);
         }}
       />
@@ -66,7 +91,7 @@ function FormulaireCreation({
 }: {
   communeId: string;
   onAnnule: () => void;
-  onCree: (c: Circuit) => void;
+  onCree: (c: Circuit, avecFichiers: boolean, avis: string[]) => void;
 }) {
   const { t } = useTranslation();
   const [nom, setNom] = useState('');
@@ -77,6 +102,7 @@ function FormulaireCreation({
   const [prestataireId, setPrestataireId] = useState('');
   const [prestataires, setPrestataires] = useState<{ id: string; full_name: string }[]>([]);
   const [dateDebut, setDateDebut] = useState(() => new Date().toISOString().slice(0, 10));
+  const [fichiers, setFichiers] = useState<{ trace: File | null; points: File | null }>({ trace: null, points: null });
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
 
@@ -103,7 +129,31 @@ function FormulaireCreation({
         voyagesParJour,
         prestataireId: prestataireId || null,
       });
-      onCree(cree);
+      // Les fichiers joints, un par un : un échec n'annule ni le circuit ni
+      // l'autre fichier, il est dit en tête de la fiche.
+      const avis: string[] = [];
+      for (const cible of ['trace', 'points'] as const) {
+        const fichier = fichiers[cible];
+        if (!fichier) continue;
+        try {
+          const contenu = await lireFichierLocal(fichier);
+          await api.importerKml(cree.id, { ...contenu, valider: true, cible });
+        } catch (err) {
+          avis.push(
+            t('communal.circuits.creationFichiers.echec', {
+              fichier: fichier.name,
+              message: err instanceof ErreurApi ? err.message : t('commun.erreur'),
+            })
+          );
+        }
+      }
+      // Relu après les imports : le circuit rendu par la création ne sait pas
+      // encore qu'il a désormais un tracé et des arrêts, ni d'où ils viennent.
+      const avecFichiers = Boolean(fichiers.trace || fichiers.points);
+      const frais = avecFichiers
+        ? ((await api.circuits(communeId).catch(() => [])).find((x) => x.id === cree.id) ?? cree)
+        : cree;
+      onCree(frais, avecFichiers, avis);
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
     } finally {
@@ -226,6 +276,26 @@ function FormulaireCreation({
           />
           <span className="mt-1 block text-xs text-ardoise-500">{t('communal.circuits.dateDebutAide')}</span>
         </label>
+
+        <fieldset className="rounded-lg border border-dashed border-ardoise-300 p-3">
+          <legend className="px-1 text-sm font-medium text-ardoise-700">
+            {t('communal.circuits.creationFichiers.titre')}
+          </legend>
+          <p className="text-xs text-ardoise-500">{t('communal.circuits.creationFichiers.aide')}</p>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            {(['trace', 'points'] as const).map((cible) => (
+              <label key={cible} className="block text-sm">
+                <span className={etiquette}>{t(`communal.circuits.creationFichiers.${cible}`)}</span>
+                <input
+                  type="file"
+                  accept=".kml,.kmz,.gpx,.json,.geojson,.csv,text/csv"
+                  onChange={(e) => setFichiers((f) => ({ ...f, [cible]: e.target.files?.[0] ?? null }))}
+                  className="mt-1 block w-full text-sm text-ardoise-700 file:me-3 file:min-h-10 file:rounded-lg file:border-0 file:bg-siipi-50 file:px-3 file:font-medium file:text-siipi-800"
+                />
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         <div className="flex gap-2">
           <button
