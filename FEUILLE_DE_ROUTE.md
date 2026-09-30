@@ -2,7 +2,7 @@
 ## Du cahier des charges à la plateforme : où nous en sommes, et dans quel ordre continuer
 
 **Fédération Nationale des Communes Tunisiennes**
-Version au 22 septembre 2026 · établie à partir du cahier des charges SIIPI (MVP, phase 1)
+Version au 30 septembre 2026 · établie à partir du cahier des charges SIIPI (MVP, phase 1)
 Mise à jour du 22 septembre 2026 : clôture du **Jalon 1** (§ 4) — huit lignes passées à Fait.
 Mise à jour du 22 septembre 2026 (suite) : **Jalon 2, lot 1** (B5.1.2, B5.2.3, B5.4.3) — le push web est réellement émis. Le mécanisme d'abonnement du citoyen (`M6`) a dû être construit avec, pour que l'envoi ait un destinataire à joindre — voir le rapport de lot avant de considérer `M6` clos.
 Mise à jour du 23 septembre 2026 : **`M6` clos** — historique « Mes notifications », préférences par canal et par type, et relance manuelle (« Renvoyer ») d'un envoi en échec.
@@ -838,47 +838,187 @@ chaque commune doit pouvoir y paraître sous son nom, son logo et son identité
 visuelle, sans une application par commune. Ce socle sera traité plus tard ;
 d'ici là, l'espace citoyen web reste le canal (voir § 7.1).
 
-### Jalon 10 — Refonte graphique et expérience utilisateur du portail web / PWA *(prochaine priorité)*
+### Jalon 10 — Navigation par pôles métier et unification cartographique *(phase 1 engagée le 30 septembre 2026)*
 
-**Pourquoi maintenant.** Les fonctions sont là ; c'est leur usage qui freine.
-Ce que l'on constate déjà en recette :
-- l'espace communal compte **dix-sept onglets** dans une barre qui défile à
-  l'horizontale : sur un téléphone, la moitié en est invisible ;
-- chaque écran a fini par porter son propre style de formulaire, de tableau et
-  de message, au fil des jalons ;
-- l'usage visé est le téléphone d'un chef de service le matin, et l'écran
-  citoyen sur un réseau mobile.
+**Le problème, tel qu'il se constate.** Dix-sept onglets sur une barre
+horizontale. Sur un téléphone, treize d'entre eux vivent hors de l'écran,
+derrière un défilement que rien n'annonce : un directeur qui cherche
+« Personnel » **ne peut pas savoir que l'onglet existe**. Et le défilement
+horizontal au pouce entre en concurrence avec le défilement vertical de la
+page — on part de travers une fois sur deux.
 
-| Quoi | Ce que cela recouvre |
+Ce n'est pas un défaut d'esthétique. C'est une charge de mémoire qui fait
+renoncer, et un contrôle auquel on renonce n'est pas fait.
+
+#### 10.1 — Les cinq pôles métier
+
+Le regroupement ne suit pas la parenté technique mais **le moment de la journée
+et l'interlocuteur** :
+
+| Pôle | Ce qu'il réunit | Le moment |
+|---|---|---|
+| **1. Cockpit & synthèse** | Constat du matin, alertes « à vérifier », raccourcis d'urgence | En arrivant |
+| **2. Terrain & opérations** | Carte unifiée, circuits, arrêts, pesées, preuves | Pendant la tournée |
+| **3. Citoyens & cadre de vie** | Réclamations, suggestions, communication, découpage | Quand ça vient du dehors |
+| **4. Flotte, GMAO & dépôt** | Parc, registres (carburant, EPI, sécurité), personnel | Au dépôt |
+| **5. Pilotage & auto-évaluation** | Indicateurs 5 axes, auto-évaluation, rapports et études | En fin de mois |
+
+**Un sixième groupe, « Administration »** (contacts, comptes), est rendu à part
+en bas. Ce n'est pas un pôle métier : forcer « Comptes » dans un pôle ferait
+chercher les accès là où personne ne les cherche.
+
+**Deux affectations méritent d'être justifiées.** Les **pesées** vont au
+terrain, non au pilotage : un tonnage se saisit le soir même, rattaché à la
+tournée qui l'a produit ; au pilotage, il ne serait relu qu'en fin de mois. Le
+**personnel** va au dépôt : c'est le même chef de parc qui répond des agents et
+des engins, au même endroit.
+
+**État : ✅ fait.** `web/src/composants/BarreLaterale.tsx` — barre posée et
+rétractable sur poste fixe, tiroir par-dessus au téléphone, fermeture par
+Échap, par le voile et par le choix d'un écran, focus rendu au bouton, tiroir
+replié sorti de l'ordre de tabulation (`inert`), état déplié/replié conservé
+d'une session à l'autre. Le tiroir vient de la **droite en arabe** : non par
+symétrie décorative, mais parce que le pouce d'un lecteur d'arabe part de ce
+côté-là.
+
+**Tests de validation.**
+- *Automatique* : `npm run lint` côté web avec la version de TypeScript du
+  projet ; parcours complet au clavier (Tab, Échap) sans piège de focus.
+- *Recette* : sur un téléphone réel, atteindre n'importe lequel des dix-sept
+  écrans **en deux gestes au plus**, en français puis en arabe. Critère de
+  sortie : aucun écran atteint par tâtonnement.
+
+#### 10.2 — Une seule carte pour le terrain
+
+**Ce qui était éclaté.** Les circuits, leurs arrêts et leurs contrôles vivaient
+dans trois onglets. Vérifier « la tournée n° 3 est-elle passée, et où ? »
+demandait trois écrans et deux allers-retours de mémoire.
+
+**Ce qui est fait.** Choisir un circuit sur la carte ouvre un panneau qui
+répond aux trois questions **sans quitter la carte** : qui l'exécute et avec
+quel engin, combien d'arrêts et de quelle nature, et ce que disent les
+constats des trente derniers jours.
+
+Le panneau **borde** la carte, il ne la remplace pas : on doit voir le tracé
+pendant qu'on lit ses constats, sinon on retombe dans l'aller-retour que cet
+écran supprime. La sélection est **celle du filtre existant** — un second
+mécanisme aurait fait diverger les deux, et on aurait vu le panneau d'un
+circuit pendant que la carte en traçait un autre.
+
+Deux absences sont **dites**, jamais laissées en blanc : « aucun arrêt
+enregistré » (le circuit existe au registre, mais personne ne sait où il passe)
+et « aucun constat depuis 30 jours » (ce n'est pas *rien à signaler*, c'est un
+contrôle qui n'a pas eu lieu).
+
+**État : ✅ fait.** `web/src/composants/communal/PanneauCircuit.tsx`.
+
+**Tests de validation.**
+- *Automatique* : campagne `releves-terrain` étendue — choisir un circuit rend
+  ses arrêts et ses seuls constats ; un circuit sans arrêt rend la phrase, pas
+  un vide.
+- *Recette* : un chef de service répond à « la tournée n° 3 est-elle passée
+  hier ? » **sans changer d'écran**.
+
+#### 10.3 — Paramètres de la commune, étendus *(à faire)*
+
+| Réglage | Pourquoi il change les chiffres |
 |---|---|
-| Un système graphique unique | couleurs, typographies latine et arabe, composants (boutons, champs, tableaux, cartes, états vides et d'erreur) partagés par tous les écrans ; mode sombre |
-| La navigation | regroupement des onglets de l'espace communal par métier (collecte, parc, personnel, citoyens, pilotage), recherche, raccourcis du constat du matin |
-| Le mobile d'abord | tableaux lisibles sur téléphone, cartes plein écran, formulaires courts |
-| L'application web progressive (PWA) | installation sur l'écran d'accueil, fonctionnement hors connexion pour la saisie terrain — la voie recommandée au § 7.1 |
-| Accessibilité et bilinguisme | libellés associés à chaque champ, contrastes, parcours complet en arabe (RTL) |
+| Population réelle et saisonnière | Une commune côtière triple en été : un ratio kg/hab/jour calculé sur la population permanente est faux cinq mois par an |
+| Production spécifique théorique (kg/hab/jour) | Sert de repère à l'écart entre l'attendu et le pesé |
+| **Moteur d'estimation volumétrique** | `Tonnage estimé = volume utile (m³) × taux de remplissage (%) × densité (t/m³)` — pour les communes **sans pont-bascule**, c'est-à-dire la grande majorité |
 
-**Préalable** : maquettes validées par la FNCT avant d'écrire une ligne ; le
-marquage blanc du Jalon 9 s'y préparera (les couleurs et le logo deviennent
-des paramètres, pas du code).
+**La règle qui gouverne ce moteur.** Un tonnage estimé n'est **jamais** présenté
+comme un tonnage pesé. Il porte sa nature (`source = 'estimation_volumetrique'`),
+ses trois paramètres, et la date à laquelle ils ont été réglés. Sans cela, une
+estimation devient une mesure au bout de trois semaines, et on la comparera un
+jour à un chiffre de l'ANGeD sans savoir qu'on compare une opinion à une pesée.
 
-### Jalon 11 — La GMAO étendue et la gestion des dépôts municipaux *(ensuite)*
+**Test de validation.** Trois jeux de paramètres donnent trois tonnages
+différents pour la même tournée, et l'écran le dit. Un tonnage estimé et un
+tonnage pesé ne s'additionnent jamais sans que la distinction reste lisible.
 
-**Ce qui existe** : le carnet d'entretien et les alertes au kilomètre et à la
-date (Jalon 5), l'état du parc, et depuis le lot « sources KPI » le registre
-des pleins de carburant. **Ce qui manque** pour qu'un parc municipal se gère
-dans SIIPI plutôt qu'à côté :
+#### 10.4 — Connecteur GPS tiers *(à faire)*
 
-| Quoi | Ce que cela recouvre |
-|---|---|
-| Les processus administratifs | demande d'intervention, validation, bon de commande, réception, clôture — avec qui a validé quoi, et quand |
-| Les pièces de rechange | magasin du dépôt : entrées, sorties imputées à une intervention et à un engin, seuils de réapprovisionnement, coût de maintenance par engin |
-| Le carburant | bons et pleins rapprochés du kilométrage, consommation par engin et par circuit, écarts signalés |
-| Les dépôts municipaux | parcs et magasins de la commune : ce qui y est, ce qui en sort, les engins immobilisés |
-| Les documents légaux | générés depuis les données : PV de réforme, fiches d'engin, échéances de visite technique et d'assurance, états pour le conseil municipal |
+Interface de configuration pour relier une plateforme GPS existante (Orange,
+Ooredoo, boîtiers locaux) aux tables PostGIS de SIIPI : URL, jeton, cadence,
+correspondance entre l'identifiant du boîtier et l'immatriculation de l'engin.
 
-**À préciser avec la FNCT avant de commencer** : la liste des documents légaux
-attendus et leurs modèles officiels, et le circuit de validation d'une
-commune type.
+**Ce qui doit être tenu.** Le jeton du fournisseur est un secret : il ne
+s'affiche jamais en clair après l'enregistrement, et il ne part pas dans les
+journaux. Une trace GPS importée porte **sa provenance** : elle ne se confond
+pas avec un relevé fait par la commune.
+
+**Test de validation.** Un fournisseur injoignable ne fait pas échouer l'écran :
+il affiche la date du dernier relevé reçu. Une trace sans correspondance
+d'engin est **signalée**, pas rattachée au hasard.
+
+---
+
+### Jalon 11 — GMAO, dépôt municipal et documents légaux *(ensuite)*
+
+**Ce qui existe déjà** : carnet d'entretien et alertes au kilomètre et à la date
+(Jalon 5), état du parc, registre des pleins de carburant (lot « sources KPI »).
+
+#### 11.1 — Les documents administratifs légaux *(الوثائق القانونية المعتمدة)*
+
+Quatre documents, générés depuis les données et conformes à la forme attendue
+par l'administration tunisienne :
+
+| Document | | Ce qui le rend opposable |
+|---|---|---|
+| Ordre de mission | أمر بمهمة | Les deux signatures, l'objet et les dates |
+| Bon de sortie de carburant | إذن بإخراج الوقود | Le **numéro d'ordre continu** et les trois signatures : qui reçoit, qui délivre, qui autorise |
+| Fiche de déclassement | بطاقة طرح المعدات | La référence de comptabilité matières et la commission |
+| Bon de travail — maintenance | إذن بالأشغال | L'index kilométrique et le coût, rattachés à l'engin |
+
+**Ce qui n'est pas décoratif.** Un bon de carburant sans numéro d'ordre continu
+ne prouve rien : on ne peut pas montrer qu'aucun bon ne manque. Le numéro est
+donc tiré d'une **séquence en base, par type de document** — jamais calculé à
+l'écran. Un champ non renseigné reste **vide** : on n'écrit ni « 0 » ni « N/A »
+dans un document qui engage la commune.
+
+Le gabarit existe : `scripts/skills/pdf-template.mjs` produit les quatre
+modèles HTML imprimables en A4, bilingues, avec en-tête d'État, référence
+réglementaire, bloc de signatures qualifiées et mention d'édition à l'heure de
+Tunis.
+
+**Test de validation.** Générer cent bons successifs : la séquence est continue,
+sans trou ni doublon, y compris lorsque deux agents éditent en même temps. Un
+document réimprimé six mois plus tard porte sa date d'édition d'origine.
+
+#### 11.2 — Détection d'anomalies de tournée *(à faire)*
+
+Trois alertes, à partir des traces GPS et du registre des circuits :
+
+| Alerte | Seuil | Ce qu'elle évite |
+|---|---|---|
+| Arrêt prolongé non prévu | configurable par commune | Un engin immobilisé une heure sans que personne ne le sache avant le soir |
+| Déviation d'itinéraire | écart au tracé théorique | Une tournée raccourcie qui laisse un quartier non desservi |
+| Secteur non desservi > 48 h | 48 h par défaut | Le dépôt sauvage qui naît d'un secteur oublié |
+
+**La règle.** Une anomalie est une **question posée**, avec sa date et son
+contexte — jamais une sanction, et jamais un reproche à un agent nommé. Le
+journal des corrections de ce projet montre assez que le premier réflexe devant
+un écart est de chercher l'erreur de saisie avant la faute.
+
+**Test de validation.** Une trace fabriquée avec un arrêt de 45 minutes lève
+l'alerte ; la même sans l'arrêt ne la lève pas. Un engin en panne déclarée ne
+génère **aucune** alerte de déviation : il ne roule pas.
+
+#### 11.3 — Anticipation du décret « tri à la source » (DMA) *(à faire)*
+
+Calculateur d'impact : tonnes valorisables par flux, CO₂ évité, et la
+progression vers les objectifs du décret.
+
+**La règle d'or s'applique intégralement.** Tant que le tri à la source n'est
+pas en place dans la commune, le calculateur affiche une **projection
+explicitement nommée comme telle**, fondée sur des ratios de caractérisation
+nationaux — et non un résultat. Une projection présentée comme un résultat
+serait opposée un jour à une commune qui n'a jamais trié un gramme.
+
+**Test de validation.** Une commune sans collecte sélective obtient une
+projection étiquetée, jamais un taux de valorisation. Les ratios employés sont
+affichés avec leur source et leur date.
 
 ---
 

@@ -5,6 +5,47 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.0] — 2026-09-30 — Jalon 10, phase 1 : navigation par pôles et carte unifiée
+
+### Ajouté
+- **Barre latérale à cinq pôles métier** (`BarreLaterale.tsx`), en remplacement
+  des dix-sept onglets défilants. Posée et rétractable sur poste fixe, tiroir
+  par-dessus au téléphone. Le tiroir vient de la **droite en arabe** : le pouce
+  d'un lecteur d'arabe part de ce côté-là.
+  Cockpit · Terrain & opérations · Citoyens & cadre de vie · Flotte, GMAO &
+  dépôt · Pilotage & auto-évaluation, plus un groupe « Administration » rendu à
+  part — forcer « Comptes » dans un pôle métier ferait chercher les accès là où
+  personne ne les cherche.
+- **Panneau de circuit sur la carte** (`PanneauCircuit.tsx`) : choisir un
+  circuit montre son exécutant, son engin, ses arrêts par nature et ses constats
+  des trente derniers jours — **sans quitter la carte**. Le panneau borde la
+  carte, il ne la remplace pas : on doit voir le tracé pendant qu'on lit ses
+  constats.
+- **`CLAUDE.md`** : la mémoire de travail du projet — commandes, conventions,
+  les cinq règles d'or, ce qu'on ne stocke jamais, et le protocole de validation.
+- **`scripts/skills/`** : quatre outils de vérification interne, chacun né d'un
+  défaut réel — `db-check.sh` (RLS forcée, politiques qui ignorent
+  l'intercommunalité, géométries sans index, `SECURITY DEFINER` sans
+  `search_path`), `kpi-evaluator.mjs` (une absence devenue zéro),
+  `ui-builder.mjs` (écran conforme : trois états, propriétés logiques, clés dans
+  les deux langues), `pdf-template.mjs` (les quatre documents légaux tunisiens).
+
+### Modifié
+- L'espace communal passe de 1100 à 1400 pixels de large : la carte unifiée en a
+  besoin, et la barre latérale en prend déjà une part.
+- `FEUILLE_DE_ROUTE.md` : Jalons 10 et 11 détaillés en sous-lots, chacun avec
+  son test de validation — dont le moteur d'estimation volumétrique, le
+  connecteur GPS tiers, les documents légaux, la détection d'anomalies de
+  tournée et le calculateur DMA.
+
+### Deux absences qui se disent
+Un circuit sans arrêt affiche « le circuit existe au registre, mais personne ne
+sait où il passe ». Un circuit sans constat depuis trente jours affiche « ce
+n'est pas *rien à signaler*, c'est un contrôle qui n'a pas eu lieu ». Un cadre
+vide se prend pour une panne ; pire, il laisse croire qu'il n'y a rien à faire.
+
+---
+
 ## [0.14.0] — 2026-09-29 — Les fichiers géographiques de chaque circuit
 
 ### Ajouté

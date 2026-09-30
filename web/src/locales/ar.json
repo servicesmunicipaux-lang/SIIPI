@@ -135,7 +135,8 @@
     "sur": "من",
     "annuler": "إلغاء",
     "oui": "نعم",
-    "non": "لا"
+    "non": "لا",
+    "fermer": "إغلاق"
   },
   "export": {
     "titre": "تصدير",
@@ -748,7 +749,12 @@
       "filtreCircuit": "تصفية حسب الدورة",
       "filtreType": "تصفية حسب نوع نقطة التوقف",
       "tousCircuits": "كل الدورات",
-      "tousTypes": "كل الأنواع"
+      "tousTypes": "كل الأنواع",
+      "panneauCircuit": "تفاصيل المسلك المختار",
+      "arrets": "{{n}} محطة",
+      "aucunArret": "لا توجد محطات مسجّلة: المسلك موجود في السجلّ، لكن لا أحد يعرف أين يمرّ.",
+      "derniersControles": "آخر المرور (30 يوما)",
+      "aucunControle": "لا معاينة منذ 30 يوما. هذا ليس «لا شيء يُذكر»: هذه مراقبة لم تُنجز."
     },
     "limites": {
       "titre": "حدود البلدية",
@@ -1400,6 +1406,17 @@
         "cocherFait": "تأشير {{nom}} كمنجزة",
         "lieu": "المكان: {{nom}}"
       }
+    },
+    "navigationOuvrir": "القائمة",
+    "navigationReplier": "طيّ القائمة",
+    "navigationDeplier": "بسط القائمة",
+    "poles": {
+      "cockpit": "لوحة القيادة",
+      "terrain": "الميدان والعمليات",
+      "citoyens": "المواطنون وإطار العيش",
+      "flotte": "الأسطول والصيانة والمستودع",
+      "pilotage": "القيادة والتقييم",
+      "administration": "الإدارة"
     }
   },
   "prestataire": {

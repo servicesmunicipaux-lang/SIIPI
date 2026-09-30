@@ -127,7 +127,8 @@
     "sur": "sur",
     "annuler": "Annuler",
     "oui": "Oui",
-    "non": "Non"
+    "non": "Non",
+    "fermer": "Fermer"
   },
   "export": {
     "titre": "Exporter",
@@ -740,7 +741,12 @@
       "filtreCircuit": "Filtrer par circuit",
       "filtreType": "Filtrer par type d’arrêt",
       "tousCircuits": "Tous les circuits",
-      "tousTypes": "Tous les types"
+      "tousTypes": "Tous les types",
+      "panneauCircuit": "Détail du circuit choisi",
+      "arrets": "{{n}} arrêt(s)",
+      "aucunArret": "Aucun arrêt enregistré : le circuit existe au registre, mais personne ne sait où il passe.",
+      "derniersControles": "Derniers passages (30 jours)",
+      "aucunControle": "Aucun constat depuis 30 jours. Ce n’est pas « rien à signaler » : c’est un contrôle qui n’a pas eu lieu."
     },
     "limites": {
       "titre": "Limites de la commune",
@@ -1343,6 +1349,17 @@
         "cocherFait": "Marquer {{nom}} comme fait",
         "lieu": "lieu : {{nom}}"
       }
+    },
+    "navigationOuvrir": "Menu",
+    "navigationReplier": "Replier le menu",
+    "navigationDeplier": "Déplier le menu",
+    "poles": {
+      "cockpit": "Cockpit",
+      "terrain": "Terrain & opérations",
+      "citoyens": "Citoyens & cadre de vie",
+      "flotte": "Flotte, GMAO & dépôt",
+      "pilotage": "Pilotage & évaluation",
+      "administration": "Administration"
     }
   },
   "prestataire": {
