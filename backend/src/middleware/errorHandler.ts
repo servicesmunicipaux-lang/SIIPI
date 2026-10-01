@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
+import { etatDeLaBase } from '../etatBase.js';
 
 export class ApiError extends Error {
   status: number;
@@ -45,8 +46,21 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return res.status(400).json({ error: 'Identifiant invalide.' });
   }
 
-  console.error('[error]', err);
-  return res.status(500).json({ error: 'Erreur interne du serveur.' });
+  // Avant de répondre « erreur interne », on regarde si la base est en état
+  // de servir. Sur une installation où les migrations n'ont pas tourné, la
+  // première connexion échouait en 500 (table, schéma ou rôle introuvable) :
+  // la cause était connue, le remède aussi, mais l'écran ne disait ni l'un ni
+  // l'autre. Le contrôle ne coûte qu'en cas d'erreur, jamais sur le trajet
+  // normal d'une requête.
+  etatDeLaBase()
+    .catch(() => null)
+    .then((etat) => {
+      if (etat && etat.status !== 'ok') {
+        return res.status(503).json({ error: etat.message });
+      }
+      console.error('[error]', err);
+      return res.status(500).json({ error: 'Erreur interne du serveur.' });
+    });
 }
 
 export function asyncHandler<T extends (...args: any[]) => Promise<any>>(fn: T) {

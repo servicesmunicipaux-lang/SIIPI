@@ -8,7 +8,7 @@ import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
 
 import { config } from './config.js';
-import { pool } from './db.js';
+import { etatDeLaBase } from './etatBase.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { attachRequestContext } from './middleware/requestContext.js';
 
@@ -143,10 +143,14 @@ app.use('/citizens/register', authLimiter);
 
 app.get('/health', async (_req, res) => {
   try {
-    await pool.query('SELECT 1');
-    res.json({ status: 'ok', database: 'connected' });
+    const etat = await etatDeLaBase();
+    res.status(etat.status === 'ok' ? 200 : 503).json(etat);
   } catch {
-    res.status(503).json({ status: 'degraded', database: 'unreachable' });
+    res.status(503).json({
+      status: 'degraded',
+      database: 'unreachable',
+      message: 'Base de données injoignable : vérifiez que le conteneur « db » tourne (docker compose ps).',
+    });
   }
 });
 

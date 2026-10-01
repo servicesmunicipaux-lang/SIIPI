@@ -6,7 +6,8 @@
 //
 // Source : extrait OpenStreetMap (relations "boundary=municipality") fourni par
 // la FNCT, apparié aux 350 communes de communes_350.json par nom puis par
-// proximité géographique (voir la méthodologie dans GUIDE_DEMARRAGE.md).
+// proximité géographique du centroïde, à moins de 15 km (méthodologie décrite
+// dans l'ancien GUIDE_DEMARRAGE.md, retiré en v0.15.3 : voir l'historique git).
 // Le fichier backend/seed/data/communes_boundaries.json contient déjà le résultat
 // de cet appariement (géométries simplifiées, un polygone MultiPolygon par
 // commune reconnue) — ce script se contente de l'appliquer en base.

@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * État de santé de l'API
-         * @description Sans authentification. Utilisé par Docker et par la supervision du serveur.
+         * @description Sans authentification. Utilisé par Docker et par la supervision du serveur. Distingue une base injoignable, une base jamais initialisée (aucune migration appliquée) et une base plus ancienne que le code (migrations en attente), et dit pour chacune la commande qui la corrige.
          */
         get: {
             parameters: {
@@ -24,7 +24,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description API et base disponibles. */
+                /** @description API et base disponibles, schéma à jour. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -35,10 +35,12 @@ export interface paths {
                             status: "ok";
                             /** @enum {string} */
                             database: "connected";
+                            /** @description Nombre de migrations appliquées. */
+                            migrations: number;
                         };
                     };
                 };
-                /** @description Base injoignable. */
+                /** @description Base injoignable, non initialisée ou en retard sur le code. */
                 503: {
                     headers: {
                         [name: string]: unknown;
@@ -48,7 +50,10 @@ export interface paths {
                             /** @enum {string} */
                             status: "degraded";
                             /** @enum {string} */
-                            database: "unreachable";
+                            database: "unreachable" | "non_initialisee" | "migrations_en_attente";
+                            /** @description Cause et commande à lancer, en français. */
+                            message: string;
+                            migrationsEnAttente?: number;
                         };
                     };
                 };

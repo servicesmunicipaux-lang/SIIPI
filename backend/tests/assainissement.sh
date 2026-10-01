@@ -2,7 +2,7 @@
 # =============================================================================
 # Étape S0 — assainissement (v0.15.2).
 #
-# Trois choses, qui commencent chacune par ce que la plateforme REFUSE :
+# Quatre choses, qui commencent chacune par ce que la plateforme REFUSE :
 #   1. une migration déjà appliquée ne se modifie pas en silence : le
 #      migrateur en garde l'empreinte, et s'arrête si le fichier ne lui
 #      correspond plus ;
@@ -10,7 +10,9 @@
 #      subsiste ni dans les commentaires de la base, ni dans le contrat d'API ;
 #   3. un KMZ exporté d'ArcGIS (toute une base d'étude, une couche par
 #      dossier, attributs en tableau HTML) ne s'importe pas d'un bloc : on
-#      choisit la couche, et au besoin les éléments d'un seul circuit.
+#      choisit la couche, et au besoin les éléments d'un seul circuit ;
+#   4. une base jamais initialisée, ou plus ancienne que le code, se dit sur
+#      /health et à la connexion — jamais par « Erreur interne du serveur ».
 #
 # Le KMZ d'essai reproduit la structure de celui des circuits existants de
 # M'hamdia (PCGD 2026) — tableaux imbriqués compris — avec des valeurs TEST.
@@ -168,6 +170,47 @@ chk "les 2 arrêts du circuit TEST 01 sont créés, et eux seuls" "2|TEST_PT0,TE
     "$(sql "SELECT count(*)||'|'||string_agg(nom, ',' ORDER BY ordre) FROM points_collecte WHERE circuit_id='$CIRCUIT' AND deleted_at IS NULL")"
 CODE=$(importer trace true "\"couche\":\"$C_L\"")
 chk "le tracé de la couche du circuit est posé" "201|5" "$CODE|$(sql "SELECT ST_NPoints(trace) FROM circuits WHERE id='$CIRCUIT'")"
+
+# -----------------------------------------------------------------------------
+echo
+echo "6. Une base non initialisée se dit, elle ne répond pas « erreur interne »"
+# Une seconde API, lancée le temps de ces contrôles sur une base VIDE créée
+# pour l'occasion : c'est la situation d'un premier démarrage dont les
+# migrations n'ont pas tourné. La base de la campagne n'est pas touchée.
+BASE_VIDE=siipi_essai_vide
+PORT_VIDE=4100
+$PSQL -c "DROP DATABASE IF EXISTS $BASE_VIDE;" >/dev/null 2>&1
+$PSQL -c "CREATE DATABASE $BASE_VIDE;" >/dev/null
+(cd "$RACINE" && PORT=$PORT_VIDE DATABASE_URL="${DATABASE_URL%/*}/$BASE_VIDE" \
+  exec node --import tsx src/index.ts >"$T/api-vide.log" 2>&1) &
+API_VIDE=$!
+for _ in $(seq 1 60); do
+  [ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT_VIDE/health")" != 000 ] && break
+  sleep 1
+done
+VIDE="http://localhost:$PORT_VIDE"
+CODE=$(curl -s -o "$T/r.json" -w '%{http_code}' "$VIDE/health")
+chk "/health d'une base vide : 503, « non initialisée »" "503|non_initialisee" "$CODE|$(val "d['database']")"
+chk "… et dit quoi lancer" 1 "$(val "int('DEMARRER.bat' in d['message'])")"
+CODE=$(curl -s -o "$T/r.json" -w '%{http_code}' -X POST "$VIDE/auth/login" -H 'Content-Type: application/json' \
+  -d '{"email":"test-s0@example.test","password":"TEST-mot-de-passe"}')
+chk "la connexion sur une base vide : 503 et la cause, pas « Erreur interne »" "503|1" \
+    "$CODE|$(val "int('non initialisée' in d['error'])")"
+# Une base dont le suivi ne connaît qu'une migration : plus ancienne que le code.
+psql -q -h "$PGHOST" -p "${PGPORT:-5432}" -U "$PGUSER" -d "$BASE_VIDE" -c \
+  "CREATE TABLE schema_migrations (filename TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT now(), empreinte TEXT);
+   INSERT INTO schema_migrations (filename) VALUES ('000_init.sql');" >/dev/null
+ATTENDUES=$(( $(ls "$RACINE"/migrations/*.sql | wc -l) - 1 ))
+CODE=$(curl -s -o "$T/r.json" -w '%{http_code}' "$VIDE/health")
+chk "/health d'une base en retard : 503 et le nombre de migrations en attente" "503|migrations_en_attente|$ATTENDUES" \
+    "$CODE|$(val "d['database']")|$(val "d['migrationsEnAttente']")"
+kill "$API_VIDE" 2>/dev/null; wait "$API_VIDE" 2>/dev/null
+$PSQL -c "DROP DATABASE IF EXISTS $BASE_VIDE;" >/dev/null 2>&1
+chk "la base d'essai vide est retirée" 0 "$(sql "SELECT count(*) FROM pg_database WHERE datname='$BASE_VIDE'")"
+
+CODE=$(curl -s -o "$T/r.json" -w '%{http_code}' "$API/health")
+chk "/health de la base de la campagne : 200, toutes les migrations appliquées" \
+    "200|connected|$(ls "$RACINE"/migrations/*.sql | wc -l | tr -d ' ')" "$CODE|$(val "d['database']")|$(val "d['migrations']")"
 
 nettoyer
 echo

@@ -5,6 +5,63 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.3] — 2026-10-01 — S0 : un seul guide de démarrage, une base qui dit son état
+
+Complément de S0 décidé le 1er octobre (ligne S0 de la feuille de route). Reste
+de S0 : la carte du conseiller SIG, attendue lundi 5 octobre, qui ne bloque pas S1.
+
+### Ajouté
+- **`/health` dit l'état de la base**, pas seulement qu'elle répond. Il distingue
+  une base injoignable, une base **non initialisée** (aucune migration appliquée)
+  et une base **plus ancienne que le code** (migrations en attente, avec leur
+  nombre), et dit pour chacune la commande à lancer (`DEMARRER.bat`,
+  `MIGRER.bat`). Une base saine répond 200 avec le nombre de migrations
+  appliquées. Une base vide répondait « ok, connected ».
+- Campagne `assainissement`, section 6 : une seconde API est lancée sur une base
+  **vide** créée pour l'occasion, puis sur une base en retard ; la base de la
+  campagne n'est pas touchée.
+
+### Corrigé
+- **La connexion sur une base non initialisée répondait « Erreur interne du
+  serveur »** (500). Avant de répondre 500, le gestionnaire d'erreurs consulte
+  l'état de la base : si elle n'est pas en état de servir, il répond 503 avec la
+  cause et le remède. Le contrôle ne coûte qu'en cas d'erreur.
+- **Trois documents de démarrage qui se contredisaient** (`README.md`,
+  `DEMARRAGE.md`, `GUIDE_DEMARRAGE.md`) et un script PowerShell abandonné
+  (`demarrer.ps1`) : mot de passe de la base (`change_me_strong_password` contre
+  `siipi_dev_password`), port d'Adminer (8080 contre 8081), « 26 migrations »,
+  « 240 tests », et le pas-à-pas du prototype d'origine. **`DEMARRER.bat` est
+  désormais le seul guide** ; `DEMARRAGE.md` l'explique et donne les mêmes
+  commandes hors Windows. `GUIDE_DEMARRAGE.md` et `demarrer.ps1` sont retirés
+  (l'historique git les garde).
+- **`DEMARRER.bat` n'installait pas ce que les campagnes de tests attendent** :
+  il s'arrêtait après le découpage, sans la commune pilote. Il suit maintenant
+  l'ordre de référence (`seed:dar-chaabane`, `seed:parc`, `seed:personnel`,
+  `seed:communication`), n'écrit plus de nombre de migrations figé, et finit par
+  le contrôle de `/health`.
+- **Le mot de passe affiché par `DEMARRER.bat` était faux** : sous
+  `enabledelayedexpansion`, le `!` de `Siipi2026!` disparaissait à l'écran.
+  Même défaut dans `RECHARGER_DAR_CHAABANE.bat`, qui annonçait en outre deux
+  comptes (`directeur.darchaabane@…`, `prestataire.darchaabane@…`) qu'aucun seed
+  ne crée : il renvoie désormais au compte national, qui ouvre le portail de
+  n'importe quelle commune.
+- **`backend/.env.example`** citait un mot de passe que la base du Compose ne
+  connaît pas : copié tel quel, il empêchait l'API lancée hors conteneur de se
+  connecter. Aligné sur `siipi_dev_password`.
+- Commentaire périmé de `TESTS.bat` (« douze campagnes ») : il lance `npm test`,
+  donc toutes les campagnes.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 54 migrations ; la dernière rejouée une
+  seconde fois : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 241/241, **33 bilans, 1 165 tests
+  réussis, aucun échec** (dont `assainissement` : 38).
+- Recomptage : 33 campagnes présentes, 33 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- `DEMARRER.bat` déroulé à blanc (Docker simulé) : les neuf étapes, le mot de
+  passe affiché en entier, `/health` contrôlé. Il n'a pas été lancé contre une
+  vraie pile : il aurait pris les ports du portail en service.
+
 ## [0.15.2] — 2026-09-30 — S0 : assainissement
 
 ### Ajouté
