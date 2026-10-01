@@ -6,7 +6,7 @@ import { ErreurApi } from '../lib/api';
 
 export function Connexion() {
   const { t } = useTranslation();
-  const { connexion } = useAuth();
+  const { connexion, sessionExpiree } = useAuth();
   const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
@@ -52,6 +52,11 @@ export function Connexion() {
             onSubmit={soumettre}
             className="rounded-2xl border border-ardoise-200 bg-white p-6 shadow-sm"
           >
+            {sessionExpiree && (
+              <p role="status" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                {t('connexion.sessionExpiree')}
+              </p>
+            )}
             <h2 className="text-lg font-semibold text-ardoise-900">{t('connexion.titre')}</h2>
             <p className="mt-1 text-sm text-ardoise-500">{t('connexion.sousTitre')}</p>
 

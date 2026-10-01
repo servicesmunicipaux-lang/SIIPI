@@ -17,7 +17,8 @@
     "valider": "Se connecter",
     "enCours": "Connexion…",
     "erreurGenerique": "Connexion impossible. Vérifiez vos identifiants.",
-    "aide": "En cas d'oubli, contactez l'administrateur de votre commune."
+    "aide": "En cas d'oubli, contactez l'administrateur de votre commune.",
+    "sessionExpiree": "Votre session a expiré : par sécurité, elle ne dure que quelques heures. Reconnectez-vous pour reprendre là où vous en étiez."
   },
   "entete": {
     "deconnexion": "Se déconnecter",

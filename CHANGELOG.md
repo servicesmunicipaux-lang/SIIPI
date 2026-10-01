@@ -56,6 +56,10 @@ charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 - **`MIGRER.bat` ne lançait que huit campagnes** sur trente-deux, nommées à la
   main. Il lance désormais `npm test` : le contrat d'API et toutes les campagnes.
 - `test:kpi-sources` lançait aussi `releves-terrain` (défaut de la v0.13.0).
+- **Session expirée** : un portail resté ouvert au-delà de la durée du jeton
+  (huit heures) affichait « Token invalide ou expiré » sur chaque écran, avec un
+  « Réessayer » qui ne pouvait pas réussir. La première réponse 401 referme
+  désormais la session et ramène à l'écran de connexion, qui dit pourquoi.
 - Libellé manquant de la famille d'import « CSV ».
 
 ### Vérifié (critère d'acceptation, `CLAUDE.md` § 7)
