@@ -36,8 +36,11 @@ echo.
 echo   Registre recharge.
 echo.
 echo   Portail municipal : http://localhost:3000
-echo     directeur.darchaabane@siipi.tn    - mot de passe : Siipi2026!
-echo     prestataire.darchaabane@siipi.tn  - mot de passe : Siipi2026!
+REM  Aucun compte propre a la commune n'est cree par les seeds : les deux
+REM  adresses affichees ici auparavant n'existaient pas. L'administrateur
+REM  national ouvre le portail de n'importe quelle commune (migration 030).
+echo     Compte : admin.national@siipi.tn - mot de passe : Siipi2026^^!
+echo     puis, dans l'annuaire, ouvrir le portail de Dar Chaabane El Fehri.
 echo.
 
 :fin

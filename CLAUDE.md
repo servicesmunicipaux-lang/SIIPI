@@ -16,7 +16,8 @@ est prêt et ce qui bloque. Les pièces métier sont dans `docs/specs_metier/` (
 l'objectif de clôture d'une version mais ne bloque plus l'ouverture des jalons
 suivants. Les lots 17.1, 17.3 et 17.5 peuvent avancer en parallèle de R1 ; 17.2 et
 17.4 restent suspendus à leurs préalables externes. Ordre : S0, S1 (jumeau
-numérique), jalon 11. **S0 est clos (v0.15.2) : la suite est S1.**
+numérique), jalon 11. **S0 est fait (v0.15.2, v0.15.3) sauf la carte du conseiller SIG,
+attendue lundi 5 octobre, qui ne bloque pas S1 : la suite est S1.**
 
 ---
 
@@ -120,7 +121,7 @@ données personnelles). Jusqu'à confirmation par un juriste de la FNCT :
 
 | Script | Ce qu'il fait |
 |---|---|
-| `DEMARRER.bat` | Premier démarrage : conteneurs, migrations, jeu de démonstration |
+| `DEMARRER.bat` | **Le seul guide de démarrage** (expliqué par `DEMARRAGE.md`) : conteneurs, migrations, jeux dans l'ordre de référence, contrôle de `/health`. Rejouable |
 | `RELANCER.bat` | Redémarrage simple |
 | `MIGRER.bat` | **Le passage obligé après toute modification** : migrations, seeds, régénération des types du front, typage, puis `npm test` — le contrat d'API et **toutes** les campagnes inscrites dans `backend/package.json` |
 | `TESTS.bat` | Les campagnes seules |

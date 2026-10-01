@@ -3,9 +3,9 @@ setlocal enabledelayedexpansion
 REM ===========================================================================
 REM  SIIPI - campagne complete de tests.
 REM
-REM  Verifie le contrat d'API puis enchaine les douze campagnes :
-REM  cloisonnement, audit, suppression, observatoire, circuits, prestataires,
-REM  citoyen, enlevements, decoupage, periode, intercommunal, module 2.
+REM  Lance npm test : le contrat d'API, puis TOUTES les campagnes inscrites
+REM  dans backend/package.json. Leur liste n'est pas recopiee ici : une liste
+REM  recopiee se perime (celle-ci en comptait douze quand il y en avait 33).
 REM
 REM  Le conteneur de l'API tourne sous Alpine, qui n'embarque ni bash ni psql.
 REM  Le lanceur tests/executer.sh les installe au premier passage : la

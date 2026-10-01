@@ -8,10 +8,10 @@ national, portails municipaux, espace prestataire et application citoyenne
 
 ## Démarrer
 
-Tout tourne en conteneurs Docker — voir **[DEMARRAGE.md](DEMARRAGE.md)** pour
-les trois commandes qui lancent la base, les migrations, le jeu de données de
-démonstration, l'API et le front-end, et **[GUIDE_DEMARRAGE.md](GUIDE_DEMARRAGE.md)**
-pour la procédure détaillée.
+Sous Windows, double-cliquez sur **`DEMARRER.bat`** : rien d'autre à installer
+que Docker Desktop. **[DEMARRAGE.md](DEMARRAGE.md)** explique ce qu'il fait,
+donne les mêmes commandes pour un autre système, les comptes de démonstration
+et ce qu'il faut faire quand `/health` signale une panne.
 
 ## Où en est le projet
 

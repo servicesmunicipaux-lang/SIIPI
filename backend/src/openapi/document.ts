@@ -508,10 +508,28 @@ registry.registerPath({
   path: '/health',
   tags: ['Supervision'],
   summary: "État de santé de l'API",
-  description: "Sans authentification. Utilisé par Docker et par la supervision du serveur.",
+  description:
+    "Sans authentification. Utilisé par Docker et par la supervision du serveur. Distingue une base injoignable, une base " +
+    'jamais initialisée (aucune migration appliquée) et une base plus ancienne que le code (migrations en attente), ' +
+    'et dit pour chacune la commande qui la corrige.',
   responses: {
-    200: json(z.object({ status: z.literal('ok'), database: z.literal('connected') }), 'API et base disponibles.'),
-    503: json(z.object({ status: z.literal('degraded'), database: z.literal('unreachable') }), 'Base injoignable.'),
+    200: json(
+      z.object({
+        status: z.literal('ok'),
+        database: z.literal('connected'),
+        migrations: z.number().int().openapi({ description: 'Nombre de migrations appliquées.' }),
+      }),
+      'API et base disponibles, schéma à jour.'
+    ),
+    503: json(
+      z.object({
+        status: z.literal('degraded'),
+        database: z.enum(['unreachable', 'non_initialisee', 'migrations_en_attente']),
+        message: z.string().openapi({ description: 'Cause et commande à lancer, en français.' }),
+        migrationsEnAttente: z.number().int().optional(),
+      }),
+      'Base injoignable, non initialisée ou en retard sur le code.'
+    ),
   },
 });
 
@@ -5269,7 +5287,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.2',
+      version: '0.15.3',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
