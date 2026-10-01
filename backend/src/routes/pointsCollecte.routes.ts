@@ -422,6 +422,21 @@ const importSchema = z.object({
   //
   // « auto » reste le comportement d'avant, pour ne rien casser.
   cible: z.enum(['auto', 'trace', 'points']).default('auto'),
+  // Un KMZ exporté d'ArcGIS porte toute une base d'étude, une couche par
+  // dossier : on dit laquelle importer, et au besoin quels éléments (les
+  // points d'un seul circuit). Voir services/kml.ts, « fichiers à plusieurs
+  // couches ».
+  couche: z.string().min(1).max(500).optional(),
+  filtre: z
+    .object({
+      attribut: z.string().min(1).max(200),
+      valeur: z.string().max(500),
+      operateur: z.enum(['egal', 'commence_par']).default('egal'),
+    })
+    .optional(),
+  // Le type des points qui n'en portent aucun : une couche de dépotoirs
+  // sauvages est une couche de points noirs.
+  typePoints: z.enum(['porte_a_porte', 'point_de_collecte', 'debut_collecte', 'fin_collecte', 'point_noir', 'centre_transfert', 'hors_conteneur', 'parc_municipal', 'autre']).optional(),
 });
 
 pointsRouter.post(
@@ -438,7 +453,7 @@ pointsRouter.post(
 
     let lu;
     try {
-      lu = lireKml(Buffer.from(d.contenu, 'base64'));
+      lu = lireKml(Buffer.from(d.contenu, 'base64'), { couche: d.couche, filtre: d.filtre, typePoints: d.typePoints });
     } catch (err) {
       throw new ApiError(
         400,
@@ -495,6 +510,7 @@ pointsRouter.post(
       statistiques: lu.statistiques,
       avertissements,
       points: lu.points,
+      couches: lu.couches ?? [],
     };
 
     if (!d.valider) {
@@ -503,6 +519,12 @@ pointsRouter.post(
       return res.json({ ...apercu, ecrit: false });
     }
 
+    if (lu.famille === 'multicouche') {
+      throw new ApiError(
+        400,
+        'Ce fichier contient plusieurs couches : choisissez celle à importer (et au besoin un filtre) avant de valider.'
+      );
+    }
     if (!posePoints && !poseTrace) {
       throw new ApiError(
         400,

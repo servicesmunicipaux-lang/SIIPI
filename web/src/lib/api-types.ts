@@ -10996,6 +10996,21 @@ export interface paths {
                          * @enum {string}
                          */
                         cible?: "auto" | "trace" | "points";
+                        /** @description Chemin de la couche à importer, parmi celles que l'aperçu décrit (« couches »). Requis pour un fichier à plusieurs couches. */
+                        couche?: string;
+                        /** @description Ne garder que les entités de la couche dont l’attribut vaut (ou commence par) la valeur. */
+                        filtre?: {
+                            /** @description Nom de l’attribut, ou « Nom » pour le nom de l’entité. */
+                            attribut: string;
+                            valeur: string;
+                            /** @enum {string} */
+                            operateur?: "egal" | "commence_par";
+                        };
+                        /**
+                         * @description Type donné aux points qui n’en portent aucun.
+                         * @enum {string}
+                         */
+                        typePoints?: "porte_a_porte" | "point_de_collecte" | "debut_collecte" | "fin_collecte" | "point_noir" | "centre_transfert" | "hors_conteneur" | "parc_municipal" | "autre";
                     };
                 };
             };
@@ -11056,6 +11071,87 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/circuits/{id}/fichier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Télécharger le circuit (tracé et arrêts) en GPX, KML ou GeoJSON
+         * @description Le circuit tel qu'il est en base, prêt à ouvrir dans QGIS, Google Earth ou un GPS, et à réimporter dans SIIPI sans perte : le type de chaque arrêt, son voyage, son rang et son heure relevée y sont écrits dans la forme que le lecteur de relevés reconnaît. Le GeoJSON porte aussi les champs libres de la commune (sous leur libellé) et les étiquettes.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    format?: "gpx" | "kml" | "geojson";
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Le fichier, en pièce jointe nommée d’après le code du circuit. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/gpx+xml": string;
+                        "application/vnd.google-earth.kml+xml": string;
+                        "application/geo+json": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -12601,7 +12697,7 @@ export interface paths {
          *     tous les statuts — mais ni nom, ni téléphone, ni description en texte libre, une position
          *     arrondie à environ 110 m et une photo publiée seulement si la commune l’a validée.
          *     Le filtrage est fait en base, dans une fonction : un garde-fou qu’on peut contourner en
-         *     écrivant une autre requête n’en est pas un (décret-loi n° 2022-54, principe de minimisation).
+         *     écrivant une autre requête n’en est pas un (loi organique n° 2004-63, principe de minimisation).
          */
         get: {
             parameters: {
@@ -13909,7 +14005,7 @@ export interface paths {
          * Déposer une photo ou un document
          * @description Le fichier voyage en base64, comme le relevé KML du module 2 : une seule façon de poster dans toute l'API, et un appel qui se rejoue à la main.
          *
-         *     Le type est déterminé par les OCTETS, jamais par le nom ni par l'en-tête annoncé (415 sinon). Les métadonnées EXIF des photos — position GPS, modèle de l'appareil, nom du propriétaire — sont retirées avant écriture ; la position trouvée est rendue dans la réponse, à proposer à la personne plutôt qu'à enregistrer à son insu (décret-loi n° 2022-54).
+         *     Le type est déterminé par les OCTETS, jamais par le nom ni par l'en-tête annoncé (415 sinon). Les métadonnées EXIF des photos — position GPS, modèle de l'appareil, nom du propriétaire — sont retirées avant écriture ; la position trouvée est rendue dans la réponse, à proposer à la personne plutôt qu'à enregistrer à son insu (loi organique n° 2004-63).
          *
          *     Plafond : 8 Mo une fois décodé (413 au-delà), 50 Mo pour un rapport ou une étude (usage « rapport_etude », seul à accepter aussi les documents Word, Excel et PowerPoint). Un citoyen dépose pour sa propre commune ; un agent, pour une commune où il écrit.
          */
@@ -16891,7 +16987,7 @@ export interface paths {
         };
         /**
          * Annuaire de travail d'une commune
-         * @description Interlocuteurs externes, sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT : un prestataire rattaché n’y a pas accès (données personnelles de tiers, décret-loi 2022-54).
+         * @description Interlocuteurs externes, sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT : un prestataire rattaché n’y a pas accès (données personnelles de tiers, loi organique 2004-63).
          */
         get: {
             parameters: {
@@ -18538,10 +18634,10 @@ export interface components {
             poseraPoints: boolean;
             poseraTrace: boolean;
             /**
-             * @description waypoints = relevé d'arrêts (GPS Waypoints) ; trace_gps = trajet suivi (My Tracks) ; itineraire_dessine = KMZ tracé à la main.
+             * @description waypoints = relevé d'arrêts (GPS Waypoints) ; trace_gps = trajet suivi (My Tracks) ; itineraire_dessine = KMZ tracé à la main ; multicouche = fichier à plusieurs couches (export ArcGIS) dont il faut choisir la couche.
              * @enum {string}
              */
-            famille: "waypoints" | "trace_gps" | "itineraire_dessine" | "gpx" | "geojson" | "inconnu";
+            famille: "waypoints" | "trace_gps" | "itineraire_dessine" | "gpx" | "geojson" | "csv" | "multicouche" | "inconnu";
             nomReleve: string | null;
             nbPoints: number;
             nbVoyages: number;
@@ -18553,6 +18649,20 @@ export interface components {
             /** @description Ce qui a été écarté et pourquoi. À montrer avant validation, pas après. */
             avertissements: string[];
             points: unknown[];
+            /** @description Les couches du fichier (KML/KMZ), pour choisir laquelle importer. Vide pour un fichier sans dossiers. */
+            couches: {
+                /** @description Identifiant de la couche (chemin de ses dossiers), à renvoyer dans « couche ». */
+                chemin: string;
+                nom: string;
+                points: number;
+                lignes: number;
+                surfaces: number;
+                attributs: {
+                    nom: string;
+                    valeurs: string[];
+                    plusDeValeurs: boolean;
+                }[];
+            }[];
             /** @description false en aperçu : la base n'a pas été touchée. */
             ecrit: boolean;
             crees?: number;

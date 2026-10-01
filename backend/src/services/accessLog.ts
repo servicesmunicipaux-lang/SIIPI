@@ -3,7 +3,7 @@ import { currentContext } from '../context.js';
 
 /**
  * Journalise la consultation de données personnelles de citoyens
- * (décret-loi n° 2022-54 : pouvoir répondre à « qui a consulté mes données ? »).
+ * (loi organique n° 2004-63 : pouvoir répondre à « qui a consulté mes données ? »).
  *
  * Une lecture SQL seule ne dit ni depuis quel écran ni pour quel usage elle a
  * lieu : ce journal-ci est donc alimenté par l'API, à la différence du journal

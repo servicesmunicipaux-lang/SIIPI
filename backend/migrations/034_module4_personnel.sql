@@ -25,7 +25,7 @@
 -- CE QUE CE MODULE EST, ET N'EST PAS. Ce n'est pas un logiciel de paie et ce
 -- n'est pas un dossier du personnel. C'est un registre d'AFFECTATION
 -- OPÉRATIONNELLE : qui est affecté à quel circuit, qui était là ce matin,
--- combien de personnes le service peut aligner demain. Le décret-loi n° 2022-54
+-- combien de personnes le service peut aligner demain. La loi organique n° 2004-63
 -- impose la minimisation : on ne collecte que ce qui sert à l'exploitation.
 --
 -- EN CONSÉQUENCE, ET DÉLIBÉRÉMENT, CE SCHÉMA N'A PAS :
@@ -164,7 +164,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_effectifs_service_unique
   ON effectifs_service (commune_id, annee, service);
 
 COMMENT ON TABLE effectifs_service IS
-  'Effectif et masse salariale du service, par année. Niveau service uniquement : aucune ligne ne désigne une personne, et aucune clé ne permet d''y redescendre. C''est la traduction en base de la minimisation exigée par le décret-loi 2022-54.';
+  'Effectif et masse salariale du service, par année. Niveau service uniquement : aucune ligne ne désigne une personne, et aucune clé ne permet d''y redescendre. C''est la traduction en base de la minimisation exigée par la loi organique 2004-63.';
 COMMENT ON COLUMN effectifs_service.source IS
   'Origine du chiffre en clair — « projet de budget communal », « compte administratif »... Un chiffre sans origine n''est pas opposable.';
 

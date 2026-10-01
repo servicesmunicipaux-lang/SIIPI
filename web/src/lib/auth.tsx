@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { api, ecrireJeton, lireJeton, type ChangementPreferences, type Utilisateur } from './api';
+import { api, ecrireJeton, EVENEMENT_SESSION_EXPIREE, lireJeton, type ChangementPreferences, type Utilisateur } from './api';
 import { appliquerLangue } from '../i18n';
 
 /** La langue choisie sur le compte suit la personne d'un poste à l'autre. */
@@ -10,6 +10,8 @@ function appliquerPreferences(u: Utilisateur | null) {
 interface ContexteAuth {
   utilisateur: Utilisateur | null;
   chargement: boolean;
+  /** La session vient d'être refermée par l'API (jeton expiré) : l'écran de connexion le dit. */
+  sessionExpiree: boolean;
   connexion: (email: string, motDePasse: string) => Promise<void>;
   deconnexion: () => void;
   /** Relit le compte auprès de l'API — après un changement de mot de passe. */
@@ -23,6 +25,19 @@ const Contexte = createContext<ContexteAuth | undefined>(undefined);
 export function FournisseurAuth({ children }: { children: ReactNode }) {
   const [utilisateur, setUtilisateur] = useState<Utilisateur | null>(null);
   const [chargement, setChargement] = useState(true);
+  const [sessionExpiree, setSessionExpiree] = useState(false);
+
+  // L'API a refusé le jeton en cours de session (voir constaterSession dans
+  // lib/api.ts) : on revient à l'écran de connexion au lieu de laisser chaque
+  // écran afficher une erreur qu'aucun « Réessayer » ne peut lever.
+  useEffect(() => {
+    const fermer = () => {
+      setUtilisateur(null);
+      setSessionExpiree(true);
+    };
+    window.addEventListener(EVENEMENT_SESSION_EXPIREE, fermer);
+    return () => window.removeEventListener(EVENEMENT_SESSION_EXPIREE, fermer);
+  }, []);
 
   // Au chargement, un jeton conservé est vérifié auprès de l'API avant de
   // restaurer la session : on ne fait jamais confiance à un jeton stocké sans
@@ -55,6 +70,7 @@ export function FournisseurAuth({ children }: { children: ReactNode }) {
   const connexion = useCallback(async (email: string, motDePasse: string) => {
     const reponse = await api.connexion(email, motDePasse);
     ecrireJeton(reponse.token);
+    setSessionExpiree(false);
     setUtilisateur(reponse.user);
     appliquerPreferences(reponse.user);
   }, []);
@@ -62,6 +78,7 @@ export function FournisseurAuth({ children }: { children: ReactNode }) {
   const deconnexion = useCallback(() => {
     ecrireJeton(null);
     setUtilisateur(null);
+    setSessionExpiree(false);
   }, []);
 
   const rafraichir = useCallback(async () => {
@@ -82,7 +99,7 @@ export function FournisseurAuth({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <Contexte.Provider value={{ utilisateur, chargement, connexion, deconnexion, rafraichir, changerPreferences }}>
+    <Contexte.Provider value={{ utilisateur, chargement, sessionExpiree, connexion, deconnexion, rafraichir, changerPreferences }}>
       {children}
     </Contexte.Provider>
   );

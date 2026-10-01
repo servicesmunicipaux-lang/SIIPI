@@ -222,7 +222,7 @@ citoyenRouter.delete(
 // table tickets qui s'ouvre — elle reste fermée par RLS — mais une fonction
 // qui n'en laisse sortir ni nom, ni téléphone, ni description libre, et qui
 // arrondit la position à environ 110 m. La couverture est complète ; c'est
-// l'identification du déclarant qui est retirée (décret-loi 2022-54).
+// l'identification du déclarant qui est retirée (loi organique 2004-63).
 // ---------------------------------------------------------------------------
 
 citoyenRouter.get(

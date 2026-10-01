@@ -22,7 +22,7 @@ export const communicationRouter = Router();
  * Il rend leur nombre. Un agent communal a besoin de savoir COMBIEN de foyers
  * son message touche, pour juger s'il part au bon endroit ; il n'a aucun
  * besoin opérationnel de savoir QUI habite dans le polygone qu'il vient de
- * dessiner (décret-loi n° 2022-54).
+ * dessiner (loi organique n° 2004-63).
  */
 
 const TYPES = ['sondage', 'projet', 'notification'] as const;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePortail } from '../lib/portail';
 import { api, type LigneGouvernorat, type StatutCommune } from '../lib/api';
@@ -9,6 +9,7 @@ import { DecoupageCommunal } from '../composants/national/DecoupageCommunal';
 import { PropositionsDecoupage } from '../composants/national/PropositionsDecoupage';
 import { KpiNational } from '../composants/national/KpiNational';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
+import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 import {
   BadgeProvenance,
   BadgeStatut,
@@ -71,6 +72,19 @@ function sansAccent(texte: string): string {
     .trim();
 }
 
+// L'observatoire tenait sur une seule page défilante : chapeau, indicateurs,
+// Concours, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
+// bas. Même défaut que les dix-sept onglets du portail communal — ce qu'on ne
+// voit pas, on ne sait pas que ça existe — et même remède : la barre latérale.
+type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement';
+
+const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
+  { cle: 'synthese',    pole: 'cockpit' },
+  { cle: 'communes',    pole: 'terrain' },
+  { cle: 'performance', pole: 'pilotage' },
+  { cle: 'deploiement', pole: 'pilotage' },
+];
+
 export function TableauDeBordNational() {
   const { t } = useTranslation();
   const f = useFormats();
@@ -89,6 +103,7 @@ export function TableauDeBordNational() {
   const [triCle, setTriCle] = useState<Cle>('communes_actives');
   const [triAscendant, setTriAscendant] = useState(true);
   const [recherche, setRecherche] = useState('');
+  const [onglet, setOnglet] = useState<OngletNational>('synthese');
 
   async function charger() {
     setErreur(null);
@@ -162,9 +177,34 @@ export function TableauDeBordNational() {
   if (erreur) return <Erreur message={erreur} onReessayer={() => void charger()} />;
   if (!gouvernorats || !communes || !totaux) return <Chargement />;
 
+  // Choisir un écran referme la vue ouverte en place (indicateurs d'une
+  // commune, éditeur de découpage) : sans cela, un clic dans la barre
+  // semblerait ne rien faire, l'ancienne vue restant affichée par-dessus.
+  function choisirOnglet(o: OngletNational) {
+    setCommuneKpi(null);
+    setCommuneADecouper(null);
+    setOnglet(o);
+  }
+
+  const coque = (contenu: ReactNode) => (
+    <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 sm:py-8">
+      <div className="flex gap-4">
+        <BarreLaterale
+          entrees={ENTREES_NATIONAL}
+          actif={onglet}
+          onChoisir={choisirOnglet}
+          libelle={t('national.navigation')}
+          etiquette={(cle) => t(`national.onglets.${cle}`)}
+          etiquettePole={(pole) => t(`national.poles.${pole}`, { defaultValue: t(`communal.poles.${pole}`) })}
+        />
+        <div className="min-w-0 flex-1">{contenu}</div>
+      </div>
+    </div>
+  );
+
   if (communeKpi) {
-    return (
-      <div className="mx-auto max-w-[1400px] space-y-4 px-4 py-6 sm:px-6">
+    return coque(
+      <div className="space-y-4">
         <button type="button" onClick={() => setCommuneKpi(null)} className="text-sm font-medium text-siipi-700 hover:underline">
           ← {t('national.retourObservatoire')}
         </button>
@@ -174,8 +214,8 @@ export function TableauDeBordNational() {
   }
 
   if (communeADecouper) {
-    return (
-      <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
+    return coque(
+      <div>
         <DecoupageCommunal
           communeId={communeADecouper}
           onFermer={() => setCommuneADecouper(null)}
@@ -204,8 +244,10 @@ export function TableauDeBordNational() {
           total: formaterNombre(totaux.communes),
         });
 
-  return (
-    <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 sm:py-8">
+  return coque(
+    <>
+      {onglet === 'synthese' && (
+      <>
       {/* -------------------------------------------------------------------
           Une phrase, pas des chiffres. C'est l'indicateur numéro un du
           responsable national : combien de communes utilisent réellement la
@@ -247,11 +289,16 @@ export function TableauDeBordNational() {
         />
       </section>
 
+      </>
+      )}
+
       {/* Jalon 8 : le Concours national, les 5 axes, la préparation au tri à
           la source et les alertes — avant le tableau par gouvernorat, qui
           montre le déploiement ; ceci montre la performance. */}
-      <KpiNational onOuvrirCommune={setCommuneKpi} />
+      {onglet === 'performance' && <KpiNational onOuvrirCommune={setCommuneKpi} />}
 
+      {onglet === 'deploiement' && (
+      <>
       {/* -------------------------------------------------------------------
           Tableau par gouvernorat
           ------------------------------------------------------------------- */}
@@ -355,6 +402,11 @@ export function TableauDeBordNational() {
         </div>
       </section>
 
+      </>
+      )}
+
+      {onglet === 'communes' && (
+      <>
       {/* -------------------------------------------------------------------
           Recherche dans les 350 communes
           ------------------------------------------------------------------- */}
@@ -452,6 +504,8 @@ export function TableauDeBordNational() {
           </div>
         )}
       </section>
-    </div>
+      </>
+      )}
+    </>
   );
 }

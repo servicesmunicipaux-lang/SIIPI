@@ -2,7 +2,9 @@
 ## Du cahier des charges à la plateforme : où nous en sommes, et dans quel ordre continuer
 
 **Fédération Nationale des Communes Tunisiennes**
-Version au 22 septembre 2026 · établie à partir du cahier des charges SIIPI (MVP, phase 1)
+Version au 30 septembre 2026 (nuit) · établie à partir du cahier des charges SIIPI (MVP, phase 1)
+Mise à jour du 30 septembre 2026 (nuit) : **changement de stratégie validé avec la FNCT** — la recette terrain n'étant pas possible pour l'instant, les jalons ne s'arrêtent pas : le jalon 12 avance en parallèle de R1 (lots 17.1, 17.3, 17.5) et la plateforme est éprouvée sur un **jumeau numérique** de trois mois d'activité (§ 6bis) en attendant les communes. Décision d'inscription citoyenne tranchée (§ 7.2). Version 0.15.1, documentaire.
+Mise à jour du 30 septembre 2026 (soir) : **cap fixé de v0.16 à v0.19** — ordre des jalons arrêté (§ 0) ; communes de recette **Dar Chaâbane** puis **M'hamdia** ; référentiel de gestion du dépôt municipal, projet de décret sur le tri à la source (articles 13.1 et 14) et `SPEC_v0.16.md` versés à `docs/specs_metier/` ; protocole de validation réel inscrit dans `CLAUDE.md` ; barre latérale étendue à l'observatoire national. Le développement reprend dans Claude Code.
 Mise à jour du 22 septembre 2026 : clôture du **Jalon 1** (§ 4) — huit lignes passées à Fait.
 Mise à jour du 22 septembre 2026 (suite) : **Jalon 2, lot 1** (B5.1.2, B5.2.3, B5.4.3) — le push web est réellement émis. Le mécanisme d'abonnement du citoyen (`M6`) a dû être construit avec, pour que l'envoi ait un destinataire à joindre — voir le rapport de lot avant de considérer `M6` clos.
 Mise à jour du 23 septembre 2026 : **`M6` clos** — historique « Mes notifications », préférences par canal et par type, et relance manuelle (« Renvoyer ») d'un envoi en échec.
@@ -17,6 +19,79 @@ Mise à jour du 29 septembre 2026 (soir) : **v0.13.0 en service** — données r
 Mise à jour du 29 septembre 2026 (suite) : **données réelles de Djerba** — 36 circuits observés au GPS, 2 855 points de collecte et 12 engins pour Houmt Souk, Midoun et Ajim, depuis la mission de la FNCT.
 Mise à jour du 29 septembre 2026 : **lot d'optimisation des sources KPI** — lieux sur carte, nettoyages en mètres linéaires, fin de poste, carburant, EPI, incidents, conventions ; la plateforme mesure ce que la fiche faisait déclarer, avec un badge de source par indicateur.
 Mise à jour du 28 septembre 2026 (clôture) : **Jalon 8 clos** — le tableau de bord KPI 5 axes, la grille du Concours national de propreté (19 indicateurs, reventilation ministérielle), la préparation au décret DMA, les agrégations et les alertes nationales (`Axe 1` à `Axe 5`, `A2.3`, `A3.1`, `A3.3`, `B7.4`).
+
+---
+
+## 0. Reprise du développement — par où recommencer
+
+Cowork sert à **discuter, planifier et documenter**. Le code s'écrit dans Claude
+Code (« SIIPI git »), qui lit `CLAUDE.md`, ce document et
+`docs/specs_metier/SPEC_v0.16.md`. Rien n'a été codé ici, hors la barre latérale
+de l'observatoire national (contrôlée au typage, non commitée).
+
+### L'ordre retenu
+
+| # | Jalon | Contenu | Pourquoi à cette place | Prêt ? |
+|---|---|---|---|---|
+| **S0** | Assainissement (v0.15.2) | Commit du Lot 0 ; retrait des anciennes références légales dans le code, les commentaires et l'OpenAPI ; import des KMZ issus d'ArcGIS | Le dépôt doit être propre avant qu'un lot s'y ajoute ; le KMZ est le préalable des données de M'hamdia | ✅ **Fait** (v0.15.2) — voir le CHANGELOG |
+| **S1** | Jumeau numérique | Jeu de données simulé de trois mois (structure de Dar Chaâbane), campagne `test:simulation-3mois`, écran « Mode démo » (§ 6bis) | Donne à tous les lots suivants un banc d'essai chiffré sans attendre une commune ; chaque lot y ajoute ses propres données | **Oui**, dès que S0 est clos |
+| **11** | v0.16 — Conformité et pièces opposables | 16.1 barbechas · 16.2 documents à numérotation scellée · 16.3 carnet de bord et carburant · 16.4 dossier de déclassement | 16.1 d'abord : on **retire** des colonnes avant que de vraies données n'y entrent. 16.2 avant 16.3 : le bon de carburant emprunte la séquence scellée | **Oui** — rien ne bloque |
+| **R1** | Recette **Dar Chaâbane** — *différée* | Un mois d'usage réel du lot 11 (parc, personnel, 13 circuits déjà chargés). En attendant, le jumeau numérique (§ 6bis) | Reste l'objectif de **clôture de la version** (§ 6), mais ne bloque plus l'ouverture des jalons suivants | Dès que la commune est disponible |
+| **12** | v0.17 — Paramétrage, estimation, coût complet | 17.1 paramètres étendus · 17.3 paramètres nationaux historisés · 17.2 moteur volumétrique · 17.5 rejeu du coût de M'hamdia · 17.4 connecteur GPS | 17.3 avant 17.2 : le moteur lit la densité et la redevance ANGeD. 17.5 ferme la boucle avec une commune qui a déjà un coût calculé par un bureau d'études | **En parallèle de R1.** 17.1, 17.3, 17.5 : débloqués. 17.2 et 17.4 : **suspendus** à leurs préalables externes |
+| **R2** | Recette **M'hamdia** (puis Djerba pour le GPS) — *différée* | Circuits importés, séries de tonnage, coût rejoué | Son PCGD 2026 est le seul jeu où circuits, tonnage et coût existent ensemble | Dès que la commune est disponible ; le rejeu 17.5 se prépare sur le fichier reçu |
+| **13** | v0.18 — Secteur informel | Registre communal des acteurs, carte de pré-collecteur, suivi de la période transitoire | Dépend de 16.1 (données nominatives) et du scellement de 16.2. Le **texte des articles 13.1 et 14 est reçu — en projet, non en vigueur** : le lot est livré derrière un paramètre national, inactif par défaut | Après 16.1 et 16.2. Restent à lever : articles 4 et 13, date de départ de la période transitoire |
+| **14** | v0.19 — Mutualisation | Points limitrophes, prêts d'engins | Première exception au cloisonnement : pas avant que 11 à 13 aient tourné en production | Spécifiable dès maintenant ; ouverture après 11 à 13 en production |
+| **15** | Ensuite | Anomalies de tournée, projection du décret DMA, observatoire comparatif (axe 10), suivi de la sous-traitance (axe 12), régulation saisonnière (axe 3) | Chacun suppose des données **mesurées** de plusieurs communes | À instruire |
+
+**Note du 30 septembre 2026 (nuit).** La recette terrain R1 reste l'objectif de
+clôture de la version : une version est *développée* et éprouvée sur le jumeau
+numérique, *livrée* à la clôture de R1. Mais elle **ne bloque plus l'ouverture des
+jalons suivants**. Les jalons 13, 14 et 15 gardent leur ordre et ne dépendent plus
+de R1 pour être spécifiés.
+
+Le Jalon 9 (application mobile) reste en attente de son marquage blanc ; les
+axes « zone dégradée » et « application terrain synchronisée » du mémo
+prospectif (axes 6 et 7) le suivent.
+
+### Ce qui bloque, et ce qui ne bloque pas
+
+- **Le jalon 11 n'est bloqué par rien.** La commune de recette est tranchée.
+  Trois points restent ouverts et **ont une valeur par défaut** : sans réponse,
+  Claude Code applique la valeur par défaut et le consigne.
+  - `earnings_this_month_tnd` : **supprimé** (donnée financière individuelle ;
+    réversible tant qu'aucune donnée réelle n'est saisie). Un agrégé par
+    commune pourra venir des pesées.
+  - Prix et date d'acquisition des engins : colonnes **facultatives** ; le
+    dossier de déclassement dit « non renseigné » au lieu de calculer à vide.
+    Les valeurs se recueillent pendant la recette.
+  - Gabarits des documents : livrés, **à faire valider** par le chef de dépôt de
+    Dar Chaâbane pendant R1.
+- **Ce qui bloque vraiment**, et ne dépend pas du code : la documentation des
+  API des opérateurs GPS (17.4) ; le barème ANGeD et sa date d'effet (le calcul
+  fonctionne avec une valeur paramétrée, nommée « provisoire ») ; les articles 4
+  et 13 du projet de décret et la date de départ de sa période transitoire
+  (jalon 13) ; la confirmation juridique et l'hébergement accrédité pour toute
+  identité nominative (la garde en base `hebergement_pii_accredite` reste à
+  *faux* tant qu'ils manquent).
+
+- **17.2 et 17.4 restent suspendus.** 17.4 attend la documentation des API GPS ;
+  17.2 attend la clôture de 17.3 et la validation, par la FNCT, de la matrice de
+  densités qu'il consomme.
+
+### Consigne de reprise pour Claude Code
+
+> Lis `CLAUDE.md` (§ 7 : critère d'acceptation), `FEUILLE_DE_ROUTE.md` § 0 et
+> `docs/specs_metier/SPEC_v0.16.md`. Commence par l'étape **S0**, puis le
+> jalon 11 dans l'ordre 16.1 → 16.2 → 16.3 → 16.4. Un lot = une migration, une
+> campagne `backend/tests/<lot>.sh` enregistrée dans `package.json` et
+> `MIGRER.bat`, qui commence par ce que la base **refuse**. Avant de déclarer un
+> lot terminé : `npm run verifier:contrat` et toutes les campagnes passent, et les
+> deux commandes de recomptage donnent le même nombre. Aucun nombre de tests
+> ne s'écrit sans avoir été lu dans une sortie. Bump de version à la clôture du
+> lot, dans le même commit que l'entrée du CHANGELOG. Après S0, fais S1 (jumeau
+> numérique, § 6bis) puis le jalon 11. Le jalon 12 peut avancer en parallèle de
+> R1 pour les lots qui n'en dépendent pas (17.1, 17.3, 17.5) ; 17.2 et 17.4 restent
+> suspendus à leurs préalables externes.
 
 ---
 
@@ -40,9 +115,10 @@ vérifie.
 **« Fait » ne veut pas dire « recetté par une commune ».** Il veut dire : le code
 passe une campagne de tests, et la base se reconstruit de zéro sans erreur.
 
-Deux communes seulement ont servi de terrain — **Dar Chaabane El Fehri** (registre
-des circuits, parc, effectif, pesées) et **Djerba Houmt Souk** (prestataires,
-réclamations). Aucune commune n'utilise encore la plateforme dans son travail
+Trois communes ont fourni de la matière — **Dar Chaabane El Fehri** (registre
+des circuits, parc, effectif, pesées), **Djerba Houmt Souk** (prestataires,
+réclamations, 36 circuits observés au GPS) et **M'hamdia** (PCGD 2026 et couches
+de circuits reçus le 30 septembre). Aucune commune n'utilise encore la plateforme dans son travail
 quotidien. C'est l'écart entre « développé » et « en service », et il ne se comble
 que par une recette terrain (§ 6).
 
@@ -414,7 +490,7 @@ catégories) : ce jalon en ferme la rubrique et ouvre celle des contacts.
 - **Contacts : lecture réservée à la commune et à la FNCT.** Ce sont des
   données personnelles de tiers ; un prestataire rattaché lit les circuits et
   les réclamations de la commune, pas son carnet d'adresses (minimisation,
-  décret-loi 2022-54). Une fiche doit porter au moins un téléphone ou un
+  loi organique 2004-63). Une fiche doit porter au moins un téléphone ou un
   courriel — vérifié par l'API et par une contrainte en base.
 - **Versions : même table, garde-fous en base.** Une version se rattache par
   `document_id` au document d'origine ; un déclencheur refuse qu'elle se
@@ -838,47 +914,313 @@ chaque commune doit pouvoir y paraître sous son nom, son logo et son identité
 visuelle, sans une application par commune. Ce socle sera traité plus tard ;
 d'ici là, l'espace citoyen web reste le canal (voir § 7.1).
 
-### Jalon 10 — Refonte graphique et expérience utilisateur du portail web / PWA *(prochaine priorité)*
+### Jalon 10 — Navigation par pôles métier et unification cartographique *(10.1 et 10.2 faits ; 10.3 et 10.4 repris au Jalon 12)*
 
-**Pourquoi maintenant.** Les fonctions sont là ; c'est leur usage qui freine.
-Ce que l'on constate déjà en recette :
-- l'espace communal compte **dix-sept onglets** dans une barre qui défile à
-  l'horizontale : sur un téléphone, la moitié en est invisible ;
-- chaque écran a fini par porter son propre style de formulaire, de tableau et
-  de message, au fil des jalons ;
-- l'usage visé est le téléphone d'un chef de service le matin, et l'écran
-  citoyen sur un réseau mobile.
+**Le problème, tel qu'il se constate.** Dix-sept onglets sur une barre
+horizontale. Sur un téléphone, treize d'entre eux vivent hors de l'écran,
+derrière un défilement que rien n'annonce : un directeur qui cherche
+« Personnel » **ne peut pas savoir que l'onglet existe**. Et le défilement
+horizontal au pouce entre en concurrence avec le défilement vertical de la
+page — on part de travers une fois sur deux.
 
-| Quoi | Ce que cela recouvre |
+Ce n'est pas un défaut d'esthétique. C'est une charge de mémoire qui fait
+renoncer, et un contrôle auquel on renonce n'est pas fait.
+
+#### 10.1 — Les cinq pôles métier
+
+Le regroupement ne suit pas la parenté technique mais **le moment de la journée
+et l'interlocuteur** :
+
+| Pôle | Ce qu'il réunit | Le moment |
+|---|---|---|
+| **1. Cockpit & synthèse** | Constat du matin, alertes « à vérifier », raccourcis d'urgence | En arrivant |
+| **2. Terrain & opérations** | Carte unifiée, circuits, arrêts, pesées, preuves | Pendant la tournée |
+| **3. Citoyens & cadre de vie** | Réclamations, suggestions, communication, découpage | Quand ça vient du dehors |
+| **4. Flotte, GMAO & dépôt** | Parc, registres (carburant, EPI, sécurité), personnel | Au dépôt |
+| **5. Pilotage & auto-évaluation** | Indicateurs 5 axes, auto-évaluation, rapports et études | En fin de mois |
+
+**Un sixième groupe, « Administration »** (contacts, comptes), est rendu à part
+en bas. Ce n'est pas un pôle métier : forcer « Comptes » dans un pôle ferait
+chercher les accès là où personne ne les cherche.
+
+**Deux affectations méritent d'être justifiées.** Les **pesées** vont au
+terrain, non au pilotage : un tonnage se saisit le soir même, rattaché à la
+tournée qui l'a produit ; au pilotage, il ne serait relu qu'en fin de mois. Le
+**personnel** va au dépôt : c'est le même chef de parc qui répond des agents et
+des engins, au même endroit.
+
+**État : ✅ fait.** `web/src/composants/BarreLaterale.tsx` — barre posée et
+rétractable sur poste fixe, tiroir par-dessus au téléphone, fermeture par
+Échap, par le voile et par le choix d'un écran, focus rendu au bouton, tiroir
+replié sorti de l'ordre de tabulation (`inert`), état déplié/replié conservé
+d'une session à l'autre. Le tiroir vient de la **droite en arabe** : non par
+symétrie décorative, mais parce que le pouce d'un lecteur d'arabe part de ce
+côté-là.
+
+**Extension du 30 septembre 2026.** La même barre porte désormais l'**observatoire
+national** (synthèse, communes, performance et déploiement) : le super
+administrateur navigue par pôles comme un directeur de commune. Le composant
+accepte des intitulés de pôle propres à l'observatoire, sans second mécanisme.
+
+**Tests de validation.**
+- *Automatique* : `npm run lint` côté web avec la version de TypeScript du
+  projet ; parcours complet au clavier (Tab, Échap) sans piège de focus.
+- *Recette* : sur un téléphone réel, atteindre n'importe lequel des dix-sept
+  écrans **en deux gestes au plus**, en français puis en arabe. Critère de
+  sortie : aucun écran atteint par tâtonnement.
+
+#### 10.2 — Une seule carte pour le terrain
+
+**Ce qui était éclaté.** Les circuits, leurs arrêts et leurs contrôles vivaient
+dans trois onglets. Vérifier « la tournée n° 3 est-elle passée, et où ? »
+demandait trois écrans et deux allers-retours de mémoire.
+
+**Ce qui est fait.** Choisir un circuit sur la carte ouvre un panneau qui
+répond aux trois questions **sans quitter la carte** : qui l'exécute et avec
+quel engin, combien d'arrêts et de quelle nature, et ce que disent les
+constats des trente derniers jours.
+
+Le panneau **borde** la carte, il ne la remplace pas : on doit voir le tracé
+pendant qu'on lit ses constats, sinon on retombe dans l'aller-retour que cet
+écran supprime. La sélection est **celle du filtre existant** — un second
+mécanisme aurait fait diverger les deux, et on aurait vu le panneau d'un
+circuit pendant que la carte en traçait un autre.
+
+Deux absences sont **dites**, jamais laissées en blanc : « aucun arrêt
+enregistré » (le circuit existe au registre, mais personne ne sait où il passe)
+et « aucun constat depuis 30 jours » (ce n'est pas *rien à signaler*, c'est un
+contrôle qui n'a pas eu lieu).
+
+**État : ✅ fait.** `web/src/composants/communal/PanneauCircuit.tsx`.
+
+**Tests de validation.**
+- *Automatique* : campagne `releves-terrain` étendue — choisir un circuit rend
+  ses arrêts et ses seuls constats ; un circuit sans arrêt rend la phrase, pas
+  un vide.
+- *Recette* : un chef de service répond à « la tournée n° 3 est-elle passée
+  hier ? » **sans changer d'écran**.
+
+#### 10.3 — Paramètres de la commune, étendus *(repris au Jalon 12, lots 17.1 et 17.2)*
+
+| Réglage | Pourquoi il change les chiffres |
 |---|---|
-| Un système graphique unique | couleurs, typographies latine et arabe, composants (boutons, champs, tableaux, cartes, états vides et d'erreur) partagés par tous les écrans ; mode sombre |
-| La navigation | regroupement des onglets de l'espace communal par métier (collecte, parc, personnel, citoyens, pilotage), recherche, raccourcis du constat du matin |
-| Le mobile d'abord | tableaux lisibles sur téléphone, cartes plein écran, formulaires courts |
-| L'application web progressive (PWA) | installation sur l'écran d'accueil, fonctionnement hors connexion pour la saisie terrain — la voie recommandée au § 7.1 |
-| Accessibilité et bilinguisme | libellés associés à chaque champ, contrastes, parcours complet en arabe (RTL) |
+| Population réelle et saisonnière | Une commune côtière triple en été : un ratio kg/hab/jour calculé sur la population permanente est faux cinq mois par an |
+| Production spécifique théorique (kg/hab/jour) | Sert de repère à l'écart entre l'attendu et le pesé |
+| **Moteur d'estimation volumétrique** | `Tonnage estimé = volume utile (m³) × taux de remplissage (%) × densité (t/m³)` — pour les communes **sans pont-bascule**, c'est-à-dire la grande majorité |
 
-**Préalable** : maquettes validées par la FNCT avant d'écrire une ligne ; le
-marquage blanc du Jalon 9 s'y préparera (les couleurs et le logo deviennent
-des paramètres, pas du code).
+**La règle qui gouverne ce moteur.** Un tonnage estimé n'est **jamais** présenté
+comme un tonnage pesé. Il porte sa nature (`source = 'estimation_volumetrique'`),
+ses trois paramètres, et la date à laquelle ils ont été réglés. Sans cela, une
+estimation devient une mesure au bout de trois semaines, et on la comparera un
+jour à un chiffre de l'ANGeD sans savoir qu'on compare une opinion à une pesée.
 
-### Jalon 11 — La GMAO étendue et la gestion des dépôts municipaux *(ensuite)*
+**Test de validation.** Trois jeux de paramètres donnent trois tonnages
+différents pour la même tournée, et l'écran le dit. Un tonnage estimé et un
+tonnage pesé ne s'additionnent jamais sans que la distinction reste lisible.
 
-**Ce qui existe** : le carnet d'entretien et les alertes au kilomètre et à la
-date (Jalon 5), l'état du parc, et depuis le lot « sources KPI » le registre
-des pleins de carburant. **Ce qui manque** pour qu'un parc municipal se gère
-dans SIIPI plutôt qu'à côté :
+#### 10.4 — Connecteur GPS tiers *(repris au Jalon 12, lot 17.4 — bloqué)*
 
-| Quoi | Ce que cela recouvre |
-|---|---|
-| Les processus administratifs | demande d'intervention, validation, bon de commande, réception, clôture — avec qui a validé quoi, et quand |
-| Les pièces de rechange | magasin du dépôt : entrées, sorties imputées à une intervention et à un engin, seuils de réapprovisionnement, coût de maintenance par engin |
-| Le carburant | bons et pleins rapprochés du kilométrage, consommation par engin et par circuit, écarts signalés |
-| Les dépôts municipaux | parcs et magasins de la commune : ce qui y est, ce qui en sort, les engins immobilisés |
-| Les documents légaux | générés depuis les données : PV de réforme, fiches d'engin, échéances de visite technique et d'assurance, états pour le conseil municipal |
+Interface de configuration pour relier une plateforme GPS existante (Orange,
+Ooredoo, boîtiers locaux) aux tables PostGIS de SIIPI : URL, jeton, cadence,
+correspondance entre l'identifiant du boîtier et l'immatriculation de l'engin.
 
-**À préciser avec la FNCT avant de commencer** : la liste des documents légaux
-attendus et leurs modèles officiels, et le circuit de validation d'une
-commune type.
+**Ce qui doit être tenu.** Le jeton du fournisseur est un secret : il ne
+s'affiche jamais en clair après l'enregistrement, et il ne part pas dans les
+journaux. Une trace GPS importée porte **sa provenance** : elle ne se confond
+pas avec un relevé fait par la commune.
+
+**Test de validation.** Un fournisseur injoignable ne fait pas échouer l'écran :
+il affiche la date du dernier relevé reçu. Une trace sans correspondance
+d'engin est **signalée**, pas rattachée au hasard.
+
+---
+
+### Jalon 11 — v0.16 : conformité et pièces opposables *(prochain)*
+
+Spécification détaillée : `docs/specs_metier/SPEC_v0.16.md` (lignes rouges,
+amendements R1 à R7, tests). Le référentiel officiel de gestion du dépôt
+municipal est versé à `docs/specs_metier/01-referentiel-depot-municipal.md`.
+
+**Les cinq lignes rouges, qui bornent tous les lots suivants.** Pas
+d'optimisation de tournées dans SIIPI (on importe le tracé optimisé par le SIG) ·
+pas de dépôt nominatif public ni de notation disciplinaire individuelle · pas de
+GPS individuel sur les balayeurs (véhicules seulement) · pas de réponse
+automatique aux citoyens · ni facturation ni recouvrement. **Périmètre GMAO :**
+ni stock de pièces, ni achats, ni facturation.
+
+**Ce qui existe déjà** : carnet d'entretien et alertes (Jalon 5), état du parc,
+registre des pleins de carburant (lot « sources KPI »).
+
+| Lot | Contenu | Test de validation (commence par ce que la base refuse) |
+|---|---|---|
+| **16.1** | **Conformité `barbechas`** : suppression de `cin` et `health_insurance_status` ; identifiant pseudonyme communal ; empreinte HMAC-SHA256 du CIN calculée dans l'API, jamais stockée ni journalisée ; table d'identité séparée sous RLS restreinte à l'administrateur de la commune ; gardes `hebergement_pii_accredite` et `recepisse_inpdp` | Insérer une identité sans récépissé, ou hébergement non accrédité : refusé. Lire l'identité en `super_admin_fnct` ou en administrateur d'une autre commune : refusé. `information_schema` ne trouve plus `cin` |
+| **16.2** | **Documents légaux à numérotation scellée** : `sequences_documents`, `documents_emis` ; numéro continu par commune, type et exercice, attribué sous verrou, jamais réutilisé ; annulation avec motif ; contenu figé ; détection de trous. Quatre modèles bilingues : ordre de mission, bon de carburant, bon de travail, déclaration de panne | Cent émissions successives et deux éditeurs simultanés : séquence continue, sans doublon. Modifier ou supprimer un document émis : refusé. Un champ vide reste vide |
+| **16.3** | **Carnet de bord** (compteurs de sortie et de retour, séance, chauffeur, circuit, n° du bon de pesée ; la distance est *déduite*), **bons de carburant** numérotés, **quota mensuel par engin**, ratio litres au km ou à l'heure, écart au quota dans « À vérifier » | Compteur de retour inférieur au compteur de sortie : refusé. Litres négatifs : refusé. Une surconsommation s'affiche comme un écart, jamais comme une faute |
+| **16.4** | **Dossier de déclassement** : cumul des dépenses rapporté au prix d'acquisition avec seuil de 80 % *affiché* ; rapport de rendement ; pièces jointes ; suivi du circuit d'autorisation. Ajoute `prix_acquisition` et `date_acquisition` facultatifs à `vehicules` | Seuil « atteint » ou « non atteint » sans jamais déclasser. Sans prix : « non renseigné », pas de calcul à vide |
+
+**Règle commune :** SIIPI constate, il ne décide pas. Aucun score, aucun
+classement de chauffeurs.
+
+**Clôture de la version :** le critère d'acceptation passe (`verifier:contrat`
+et toutes les campagnes) **et** le lot a tourné un mois complet chez Dar Chaâbane
+(R1) **et** les défauts trouvés sont consignés au journal des corrections.
+Sinon la version est *développée*, pas *livrée*. R1 étant différée, la version
+reste *développée* et éprouvée sur le jumeau numérique (§ 6bis) jusqu'à ce que la
+commune soit disponible ; cela ne retient pas l'ouverture du jalon suivant.
+
+### Recette R1 — Dar Chaâbane
+
+**Recette différée.** En attendant, le jumeau numérique (§ 6bis) éprouve la
+plateforme. R1 sera organisée dès que la commune sera disponible.
+
+Contenu prévu, inchangé : un mois d'usage réel du jalon 11 par le chef de dépôt —
+parc et personnel déjà chargés, treize circuits, gabarits de documents à valider
+sur pièce, recueil du prix et de la date d'acquisition des engins. Protocole du § 6.
+
+### Jalon 12 — v0.17 : paramétrage, estimation, coût complet *(en parallèle de R1)*
+
+**Statut du 30 septembre 2026.** Le jalon 12 avance en parallèle de R1 pour les
+lots qui n'en dépendent pas : **17.1, 17.3 et 17.5**. Les lots **17.2 et 17.4
+restent suspendus à leurs préalables externes** (matrice de densités validée et
+17.3 clos pour le premier ; documentation des API pour le second).
+
+| Lot | Contenu | Test de validation |
+|---|---|---|
+| **17.1** | Paramètres communaux étendus : population permanente et saisonnière, production spécifique théorique (s'ajoute à `parametres_commune`, migration 048) | Un ratio kg/hab/jour calculé sur la population saisonnière diffère du ratio permanent, et l'écran le dit |
+| **17.3** | **Paramètres nationaux historisés** à date d'effet : redevance ANGeD (valeur de référence des PCGD 6,516 DT/t, nommée « provisoire » tant que le barème officiel manque), intitulés d'en-tête des documents, ministère de tutelle | La redevance appliquée est celle en vigueur **à la date de la pesée**, pas à celle du calcul |
+| **17.2** | **Moteur d'estimation volumétrique** : matrice `densites_reference(type d'engin compactant, flux, min / typique / max, source, date d'effet)` ; `tonnage estimé = volume utile × taux de remplissage × densité` ; provenance `estime` | Un tonnage estimé ne s'additionne jamais à un tonnage pesé. Une benne tasseuse dont la densité n'excède pas celle d'une benne non compactante est signalée |
+| **17.5** | **Rejeu du coût complet de M'hamdia** (voir encadré ci-dessous) | Le moteur retrouve les totaux du bureau d'études quand on lui donne les mêmes entrées, et **affiche le dénominateur** de chaque coût à la tonne |
+| **17.4** | **Connecteur GPS tiers** : URL, jeton, cadence, correspondance boîtier/engin ; positions **d'engins uniquement** ; provenance de la trace. **Bloqué** tant que la documentation des API n'est pas fournie | Fournisseur injoignable : l'écran affiche la date du dernier relevé. Trace sans engin correspondant : signalée, jamais rattachée au hasard |
+
+**La méthode du coût complet** (pour 17.5 et pour tout ce qui calcule un coût
+à la tonne) : Z = (A + B) + (C + D), soit charges directes réelles, dotation aux
+amortissements calculée engin par engin, quote-part du parc et quote-part de
+l'administration selon des **clés physiques documentées**. Intérêts de la dette
+CPSCL inclus ; charges patronales explicites (17 à 23 % selon la base) ; coût
+ventilé **par flux** (ménagers, démolition, balayage) quand la commune les gère.
+Un tonnage estimé n'y entre jamais.
+
+> **Ce que le PCGD de M'hamdia apporte, et ce qu'il faut vérifier avant de s'en
+> servir comme référence.** Le rapport (166 pages, 2026) et deux couches KMZ
+> (circuits existants et projetés, 21/08/2026) donnent, pour 2025, un coût direct
+> de 1 393 386 DT (73 %), des charges indirectes de 521 444 DT (siège, parc,
+> direction) et un total de 1 914 830 DT, soit **155 DT/t** ; personnel 864 655 DT
+> (62 %), engins 281 932 DT, transfert et mise en décharge 72 300 DT,
+> amortissements 174 499 DT. Les pesées 2023-2025 (Borj Chakir, CT Naassen) donnent
+> 15 151,80 t, 13 786,44 t et 22 099,81 t. Le coût des campagnes de propreté est
+> isolé (576 202 DT ; 59 DT/t). Quatre points sont à faire préciser au bureau
+> d'études **avant** de rejouer son calcul : (1) 1 914 830 DT divisés par
+> 22 099,81 t donnent 86,6 DT/t, non 155 ; le dénominateur implicite est d'environ
+> 12 350 t, sans que le rapport dise à quoi il correspond (tonnage de la seule
+> régie ?) ; (2) les tableaux 20 et 21 portent 524 444 DT de charges indirectes
+> alors que le tableau 19 et le total donnent 521 444 (l'addition le confirme), et
+> les tableaux 18 et 21 sont titrés « 2017 » pour des données 2025 ; (3) la
+> lecture du texte n'a pas trouvé d'intérêts de la dette CPSCL, de charges
+> patronales explicites, de détail de l'amortissement par engin ni de clés de
+> répartition des charges indirectes ; (4) seule la part « campagnes de propreté »
+> est ventilée, pas le balayage ni la démolition. Rien de cela ne disqualifie le
+> rapport : cela dit ce que le rejeu peut prouver et ce qu'il devra demander.
+
+**Règles de traitement des données de M'hamdia.** Le PDF sert à **nourrir
+l'import et les tests** ; il n'est jamais une source de vérité permanente en
+base. Une fois importée, la donnée vit dans la base du portail et l'administrateur
+peut la modifier. **Aucun salaire individuel et aucun nom d'agent n'est importé** :
+seulement des agrégats par service. Toute donnée personnelle utilisée en test est
+remplacée par une valeur fictive de même format et de même longueur.
+
+### Recette R2 — M'hamdia, puis Djerba
+
+**Recette différée**, comme R1 : elle aura lieu dès que la commune sera disponible.
+Le rejeu du coût (17.5) se prépare dès maintenant sur le fichier reçu.
+
+M'hamdia : import des deux couches de circuits, séries mensuelles de tonnage,
+rejeu du coût (17.5). Djerba : carte et connecteur GPS (17.4), si la
+documentation des API est fournie. **Préalable technique (étape S0)** : l'import
+actuel de fichiers géographiques ne lit vraisemblablement pas les attributs HTML
+que produit ArcGIS dans les descriptions, ni les lignes groupées en
+`MultiGeometry` ; les KMZ de M'hamdia en contiennent.
+
+### Jalon 13 — v0.18 : secteur informel *(derrière un paramètre national, inactif par défaut)*
+
+Source : `docs/specs_metier/02-projet-decret-tri-source-art13-14.md`. Le texte est
+un **projet non en vigueur**, présenté comme la vision partagée des ministères de
+l'Environnement et de l'Intérieur. SIIPI ne le présente jamais comme une
+obligation ; les durées qu'il fixe (carte : 1 an, agrément : 2 ans, période
+transitoire : 3 ans, étalonnage : 6 mois) sont des **paramètres nationaux à date
+d'effet**, non des constantes du code.
+
+| Lot | Contenu | Bloque |
+|---|---|---|
+| **18.1** | **Registre communal des acteurs informels** (article 13.1) : catégorie *pré-collecteur* ou *intermédiaire*, établie par des faits (local, achat à d'autres pré-collecteurs, véhicule motorisé) avec signalement d'incohérence ; identifiant pseudonyme et table d'identité séparée ; zone ; statut de la démarche de formalisation, daté | 16.1 clos |
+| **18.2** | **Carte de pré-collecteur** : demande, trois attestations (déclaration simplifiée, engagement d'hygiène et de sécurité, acceptation de l'accompagnement), décision, numéro scellé, validité d'un an renouvelable, zones d'accès, retrait motivé. **Gratuite : aucun champ de paiement** | 16.2 ; article 13 du projet non fourni |
+| **18.3** | **Suivi de la période transitoire** : jalons d'accompagnement par acteur, échéance des agréments d'intermédiaires (délivrés par l'éco-organisme : SIIPI enregistre, n'agrée pas), tableau de conversion (tonnes détournées, redevance évitée, voyages économisés) en provenance déclarée | Date de départ de la période transitoire |
+| **18.4** | *Prospectif* : consultation et export vers le registre de traçabilité de l'ANGeD (article 14), profil de lecture seule pour l'auditeur | Publication de la plateforme ANGeD |
+
+**Ce que SIIPI ne fait pas ici.** Il n'agrée pas les intermédiaires (l'éco-organisme
+le fait) ; il ne tient pas le registre coté et paraphé de l'article 14 (l'ANGeD le
+fournit, avec sa propre application gratuite) ; il ne fabrique pas de signature
+électronique qualifiée (il enregistre l'empreinte du document et la référence du
+certificat) ; il **ne géolocalise aucun pré-collecteur individuellement** (ligne
+rouge 3 : l'article 14 y renvoie à la plateforme des collecteurs).
+
+**Test de validation.** Un acteur qui déclare acheter à d'autres pré-collecteurs
+est signalé comme intermédiaire. Une carte ne se numérote qu'une fois. Avec le
+paramètre national inactif, aucun écran du secteur informel n'apparaît.
+
+### Jalon 14 — v0.19 : mutualisation intercommunale
+
+Points limitrophes (zones grises) sur carte collaborative ; registre de prêt
+d'engins (engin, commune prêteuse, bénéficiaire, période, kilométrage,
+imputation du carburant). C'est la **première exception délibérée au
+cloisonnement par commune** : consentement explicite à double sens (la prêteuse
+ouvre, la bénéficiaire accepte, seules les deux voient), campagne dédiée dans
+`intercommunal.sh`, et **pas avant que les jalons 11 à 13 aient tourné en
+production**.
+
+### Jalon 15 — Ensuite, à instruire
+
+Retenus au mémo prospectif (douze axes) : l'**observatoire comparatif** (axe 10 :
+positionnement dans la strate, seuil de publication, données mesurées seulement,
+jamais de classement nominatif), le **suivi de la sous-traitance** (axe 12 :
+constat du service fait, jamais calcul de pénalité), la **régulation saisonnière**
+(axe 3, qui s'appuie sur 17.1). Les autres axes (nudge, financements climat, zone
+dégradée, application terrain, caractérisation par image) attendent le Jalon 9 et
+des données mesurées dans plusieurs communes. Les deux lots ci-dessous restent
+inscrits :
+
+#### 15.1 — Détection d'anomalies de tournée *(à faire ; suppose 17.4)*
+
+Trois alertes, à partir des traces GPS et du registre des circuits :
+
+| Alerte | Seuil | Ce qu'elle évite |
+|---|---|---|
+| Arrêt prolongé non prévu | configurable par commune | Un engin immobilisé une heure sans que personne ne le sache avant le soir |
+| Déviation d'itinéraire | écart au tracé théorique | Une tournée raccourcie qui laisse un quartier non desservi |
+| Secteur non desservi > 48 h | 48 h par défaut | Le dépôt sauvage qui naît d'un secteur oublié |
+
+**La règle.** Une anomalie est une **question posée**, avec sa date et son
+contexte — jamais une sanction, et jamais un reproche à un agent nommé. Le
+journal des corrections de ce projet montre assez que le premier réflexe devant
+un écart est de chercher l'erreur de saisie avant la faute.
+
+**Test de validation.** Une trace fabriquée avec un arrêt de 45 minutes lève
+l'alerte ; la même sans l'arrêt ne la lève pas. Un engin en panne déclarée ne
+génère **aucune** alerte de déviation : il ne roule pas.
+
+#### 15.2 — Anticipation du décret « tri à la source » (DMA) *(à faire)*
+
+Calculateur d'impact : tonnes valorisables par flux, CO₂ évité, et la
+progression vers les objectifs du décret.
+
+**La règle d'or s'applique intégralement.** Tant que le tri à la source n'est
+pas en place dans la commune, le calculateur affiche une **projection
+explicitement nommée comme telle**, fondée sur des ratios de caractérisation
+nationaux — et non un résultat. Une projection présentée comme un résultat
+serait opposée un jour à une commune qui n'a jamais trié un gramme.
+
+**Test de validation.** Une commune sans collecte sélective obtient une
+projection étiquetée, jamais un taux de valorisation. Les ratios employés sont
+affichés avec leur source et leur date.
 
 ---
 
@@ -892,9 +1234,71 @@ réclamées, et elles comptent dans ce que la FNCT reçoit.
 | **Panneau de cohérence** (`app.incoherences_commune`) | Le croisement à la main du registre des circuits et de l'inventaire du parc de Dar Chaabane a fait apparaître en quelques minutes des écarts que personne ne cherchait. Douze contrôles datés, avec ce qu'il y a à faire — jamais une correction automatique |
 | **Constat du matin** | L'écran qu'un chef de service ouvre en arrivant : ce qui bloque aujourd'hui, et rien d'autre |
 | **Espace prestataire et confrontation contractuelle** | Un tableau des passages déclarés face aux passages attendus, utilisable comme pièce de discussion |
-| **Journal d'audit et suppression logique** | Rien ne s'efface de la base ; les accès aux données citoyennes sont tracés (décret-loi n° 2022-54) |
+| **Journal d'audit et suppression logique** | Rien ne s'efface de la base ; les accès aux données citoyennes sont tracés (loi organique n° 2004-63) |
 | **Retrait des métadonnées EXIF des photos** | Une photo de téléphone porte la position du domicile de celui qui l'a prise. Elle est retirée au dépôt, et rendue à l'écran pour qu'il la propose — jamais conservée à l'insu de la personne |
 | **Rattachement multi-communes** | Un agent, un marché, plusieurs communes : la mutualisation est l'objet même de SIIPI, et sept politiques de cloisonnement la contredisaient |
+
+---
+
+## 6bis. Le jumeau numérique — préparer la recette sans la commune
+
+> Aucune commune n'étant disponible pour la recette terrain, la plateforme est
+> éprouvée sur un **jumeau numérique** : un jeu de données réaliste de 3 mois
+> d'activité sur Dar Chaâbane, généré à partir des données réelles déjà chargées.
+>
+> **Ce que le jumeau contient** : pointages quotidiens, pesées journalières,
+> réclamations citoyennes, fins de poste, pleins de carburant, incidents,
+> nettoyages, sondages.
+>
+> **Ce qu'il permet de vérifier** : chaque KPI est recalculé à la main et
+> comparé à la valeur affichée ; chaque alerte est déclenchée puis éteinte ;
+> chaque agrégation est contrôlée.
+>
+> **Campagne dédiée** : `test:simulation-3mois`, qui charge le jeu de données sur
+> une base neuve et vérifie les valeurs attendues.
+>
+> **Mode démo** : un écran « Mode démo » dans le portail municipal permet de
+> charger le jeu de données en un clic, pour préparer la démonstration aux
+> communes.
+>
+> **Ce que le jumeau ne remplace pas** : la recette terrain. Cinq défauts sur
+> vingt n'ont été trouvés qu'en usage réel. Le jumeau prépare la recette ; il ne la
+> remplace pas.
+
+**Les garde-fous que le jumeau doit tenir.** Un jeu simulé qui se confond avec le
+réel est pire que pas de jeu : la démonstration fictive de Djerba avait été retirée
+à la v0.13.0 pour cette raison. Ces règles sont donc **testées**, non supposées.
+
+1. **Fictif de bout en bout.** La *structure* est reprise de Dar Chaâbane (treize
+   circuits, engins, effectif par fonction) ; **aucun nom d'agent, CIN, téléphone
+   ni salaire réel** n'en sort. Toute donnée personnelle est remplacée par une
+   valeur fictive de même format et de même longueur.
+2. **Provenance écrite.** Chaque ligne simulée porte `provenance = 'simule'` et ne
+   s'additionne jamais à une pesée réelle (règle d'or 1.1).
+3. **Périmètre étanche.** Le jeu se charge dans une **commune de démonstration**
+   fictive, marquée `est_demo`, exclue de l'observatoire national, du concours et de
+   toute agrégation nationale. Le chargement est **refusé sur une commune réelle**.
+4. **Déterministe et contrôlé de l'extérieur.** Graine fixe : mêmes données à
+   chaque chargement. Les valeurs attendues sont calculées par un script
+   **indépendant du code de l'application** — sinon on vérifie l'application par
+   elle-même.
+5. **Une bannière permanente** « Données de démonstration » sur chaque écran du
+   mode démo.
+6. **Il grandit avec les jalons.** Chaque lot y ajoute ses données (bons de
+   carburant, carnets de bord, documents scellés…) et ses valeurs attendues.
+
+**Ce que le jumeau prouve, et ce qu'il ne prouve pas.** Il prouve que la mécanique
+calcule juste sur des données propres. Il ne dit rien de la qualité des saisies
+réelles, ni de ce qu'un chef de dépôt comprend d'un écran : c'est le rôle de la
+recette.
+
+**Test de validation (lot S1).** Le chargement rejoué deux fois donne les mêmes
+valeurs. Le chargement sur une commune réelle est refusé. L'observatoire national
+ne contient pas la commune de démonstration. Chaque alerte du jeu se déclenche puis
+s'éteint quand on corrige la donnée.
+
+**Compléments non codés**, à produire dès que le mode démo existe : un guide
+d'accueil de deux pages et une vidéo de cinq minutes.
 
 ---
 
@@ -902,31 +1306,39 @@ réclamées, et elles comptent dans ce que la FNCT reçoit.
 
 ### Niveau 1 — Les campagnes automatisées *(en place)*
 
-**Vingt et une campagnes rejouables**, lancées à chaque migration par
-`MIGRER.bat` :
+**Trente-trois campagnes rejouables** au 30/09/2026, lancées par `backend/tests/executer.sh
+<campagne>` et enchaînées par `npm test` (`assainissement`, `audit`, `champs-points`, `circuits`,
+`citoyen`, `cloisonnement`, `comptes`, `contacts`, `decoupage`, `enlevements`,
+`exports`, `fichiers`, `imports`, `intercommunal`, `kpi-5-axes`, `kpi-sources`,
+`maintenance`, `module2` à `module6`, `notifications`, `notifications-citoyen`,
+`observatoire`, `parametres`, `periode`, `prestataires`, `rapports`,
+`releves-terrain`, `suggestions`, `suppression`, `versions-decoupage`). Une
+campagne de plus, `simulation-3mois`, s'y ajoute à la création du lot S1 (§ 6bis).
 
-`module2` (circuits) · `module3` (parc) · `module4` (personnel) · `module5`
-(communication) · `module6` (pesées) · `fichiers` (stockage) · `suggestions`
-(points citoyens) · `rapports` (rapports et études) · `notifications` (socle
-de notification) · `comptes` · `cloisonnement` · `intercommunal` · `citoyen` ·
-`prestataires` · `circuits` · `decoupage` · `enlevements` · `observatoire` ·
-`periode` · `audit` · `suppression`
+**Le critère d'acceptation** est celui de `CLAUDE.md` § 7 : `npm run
+verifier:contrat` et toutes ces campagnes passent, et les deux commandes de
+recomptage donnent le même nombre. Aucun nombre de tests ne s'écrit sans avoir
+été lu dans la sortie d'une commande.
 
 **Leur principe :** elles commencent par ce que la plateforme **refuse**. Le
 module 4 vérifie d'abord qu'aucune colonne de salaire, de CIN ou de santé
 n'existe ; le stockage de fichiers, qu'un exécutable renommé « photo.jpg »
 n'entre pas. Un module se juge d'abord à ce qu'il a refusé de stocker.
 
-S'y ajoutent, à chaque passage : la chaîne des **45 migrations rejouée sur une
-base neuve**, le contrôle du **contrat d'API** (toute route servie est
-documentée — 147 routes), et le **typage du front** comparé au contrat
+S'y ajoutent, à chaque passage : la chaîne des **migrations rejouée sur une
+base neuve**, puis une seconde fois pour l'idempotence, le contrôle du **contrat d'API** (toute route servie est
+documentée), et le **typage du front** comparé au contrat
 réellement servi.
 
-### Niveau 2 — La recette terrain *(à organiser)*
+### Niveau 2 — La recette terrain *(à organiser — différée)*
+
+**Différée le 30 septembre 2026** : les communes ne sont pas encore disponibles.
+Elle reste l'objectif de clôture de chaque version ; en attendant, le jumeau
+numérique (§ 6bis) prépare la plateforme sans la remplacer.
 
 C'est ce qui manque, et aucune campagne ne le remplace. Le journal des
-corrections en porte la preuve : **cinq défauts n'ont été révélés par aucun des
-240 tests automatisés** — ils n'apparaissaient qu'une fois la plateforme
+corrections en porte la preuve : **cinq défauts n'ont été révélés par aucun test
+automatisé** — ils n'apparaissaient qu'une fois la plateforme
 réellement utilisée, avec un premier circuit créé et un premier signalement
 déposé.
 
@@ -937,10 +1349,18 @@ déposé.
 3. **Un critère de sortie chiffré** : aucun écran ouvert sans savoir quoi y faire, et aucune donnée saisie deux fois.
 4. **Consignation systématique** de tout défaut dans le journal des corrections, avec sa portée — pas seulement sa cause.
 
-**Communes proposées :** Dar Chaabane El Fehri (registre le plus complet),
-Djerba Houmt Souk (prestataire privé actif), et une commune rurale à désigner —
-le cahier des charges distingue la couverture urbaine et rurale, et aucune
-commune rurale n'a encore servi de terrain.
+**Communes de recette, arrêtées le 30 septembre 2026.**
+
+| Commune | Rôle | Ce qu'elle éprouve |
+|---|---|---|
+| **Dar Chaâbane El Fehri** | Recette du jalon 11 | Registre le plus complet : parc, personnel, treize circuits. Carnet de bord, bons, documents, dossier de déclassement |
+| **M'hamdia** | Recette du jalon 12 | PCGD 2026 et couches de circuits reçus de la commune : import, séries de tonnage, coût complet rejoué |
+| **Djerba Houmt Souk** | Carte et GPS (17.4), prestataires | 36 circuits observés au GPS, 2 855 points, 12 engins ; ni personnel ni pesées |
+| *Une commune rurale à désigner* | Couverture rurale | Le cahier des charges distingue urbain et rural ; aucune commune rurale n'a servi de terrain |
+
+**Règle de clôture d'une version** (les recettes R1 et R2 sont différées, § 6bis) : le critère d'acceptation passe, le lot a
+tourné un mois complet chez la commune de recette avec de vrais agents, et les
+défauts sont consignés au journal des corrections.
 
 ---
 
@@ -988,6 +1408,17 @@ seul, aucun fournisseur à choisir. La décision ci-dessus reste donc entière e
 indépendante : elle ne peut plus s'appuyer sur un fournisseur déjà retenu pour
 les notifications.
 
+**Décision retenue le 30 septembre 2026 : courriel et notification push web en
+phase 1 ; téléphone et OTP en phase 2, après R1.** La phase 1 est ce qui
+fonctionne déjà, sans fournisseur de SMS ni coût par message ; la phase 2 attend
+d'avoir observé l'usage réel. C'est un **écart assumé** au cahier des charges
+(`M1`), qui reste partiel jusque-là.
+
+Conséquences : le choix d'inscription cesse d'être un préalable du **Jalon 9**
+(application mobile), qui reste en attente de son marquage blanc seul. Il est sans
+effet sur le **Jalon 13** : les acteurs informels ne s'inscrivent pas eux-mêmes,
+la commune les enregistre (lot 18.1).
+
 ### 7.3 L'interopérabilité ANGeD
 
 Décision déjà prise : **hors périmètre tant que l'ANGeD n'ouvre pas sa
@@ -1007,8 +1438,14 @@ question technique.
 | Zarzouna / El Hchachna (Bizerte) : la couche officielle et le référentiel listent des communes différentes | FNCT | Zarzouna reste sans territoire |
 | Les 5 districts FNCT : la base ne connaît que les 24 gouvernorats | FNCT | Aucune agrégation par district possible |
 | Homonymes dans la liste des communes (Ennour, Ezzouhour) | FNCT | Un citoyen peut choisir la mauvaise commune |
-| Affectation réelle des équipes aux 13 tournées de Dar Chaabane | Commune | 14 lignes bloquantes au panneau de cohérence |
+| Affectation réelle des équipes aux 13 tournées de Dar Chaabane | Commune | 14 lignes bloquantes au panneau de cohérence ; à traiter pendant R1 |
 | Purge des fichiers retirés | FNCT | Le volume grossit ; rien n'est perdu |
+| Articles 4 et 13 du projet de décret, date de départ de sa période transitoire | FNCT / ministères | Le jalon 13 ne peut pas être spécifié en entier |
+| Date de la recette terrain (R1 chez Dar Chaâbane, R2 chez M'hamdia) | Communes / FNCT | Aucune version n'est *livrée* ; elles restent *développées* et éprouvées sur le jumeau |
+| Barème ANGeD en vigueur et sa date d'effet | ANGeD | Le coût complet garde une redevance « provisoire » |
+| Documentation des API GPS des opérateurs | Opérateurs | Le connecteur 17.4 reste bloqué |
+| Confirmation juridique du traitement des identités de pré-collecteurs et hébergement accrédité | Juriste FNCT | La garde `hebergement_pii_accredite` reste à faux : aucune identité nominative n'entre en base |
+| Purge des exports antérieurs qui contiennent `cin` ou des données de santé | FNCT | Des copies subsistent hors de la base |
 | Mot de passe de démonstration `Siipi2026!` publié avec le code | FNCT | Toute instance installée avec les comptes de démonstration et jamais changée est ouverte |
 
 ---
@@ -1020,7 +1457,9 @@ question technique.
 | **Le tableau KPI affiche des chiffres faux** | Un indicateur calculé sur une donnée absente sera lu comme vrai et opposé à un tiers | Ne rien afficher quand la donnée source manque ; recalcul manuel avant mise en service |
 | **La donnée n'est pas saisie** | Un module que personne ne remplit est pire qu'aucun module : il donne l'illusion d'un suivi | Le pointage tient en soixante cases et un enregistrement ; tout écran ouvert chaque matin doit se remplir en moins de deux minutes |
 | **Un défaut invisible aux tests** | Cinq défauts sur vingt n'ont été trouvés qu'en usage réel | Recette terrain (§ 6), et consignation systématique |
-| **Une donnée personnelle entre en base** | Décret-loi n° 2022-54 | Les campagnes vérifient d'abord ce qui est refusé ; aucune colonne de salaire, de CIN ni de santé n'existe |
+| **Une donnée personnelle entre en base** | Loi organique n° 2004-63 | Les campagnes vérifient d'abord ce qui est refusé ; aucune colonne de salaire, de CIN ni de santé n'existe |
+| **La plateforme est prête mais aucune commune ne l'a utilisée : illusion de maturité** | Un tableau vert sur des données propres se lit comme « ça marche », et se présente ainsi à la FNCT ou à une commune | Le jumeau numérique (§ 6bis) qui chiffre ce qu'on sait ; le mode démo ; un guide d'accueil de deux pages ; une vidéo de cinq minutes ; et l'écart maintenu entre « fait » et « recetté » (§ 1) |
+| **Des données simulées confondues avec des données réelles** | Un tonnage simulé additionné à un tonnage pesé fausse un coût à la tonne | Commune de démonstration marquée `est_demo`, provenance `simule`, exclusion des agrégations nationales — chacune testée par la campagne `simulation-3mois` |
 | **Déploiement sur 350 communes** | Aucune procédure de reprise de données n'est écrite | À bâtir avant la deuxième commune, pas avant la trois-centième |
 
 ---
@@ -1029,7 +1468,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **45 migrations**, rejouées sur base neuve à chaque livraison |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **54 migrations** au 30/09/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

@@ -41,6 +41,22 @@ export function ecrireJeton(jeton: string | null): void {
   }
 }
 
+// UNE SESSION EXPIRÉE SE FERME. Le jeton vaut huit heures (JWT_EXPIRES_IN).
+// Il n'était vérifié qu'au chargement de la page : un portail laissé ouvert la
+// nuit continuait d'envoyer un jeton périmé, et chaque écran affichait « Token
+// invalide ou expiré » avec un bouton « Réessayer » qui ne pouvait pas réussir.
+// Désormais, la première réponse 401 à une requête qui portait un jeton
+// referme la session et le signale : l'application revient à l'écran de
+// connexion, qui dit pourquoi.
+export const EVENEMENT_SESSION_EXPIREE = 'siipi:session-expiree';
+
+function constaterSession(reponse: Response, jeton: string | null, chemin: string) {
+  // Une connexion refusée (mot de passe erroné) n'est pas une session expirée.
+  if (reponse.status !== 401 || !jeton || chemin.startsWith('/auth/login')) return;
+  ecrireJeton(null);
+  window.dispatchEvent(new Event(EVENEMENT_SESSION_EXPIREE));
+}
+
 async function requete<T>(chemin: string, options: RequestInit = {}): Promise<T> {
   const jeton = lireJeton();
   const entetes: Record<string, string> = {
@@ -57,6 +73,7 @@ async function requete<T>(chemin: string, options: RequestInit = {}): Promise<T>
   }
 
   if (!reponse.ok) {
+    constaterSession(reponse, jeton, chemin);
     let message = `Erreur ${reponse.status}`;
     try {
       const corps = await reponse.json();
@@ -294,8 +311,17 @@ export interface ApercuImport {
   /** Ce qui sera réellement posé, une fois la demande croisée au contenu. */
   poseraPoints: boolean;
   poseraTrace: boolean;
-  famille: 'waypoints' | 'trace_gps' | 'itineraire_dessine' | 'gpx' | 'geojson' | 'inconnu';
+  famille: 'waypoints' | 'trace_gps' | 'itineraire_dessine' | 'gpx' | 'geojson' | 'csv' | 'multicouche' | 'inconnu';
   nomReleve: string | null;
+  /** Les couches d'un KML/KMZ — plusieurs pour un export ArcGIS, à choisir. */
+  couches?: {
+    chemin: string;
+    nom: string;
+    points: number;
+    lignes: number;
+    surfaces: number;
+    attributs: { nom: string; valeurs: string[]; plusDeValeurs: boolean }[];
+  }[];
   nbPoints: number;
   nbVoyages: number;
   nbSommetsTrace: number;
@@ -372,6 +398,7 @@ export async function lireOctetsFichier(chemin: string): Promise<string> {
     headers: jeton ? { Authorization: `Bearer ${jeton}` } : {},
   });
   if (!reponse.ok) {
+    constaterSession(reponse, jeton, chemin);
     throw new ErreurApi(
       reponse.status,
       reponse.status === 404
@@ -406,6 +433,7 @@ async function telecharger(chemin: string, nomParDefaut: string): Promise<void> 
   const jeton = lireJeton();
   const reponse = await fetch(`${BASE}${chemin}`, { headers: jeton ? { Authorization: `Bearer ${jeton}` } : {} });
   if (!reponse.ok) {
+    constaterSession(reponse, jeton, chemin);
     let message = `Erreur ${reponse.status}`;
     try {
       const corps = await reponse.json();
@@ -581,6 +609,10 @@ export const api = {
       valider?: boolean;
       remplacer?: boolean;
       cible?: 'auto' | 'trace' | 'points';
+      /** Couche d'un fichier à plusieurs couches (export ArcGIS). */
+      couche?: string;
+      filtre?: { attribut: string; valeur: string; operateur?: 'egal' | 'commence_par' };
+      typePoints?: string;
     }
   ) =>
     requete<ApercuImport>(`/circuits/${circuitId}/import-kml`, {

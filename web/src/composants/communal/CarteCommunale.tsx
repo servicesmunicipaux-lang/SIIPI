@@ -21,6 +21,7 @@ import { api, ErreurApi, type CollectionFrontieres } from '../../lib/api';
 import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
+import { PanneauCircuit } from './PanneauCircuit';
 import { formaterNombre } from '../../i18n';
 
 type Couche = 'signalements' | 'conteneurs' | 'engins' | 'secteurs' | 'circuits' | 'points';
@@ -144,6 +145,13 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
       return n;
     });
 
+  // Le circuit choisi au filtre EST la sélection : un second mécanisme de
+  // sélection ferait diverger les deux, et on verrait le panneau d'un circuit
+  // pendant que la carte en trace un autre.
+  const circuitChoisi = filtreCircuit
+    ? (circuits.find((c: any) => c.id === filtreCircuit) ?? null)
+    : null;
+
   if (erreur) return <Erreur message={erreur} />;
   if (!frontiere && tickets.length === 0 && conteneurs.length === 0) return <Chargement />;
 
@@ -249,7 +257,12 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
           </div>
         )}
 
-        <div className="h-[60dvh] overflow-hidden rounded-xl border border-ardoise-200">
+        {/* Carte et panneau côte à côte sur poste fixe, l'un sous l'autre au
+            téléphone. Le panneau ne remplace jamais la carte : on doit voir le
+            tracé pendant qu'on lit ses constats, sinon on retombe dans
+            l'aller-retour que cet écran supprime. */}
+        <div className="flex flex-col gap-3 lg:flex-row">
+        <div className="h-[60dvh] flex-1 overflow-hidden rounded-xl border border-ardoise-200">
           <MapContainer center={centre} zoom={13} scrollWheelZoom className="size-full">
             <TileLayer
               attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -405,6 +418,17 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
                   </CircleMarker>
                 ))}
           </MapContainer>
+        </div>
+
+        {circuitChoisi && (
+          <PanneauCircuit
+            communeId={communeId}
+            circuit={circuitChoisi}
+            points={pointsAffiches}
+            couleur={couleurCircuit(circuitChoisi.id)}
+            onFermer={() => setFiltreCircuit('')}
+          />
+        )}
         </div>
       </section>
 

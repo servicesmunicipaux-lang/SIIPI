@@ -5,6 +5,156 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.2] — 2026-09-30 — S0 : assainissement
+
+### Ajouté
+- **Import des KMZ exportés d'ArcGIS** (préalable des données de M'hamdia). Un tel
+  fichier porte toute une base d'étude, une couche par dossier, avec les
+  attributs dans un tableau HTML. L'aperçu d'import décrit désormais les
+  **couches** (points, lignes, surfaces, attributs et leurs valeurs) ; on choisit
+  la couche, au besoin un **filtre** sur un attribut (les points d'un seul
+  circuit) et le **type** des points qui n'en portent pas (une couche de
+  dépotoirs → points noirs). Valider sans choisir est refusé. Les surfaces sont
+  écartées avec leur raison. Éprouvé sur le KMZ réel des circuits existants de
+  M'hamdia (PCGD 2026) : neuf couches reconnues, là où l'import mêlait 125 points
+  et trois tracés en un seul.
+- **Empreinte des migrations.** Le migrateur ne suivait que le NOM d'une
+  migration : un fichier déjà appliqué pouvait changer sans que rien ne le dise,
+  et la modification n'atteignait que les bases créées après. Il garde désormais
+  l'empreinte SHA-256 de chaque migration et s'arrête, en nommant le fichier et en
+  disant quoi faire, si un fichier ne lui correspond plus.
+- Campagne **`assainissement`** : elle commence par ce que la plateforme refuse
+  (migration modifiée, fichier à plusieurs couches validé sans choix, ancienne
+  référence légale dans la base ou le contrat d'API).
+
+### Corrigé
+- **La référence légale** : les commentaires, les migrations, le contrat d'API,
+  les seeds, les tests et le libellé FR/AR citaient le décret-loi n° 2022-54
+  (cybercriminalité). Le texte qui régit les données à caractère personnel est la
+  **loi organique n° 2004-63** ; 43 occurrences corrigées. Les cinq commentaires
+  de la base concernés sont réécrits sur les bases existantes par la migration
+  053 — corriger les fichiers seuls n'aurait changé que les bases neuves.
+- **Un citoyen inscrit par l'application ne pouvait ni proposer un point de
+  collecte ni déposer une photo dans sa propre commune** (« Action hors du
+  périmètre de votre commune ») : les deux politiques exigeaient la commune du
+  COMPTE, qu'un citoyen inscrit n'a pas — la sienne est celle de son adresse
+  déclarée. Migration 054.
+- **Des campagnes qui ne vérifiaient rien, ou pas ce qu'elles annonçaient** :
+  - `suggestions` s'arrêtait en succès, « sans objet », faute de compte citoyen :
+    elle ne testait rien et cachait le défaut précédent. Elle crée désormais son
+    citoyen d'essai ;
+  - `module4` jetait le message d'erreur qu'elle cherchait (le refus d'affecter
+    un agent d'une autre commune ne pouvait jamais être constaté) ;
+  - `module6` attendait `t` là où PostgreSQL 16 écrit `true` ;
+  - `circuits` et `prestataires` créaient leur circuit sans date de début :
+    dû à partir d'aujourd'hui, il n'avait aucun passage prévu la semaine
+    contrôlée ;
+  - `module2` dépendait de l'ordre des chargements (agents fictifs du module 2).
+- **Les agents fictifs de Dar Chaabane** (MAT-*) sont retirés par `seed:personnel`
+  dès que le registre réel est chargé — ce que faisait `CORRIGER_PERSONNEL.bat` à
+  la main ; les affectations sont closes, rien n'est effacé.
+- **`MIGRER.bat` ne lançait que huit campagnes** sur trente-deux, nommées à la
+  main. Il lance désormais `npm test` : le contrat d'API et toutes les campagnes.
+- `test:kpi-sources` lançait aussi `releves-terrain` (défaut de la v0.13.0).
+- **Session expirée** : un portail resté ouvert au-delà de la durée du jeton
+  (huit heures) affichait « Token invalide ou expiré » sur chaque écran, avec un
+  « Réessayer » qui ne pouvait pas réussir. La première réponse 401 referme
+  désormais la session et ramène à l'écran de connexion, qui dit pourquoi.
+- Libellé manquant de la famille d'import « CSV ».
+
+### Vérifié (critère d'acceptation, `CLAUDE.md` § 7)
+- Sur une base neuve, dans l'ordre d'une installation réelle (`migrate`, `seed`,
+  `import:decoupage`, `seed:dar-chaabane`, `seed:parc`, `seed:personnel`,
+  `seed:communication`) : 54 migrations appliquées, la dernière rejouée une
+  seconde fois sans effet.
+- `npm test` : code de sortie 0 — contrat 241 routes servies / 241 documentées,
+  **33 campagnes, 1 159 tests réussis, aucun échec** (somme des 33 bilans lus
+  dans la sortie).
+- Recomptage : 33 campagnes présentes, 33 enchaînées par `npm test`.
+- `npm run lint` (backend et web, TypeScript 5.8.3) : aucun écart.
+
+### Décisions à retenir
+- **Une campagne ne se déclare jamais « sans objet »** : elle bâtit ses données
+  ou elle échoue.
+- **Une migration appliquée ne se modifie pas** — c'est désormais vérifié, pas
+  seulement écrit.
+- **Un fichier SIG n'est pas une tournée** : SIIPI ne devine pas quelle couche
+  porte les arrêts d'un circuit ; il les décrit et laisse choisir.
+- Les anciennes entrées de ce journal qui citent le décret-loi 2022-54 restent
+  telles quelles : c'est l'histoire du dépôt.
+
+## [0.15.1] — 2026-09-30 — Changement de stratégie : jumeau numérique et jalons en parallèle
+
+Version **documentaire** : aucun code applicatif ne change.
+
+### Modifié
+- **La recette terrain est différée** (les communes ne sont pas disponibles). Elle
+  reste l'objectif de clôture d'une version mais ne bloque plus l'ouverture des
+  jalons suivants. `FEUILLE_DE_ROUTE.md` § 0, § 4 (R1, R2, jalon 12), § 6.
+- **Le jalon 12 avance en parallèle de R1** pour les lots 17.1, 17.3 et 17.5. Les lots
+  17.2 et 17.4 restent suspendus à leurs préalables externes.
+- **Inscription citoyenne (§ 7.2) tranchée** : courriel et push web en phase 1 ;
+  téléphone et OTP en phase 2, après R1. Écart assumé à `M1` du cahier des charges.
+- `CLAUDE.md` : `simulation-3mois` inscrite au critère d'acceptation ; consigne de
+  reprise mise à jour ; les nombres de campagnes sont datés du 30/09/2026 et se
+  recalculent par les deux commandes de recomptage.
+- `FEUILLE_DE_ROUTE.md` : deux risques ajoutés (illusion de maturité ; données
+  simulées confondues avec des données réelles) et une décision ouverte (date de la
+  recette).
+
+### Ajouté
+- **Le jumeau numérique** (`FEUILLE_DE_ROUTE.md` § 6bis) : jeu de données simulé de
+  trois mois d'activité, campagne `test:simulation-3mois`, écran « Mode démo ». Lot
+  **S1**, à réaliser après S0. Il porte les garde-fous qui le séparent du réel :
+  données fictives, provenance `simule`, commune de démonstration exclue des
+  agrégations nationales, valeurs attendues calculées hors du code testé.
+
+### Numérotation
+- Cette entrée porte **0.15.1** et non 0.16.1 : la version 0.16.0 est celle de la
+  clôture du jalon 11 et n'existe pas encore. L'étape S0 (assainissement) devient
+  **0.15.2**.
+
+## [0.15.0] — 2026-09-30 — Jalon 10, phase 1 : navigation par pôles et carte unifiée
+
+### Ajouté
+- **Barre latérale à cinq pôles métier** (`BarreLaterale.tsx`), en remplacement
+  des dix-sept onglets défilants. Posée et rétractable sur poste fixe, tiroir
+  par-dessus au téléphone. Le tiroir vient de la **droite en arabe** : le pouce
+  d'un lecteur d'arabe part de ce côté-là.
+  Cockpit · Terrain & opérations · Citoyens & cadre de vie · Flotte, GMAO &
+  dépôt · Pilotage & auto-évaluation, plus un groupe « Administration » rendu à
+  part — forcer « Comptes » dans un pôle métier ferait chercher les accès là où
+  personne ne les cherche.
+- **Panneau de circuit sur la carte** (`PanneauCircuit.tsx`) : choisir un
+  circuit montre son exécutant, son engin, ses arrêts par nature et ses constats
+  des trente derniers jours — **sans quitter la carte**. Le panneau borde la
+  carte, il ne la remplace pas : on doit voir le tracé pendant qu'on lit ses
+  constats.
+- **`CLAUDE.md`** : la mémoire de travail du projet — commandes, conventions,
+  les cinq règles d'or, ce qu'on ne stocke jamais, et le protocole de validation.
+- **`scripts/skills/`** : quatre outils de vérification interne, chacun né d'un
+  défaut réel — `db-check.sh` (RLS forcée, politiques qui ignorent
+  l'intercommunalité, géométries sans index, `SECURITY DEFINER` sans
+  `search_path`), `kpi-evaluator.mjs` (une absence devenue zéro),
+  `ui-builder.mjs` (écran conforme : trois états, propriétés logiques, clés dans
+  les deux langues), `pdf-template.mjs` (les quatre documents légaux tunisiens).
+
+### Modifié
+- L'espace communal passe de 1100 à 1400 pixels de large : la carte unifiée en a
+  besoin, et la barre latérale en prend déjà une part.
+- `FEUILLE_DE_ROUTE.md` : Jalons 10 et 11 détaillés en sous-lots, chacun avec
+  son test de validation — dont le moteur d'estimation volumétrique, le
+  connecteur GPS tiers, les documents légaux, la détection d'anomalies de
+  tournée et le calculateur DMA.
+
+### Deux absences qui se disent
+Un circuit sans arrêt affiche « le circuit existe au registre, mais personne ne
+sait où il passe ». Un circuit sans constat depuis trente jours affiche « ce
+n'est pas *rien à signaler*, c'est un contrôle qui n'a pas eu lieu ». Un cadre
+vide se prend pour une panne ; pire, il laisse croire qu'il n'y a rien à faire.
+
+---
+
 ## [0.14.0] — 2026-09-29 — Les fichiers géographiques de chaque circuit
 
 ### Ajouté

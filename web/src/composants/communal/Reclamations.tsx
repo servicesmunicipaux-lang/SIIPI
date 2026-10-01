@@ -8,7 +8,7 @@
 //
 //   2. le nom et le téléphone du citoyen sont affichés, parce que la commune
 //      doit pouvoir rappeler — mais chaque consultation de cette liste est
-//      journalisée côté serveur (décret-loi 2022-54). Ce n'est pas au
+//      journalisée côté serveur (loi organique 2004-63). Ce n'est pas au
 //      front-end d'en décider : il ne fait qu'afficher ce que l'API a déjà
 //      tracé.
 

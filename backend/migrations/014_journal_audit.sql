@@ -15,7 +15,7 @@
 --   access_log  — les consultations de données personnelles de citoyens par
 --                 un agent municipal ou un prestataire. C'est ce qui permet
 --                 de répondre à « qui a consulté les données de ce citoyen ? »
---                 au titre du décret-loi n° 2022-54.
+--                 au titre de la loi organique n° 2004-63.
 --
 -- Le journal d'écriture est alimenté par des DÉCLENCHEURS SQL, pas par le
 -- code de l'API : une écriture faite directement en base, par un script ou
@@ -211,7 +211,7 @@ CREATE INDEX IF NOT EXISTS idx_access_log_commune ON access_log (commune_id, acc
 CREATE INDEX IF NOT EXISTS idx_access_log_citizen ON access_log USING GIN (citizen_ids);
 
 COMMENT ON TABLE access_log IS
-  'Journal des consultations de données personnelles de citoyens (décret-loi 2022-54). En ajout seul.';
+  'Journal des consultations de données personnelles de citoyens (loi organique 2004-63). En ajout seul.';
 
 -- Écriture réservée à cette fonction : l'API ne peut pas insérer directement,
 -- donc pas davantage falsifier une entrée.

@@ -9,7 +9,7 @@
 # personnel se juge d'abord à ce qu'il a refusé de stocker : le registre source
 # porte treize colonnes de rémunération pour soixante personnes nommées, et
 # rien de tout cela ne doit pouvoir entrer, ni par une colonne, ni par une
-# route, ni par un contrat d'API (décret-loi n° 2022-54).
+# route, ni par un contrat d'API (loi organique n° 2004-63).
 #
 #   docker compose run --rm api npm run test:module4
 # =============================================================================
@@ -61,7 +61,7 @@ nettoyer
 
 # -----------------------------------------------------------------------------
 echo
-echo "1. Ce que la base REFUSE de stocker (décret-loi 2022-54)"
+echo "1. Ce que la base REFUSE de stocker (loi organique 2004-63)"
 # Le seul test vraiment important du module. Si l'une de ces colonnes apparaît
 # un jour, la plateforme sera devenue un fichier de paie sans que personne ne
 # l'ait décidé.
@@ -198,8 +198,11 @@ if [ -n "$AUTRE" ]; then
   $PSQL -c "INSERT INTO personnel (commune_id, matricule, nom_complet, fonction)
             VALUES ('$AUTRE','TEST-M4-002','Agent Ailleurs','agent');" >/dev/null 2>&1
   ETRANGER=$(sql "SELECT id FROM personnel WHERE matricule='TEST-M4-002'")
+  # Le refus se lit dans le message d'erreur de la base : il faut donc le lire,
+  # et non le jeter comme le fait sqlr (2>/dev/null) — sans quoi ce contrôle ne
+  # pouvait jamais constater le refus qu'il vérifie.
   chk "un agent d'une autre commune ne peut être affecté" 1 \
-      "$(sqlr "INSERT INTO circuit_equipe (circuit_id, personnel_id) VALUES ('$CIRCUIT','$ETRANGER');" 2>&1 \
+      "$($PSQL -c "INSERT INTO circuit_equipe (circuit_id, personnel_id) VALUES ('$CIRCUIT','$ETRANGER');" 2>&1 \
          | grep -c 'AFFECTATION_HORS_COMMUNE')"
 fi
 

@@ -22,7 +22,7 @@
 -- QUI habite dans le polygone qu'il vient de dessiner : il a besoin de savoir
 -- COMBIEN, pour juger si son message part au bon endroit. Les fonctions de
 -- ce module rendent des comptes, jamais des noms ni des positions
--- (décret-loi n° 2022-54).
+-- (loi organique n° 2004-63).
 --
 -- CE QUE LA COMMUNE DOIT SAVOIR, ET QU'ON LUI DIT. Un citoyen sans adresse
 -- enregistrée n'est dans aucun périmètre géographique. Il existe, il a un

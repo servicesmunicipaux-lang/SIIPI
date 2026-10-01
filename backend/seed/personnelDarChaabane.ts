@@ -16,7 +16,7 @@
 //   • les NOMS. Le fichier source nomme soixante personnes. Les noms ci-dessous
 //     sont fabriqués : un prénom et un patronyme tirés de deux listes closes,
 //     assemblés pour que la longueur du nom reste du même ordre que dans le
-//     registre — ce que le décret-loi n° 2022-54 demande d'un jeu de test. Le
+//     registre — ce que la loi organique n° 2004-63 demande d'un jeu de test. Le
 //     rapprochement ligne à ligne avec le registre réel est impossible : les
 //     agents sont mélangés par un tirage déterministe avant d'être nommés.
 //   • les SALAIRES INDIVIDUELS. Le registre en porte treize colonnes (prime de
@@ -269,9 +269,47 @@ async function charger(): Promise<void> {
     );
   }
 
+  // --- Les agents fictifs du module 2 -----------------------------------------
+  //
+  // Le chargement du module 2 (seed:dar-chaabane) crée dix-sept silhouettes
+  // MAT-* pour donner une équipe aux huit circuits, quand le registre réel
+  // n'est pas encore là. Une fois ce registre chargé, elles faussent tout :
+  // 78 agents pour une commune qui en emploie 61, et des postes « tenus » par
+  // quelqu'un qui n'existe pas (409 à l'affectation d'un agent réel). Jusqu'à
+  // la v0.15.2, c'était à CORRIGER_PERSONNEL.bat de les retirer, à la main ;
+  // le résultat dépendait donc de l'ordre des chargements.
+  //
+  // On fait ici ce que faisait ce script : les affectations sont CLOSES (la
+  // ligne reste, la tournée passée garde son équipe) et les agents retirés
+  // logiquement. Rien ne s'efface. Personne n'est affecté à leur place : qui
+  // conduit le circuit n° 3, la paie ne le dit pas — c'est une décision de la
+  // commune, et le panneau de cohérence la réclame.
+  const affectationsCloses = await query(
+    `UPDATE circuit_equipe ce SET date_fin = CURRENT_DATE
+       FROM personnel p
+      WHERE p.id = ce.personnel_id AND p.commune_id = $1 AND p.matricule LIKE 'MAT-%'
+        AND ce.date_fin IS NULL
+      RETURNING ce.id`,
+    [COMMUNE]
+  );
+  const retires = await query(
+    `UPDATE personnel
+        SET deleted_at = now(),
+            observation = coalesce(observation || ' | ', '') ||
+              'Agent fictif du chargement de démonstration, retiré au chargement du registre réel (matricules DCF-).'
+      WHERE commune_id = $1 AND matricule LIKE 'MAT-%' AND deleted_at IS NULL
+      RETURNING id`,
+    [COMMUNE]
+  );
+  if (retires.length > 0 || affectationsCloses.length > 0) {
+    console.log(
+      `Agents fictifs du module 2 : ${retires.length} retiré(s), ${affectationsCloses.length} affectation(s) close(s).`
+    );
+  }
+
   console.log(`Personnel Dar Chaabane : ${crees} créé(s), ${mis_a_jour} mis à jour.`);
   console.log(`Masse salariale : ${MASSE_SALARIALE.length} exercices chargés.`);
-  console.log('Noms fictifs. Aucun salaire individuel, aucune donnée de santé (décret-loi 2022-54).');
+  console.log('Noms fictifs. Aucun salaire individuel, aucune donnée de santé (loi organique 2004-63).');
 }
 
 try {

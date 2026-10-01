@@ -50,7 +50,7 @@ $PSQL -c "DELETE FROM incidents WHERE circuit_id IN (SELECT id FROM circuits WHE
 echo
 echo "1. Création d'un circuit"
 CODE=$(code -X POST "$API/circuits" -H "Authorization: Bearer $T_MARSA" -H 'Content-Type: application/json' \
-  -d "{\"communeId\":\"tunis_la_marsa\",\"nom\":\"Circuit test corniche\",\"code\":\"TST-1\",\"prestataireId\":\"$PRESTATAIRE\",\"joursPassage\":[1,2,3,4,5,6],\"typeDechet\":\"menager\"}")
+  -d "{\"communeId\":\"tunis_la_marsa\",\"nom\":\"Circuit test corniche\",\"code\":\"TST-1\",\"prestataireId\":\"$PRESTATAIRE\",\"joursPassage\":[1,2,3,4,5,6],\"typeDechet\":\"menager\",\"dateDebut\":\"2026-09-01\"}")
 chk "la commune crée un circuit" 201 "$CODE"
 CIRCUIT=$(python3 -c "import json;print(json.load(open('/tmp/siipi_c.json'))['id'])" 2>/dev/null)
 chk "les jours de passage sont enregistrés" "{1,2,3,4,5,6}" "$(sql "SELECT jours_passage FROM circuits WHERE id='$CIRCUIT'")"

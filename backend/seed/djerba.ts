@@ -38,7 +38,7 @@
 //
 // CE QUI N'EST PAS REPRIS, À DESSEIN.
 //   - Les chauffeurs. Leur nom n'a aucune utilité pour décrire une tournée
-//     (décret-loi 2022-54) ; il est même retiré du nom des arrêts où l'agent
+//     (loi organique 2004-63) ; il est même retiré du nom des arrêts où l'agent
 //     l'avait écrit (« debut hdada arkou <nom> »). Et créer des agents fictifs
 //     fausserait l'effectif de la commune, qui entre dans les indicateurs.
 //   - Les lieux (marchés, cimetières, abattoirs) : aucun n'est situé dans le

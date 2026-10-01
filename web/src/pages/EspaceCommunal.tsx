@@ -33,11 +33,46 @@ import { TableauPoints } from '../composants/communal/TableauPoints';
 import { DecoupageCommune } from '../composants/communal/DecoupageCommune';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { Registres } from '../composants/registres/Registres';
-import { NavigationOnglets } from '../composants/NavigationOnglets';
+import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 
 type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'circuits' | 'points' | 'registres' | 'parc' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'contacts' | 'comptes';
 
-const ONGLETS: Onglet[] = ['constat', 'carte', 'decoupage', 'reclamations', 'suggestions', 'preuve', 'indicateurs', 'circuits', 'points', 'registres', 'parc', 'personnel', 'pesees', 'communication', 'rapports', 'contacts', 'comptes'];
+// LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
+//
+// Ce n'est pas la parenté technique qui range un écran, c'est le MOMENT où on
+// l'ouvre et l'interlocuteur qu'on a en face. Les pesées vont au terrain parce
+// qu'un tonnage se saisit le soir même, rattaché à la tournée qui l'a produit —
+// pas au pilotage, où elles ne seraient relues qu'en fin de mois. Le personnel
+// va au dépôt parce que c'est le même chef de parc qui répond des agents et des
+// engins, au même endroit.
+//
+// « Administration » n'est pas un sixième pôle métier : c'est le tiroir des
+// réglages, posé à part en bas. Forcer « Comptes » dans un pôle métier ferait
+// chercher les accès là où personne ne les cherche.
+const ENTREES: EntreeNavigation<Onglet>[] = [
+  { cle: 'constat',       pole: 'cockpit' },
+
+  { cle: 'carte',         pole: 'terrain' },
+  { cle: 'circuits',      pole: 'terrain' },
+  { cle: 'points',        pole: 'terrain' },
+  { cle: 'pesees',        pole: 'terrain' },
+  { cle: 'preuve',        pole: 'terrain' },
+
+  { cle: 'reclamations',  pole: 'citoyens' },
+  { cle: 'suggestions',   pole: 'citoyens' },
+  { cle: 'communication', pole: 'citoyens' },
+  { cle: 'decoupage',     pole: 'citoyens' },
+
+  { cle: 'parc',          pole: 'flotte' },
+  { cle: 'registres',     pole: 'flotte' },
+  { cle: 'personnel',     pole: 'flotte' },
+
+  { cle: 'indicateurs',   pole: 'pilotage' },
+  { cle: 'rapports',      pole: 'pilotage' },
+
+  { cle: 'contacts',      pole: 'administration' },
+  { cle: 'comptes',       pole: 'administration' },
+];
 
 export function EspaceCommunal({
   /** Commune imposée par l'appelant — l'annuaire national, qui vient de la
@@ -129,15 +164,19 @@ export function EspaceCommunal({
   }
 
   return (
-    <div className="mx-auto max-w-[1100px] px-4 py-6 sm:px-6">
+    // Plus large qu'avant : la carte unifiée du pôle Terrain a besoin de place,
+    // et la barre latérale en prend déjà une part sur poste fixe.
+    <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
       {selecteur}
-      <NavigationOnglets
-        onglets={ONGLETS}
-        actif={onglet}
-        onChoisir={setOnglet}
-        libelle={t('communal.navigation')}
-        etiquette={(cle) => t(`communal.onglets.${cle}`)}
-      />
+      <div className="flex gap-4">
+        <BarreLaterale
+          entrees={ENTREES}
+          actif={onglet}
+          onChoisir={setOnglet}
+          libelle={t('communal.navigation')}
+          etiquette={(cle) => t(`communal.onglets.${cle}`)}
+        />
+        <div className="min-w-0 flex-1">
 
       {/* La clé force le remontage à chaque changement de commune : sans elle,
           un écran garderait les données de la commune précédente le temps de
@@ -160,6 +199,8 @@ export function EspaceCommunal({
         {onglet === 'rapports' && <RapportsEtudes communeId={communeId} />}
         {onglet === 'contacts' && <Contacts communeId={communeId} />}
         {onglet === 'comptes' && <Comptes communeId={communeId} />}
+        </div>
+        </div>
       </div>
     </div>
   );

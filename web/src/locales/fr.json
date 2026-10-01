@@ -17,7 +17,8 @@
     "valider": "Se connecter",
     "enCours": "Connexion…",
     "erreurGenerique": "Connexion impossible. Vérifiez vos identifiants.",
-    "aide": "En cas d'oubli, contactez l'administrateur de votre commune."
+    "aide": "En cas d'oubli, contactez l'administrateur de votre commune.",
+    "sessionExpiree": "Votre session a expiré : par sécurité, elle ne dure que quelques heures. Reconnectez-vous pour reprendre là où vous en étiez."
   },
   "entete": {
     "deconnexion": "Se déconnecter",
@@ -117,7 +118,19 @@
       "observatoire": "Observatoire national",
       "communal": "Portail municipal"
     },
-    "retourObservatoire": "Retour à l'observatoire national"
+    "retourObservatoire": "Retour à l'observatoire national",
+    "navigation": "Navigation de l'observatoire national",
+    "poles": {
+      "cockpit": "Synthèse nationale",
+      "terrain": "Communes",
+      "pilotage": "Performance & déploiement"
+    },
+    "onglets": {
+      "synthese": "Synthèse",
+      "communes": "Annuaire des communes",
+      "performance": "Concours & 5 axes",
+      "deploiement": "Déploiement par gouvernorat"
+    }
   },
   "commun": {
     "chargement": "Chargement…",
@@ -127,7 +140,8 @@
     "sur": "sur",
     "annuler": "Annuler",
     "oui": "Oui",
-    "non": "Non"
+    "non": "Non",
+    "fermer": "Fermer"
   },
   "export": {
     "titre": "Exporter",
@@ -622,7 +636,9 @@
           "itineraire_dessine": "Itinéraire dessiné",
           "inconnu": "Format non reconnu",
           "gpx": "Trace GPX",
-          "geojson": "Couche GeoJSON"
+          "geojson": "Couche GeoJSON",
+          "csv": "Tableau CSV",
+          "multicouche": "Fichier à plusieurs couches (SIG)"
         },
         "titre_trace": "Itinéraire du circuit",
         "aide_trace": "Le chemin suivi, pour l’affichage sur la carte. Fichier KML, KMZ, GPX ou GeoJSON.",
@@ -638,7 +654,16 @@
         "confirmerRetrait_points": "Retirer les {{n}} arrêt(s) ?",
         "confirmerRetrait_trace": "Retirer l’itinéraire ?",
         "retire_points": "Arrêts retirés. Vous pouvez charger un autre fichier.",
-        "retire_trace": "Itinéraire retiré. Vous pouvez charger un autre fichier."
+        "retire_trace": "Itinéraire retiré. Vous pouvez charger un autre fichier.",
+        "couche": "Couche à importer",
+        "coucheChoisir": "Choisir une couche…",
+        "coucheResume": "{{nom}} — {{points}} point(s), {{lignes}} ligne(s)",
+        "filtre": "Ne garder que les éléments dont…",
+        "filtreAucun": "Toute la couche",
+        "filtreValeur": "… vaut",
+        "filtreChoisirValeur": "Choisir une valeur…",
+        "typePoints": "Type des points sans étiquette",
+        "typePointsFichier": "Tel que dans le fichier"
       },
       "historique": {
         "aucun": "Aucune modification enregistrée.",
@@ -740,7 +765,12 @@
       "filtreCircuit": "Filtrer par circuit",
       "filtreType": "Filtrer par type d’arrêt",
       "tousCircuits": "Tous les circuits",
-      "tousTypes": "Tous les types"
+      "tousTypes": "Tous les types",
+      "panneauCircuit": "Détail du circuit choisi",
+      "arrets": "{{n}} arrêt(s)",
+      "aucunArret": "Aucun arrêt enregistré : le circuit existe au registre, mais personne ne sait où il passe.",
+      "derniersControles": "Derniers passages (30 jours)",
+      "aucunControle": "Aucun constat depuis 30 jours. Ce n’est pas « rien à signaler » : c’est un contrôle qui n’a pas eu lieu."
     },
     "limites": {
       "titre": "Limites de la commune",
@@ -957,7 +987,7 @@
       "present": "Présent",
       "absent": "Absent…",
       "motif": "Motif de l’absence",
-      "noteMotifs": "Les motifs ne comportent aucun terme médical, volontairement : une absence pour raison de santé se saisit « absence justifiée ». La commune sait ce qu’elle doit savoir sans constituer, sans le vouloir, un dossier médical (décret-loi n° 2022-54).",
+      "noteMotifs": "Les motifs ne comportent aucun terme médical, volontairement : une absence pour raison de santé se saisit « absence justifiée ». La commune sait ce qu’elle doit savoir sans constituer, sans le vouloir, un dossier médical (loi organique n° 2004-63).",
       "motifs": {
         "conge": "Congé",
         "repos": "Repos",
@@ -1343,6 +1373,17 @@
         "cocherFait": "Marquer {{nom}} comme fait",
         "lieu": "lieu : {{nom}}"
       }
+    },
+    "navigationOuvrir": "Menu",
+    "navigationReplier": "Replier le menu",
+    "navigationDeplier": "Déplier le menu",
+    "poles": {
+      "cockpit": "Cockpit",
+      "terrain": "Terrain & opérations",
+      "citoyens": "Citoyens & cadre de vie",
+      "flotte": "Flotte, GMAO & dépôt",
+      "pilotage": "Pilotage & évaluation",
+      "administration": "Administration"
     }
   },
   "prestataire": {

@@ -1908,7 +1908,7 @@ registry.registerPath({
 // Ce bloc ne décrit AUCUN salaire individuel ni aucune donnée de santé — la
 // base n'en porte pas. L'argent n'apparaît qu'au niveau du service et de
 // l'année (/personnel/cout), sans clé permettant d'en redescendre vers une
-// personne. C'est la minimisation exigée par le décret-loi n° 2022-54, rendue
+// personne. C'est la minimisation exigée par la loi organique n° 2004-63, rendue
 // vérifiable : elle se lit dans le contrat d'API.
 // ---------------------------------------------------------------------------
 
@@ -2353,7 +2353,7 @@ registry.registerPath({
 // Une remarque qui se lit dans ce contrat : aucune route ne rend la liste des
 // citoyens d'un périmètre. app.compter_destinataires en rend le NOMBRE, et
 // c'est tout ce dont un agent communal a besoin pour juger si son message
-// part au bon endroit (décret-loi n° 2022-54).
+// part au bon endroit (loi organique n° 2004-63).
 // ---------------------------------------------------------------------------
 
 const TYPES_PUBLICATION = ['sondage', 'projet', 'notification'] as const;
@@ -3142,10 +3142,10 @@ const ApercuImport = registry.register(
       poseraPoints: z.boolean(),
       poseraTrace: z.boolean(),
       famille: z
-        .enum(['waypoints', 'trace_gps', 'itineraire_dessine', 'gpx', 'geojson', 'inconnu'])
+        .enum(['waypoints', 'trace_gps', 'itineraire_dessine', 'gpx', 'geojson', 'csv', 'multicouche', 'inconnu'])
         .openapi({
         description:
-          'waypoints = relevé d\'arrêts (GPS Waypoints) ; trace_gps = trajet suivi (My Tracks) ; itineraire_dessine = KMZ tracé à la main.',
+          'waypoints = relevé d\'arrêts (GPS Waypoints) ; trace_gps = trajet suivi (My Tracks) ; itineraire_dessine = KMZ tracé à la main ; multicouche = fichier à plusieurs couches (export ArcGIS) dont il faut choisir la couche.',
       }),
       nomReleve: z.string().nullable(),
       nbPoints: z.number().int(),
@@ -3156,6 +3156,18 @@ const ApercuImport = registry.register(
         description: "Ce qui a été écarté et pourquoi. À montrer avant validation, pas après.",
       }),
       points: z.array(z.any()),
+      couches: z
+        .array(
+          z.object({
+            chemin: z.string().openapi({ description: 'Identifiant de la couche (chemin de ses dossiers), à renvoyer dans « couche ».' }),
+            nom: z.string(),
+            points: z.number().int(),
+            lignes: z.number().int(),
+            surfaces: z.number().int(),
+            attributs: z.array(z.object({ nom: z.string(), valeurs: z.array(z.string()), plusDeValeurs: z.boolean() })),
+          })
+        )
+        .openapi({ description: 'Les couches du fichier (KML/KMZ), pour choisir laquelle importer. Vide pour un fichier sans dossiers.' }),
       ecrit: z.boolean().openapi({ description: 'false en aperçu : la base n\'a pas été touchée.' }),
       crees: z.number().int().optional(),
       remplaces: z.number().int().optional(),
@@ -3186,6 +3198,21 @@ const importKmlSchema = z.object({
     description:
       "Ce que l'on pose. Un circuit a un itinéraire ET des arrêts, qui arrivent dans des fichiers distincts. « auto » prend tout ce que le fichier contient ; « trace » et « points » n'en prennent qu'une part, et signalent ce qui est ignoré.",
   }),
+  couche: z.string().optional().openapi({
+    description: "Chemin de la couche à importer, parmi celles que l'aperçu décrit (« couches »). Requis pour un fichier à plusieurs couches.",
+  }),
+  filtre: z
+    .object({
+      attribut: z.string().openapi({ description: 'Nom de l’attribut, ou « Nom » pour le nom de l’entité.' }),
+      valeur: z.string(),
+      operateur: z.enum(['egal', 'commence_par']).optional(),
+    })
+    .optional()
+    .openapi({ description: 'Ne garder que les entités de la couche dont l’attribut vaut (ou commence par) la valeur.' }),
+  typePoints: z
+    .enum(['porte_a_porte', 'point_de_collecte', 'debut_collecte', 'fin_collecte', 'point_noir', 'centre_transfert', 'hors_conteneur', 'parc_municipal', 'autre'])
+    .optional()
+    .openapi({ description: 'Type donné aux points qui n’en portent aucun.' }),
 });
 
 
@@ -3916,7 +3943,7 @@ registry.registerPath({
     'tous les statuts — mais ni nom, ni téléphone, ni description en texte libre, une position',
     'arrondie à environ 110 m et une photo publiée seulement si la commune l’a validée.',
     'Le filtrage est fait en base, dans une fonction : un garde-fou qu’on peut contourner en',
-    'écrivant une autre requête n’en est pas un (décret-loi n° 2022-54, principe de minimisation).',
+    'écrivant une autre requête n’en est pas un (loi organique n° 2004-63, principe de minimisation).',
   ].join('\n'),
   request: {
     query: z.object({
@@ -4333,7 +4360,7 @@ registry.registerPath({
   description: [
     "Le fichier voyage en base64, comme le relevé KML du module 2 : une seule façon de poster dans toute l'API, et un appel qui se rejoue à la main.",
     '',
-    "Le type est déterminé par les OCTETS, jamais par le nom ni par l'en-tête annoncé (415 sinon). Les métadonnées EXIF des photos — position GPS, modèle de l'appareil, nom du propriétaire — sont retirées avant écriture ; la position trouvée est rendue dans la réponse, à proposer à la personne plutôt qu'à enregistrer à son insu (décret-loi n° 2022-54).",
+    "Le type est déterminé par les OCTETS, jamais par le nom ni par l'en-tête annoncé (415 sinon). Les métadonnées EXIF des photos — position GPS, modèle de l'appareil, nom du propriétaire — sont retirées avant écriture ; la position trouvée est rendue dans la réponse, à proposer à la personne plutôt qu'à enregistrer à son insu (loi organique n° 2004-63).",
     '',
     'Plafond : 8 Mo une fois décodé (413 au-delà), 50 Mo pour un rapport ou une étude (usage « rapport_etude », seul à accepter aussi les documents Word, Excel et PowerPoint). Un citoyen dépose pour sa propre commune ; un agent, pour une commune où il écrit.',
   ].join('\n'),
@@ -5072,7 +5099,7 @@ registry.registerPath({
   tags: ['Contacts'],
   summary: "Annuaire de travail d'une commune",
   description:
-    'Interlocuteurs externes, sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT : un prestataire rattaché n’y a pas accès (données personnelles de tiers, décret-loi 2022-54).',
+    'Interlocuteurs externes, sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT : un prestataire rattaché n’y a pas accès (données personnelles de tiers, loi organique 2004-63).',
   security: SECURISE,
   request: {
     query: z.object({
@@ -5242,7 +5269,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.14.0',
+      version: '0.15.2',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
@@ -5261,7 +5288,7 @@ export function genererDocumentOpenApi() {
         '',
         'Toute écriture est tracée en base (auteur, horodatage, valeur avant/après) et',
         'conservée cinq ans. Les consultations de données personnelles de citoyens sont',
-        'tracées séparément, conformément au décret-loi n° 2022-54.',
+        'tracées séparément, conformément à la loi organique n° 2004-63.',
       ].join('\n'),
       contact: { name: 'FNCT — réseau WAMA-NET' },
     },
@@ -5282,8 +5309,8 @@ export function genererDocumentOpenApi() {
       { name: 'GDMA', description: 'Récupérateurs informels — périmètre à arbitrer.' },
       { name: 'Comptes et accès', description: 'Ouverture et révision des accès, par la commune elle-même.' },
       { name: 'Pesées', description: "Registre communal des pesées : un tonnage rattaché au circuit qui l'a produit. L'import ANGeD attend que l'interopérabilité soit possible." },
-      { name: 'Communication', description: "Sondages, projets et notifications ciblées par périmètre géographique. Les décomptes de destinataires sont rendus en nombre, jamais en liste (décret-loi n° 2022-54)." },
-      { name: 'Personnel', description: "Effectif du service, affectation aux circuits, présence quotidienne et coût du service. Aucun salaire individuel, aucune donnée de santé (décret-loi n° 2022-54)." },
+      { name: 'Communication', description: "Sondages, projets et notifications ciblées par périmètre géographique. Les décomptes de destinataires sont rendus en nombre, jamais en liste (loi organique n° 2004-63)." },
+      { name: 'Personnel', description: "Effectif du service, affectation aux circuits, présence quotidienne et coût du service. Aucun salaire individuel, aucune donnée de santé (loi organique n° 2004-63)." },
       { name: 'Circuits et contrôle terrain', description: 'Tournées de collecte et constats quotidiens (espace communal).' },
       { name: 'Espace prestataire', description: 'Registre du prestataire privé : passages, incidents, confrontation avec le constat communal.' },
       { name: 'Espace citoyen', description: 'Horaires de collecte, annonces et carte publique des signalements (TDR §3.3).' },

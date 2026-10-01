@@ -56,6 +56,9 @@ export function CircuitImport({
   const [erreur, setErreur] = useState<string | null>(null);
   const [fait, setFait] = useState<string | null>(null);
   const [confirmeRetrait, setConfirmeRetrait] = useState(false);
+  // Pour un fichier à plusieurs couches (export ArcGIS) : la couche retenue,
+  // le filtre sur un attribut, le type des points qui n'en portent pas.
+  const [choix, setChoix] = useState<{ couche?: string; attribut?: string; valeur?: string; typePoints?: string }>({});
 
   const enPlace = (nbEnPlace ?? 0) > 0 || Boolean(dejaPose?.le);
 
@@ -92,6 +95,7 @@ export function CircuitImport({
       }
       const contenu = btoa(binaire);
       setFichier({ nomFichier: f.name, contenu });
+      setChoix({});
       setApercu(await api.importerKml(circuitId, { nomFichier: f.name, contenu, valider: false, cible }));
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
@@ -102,15 +106,38 @@ export function CircuitImport({
     }
   };
 
+  const optionsLecture = (c: typeof choix) => ({
+    couche: c.couche || undefined,
+    filtre: c.couche && c.attribut && c.valeur !== undefined ? { attribut: c.attribut, valeur: c.valeur } : undefined,
+    typePoints: c.typePoints || undefined,
+  });
+
+  // Chaque choix relance l'aperçu : on voit ce que la couche, le filtre ou le
+  // type donnent AVANT de valider, comme pour un fichier ordinaire.
+  const choisirOption = async (c: typeof choix) => {
+    if (!fichier) return;
+    setChoix(c);
+    setOccupe(true);
+    setErreur(null);
+    try {
+      setApercu(await api.importerKml(circuitId, { ...fichier, valider: false, cible, ...optionsLecture(c) }));
+    } catch (err) {
+      setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
+    } finally {
+      setOccupe(false);
+    }
+  };
+
   const valider = async () => {
     if (!fichier) return;
     setOccupe(true);
     setErreur(null);
     try {
-      const r = await api.importerKml(circuitId, { ...fichier, valider: true, remplacer, cible });
+      const r = await api.importerKml(circuitId, { ...fichier, valider: true, remplacer, cible, ...optionsLecture(choix) });
       setFait(t('communal.circuits.import.fait', { crees: r.crees ?? 0, remplaces: r.remplaces ?? 0 }));
       setApercu(null);
       setFichier(null);
+      setChoix({});
       onImporte();
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
@@ -255,6 +282,97 @@ export function CircuitImport({
                     {k} : <strong className="chiffres">{apercu.statistiques[k]}</strong>
                   </span>
                 ) : null
+              )}
+            </div>
+          )}
+
+          {/* Un fichier à plusieurs couches : on montre celles qui peuvent
+              servir ici — des points pour les arrêts, des lignes pour
+              l'itinéraire — et on laisse choisir. Rien n'est deviné. */}
+          {(apercu.couches?.length ?? 0) > 1 && (
+            <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <label className="block text-sm">
+                <span className="font-medium text-blue-950">{t('communal.circuits.import.couche')}</span>
+                <select
+                  value={choix.couche ?? ''}
+                  disabled={occupe}
+                  onChange={(e) => void choisirOption({ couche: e.target.value || undefined, typePoints: choix.typePoints })}
+                  className="mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-2 text-sm"
+                >
+                  <option value="">{t('communal.circuits.import.coucheChoisir')}</option>
+                  {(apercu.couches ?? [])
+                    .filter((c) => (cible === 'trace' ? c.lignes > 0 : cible === 'points' ? c.points > 0 : c.points + c.lignes > 0))
+                    .map((c) => (
+                      <option key={c.chemin} value={c.chemin}>
+                        {t('communal.circuits.import.coucheResume', { nom: c.nom, points: c.points, lignes: c.lignes })}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              {(() => {
+                const couche = (apercu.couches ?? []).find((c) => c.chemin === choix.couche);
+                if (!couche || couche.attributs.length === 0) return null;
+                const attribut = couche.attributs.find((a) => a.nom === choix.attribut);
+                return (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <label className="block text-sm">
+                      <span className="font-medium text-blue-950">{t('communal.circuits.import.filtre')}</span>
+                      <select
+                        value={choix.attribut ?? ''}
+                        disabled={occupe}
+                        onChange={(e) =>
+                          void choisirOption({ couche: choix.couche, typePoints: choix.typePoints, attribut: e.target.value || undefined })
+                        }
+                        className="mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-2 text-sm"
+                      >
+                        <option value="">{t('communal.circuits.import.filtreAucun')}</option>
+                        {couche.attributs.map((a) => (
+                          <option key={a.nom} value={a.nom}>
+                            {a.nom}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {attribut && (
+                      <label className="block text-sm">
+                        <span className="font-medium text-blue-950">{t('communal.circuits.import.filtreValeur')}</span>
+                        <select
+                          value={choix.valeur ?? ''}
+                          disabled={occupe}
+                          onChange={(e) => void choisirOption({ ...choix, valeur: e.target.value })}
+                          className="mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-2 text-sm"
+                        >
+                          <option value="" disabled>
+                            {t('communal.circuits.import.filtreChoisirValeur')}
+                          </option>
+                          {attribut.valeurs.map((v) => (
+                            <option key={v} value={v}>
+                              {v}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                  </div>
+                );
+              })()}
+              {cible !== 'trace' && choix.couche && (
+                <label className="block text-sm">
+                  <span className="font-medium text-blue-950">{t('communal.circuits.import.typePoints')}</span>
+                  <select
+                    value={choix.typePoints ?? ''}
+                    disabled={occupe}
+                    onChange={(e) => void choisirOption({ ...choix, typePoints: e.target.value || undefined })}
+                    className="mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-2 text-sm"
+                  >
+                    <option value="">{t('communal.circuits.import.typePointsFichier')}</option>
+                    {["porte_a_porte", "point_de_collecte", "debut_collecte", "fin_collecte", "point_noir", "centre_transfert", "hors_conteneur", "parc_municipal", "autre"].map((ty) => (
+                      <option key={ty} value={ty}>
+                        {t(`communal.circuits.typesPoint.${ty}`, { defaultValue: ty })}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               )}
             </div>
           )}

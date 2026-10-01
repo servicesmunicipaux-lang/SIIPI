@@ -12,7 +12,7 @@
 // prend ses décisions sur un chiffre faux.
 //
 // CE QUE L'ÉCRAN NE MONTRE JAMAIS : qui habite dans le périmètre. L'API n'en
-// rend que le nombre, et c'est délibéré (décret-loi n° 2022-54).
+// rend que le nombre, et c'est délibéré (loi organique n° 2004-63).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';

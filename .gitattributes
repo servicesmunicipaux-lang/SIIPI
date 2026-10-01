@@ -1,0 +1,27 @@
+# Fins de ligne — pourquoi ce fichier existe.
+#
+# Le dépôt est édité sous Windows (CRLF dans l'arbre de travail) et exécuté dans
+# des conteneurs Linux. Les fichiers TEXTE peuvent aller et venir sans dommage :
+# git normalise en LF au dépôt.
+#
+# Les SCRIPTS, non. Un `#!/usr/bin/env bash` suivi d'un retour chariot devient
+# « bash\r » : l'interpréteur cherche un programme nommé « bash\r », ne le
+# trouve pas, et rend « bad interpreter » — un message qui n'apprend rien à
+# celui qui le lit. Les campagnes de tests et les outils de scripts/skills
+# gardent donc des fins de ligne LF DANS L'ARBRE DE TRAVAIL, pas seulement au
+# dépôt.
+* text=auto
+
+*.sh    text eol=lf
+*.mjs   text eol=lf
+*.bash  text eol=lf
+
+# Les .bat, à l'inverse, sont lus par cmd.exe : ils gardent CRLF.
+*.bat   text eol=crlf
+*.ps1   text eol=crlf
+
+# Binaires : aucune conversion.
+*.png   binary
+*.jpg   binary
+*.gz    binary
+*.zip   binary

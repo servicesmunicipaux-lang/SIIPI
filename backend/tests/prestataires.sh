@@ -52,7 +52,7 @@ $PSQL -c "DELETE FROM incidents WHERE circuit_id IN (SELECT id FROM circuits WHE
 
 # Circuit de test : lundi à samedi, confié au prestataire de La Marsa.
 code -X POST "$API/circuits" -H "Authorization: Bearer $T_MARSA" -H 'Content-Type: application/json' \
-  -d "{\"communeId\":\"tunis_la_marsa\",\"nom\":\"Circuit test passages\",\"prestataireId\":\"$PRESTATAIRE\",\"joursPassage\":[1,2,3,4,5,6]}" >/dev/null
+  -d "{\"communeId\":\"tunis_la_marsa\",\"nom\":\"Circuit test passages\",\"prestataireId\":\"$PRESTATAIRE\",\"joursPassage\":[1,2,3,4,5,6],\"dateDebut\":\"2026-09-01\"}" >/dev/null
 CIRCUIT=$(val "['id']")
 [ -n "$CIRCUIT" ] || { echo "Impossible de créer le circuit de test." >&2; exit 1; }
 
