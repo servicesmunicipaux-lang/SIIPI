@@ -8,6 +8,7 @@ import { BoutonExport } from '../composants/BoutonExport';
 import { DecoupageCommunal } from '../composants/national/DecoupageCommunal';
 import { PropositionsDecoupage } from '../composants/national/PropositionsDecoupage';
 import { KpiNational } from '../composants/national/KpiNational';
+import { ModeDemo } from '../composants/national/ModeDemo';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 import {
@@ -76,13 +77,15 @@ function sansAccent(texte: string): string {
 // Concours, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
 // bas. Même défaut que les dix-sept onglets du portail communal — ce qu'on ne
 // voit pas, on ne sait pas que ça existe — et même remède : la barre latérale.
-type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement';
+type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'demo';
 
 const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   { cle: 'synthese',    pole: 'cockpit' },
   { cle: 'communes',    pole: 'terrain' },
   { cle: 'performance', pole: 'pilotage' },
   { cle: 'deploiement', pole: 'pilotage' },
+  // Le jumeau numérique (lot S1) : un outil de la FNCT, pas une donnée nationale.
+  { cle: 'demo',        pole: 'administration' },
 ];
 
 export function TableauDeBordNational() {
@@ -296,6 +299,7 @@ export function TableauDeBordNational() {
           la source et les alertes — avant le tableau par gouvernorat, qui
           montre le déploiement ; ceci montre la performance. */}
       {onglet === 'performance' && <KpiNational onOuvrirCommune={setCommuneKpi} />}
+      {onglet === 'demo' && <ModeDemo />}
 
       {onglet === 'deploiement' && (
       <>

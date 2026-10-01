@@ -5,6 +5,82 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.4] — 2026-10-01 — S1 : le jumeau numérique
+
+Aucune commune n'utilise encore la plateforme au quotidien. Le jumeau numérique
+l'éprouve en attendant : trois mois d'activité simulée (1er juin – 31 août 2026)
+dans une commune de démonstration fictive, chargés à la demande, retirés d'un
+clic (FEUILLE_DE_ROUTE.md § 6bis).
+
+### Ajouté
+- **Le jeu** : `backend/seed/data/jumeau_3mois.json`, produit une fois pour toutes
+  par `scripts/jumeau/generer.py` (graine fixe) et **versionné** — l'application
+  charge, elle ne génère rien : deux chargements donnent les mêmes données. La
+  structure est celle de Dar Chaabane El Fehri (13 circuits, 29 engins, 61 agents) ;
+  rien d'autre n'en vient — noms tirés de listes de prénoms et de noms courants,
+  immatriculations en « 99 », série qui n'existe pas. Présences quotidiennes,
+  pesées, fins de poste, pleins de carburant, réclamations, nettoyages, contrôles,
+  incidents, EPI, effectifs, un sondage et ses réponses (sans compte citoyen).
+  Quatre anomalies **volontaires** pour que chaque alerte se déclenche puis
+  s'éteigne : pesée au-delà de la charge utile, réclamation jamais traitée,
+  nettoyage resté planifié, engin immobilisé sans motif.
+- **Migration 055** — les garde-fous, dans la base :
+  - `communes.est_demo`, qui ne se modifie pas ;
+  - `provenance` (`reel` | `simule`) sur les dix-huit tables que le jeu remplit :
+    toute ligne d'une commune de démonstration devient « simulée », même saisie à
+    la main pendant une démonstration ; une ligne « simulée » est **refusée** dans
+    une commune réelle ;
+  - la commune de démonstration sort du statut de déploiement (donc du tableau
+    par gouvernorat) et de la carte publique nationale ;
+  - `app.retirer_jeu_demo()` : efface la commune de démonstration et tout son
+    contenu. **Seule exception à la suppression logique** (CLAUDE.md § 1.4) :
+    rien de ce qui est effacé n'a eu lieu. Réservée à la FNCT, refusée sur une
+    commune réelle ;
+  - `app.charger_reponses_demo()` : les réponses de sondage simulées, que la
+    politique de la table réserve sinon aux citoyens.
+- **Routes** `GET /demo`, `POST /demo/charger`, `POST /demo/retirer` (FNCT ; une
+  commune réelle répond 409). `GET /communes` n'inclut la commune de
+  démonstration qu'avec `avecDemo=1` ; `/communes/stats` et les vues nationales
+  des KPI (concours, national, DMA, alertes) l'écartent.
+- **Écran « Mode démo »** dans l'observatoire (Outils de la FNCT) : charger,
+  ouvrir le portail, recharger à l'identique, retirer — avec confirmation avant
+  tout ce qui efface. **Bannière permanente** « Données de démonstration » sur
+  chaque écran du portail de démonstration ; FR et AR.
+- `npm run seed:jumeau` (et `-- --retirer`) : la même chose en ligne de commande.
+- **Campagne `simulation-3mois`** : elle commence par les refus (compte communal,
+  commune réelle au chargement et au retrait, ligne simulée hors démonstration,
+  réponses simulées sur une publication réelle, `est_demo` modifié), puis compare
+  chaque indicateur à `backend/tests/jumeau_attendus.py` — qui ne lit que le
+  fichier du jeu et la définition des indicateurs, jamais le code testé —,
+  vérifie l'absence de la commune de démonstration de toute vue nationale,
+  déclenche puis éteint chaque alerte, recharge à l'identique, et retire tout
+  sans toucher à la commune réelle.
+
+### Modifié
+- Campagne `module4` : la liste blanche des colonnes de `personnel`,
+  `effectifs_service` et `presences` accueille `provenance` — décision consignée
+  dans la campagne : la colonne ne dit rien d'une personne, seulement si la ligne
+  appartient au jeu de démonstration.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 55 migrations ; la 055 rejouée une seconde
+  fois : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 244/244, **34 bilans, 1 238 tests
+  réussis, aucun échec** (dont `simulation-3mois` : 73, avec ses 22 indicateurs
+  conformes au calcul indépendant).
+- Recomptage : 34 campagnes présentes, 34 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur : chargement depuis le mode démo, ouverture du portail de
+  démonstration, bannière sur chaque écran, indicateurs calculés, version arabe
+  (RTL). Le retrait a été vérifié par la campagne, pas cliqué dans le navigateur
+  (fenêtre de confirmation).
+
+### Constaté
+- Le jeu s'arrête au 31 août : passé trente jours, chaque circuit est signalé
+  « aucune pesée depuis trente jours », ce qui est exact. Les circuits de
+  **balayage** reçoivent le même signal alors qu'ils ne se pèsent jamais — à
+  Dar Chaabane aussi. Défaut de la règle de cohérence, laissé à un lot à part.
+
 ## [0.15.3] — 2026-10-01 — S0 : un seul guide de démarrage, une base qui dit son état
 
 Complément de S0 décidé le 1er octobre (ligne S0 de la feuille de route). Reste

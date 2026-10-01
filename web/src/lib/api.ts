@@ -359,7 +359,17 @@ export type Commune = {
   name: string;
   name_ar?: string | null;
   governorate?: string | null;
+  /** Commune de démonstration fictive (jumeau numérique, lot S1). */
+  est_demo?: boolean;
 };
+
+/** Le jeu de démonstration (jumeau numérique, lot S1) : GET /demo. */
+export interface EtatDemo {
+  communeId: string;
+  chargee: boolean;
+  periode: { debut: string; fin: string };
+  compteurs: Record<string, number>;
+}
 
 export interface SaisieAdresse {
   communeId: string;
@@ -490,7 +500,16 @@ export const api = {
   deploiement: () => requete<StatutCommune[]>('/observatoire/deploiement'),
 
   // --- Espace citoyen ------------------------------------------------------
-  communes: () => requete<Commune[]>('/communes'),
+  // La commune de démonstration n'est dans l'annuaire que demandée : le
+  // sélecteur de la FNCT la demande, les écrans nationaux non.
+  communes: (avecDemo = false) => requete<Commune[]>(avecDemo ? '/communes?avecDemo=1' : '/communes'),
+  etatDemo: () => requete<EtatDemo>('/demo'),
+  chargerDemo: () => requete<EtatDemo>('/demo/charger', { method: 'POST', body: JSON.stringify({}) }),
+  retirerDemo: () =>
+    requete<{ communeId: string; retiree: boolean; lignesEffacees: number }>('/demo/retirer', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
 
   // --- Comptes et accès ----------------------------------------------------
   comptes: (communeId?: string) =>

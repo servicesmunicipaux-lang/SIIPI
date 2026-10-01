@@ -88,13 +88,15 @@ export function EspaceCommunal({
   const [onglet, setOnglet] = useState<Onglet>('constat');
 
   const estFnct = utilisateur?.role === 'super_admin_fnct';
-  const [communes, setCommunes] = useState<{ id: string; name: string; gouvernorat?: string | null; activee?: boolean }[]>([]);
+  const [communes, setCommunes] = useState<{ id: string; name: string; gouvernorat?: string | null; activee?: boolean; est_demo?: boolean }[]>([]);
   const [nomCommune, setNomCommune] = useState<string | null>(null);
 
   useEffect(() => {
     if (!estFnct) return;
+    // Avec la commune de démonstration (jumeau numérique) : la FNCT doit
+    // pouvoir ouvrir son portail, que l'annuaire national ne montre pas.
     void api
-      .communes()
+      .communes(true)
       .then((liste) => setCommunes(liste as typeof communes))
       .catch(() => setCommunes([]));
   }, [estFnct]);
@@ -113,8 +115,10 @@ export function EspaceCommunal({
 
   // Les communes pilotes d'abord : ce sont celles sur lesquelles on travaille,
   // et les faire chercher dans une liste de 350 n'a pas de sens.
-  const pilotes = communes.filter((c) => c.activee);
-  const autres = communes.filter((c) => !c.activee);
+  const demonstration = communes.filter((c) => c.est_demo);
+  const pilotes = communes.filter((c) => c.activee && !c.est_demo);
+  const autres = communes.filter((c) => !c.activee && !c.est_demo);
+  const enDemo = communes.some((c) => c.id === communeId && c.est_demo);
 
   const selecteur = estFnct && (
     <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-siipi-200 bg-siipi-50 p-3">
@@ -132,6 +136,13 @@ export function EspaceCommunal({
           {pilotes.length > 0 && (
             <optgroup label={t('communal.communesPilotes')}>
               {pilotes.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </optgroup>
+          )}
+          {demonstration.length > 0 && (
+            <optgroup label={t('communal.demo.groupe')}>
+              {demonstration.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </optgroup>
@@ -168,6 +179,18 @@ export function EspaceCommunal({
     // et la barre latérale en prend déjà une part sur poste fixe.
     <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
       {selecteur}
+      {/* Sur CHAQUE écran du portail de démonstration, et collée en haut :
+          une capture d'écran du jumeau ne doit jamais pouvoir passer pour
+          les chiffres d'une commune réelle (FEUILLE_DE_ROUTE.md § 6bis). */}
+      {enDemo && (
+        <div
+          role="status"
+          className="sticky top-0 z-20 mb-4 rounded-xl border-2 border-amber-400 bg-amber-100 px-4 py-3 text-sm text-amber-950 shadow-sm"
+        >
+          <p className="font-bold">{t('communal.demo.banniereTitre')}</p>
+          <p className="mt-0.5">{t('communal.demo.banniereTexte')}</p>
+        </div>
+      )}
       <div className="flex gap-4">
         <BarreLaterale
           entrees={ENTREES}

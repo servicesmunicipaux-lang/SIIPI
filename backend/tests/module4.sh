@@ -77,14 +77,17 @@ chk "effectifs_service n'a aucune clé vers une personne" 0 \
 # une liste BLANCHE : le jour où quelqu'un ajoute une colonne à l'une de ces
 # trois tables — pour une bonne raison ou par habitude — ce test tombe, et
 # l'ajout devient une décision consciente au lieu d'un glissement.
+# Décision consignée (migration 055, v0.15.4) : `provenance` (reel | simule),
+# qui ne dit rien d'une personne — elle dit si la ligne appartient au jeu de
+# démonstration.
 chk "les colonnes de « personnel » sont exactement celles prévues" \
-    "actif,affectation,classe,commune_id,created_at,date_depart,date_recrutement,deleted_at,deleted_by,echelon,fonction,grade,id,matricule,nom_complet,observation,permis,service,statut,updated_at" \
+    "actif,affectation,classe,commune_id,created_at,date_depart,date_recrutement,deleted_at,deleted_by,echelon,fonction,grade,id,matricule,nom_complet,observation,permis,provenance,service,statut,updated_at" \
     "$(sql "SELECT string_agg(column_name, ',' ORDER BY column_name) FROM information_schema.columns WHERE table_name='personnel'")"
 chk "les colonnes de « effectifs_service » sont exactement celles prévues" \
-    "annee,commune_id,created_at,effectif_contractuels,effectif_encadrement,effectif_ouvriers,id,masse_salariale_ouvriers_tnd,masse_salariale_tnd,observation,saisi_par,service,source,updated_at" \
+    "annee,commune_id,created_at,effectif_contractuels,effectif_encadrement,effectif_ouvriers,id,masse_salariale_ouvriers_tnd,masse_salariale_tnd,observation,provenance,saisi_par,service,source,updated_at" \
     "$(sql "SELECT string_agg(column_name, ',' ORDER BY column_name) FROM information_schema.columns WHERE table_name='effectifs_service'")"
 chk "les colonnes de « presences » sont exactement celles prévues" \
-    "circuit_id,commune_id,created_at,id,jour,motif_absence,observation,personnel_id,present,saisi_par,updated_at,voyage" \
+    "circuit_id,commune_id,created_at,id,jour,motif_absence,observation,personnel_id,present,provenance,saisi_par,updated_at,voyage" \
     "$(sql "SELECT string_agg(column_name, ',' ORDER BY column_name) FROM information_schema.columns WHERE table_name='presences'")"
 # Le vocabulaire des absences est la deuxième porte d'entrée possible d'une
 # donnée de santé. Elle est fermée par une contrainte, pas par une convention.

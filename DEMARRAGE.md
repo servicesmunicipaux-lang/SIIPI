@@ -80,6 +80,12 @@ Mot de passe commun : `Siipi2026!`
 ouvre le portail de n'importe quelle commune : *Annuaire des communes* →
 *Ouvrir le portail*.
 
+**Le mode démo** (jumeau numérique) : trois mois d'activité simulée dans une
+commune fictive, chargés à la demande — *Observatoire* → *Outils de la FNCT* →
+*Mode démo*, ou `docker compose exec -T api npm run seed:jumeau`. Il ne se
+charge jamais tout seul, n'apparaît dans aucune vue nationale, et se retire d'un
+clic (ou `npm run seed:jumeau -- --retirer`).
+
 ## Mots de passe et fichier `.env`
 
 En développement, **aucun fichier `.env` n'est nécessaire** : le

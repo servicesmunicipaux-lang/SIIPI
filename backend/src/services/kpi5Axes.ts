@@ -162,7 +162,11 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
     query<Contexte['communes'][number]>(
       `SELECT c.id, c.name, c.name_ar, c.gouvernorat, c.population, gd.district_code AS district
          FROM communes c LEFT JOIN gouvernorats_district gd ON gd.gouvernorat = c.gouvernorat
-        WHERE app.can_write_commune(c.id) AND ($1::text[] IS NULL OR c.id = ANY($1))
+        WHERE app.can_write_commune(c.id)
+          -- Le concours, la vue nationale, la DMA et les alertes portent sur
+          -- toutes les communes : la commune de démonstration n'en est pas.
+          -- Demandée nommément (son propre portail), elle se calcule.
+          AND ($1::text[] IS NULL AND NOT c.est_demo OR c.id = ANY($1))
         ORDER BY c.name`,
       [filtre]
     ),
