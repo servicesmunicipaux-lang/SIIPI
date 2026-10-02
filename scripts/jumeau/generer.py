@@ -337,8 +337,27 @@ publications = [
      'questions': [], 'reponses': []},
 ]
 
+# --- Lot 16.3 : carnet de bord et quotas -------------------------------------------------------
+# Tirés APRÈS tout le reste, avec leur propre graine : ajouter ces données ne
+# change pas une seule valeur des sections précédentes (ni leurs attendus).
+alea_163 = random.Random(GRAINE + 163)
+carnets = []
+for i, c in enumerate(circuits[:8]):
+    benne = c['mode_collecte'] == 'conteneurs'
+    chauffeur = next(e['matricule'] for e in c['equipe'] if e['role'] == 'chauffeur')
+    compteur = 40000 + 7000 * i
+    for d in jours:
+        km = alea_163.randint(60, 110) if benne else alea_163.randint(35, 70)
+        carnets.append({'vehicule': c['vehicule'], 'circuit': c['code'], 'chauffeur': chauffeur, 'jour': iso(d),
+                        'seance': 'matin', 'compteur_sortie': compteur, 'compteur_retour': compteur + km})
+        compteur += km
+# Quota mensuel : 450 L pour un tracteur, 1 000 L pour une benne, depuis le
+# début de la période. Certains mois le dépassent : « À vérifier » le dira.
+quotas = [{'vehicule': c['vehicule'], 'litres_mois': 1000 if c['mode_collecte'] == 'conteneurs' else 450, 'depuis': iso(DEBUT)}
+          for c in circuits[:8]]
+
 jeu = {
-    'version': 1,
+    'version': 2,
     'graine': GRAINE,
     'periode': {'debut': iso(DEBUT), 'fin': iso(FIN)},
     'commune': commune,
@@ -359,6 +378,8 @@ jeu = {
     'dotations_epi': dotations_epi,
     'effectifs': effectifs,
     'publications': publications,
+    'carnets': carnets,
+    'quotas': quotas,
     'anomalies': [
         {'code': 'A1', 'domaine': 'pesees', 'constat': 'Pesée au-delà de la charge utile de la benne',
          'circuit': 'LEVEE-7', 'jour': '2026-07-14', 'voyage': 1, 'correction': {'poids_net_kg': 7400}},

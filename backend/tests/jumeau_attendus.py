@@ -141,6 +141,39 @@ def attendus(jeu, fin):
     return r
 
 
+def consommation(jeu, mois):
+    """Lot 16.3 — par engin, pour le mois AAAA-MM : litres, distance, L/100 km, écart au quota.
+
+    Définition (référentiel du dépôt, diapo 44) : litres des pleins du mois ÷
+    kilomètres parcourus au carnet ce mois-là × 100 ; écart = litres − quota
+    en vigueur au premier jour du mois. Une source absente rend « None ».
+    """
+    debut = dt.date.fromisoformat(f'{mois}-01')
+    fin = dt.date(debut.year + (debut.month == 12), debut.month % 12 + 1, 1)
+    dans = lambda d: debut <= jour(d) < fin
+    immat = {v['cle']: v['registration'] for v in jeu['vehicules']}
+    r = {}
+    for cle in immat:
+        pleins = [Decimal(str(c['litres'])) for c in jeu['carburant'] if c['vehicule'] == cle and dans(c['jour'])]
+        sorties = [Decimal(str(c['compteur_retour'])) - Decimal(str(c['compteur_sortie']))
+                   for c in jeu.get('carnets', []) if c['vehicule'] == cle and dans(c['jour'])]
+        quotas = sorted((q for q in jeu.get('quotas', []) if q['vehicule'] == cle and jour(q['depuis']) <= debut),
+                        key=lambda q: q['depuis'])
+        if not pleins and not sorties and not quotas:
+            continue
+        litres = sum(pleins) if pleins else None
+        parcouru = sum(sorties) if sorties and sum(sorties) > 0 else None
+        quota = Decimal(str(quotas[-1]['litres_mois'])) if quotas else None
+        l100 = arrondi(litres / parcouru * 100, 1) if litres is not None and parcouru else None
+        ecart = litres - quota if litres is not None and quota is not None else None
+        r[immat[cle]] = (litres, parcouru, l100, ecart)
+    return r
+
+
+def ligne_conso(t):
+    return '|'.join('None' if x is None else f'{Decimal(x).normalize():f}' for x in t)
+
+
 def texte(valeur, note):
     v = f'{Decimal(valeur).normalize():f}'
     return v if note is None else f'{v} (note {note:.6f})'
@@ -148,6 +181,17 @@ def texte(valeur, note):
 
 def main():
     jeu = json.load(open(sys.argv[1], encoding='utf-8'))
+    # python3 jumeau_attendus.py <jeu.json> --consommation AAAA-MM <obtenus.json>
+    # Une ligne par engin : « immatriculation<TAB>litres|km|L/100 km|écart (attendu)<TAB>(obtenu) ».
+    if sys.argv[2] == '--consommation':
+        a = consommation(jeu, sys.argv[3])
+        obtenus = {}
+        for e in json.load(open(sys.argv[4], encoding='utf-8'), parse_float=Decimal) or []:
+            obtenus[e['registration']] = tuple(None if e[k] is None else Decimal(str(e[k]))
+                                               for k in ('litres', 'parcouru', 'litres_100km', 'ecart_quota_litres'))
+        for immat in sorted(set(a) | set(obtenus)):
+            print(f"{immat}\t{ligne_conso(a[immat]) if immat in a else 'absent'}\t{ligne_conso(obtenus[immat]) if immat in obtenus else 'absent'}")
+        return
     a = attendus(jeu, dt.date.fromisoformat(sys.argv[2]))
     if len(sys.argv) < 4:
         for code in sorted(a):

@@ -167,6 +167,11 @@ export type Compte = Reponse<'/comptes', 'get'>[number];
 export type Vehicule = Reponse<'/trucks', 'get'>[number];
 export type EtatDuParc = Reponse<'/trucks/etat', 'get'>;
 export type Agent = Reponse<'/personnel', 'get'>[number];
+// --- Lot 16.3 : carnet de bord, carburant, consommation ----------------------
+export type SortieCarnet = Reponse<'/exploitation/carnets', 'get'>[number];
+export type Consommation = Reponse<'/exploitation/consommation', 'get'>;
+export type QuotaCarburant = Reponse<'/exploitation/quotas', 'get'>[number];
+export type DocumentEmis = Reponse<'/documents', 'get'>[number];
 export type LigneEffectif = Reponse<'/personnel/effectif', 'get'>[number];
 export type EquipeDuJour = Reponse<'/personnel/equipes', 'get'>[number];
 export type FichierDepose = ReponseCreee<'/fichiers', 'post'>;
@@ -802,6 +807,40 @@ export const api = {
   //
   // Aucune de ces routes ne rend un salaire individuel ni une donnée de santé :
   // la base n'en porte pas. Le coût existe au niveau du service et de l'année.
+  // --- Lot 16.3 : carnet de bord, bons de carburant, quota, L/100 km ---------
+  carnets: (communeId: string, mois: string) =>
+    requete<SortieCarnet[]>(`/exploitation/carnets?communeId=${encodeURIComponent(communeId)}&mois=${mois}`),
+  enregistrerSortie: (communeId: string, saisie: Corps<'/exploitation/carnets', 'post'>) =>
+    requete<SortieCarnet>(`/exploitation/carnets?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  saisirRetour: (id: string, saisie: Corps<'/exploitation/carnets/{id}/retour', 'patch'>) =>
+    requete<SortieCarnet>(`/exploitation/carnets/${id}/retour`, { method: 'PATCH', body: JSON.stringify(saisie) }),
+  retirerSortie: (id: string) => requete<void>(`/exploitation/carnets/${id}`, { method: 'DELETE' }),
+  consommation: (communeId: string, mois: string) =>
+    requete<Consommation>(`/exploitation/consommation?communeId=${encodeURIComponent(communeId)}&mois=${mois}`),
+  quotasCarburant: (communeId: string) =>
+    requete<QuotaCarburant[]>(`/exploitation/quotas?communeId=${encodeURIComponent(communeId)}`),
+  fixerQuota: (communeId: string, saisie: Corps<'/exploitation/quotas', 'post'>) =>
+    requete<unknown>(`/exploitation/quotas?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  emettreBonCarburant: (communeId: string, saisie: Corps<'/exploitation/bons-carburant', 'post'>) =>
+    requete<DocumentEmis>(`/exploitation/bons-carburant?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  bonsCarburant: (communeId: string) =>
+    requete<DocumentEmis[]>(`/documents?communeId=${encodeURIComponent(communeId)}&type=bon_carburant`),
+  annulerDocument: (id: string, motif: string) =>
+    requete<DocumentEmis>(`/documents/${id}/annuler`, { method: 'POST', body: JSON.stringify({ motif }) }),
+  changerUniteCompteur: (vehiculeId: string, unite: 'km' | 'heures') =>
+    requete<unknown>(`/exploitation/engins/${encodeURIComponent(vehiculeId)}/unite-compteur`, {
+      method: 'PUT',
+      body: JSON.stringify({ unite }),
+    }),
   personnel: (communeId: string) =>
     requete<Agent[]>(`/personnel?communeId=${encodeURIComponent(communeId)}`),
   effectif: (communeId: string) =>

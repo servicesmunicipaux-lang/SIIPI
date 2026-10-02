@@ -38,7 +38,10 @@ export interface EtatDemo {
   compteurs: Record<string, number>;
 }
 
-const TABLES_COMPTEES = ['vehicules', 'personnel', 'circuits', 'presences', 'pesees', 'tickets', 'fins_de_poste', 'fuel_logs', 'actions_planifiees'];
+const TABLES_COMPTEES = [
+  'vehicules', 'personnel', 'circuits', 'presences', 'pesees', 'tickets', 'fins_de_poste', 'fuel_logs', 'actions_planifiees',
+  'carnets_de_bord',
+];
 
 export async function etatDemo(client: pg.PoolClient, communeId: string): Promise<EtatDemo> {
   const jeu = lireJeu();
@@ -171,6 +174,24 @@ export async function chargerDemo(client: pg.PoolClient, communeId?: string): Pr
      SELECT $1, $1 || '-' || lower(x.vehicule), x.jour, x.litres, x.montant_tnd, 'simule'
        FROM jsonb_to_recordset($2::jsonb) AS x(vehicule text, jour date, litres numeric, montant_tnd numeric)`,
     jeu.carburant
+  );
+  // Lot 16.3 : le carnet de bord et les quotas — la distance se déduit des
+  // compteurs, comme pour une saisie réelle.
+  await charger(
+    `INSERT INTO carnets_de_bord (commune_id, vehicule_id, jour, seance, chauffeur_id, circuit_id,
+                                  compteur_sortie, compteur_retour, provenance)
+     SELECT $1, $1 || '-' || lower(x.vehicule), x.jour, x.seance, pe.id, ci.id, x.compteur_sortie, x.compteur_retour, 'simule'
+       FROM jsonb_to_recordset($2::jsonb) AS x(vehicule text, circuit text, chauffeur text, jour date, seance text,
+            compteur_sortie numeric, compteur_retour numeric)
+       JOIN circuits ci ON ci.commune_id = $1 AND ci.code = x.circuit
+       JOIN personnel pe ON pe.commune_id = $1 AND pe.matricule = x.chauffeur`,
+    jeu.carnets ?? []
+  );
+  await charger(
+    `INSERT INTO quotas_carburant (commune_id, vehicule_id, litres_mois, depuis, provenance)
+     SELECT $1, $1 || '-' || lower(x.vehicule), x.litres_mois, x.depuis, 'simule'
+       FROM jsonb_to_recordset($2::jsonb) AS x(vehicule text, litres_mois numeric, depuis date)`,
+    jeu.quotas ?? []
   );
   await charger(
     `INSERT INTO tickets (ticket_number, commune_id, category, status, priority, title, location_name, lat, lng, geom,

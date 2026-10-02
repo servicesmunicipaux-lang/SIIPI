@@ -22,6 +22,7 @@ import { Preuve } from '../composants/communal/Preuve';
 import { Circuits } from '../composants/communal/Circuits';
 import { CarteCommunale } from '../composants/communal/CarteCommunale';
 import { Comptes } from '../composants/communal/Comptes';
+import { CarnetCarburant } from '../composants/communal/CarnetCarburant';
 import { Parc } from '../composants/communal/Parc';
 import { Personnel } from '../composants/communal/Personnel';
 import { Communication } from '../composants/communal/Communication';
@@ -35,7 +36,7 @@ import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { Registres } from '../composants/registres/Registres';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 
-type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'circuits' | 'points' | 'registres' | 'parc' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'contacts' | 'comptes';
+type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -64,6 +65,7 @@ const ENTREES: EntreeNavigation<Onglet>[] = [
   { cle: 'decoupage',     pole: 'citoyens' },
 
   { cle: 'parc',          pole: 'flotte' },
+  { cle: 'carburant',     pole: 'flotte' },
   { cle: 'registres',     pole: 'flotte' },
   { cle: 'personnel',     pole: 'flotte' },
 
@@ -216,6 +218,7 @@ export function EspaceCommunal({
         {onglet === 'points' && <TableauPoints communeId={communeId} />}
         {onglet === 'registres' && <Registres communeId={communeId} />}
         {onglet === 'parc' && <Parc communeId={communeId} />}
+        {onglet === 'carburant' && <CarnetCarburant communeId={communeId} />}
         {onglet === 'personnel' && <Personnel communeId={communeId} />}
         {onglet === 'pesees' && <Pesees communeId={communeId} />}
         {onglet === 'communication' && <Communication communeId={communeId} />}

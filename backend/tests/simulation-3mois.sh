@@ -147,6 +147,15 @@ while IFS="$(printf '\t')" read -r code attendu obtenu; do
 done <"$T/comparaison.txt"
 chk "une mesure sans source n'a pas de ligne : M2-2, M1-5, M1-7, coût de maintenance" 0 \
     "$(grep -cE '^(M2-2|M1-5|M1-7|COUT_MAINTENANCE)' "$T/comparaison.txt")"
+# Lot 16.3 : la consommation de juillet, engin par engin — litres, km,
+# L/100 km, écart au quota — recalculée elle aussi hors de l'application.
+$PSQL -c "SET app.role = 'super_admin_fnct';" -c \
+  "SELECT json_agg(c) FROM app.consommation_engins('$DEMO', '2026-07-01') c" >"$T/conso.json" 2>/dev/null
+python3 "$RACINE/tests/jumeau_attendus.py" "$JEU" --consommation 2026-07 "$T/conso.json" >"$T/conso.txt"
+chk "consommation de juillet : huit engins suivis" 8 "$(wc -l <"$T/conso.txt" | tr -d ' ')"
+while IFS="$(printf '\t')" read -r immat attendu obtenu; do
+  chk "juillet, $immat : litres|km|L/100 km|écart au quota" "$attendu" "$obtenu"
+done <"$T/conso.txt"
 CODE=$(appel GET "/kpi/5-axes?communeId=$DEMO&annee=2026" "$T_FNCT")
 chk "le portail de la commune de démonstration calcule ses 5 axes" "200|$DEMO" "$CODE|$(val "d['commune_id']")"
 

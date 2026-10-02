@@ -58,6 +58,7 @@ import {
 import { frontiereSchema, recepisseInpdpSchema } from '../routes/communes.routes.js';
 import { demandeDemoSchema } from '../routes/demo.routes.js';
 import { emissionSchema, annulationSchema } from '../routes/documents.routes.js';
+import { carnetSchema, retourSchema, bonCarburantSchema, quotaSchema, uniteCompteurSchema } from '../routes/exploitation.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
@@ -1922,6 +1923,190 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: annulationSchema } } },
   },
   responses: { 200: json(DocumentEmis, 'Document annulé.'), 409: json(Erreur, 'Déjà annulé.'), ...REPONSES_COMMUNES },
+});
+
+// --- Exploitation des engins : carnet de bord, carburant (lot 16.3) --------
+
+const SortieCarnet = registry.register(
+  'SortieCarnet',
+  z.object({
+    id: z.string().uuid(),
+    vehicule_id: z.string(),
+    registration: z.string(),
+    unite_compteur: z.enum(['km', 'heures']),
+    jour: z.string(),
+    seance: z.enum(['matin', 'apres_midi', 'nuit']),
+    chauffeur_id: z.string().uuid().nullable(),
+    chauffeur_matricule: z.string().nullable(),
+    chauffeur_nom: z.string().nullable(),
+    circuit_id: z.string().uuid().nullable(),
+    circuit_nom: z.string().nullable(),
+    heure_sortie: z.string().nullable(),
+    heure_retour: z.string().nullable(),
+    compteur_sortie: z.number(),
+    compteur_retour: z.number().nullable(),
+    parcouru: z.number().nullable().openapi({ description: 'Calculé par la base (retour − sortie), jamais saisi. En km ou en heures selon l’engin.' }),
+    bon_pesee_numero: z.string().nullable(),
+    tonnage_t: z.number().nullable(),
+    observation: z.string().nullable(),
+    created_at: z.string(),
+  })
+);
+
+const paramMois = z.string().openapi({ param: { name: 'mois', in: 'query' }, example: '2026-07', description: 'Mois au format AAAA-MM.' });
+
+registry.registerPath({
+  method: 'get',
+  path: '/exploitation/carnets',
+  tags: ['Exploitation'],
+  summary: 'Carnet de bord (sorties des engins)',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional(), vehiculeId: z.string().optional(), mois: paramMois.optional() }) },
+  responses: { 200: json(z.array(SortieCarnet), 'Sorties.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/exploitation/carnets',
+  tags: ['Exploitation'],
+  summary: 'Enregistrer une sortie au carnet de bord',
+  description:
+    'Une sortie par engin, par jour et par séance (409 sinon). Le compteur au retour peut attendre que l’engin rentre ; il ne ' +
+    'peut jamais être inférieur au compteur à la sortie. La distance parcourue se déduit des deux compteurs, elle ne se saisit pas. ' +
+    'Le chauffeur et le circuit appartiennent à la commune de l’engin.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: carnetSchema } } } },
+  responses: { 201: json(SortieCarnet, 'Sortie enregistrée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/exploitation/carnets/{id}/retour',
+  tags: ['Exploitation'],
+  summary: 'Saisir le retour d’une sortie',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: retourSchema } } },
+  },
+  responses: { 200: json(SortieCarnet, 'Sortie complétée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/exploitation/carnets/{id}',
+  tags: ['Exploitation'],
+  summary: 'Retirer une sortie (retrait logique)',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 204: { description: 'Sortie retirée.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/exploitation/bons-carburant',
+  tags: ['Exploitation'],
+  summary: 'Émettre un bon de sortie carburant',
+  description:
+    'Émet le bon numéroté (registre scellé, BC-AAAA-NNNNN) ET enregistre le plein qu’il justifie, dans la même transaction. ' +
+    'Annuler le bon (POST /documents/{id}/annuler) retire le plein ; un plein sous bon valable ne se retire pas autrement. ' +
+    'Réservé à l’admin de la commune.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: bonCarburantSchema } } } },
+  responses: { 201: json(DocumentEmis, 'Bon émis.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/exploitation/quotas',
+  tags: ['Exploitation'],
+  summary: 'Quotas mensuels de carburant par engin',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional() }) },
+  responses: {
+    200: json(
+      z.array(z.object({ id: z.string().uuid(), vehicule_id: z.string(), registration: z.string(), litres_mois: z.number(), depuis: z.string(), created_at: z.string() })),
+      'Quotas.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/exploitation/quotas',
+  tags: ['Exploitation'],
+  summary: 'Fixer le quota mensuel d’un engin, à une date',
+  description: 'Le quota d’un mois est celui en vigueur au premier jour du mois. Un nouveau quota s’ajoute ; l’ancien reste pour relire les mois passés.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: quotaSchema } } } },
+  responses: {
+    201: json(z.object({ id: z.string().uuid(), vehicule_id: z.string(), litres_mois: z.number(), depuis: z.string() }), 'Quota fixé.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/exploitation/quotas/{id}',
+  tags: ['Exploitation'],
+  summary: 'Retirer un quota (retrait logique)',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 204: { description: 'Quota retiré.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/exploitation/engins/{id}/unite-compteur',
+  tags: ['Exploitation'],
+  summary: 'Unité du compteur d’un engin (km ou heures)',
+  description: 'Décide du ratio : L/100 km pour un compteur kilométrique, L/heure pour un compteur horaire.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: uniteCompteurSchema } } },
+  },
+  responses: { 200: json(z.object({ id: z.string(), registration: z.string(), unite_compteur: z.string() }), 'Unité enregistrée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/exploitation/consommation',
+  tags: ['Exploitation'],
+  summary: 'Consommation par engin et par mois : litres, distance, L/100 km, écart au quota',
+  description:
+    'Ratio mensuel du référentiel (diapo 44), exprimé en litres aux 100 km (L/heure pour un compteur horaire). Une source absente ' +
+    'rend null, jamais 0 : sans carnet de bord, pas de ratio ; sans quota, pas d’écart. Aucun ratio par chauffeur.',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional(), mois: paramMois }) },
+  responses: {
+    200: json(
+      z.object({
+        communeId: z.string(),
+        mois: z.string(),
+        engins: z.array(
+          z.object({
+            vehicule_id: z.string(),
+            registration: z.string(),
+            unite_compteur: z.enum(['km', 'heures']),
+            quota_litres: z.number().nullable(),
+            litres: z.number().nullable(),
+            pleins: z.number().int(),
+            parcouru: z.number().nullable(),
+            seances: z.number().int(),
+            litres_100km: z.number().nullable(),
+            litres_heure: z.number().nullable(),
+            ecart_quota_litres: z.number().nullable(),
+            ecart_quota_pct: z.number().nullable(),
+            sorties_ouvertes: z.number().int(),
+          })
+        ),
+      }),
+      'Consommation.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 // --- Mode démo : le jumeau numérique (lot S1) ------------------------------
@@ -5599,7 +5784,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.6',
+      version: '0.15.7',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

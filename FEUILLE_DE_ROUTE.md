@@ -35,7 +35,7 @@ de l'observatoire national (contrôlée au typage, non commitée).
 |---|---|---|---|---|
 | **S0** | Assainissement (v0.15.2, v0.15.3) | Commit du Lot 0 ; retrait des anciennes références légales dans le code, les commentaires et l'OpenAPI ; import des KMZ issus d'ArcGIS ; **un seul guide de démarrage** (`DEMARRER.bat`) au lieu de trois documents qui se contredisent, `.env.example` aligné sur le mot de passe de la base du fichier Compose, et un `/health` qui dit « base non initialisée » au lieu d'une erreur 500 à la connexion ; **intégration de la carte du conseiller SIG** (gestion des couches, fonds OpenStreetMap et Esri, sans tuiles Google chargées hors API), prévue lundi 5 octobre | Le dépôt doit être propre avant qu'un lot s'y ajoute ; le KMZ est le préalable des données de M'hamdia | ✅ **Fait**, sauf la carte du conseiller SIG — v0.15.2 : Lot 0, références légales, KMZ ; v0.15.3 : guide de démarrage unique, `.env.example`, `/health`. La carte, attendue lundi 5 octobre, ne bloque pas S1 (décision du 1er octobre) |
 | **S1** | Jumeau numérique (v0.15.4) | Jeu de données simulé de trois mois (structure de Dar Chaâbane), campagne `test:simulation-3mois`, écran « Mode démo » (§ 6bis) | Donne à tous les lots suivants un banc d'essai chiffré sans attendre une commune ; chaque lot y ajoute ses propres données | ✅ **Fait** (v0.15.4) — voir le CHANGELOG |
-| **11** | v0.16 — Conformité et pièces opposables | 16.1 barbechas · 16.2 documents à numérotation scellée · 16.3 carnet de bord et carburant · 16.4 dossier de déclassement | 16.1 d'abord : on **retire** des colonnes avant que de vraies données n'y entrent. 16.2 avant 16.3 : le bon de carburant emprunte la séquence scellée | **16.1 fait** (v0.15.5) ; **16.2 : mécanique faite** (v0.15.6), mise en page en attente des gabarits ; 16.3 et 16.4 : **oui** |
+| **11** | v0.16 — Conformité et pièces opposables | 16.1 barbechas · 16.2 documents à numérotation scellée · 16.3 carnet de bord et carburant · 16.4 dossier de déclassement | 16.1 d'abord : on **retire** des colonnes avant que de vraies données n'y entrent. 16.2 avant 16.3 : le bon de carburant emprunte la séquence scellée | **16.1 fait** (v0.15.5) ; **16.2 : mécanique faite** (v0.15.6), mise en page en attente des gabarits ; **16.3 fait** (v0.15.7) ; 16.4 : **oui** |
 | **R1** | Recette **Dar Chaâbane** — *différée* | Un mois d'usage réel du lot 11 (parc, personnel, 13 circuits déjà chargés). En attendant, le jumeau numérique (§ 6bis) | Reste l'objectif de **clôture de la version** (§ 6), mais ne bloque plus l'ouverture des jalons suivants | Dès que la commune est disponible |
 | **12** | v0.17 — Paramétrage, estimation, coût complet | 17.1 paramètres étendus · 17.3 paramètres nationaux historisés · 17.2 moteur volumétrique · 17.5 rejeu du coût de M'hamdia · 17.4 connecteur GPS | 17.3 avant 17.2 : le moteur lit la densité et la redevance ANGeD. 17.5 ferme la boucle avec une commune qui a déjà un coût calculé par un bureau d'études | **En parallèle de R1.** 17.1, 17.3, 17.5 : débloqués. 17.2 et 17.4 : **suspendus** à leurs préalables externes |
 | **R2** | Recette **M'hamdia** (puis Djerba pour le GPS) — *différée* | Circuits importés, séries de tonnage, coût rejoué | Son PCGD 2026 est le seul jeu où circuits, tonnage et coût existent ensemble | Dès que la commune est disponible ; le rejeu 17.5 se prépare sur le fichier reçu |
@@ -1329,16 +1329,17 @@ d'accueil de deux pages et une vidéo de cinq minutes.
 
 ### Niveau 1 — Les campagnes automatisées *(en place)*
 
-**Trente-six campagnes rejouables** au 02/10/2026, lancées par `backend/tests/executer.sh
+**Trente-sept campagnes rejouables** au 02/10/2026, lancées par `backend/tests/executer.sh
 <campagne>` et enchaînées par `npm test` (`assainissement`, `audit`, `barbechas`, `champs-points`, `circuits`,
-`citoyen`, `cloisonnement`, `comptes`, `contacts`, `decoupage`, `documents`, `enlevements`,
+`citoyen`, `cloisonnement`, `comptes`, `contacts`, `decoupage`, `documents`, `enlevements`, `exploitation`,
 `exports`, `fichiers`, `imports`, `intercommunal`, `kpi-5-axes`, `kpi-sources`,
 `maintenance`, `module2` à `module6`, `notifications`, `notifications-citoyen`,
 `observatoire`, `parametres`, `periode`, `prestataires`, `rapports`,
 `releves-terrain`, `simulation-3mois`, `suggestions`, `suppression`,
 `versions-decoupage`). `simulation-3mois` est celle du jumeau numérique (lot S1, § 6bis) ;
 `barbechas`, celle de la conformité du registre des pré-collecteurs (lot 16.1) ; `documents`,
-celle des documents à numérotation scellée (lot 16.2).
+celle des documents à numérotation scellée (lot 16.2) ; `exploitation`, celle du carnet de bord,
+des bons de carburant et du ratio L/100 km (lot 16.3).
 
 **Le critère d'acceptation** est celui de `CLAUDE.md` § 7 : `npm run
 verifier:contrat` et toutes ces campagnes passent, et les deux commandes de
@@ -1493,7 +1494,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **57 migrations** au 02/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **58 migrations** au 02/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |
