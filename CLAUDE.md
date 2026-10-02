@@ -17,8 +17,9 @@ l'objectif de clôture d'une version mais ne bloque plus l'ouverture des jalons
 suivants. Les lots 17.1, 17.3 et 17.5 peuvent avancer en parallèle de R1 ; 17.2 et
 17.4 restent suspendus à leurs préalables externes. Ordre : S0, S1 (jumeau
 numérique), jalon 11. **S0 est fait (v0.15.2, v0.15.3) sauf la carte du conseiller SIG,
-attendue lundi 5 octobre. S1 est fait (v0.15.4), 16.1 aussi (v0.15.5) : la suite est 16.2
-(documents à numérotation scellée), puis 16.3 et 16.4.**
+attendue lundi 5 octobre. S1 est fait (v0.15.4), 16.1 aussi (v0.15.5), et la mécanique de
+16.2 (v0.15.6, numérotation scellée) ; sa mise en page attend les gabarits validés par un chef de
+dépôt. La suite est 16.3 (carnet de bord, bons de carburant), puis 16.4.**
 
 ---
 
@@ -142,7 +143,7 @@ données personnelles). Jusqu'à confirmation par un juriste de la FNCT :
 ```bash
 docker compose exec -T api npm run migrate            # migrations en attente
 docker compose exec -T api npm run verifier:contrat   # toute route servie est documentée
-docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (35 au 02/10/2026)
+docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (36 au 02/10/2026)
 docker compose exec -T api npm run test:module4       # une seule campagne
 docker compose run  --rm web npx tsc --noEmit         # typage du front
 ```
@@ -162,7 +163,7 @@ docker compose run --rm web npx openapi-typescript http://api:4000/openapi.json 
 
 | Couche | Choix | Note |
 |---|---|---|
-| Base | PostgreSQL 16 + PostGIS 3.4 | 56 migrations au 02/10/2026, rejouées sur base neuve à chaque livraison |
+| Base | PostgreSQL 16 + PostGIS 3.4 | 57 migrations au 02/10/2026, rejouées sur base neuve à chaque livraison |
 | API | Node 22 + Express + TypeScript (ESM) | zod pour la validation |
 | Contrat | OpenAPI 3.1 **généré depuis les schémas zod d'exécution** | la documentation ne peut pas décrire autre chose que ce qui est contrôlé |
 | Front | React 19 + Vite + Tailwind v4 + Leaflet | PWA (`manifest.webmanifest`, `sw.js`) |
@@ -273,6 +274,13 @@ déclassement, bon de travail) suivent la forme attendue par l'administration
 tunisienne : en-tête de la commune, références réglementaires, numérotation
 continue, signatures. Ils sont **bilingues** et imprimables en A4.
 
+**La numérotation est scellée par la base** (migration 057) : un document ne s'émet que
+par `app.emettre_document()` (numéro attribué sous verrou, dans la même transaction),
+ne s'annule que par `app.annuler_document()` (motif obligatoire, numéro conservé), et ne
+se modifie ni ne s'efface. L'application n'a aucun droit d'écriture directe sur le
+registre. Un nouveau type de document s'ajoute à la liste de `documents_emis` — jamais par
+une table à part, qui aurait sa propre numérotation à prouver.
+
 ---
 
 ## 7. Protocole de validation — avant toute livraison
@@ -284,8 +292,8 @@ sans erreur de :**
 
 1. **`npm run verifier:contrat`** — toute route servie est documentée ;
 2. **toutes les campagnes `backend/tests/*.sh`** — pas « celles qui concernent
-   la tâche ». Elles étaient 35 au 02/10/2026 (S0 a ajouté `assainissement`,
-   S1 `simulation-3mois`, 16.1 `barbechas`).
+   la tâche ». Elles étaient 36 au 02/10/2026 (S0 a ajouté `assainissement`,
+   S1 `simulation-3mois`, 16.1 `barbechas`, 16.2 `documents`).
 
 Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 
@@ -293,7 +301,7 @@ Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 docker compose exec -T api npm test
 ```
 
-Le dossier `backend/tests/` contenait **36 fichiers `.sh`** au 02/10/2026 : 35
+Le dossier `backend/tests/` contenait **37 fichiers `.sh`** au 02/10/2026 : 36
 campagnes et `executer.sh`, le lanceur, qui n'est pas une campagne. Ces chiffres
 ne sont pas des valeurs à retenir mais à **recalculer** — un critère d'acceptation qui se
 dessèche sans bruit est pire qu'aucun :
@@ -371,12 +379,12 @@ ne génère rien. Voir `FEUILLE_DE_ROUTE.md` § 6bis.
 
 ```
 backend/
-  migrations/      056 fichiers numérotés au 02/10/2026 — l'ordre fait foi, l'empreinte aussi
+  migrations/      057 fichiers numérotés au 02/10/2026 — l'ordre fait foi, l'empreinte aussi
   src/routes/      une route par domaine ; les littéraux avant /:id
   src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF)
   src/openapi/     document.ts — le contrat, généré depuis les schémas zod
   seed/            jeux réels : Dar Chaabane, Djerba (Houmt Souk, Midoun, Ajim)
-  tests/           35 campagnes au 02/10/2026, lancées par tests/executer.sh
+  tests/           36 campagnes au 02/10/2026, lancées par tests/executer.sh
 web/
   src/composants/  communal/ · national/ · prestataire/ · kpi/ · registres/
   src/lib/api.ts   client HTTP ; api-types.ts est GÉNÉRÉ, ne pas l'écrire à la main
