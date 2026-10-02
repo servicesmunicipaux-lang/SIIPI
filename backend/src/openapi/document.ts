@@ -34,10 +34,10 @@ import {
 } from '../routes/tickets.routes.js';
 import { weighbridgeCreateSchema } from '../routes/weighbridge.routes.js';
 import { citizenRegisterSchema } from '../routes/citizens.routes.js';
-import { barbechaDeliverySchema } from '../routes/barbechas.routes.js';
+import { barbechaDeliverySchema, barbechaRevenusSchema, identiteSchema } from '../routes/barbechas.routes.js';
 import { nationalKpiSchema, fiveAxisSchema } from '../routes/kpi.routes.js';
 import { zoneCreateSchema, zoneUpdateSchema } from '../routes/zones.routes.js';
-import { provenanceSchema } from '../routes/observatoire.routes.js';
+import { provenanceSchema, hebergementSchema } from '../routes/observatoire.routes.js';
 import {
   circuitCreateSchema,
   circuitUpdateSchema,
@@ -55,7 +55,7 @@ import {
   photoSchema,
   souscriptionSchema,
 } from '../routes/citoyen.routes.js';
-import { frontiereSchema } from '../routes/communes.routes.js';
+import { frontiereSchema, recepisseInpdpSchema } from '../routes/communes.routes.js';
 import { demandeDemoSchema } from '../routes/demo.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
@@ -404,7 +404,20 @@ const ScoreCinqAxes = registry.register(
 
 const Barbecha = registry.register(
   'Barbecha',
-  z.object({ id: z.string().uuid(), commune_id: z.string().nullable() }).passthrough().openapi('Barbecha')
+  z
+    .object({
+      id: z.string().uuid(),
+      id_precollecteur: z.string().openapi({ description: 'Identifiant communal PSEUDONYME (BARB-<COMMUNE>-<ANNÉE>-NNNN).' }),
+      zone: z.string().nullable(),
+      commune_id: z.string().nullable(),
+      vehicle_type: z.string().nullable(),
+      collected_total_kg: z.number(),
+      created_at: z.string(),
+    })
+    .openapi('Barbecha', {
+      description:
+        'Registre pseudonyme des pré-collecteurs (lot 16.1) : aucune donnée d’identité. Pseudonyme et non anonyme — tant que la table d’identité existe, la donnée reste personnelle.',
+    })
 );
 
 // ---------------------------------------------------------------------------
@@ -997,9 +1010,9 @@ registry.registerPath({
   method: 'get',
   path: '/barbechas',
   tags: ['GDMA'],
-  summary: 'Récupérateurs informels recensés',
+  summary: 'Pré-collecteurs recensés (registre pseudonyme)',
   description:
-    'Module hérité du prototype, absent du TDR officiel : son maintien dans le périmètre reste à arbitrer avec la FNCT.',
+    'Module hérité du prototype, absent du TDR officiel. Depuis le lot 16.1 : ni nom, ni CIN, ni assurance maladie, ni revenu individuel.',
   security: SECURISE,
   request: { query: z.object({ communeId: paramCommuneId.optional() }) },
   responses: { 200: json(z.array(Barbecha), 'Récupérateurs visibles.'), 401: REPONSES_COMMUNES[401] },
@@ -1027,6 +1040,91 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: barbechaDeliverySchema } } },
   },
   responses: { 201: json(z.any(), 'Apport enregistré.'), ...REPONSES_COMMUNES },
+});
+
+const IdentitePrecollecteur = registry.register(
+  'IdentitePrecollecteur',
+  z.object({
+    barbecha_id: z.string().uuid(),
+    nom_complet: z.string(),
+    cin_enregistre: z.boolean().openapi({ description: 'Une empreinte de CIN est enregistrée. Ni le CIN ni l’empreinte ne sortent.' }),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+);
+
+const DESCRIPTION_IDENTITE =
+  'Le seul admin de la commune — pas la FNCT (403), pas une autre commune (404). Le CIN n’est jamais stocké : seule son ' +
+  'empreinte HMAC-SHA256, sous une clé hors de la base, sert au dédoublonnage. La base refuse toute écriture tant que la FNCT ' +
+  'n’a pas déclaré l’hébergement accrédité, et pour une commune sans récépissé INPDP (409). Chaque lecture est journalisée.';
+
+registry.registerPath({
+  method: 'get',
+  path: '/barbechas/{id}/identite',
+  tags: ['GDMA'],
+  summary: 'Identité d’un pré-collecteur',
+  description: DESCRIPTION_IDENTITE,
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 200: json(IdentitePrecollecteur, 'Identité.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/barbechas/{id}/identite',
+  tags: ['GDMA'],
+  summary: 'Enregistrer l’identité d’un pré-collecteur',
+  description: DESCRIPTION_IDENTITE,
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: identiteSchema } } },
+  },
+  responses: { 200: json(IdentitePrecollecteur, 'Identité enregistrée.'), 409: json(Erreur, 'Hébergement non accrédité, récépissé INPDP absent, ou CIN déjà enregistré.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/barbechas/{id}/identite',
+  tags: ['GDMA'],
+  summary: 'Retirer l’identité d’un pré-collecteur',
+  description: 'Retrait logique, par le seul admin de la commune ; toujours possible, accréditation révoquée ou non.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 204: { description: 'Identité retirée.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/barbechas/revenus',
+  tags: ['GDMA'],
+  summary: 'Revenu des pré-collecteurs, par zone et par mois',
+  description:
+    'Recalculé depuis les livraisons. Sous cinq pré-collecteurs distincts dans une zone, le poids et le montant sont masqués ' +
+    '(`masque = true`, valeurs nulles) : une moyenne sur deux personnes est un revenu individuel. Il n’existe plus de revenu individuel.',
+  security: SECURISE,
+  request: { query: barbechaRevenusSchema.extend({ communeId: paramCommuneId.optional() }) },
+  responses: {
+    200: json(
+      z.object({
+        communeId: z.string(),
+        mois: z.string(),
+        seuil: z.number().int(),
+        zones: z.array(
+          z.object({
+            zone: z.string(),
+            participants: z.number().int(),
+            livraisons: z.number().int(),
+            poids_kg: z.number().nullable(),
+            montant_tnd: z.number().nullable(),
+            masque: z.boolean(),
+          })
+        ),
+      }),
+      'Revenus agrégés.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 // --- Indicateurs -----------------------------------------------------------
@@ -1675,6 +1773,52 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: provenanceSchema } } },
   },
   responses: { 200: json(z.any(), 'Provenance mise à jour.'), ...REPONSES_COMMUNES },
+});
+
+const Hebergement = registry.register(
+  'HebergementIdentites',
+  z.object({
+    accredite: z.boolean(),
+    reference: z.string().nullable().openapi({ description: 'La pièce qui fonde l’accréditation.' }),
+    depuis: z.string().nullable(),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/observatoire/hebergement-identites',
+  tags: ['Observatoire'],
+  summary: 'L’hébergement des identités nominatives est-il accrédité ?',
+  description: 'Tant qu’il ne l’est pas, la base refuse toute identité de pré-collecteur, dans toutes les communes (lot 16.1).',
+  security: SECURISE,
+  responses: { 200: json(Hebergement, 'État.'), 401: REPONSES_COMMUNES[401] },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/observatoire/hebergement-identites',
+  tags: ['Observatoire'],
+  summary: 'Déclarer l’hébergement des identités accrédité, ou le révoquer',
+  description: 'FNCT seulement. « Accrédité » exige la référence de la pièce qui le fonde ; la base la refuse sans elle.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: hebergementSchema } } } },
+  responses: { 200: json(Hebergement, 'État mis à jour.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/communes/{id}/recepisse-inpdp',
+  tags: ['Communes'],
+  summary: 'Récépissé de déclaration INPDP de la commune',
+  description:
+    'Sans récépissé, la base refuse d’enregistrer la moindre identité de pré-collecteur dans la commune (loi organique n° 2004-63, lot 16.1). ' +
+    'null referme la porte sans effacer les identités déjà enregistrées.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: recepisseInpdpSchema } } },
+  },
+  responses: { 200: json(z.any(), 'Paramètres de la commune.'), ...REPONSES_COMMUNES },
 });
 
 // --- Mode démo : le jumeau numérique (lot S1) ------------------------------
@@ -5352,7 +5496,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.4',
+      version: '0.15.5',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

@@ -2072,8 +2072,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Récupérateurs informels recensés
-         * @description Module hérité du prototype, absent du TDR officiel : son maintien dans le périmètre reste à arbitrer avec la FNCT.
+         * Pré-collecteurs recensés (registre pseudonyme)
+         * @description Module hérité du prototype, absent du TDR officiel. Depuis le lot 16.1 : ni nom, ni CIN, ni assurance maladie, ni revenu individuel.
          */
         get: {
             parameters: {
@@ -2234,6 +2234,309 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/barbechas/{id}/identite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Identité d’un pré-collecteur
+         * @description Le seul admin de la commune — pas la FNCT (403), pas une autre commune (404). Le CIN n’est jamais stocké : seule son empreinte HMAC-SHA256, sous une clé hors de la base, sert au dédoublonnage. La base refuse toute écriture tant que la FNCT n’a pas déclaré l’hébergement accrédité, et pour une commune sans récépissé INPDP (409). Chaque lecture est journalisée.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Identité. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IdentitePrecollecteur"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Enregistrer l’identité d’un pré-collecteur
+         * @description Le seul admin de la commune — pas la FNCT (403), pas une autre commune (404). Le CIN n’est jamais stocké : seule son empreinte HMAC-SHA256, sous une clé hors de la base, sert au dédoublonnage. La base refuse toute écriture tant que la FNCT n’a pas déclaré l’hébergement accrédité, et pour une commune sans récépissé INPDP (409). Chaque lecture est journalisée.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomComplet: string;
+                        cin?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Identité enregistrée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["IdentitePrecollecteur"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Hébergement non accrédité, récépissé INPDP absent, ou CIN déjà enregistré. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Retirer l’identité d’un pré-collecteur
+         * @description Retrait logique, par le seul admin de la commune ; toujours possible, accréditation révoquée ou non.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Identité retirée. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/barbechas/revenus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Revenu des pré-collecteurs, par zone et par mois
+         * @description Recalculé depuis les livraisons. Sous cinq pré-collecteurs distincts dans une zone, le poids et le montant sont masqués (`masque = true`, valeurs nulles) : une moyenne sur deux personnes est un revenu individuel. Il n’existe plus de revenu individuel.
+         */
+        get: {
+            parameters: {
+                query: {
+                    mois: string;
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Revenus agrégés. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            communeId: string;
+                            mois: string;
+                            seuil: number;
+                            zones: {
+                                zone: string;
+                                participants: number;
+                                livraisons: number;
+                                poids_kg: number | null;
+                                montant_tnd: number | null;
+                                masque: boolean;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -6589,6 +6892,204 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/observatoire/hebergement-identites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * L’hébergement des identités nominatives est-il accrédité ?
+         * @description Tant qu’il ne l’est pas, la base refuse toute identité de pré-collecteur, dans toutes les communes (lot 16.1).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description État. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HebergementIdentites"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Déclarer l’hébergement des identités accrédité, ou le révoquer
+         * @description FNCT seulement. « Accrédité » exige la référence de la pièce qui le fonde ; la base la refuse sans elle.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        accredite: boolean;
+                        reference?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description État mis à jour. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HebergementIdentites"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/communes/{id}/recepisse-inpdp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Récépissé de déclaration INPDP de la commune
+         * @description Sans récépissé, la base refuse d’enregistrer la moindre identité de pré-collecteur dans la commune (loi organique n° 2004-63, lot 16.1). null referme la porte sans effacer les identités déjà enregistrées.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        numero: string | null;
+                        date: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Paramètres de la commune. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/demo": {
@@ -18158,10 +18659,17 @@ export interface components {
             overall_score: string;
             computed_at: string;
         };
+        /** @description Registre pseudonyme des pré-collecteurs (lot 16.1) : aucune donnée d’identité. Pseudonyme et non anonyme — tant que la table d’identité existe, la donnée reste personnelle. */
         Barbecha: {
             /** Format: uuid */
             id: string;
+            /** @description Identifiant communal PSEUDONYME (BARB-<COMMUNE>-<ANNÉE>-NNNN). */
+            id_precollecteur: string;
+            zone: string | null;
             commune_id: string | null;
+            vehicle_type: string | null;
+            collected_total_kg: number;
+            created_at: string;
         };
         ApercuImportCsv: {
             fichier: string;
@@ -18214,6 +18722,15 @@ export interface components {
             immobilises_sans_motif: number;
             /** @description Date du dernier inventaire. Un état du parc lu sans savoir de quand il date se prend pour l'état d'aujourd'hui, et l'on décide sur des pannes réparées depuis six mois. */
             inventaire_le: string | null;
+        };
+        IdentitePrecollecteur: {
+            /** Format: uuid */
+            barbecha_id: string;
+            nom_complet: string;
+            /** @description Une empreinte de CIN est enregistrée. Ni le CIN ni l’empreinte ne sortent. */
+            cin_enregistre: boolean;
+            created_at: string;
+            updated_at: string;
         };
         VersionDecoupage: {
             /** Format: uuid */
@@ -18448,6 +18965,12 @@ export interface components {
             derniere_activite: string | null;
             ecritures_30j: number;
             a_des_pesees: boolean;
+        };
+        HebergementIdentites: {
+            accredite: boolean;
+            /** @description La pièce qui fonde l’accréditation. */
+            reference: string | null;
+            depuis: string | null;
         };
         EtatDemo: {
             communeId: string;

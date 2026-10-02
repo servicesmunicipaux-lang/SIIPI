@@ -29,8 +29,16 @@ export const config = {
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? '',
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? '',
   vapidSubject: process.env.VAPID_SUBJECT ?? 'mailto:contact@fnct.tn',
+  // Le secret maître des empreintes de CIN (lot 16.1, SPEC_v0.16 R1). Un CIN
+  // compte 8 chiffres : un hachage simple s'énumère en secondes. L'empreinte
+  // n'a de valeur que si sa clé est hors de la base — ici, dans
+  // l'environnement, jamais en base ni dans le dépôt.
+  secretIdentites: process.env.SIIPI_SECRET_IDENTITES ?? 'dev_only_secret_identites_a_remplacer',
 };
 
 if (config.isProduction && config.jwtSecret.startsWith('dev_only')) {
   throw new Error('JWT_SECRET par défaut détecté en production. Définissez un secret fort avant tout déploiement réel.');
+}
+if (config.isProduction && config.secretIdentites.startsWith('dev_only')) {
+  throw new Error('SIIPI_SECRET_IDENTITES par défaut détecté en production. Définissez un secret fort (openssl rand -hex 32) avant tout déploiement réel.');
 }
