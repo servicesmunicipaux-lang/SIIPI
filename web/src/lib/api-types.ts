@@ -7092,6 +7092,409 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Registre des documents émis
+         * @description Numéro continu par commune, type et exercice, attribué par la base sous verrou dans la même transaction que le document : deux émissions simultanées reçoivent deux numéros distincts, une émission qui échoue n’en consomme aucun. Un document émis ne se modifie pas et ne s’efface pas ; seule l’annulation motivée est permise, et le numéro reste au registre.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    type?: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne";
+                    exercice?: number;
+                    statut?: "emis" | "annule";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Documents. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentEmis"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Émettre un document
+         * @description Numéro continu par commune, type et exercice, attribué par la base sous verrou dans la même transaction que le document : deux émissions simultanées reçoivent deux numéros distincts, une émission qui échoue n’en consomme aucun. Un document émis ne se modifie pas et ne s’efface pas ; seule l’annulation motivée est permise, et le numéro reste au registre. Réservé à l’admin de la commune : émettre une pièce de la commune est un acte de la commune, pas de la FNCT. L’objet éventuel (engin, circuit, agent, intervention) doit appartenir à la commune.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        type: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne";
+                        contenu: {
+                            [key: string]: unknown;
+                        };
+                        objet?: {
+                            /** @enum {string} */
+                            type: "vehicule" | "circuit" | "personnel" | "intervention";
+                            id: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Document émis. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentEmis"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/trous": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Numéros attribués sans document au registre
+         * @description Ne devrait jamais rien rendre. Une ligne signale une manipulation hors de l’application : la plateforme la montre au lieu de la taire.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Trous. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            type_document: string;
+                            exercice: number;
+                            numero_manquant: number;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Un document émis */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Document. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentEmis"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{id}/annuler": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Annuler un document, avec un motif
+         * @description Le numéro reste au registre et le contenu reste lisible. Un document déjà annulé répond 409. Réservé à l’admin de la commune.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Document annulé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DocumentEmis"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Déjà annulé. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/demo": {
         parameters: {
             query?: never;
@@ -18971,6 +19374,35 @@ export interface components {
             /** @description La pièce qui fonde l’accréditation. */
             reference: string | null;
             depuis: string | null;
+        };
+        DocumentEmis: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            /** @enum {string} */
+            type_document: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne";
+            exercice: number;
+            /** @description Rang continu dans le registre commune × type × exercice. Jamais réutilisé. */
+            numero: number;
+            /** @example BC-2026-00042 */
+            numero_affiche: string;
+            /** @description Contenu tel qu’émis, figé. */
+            contenu: {
+                [key: string]: unknown;
+            };
+            /** @description SHA-256 du contenu à l’émission. */
+            empreinte_contenu: string;
+            objet_type: string | null;
+            objet_id: string | null;
+            emis_le: string;
+            /** Format: uuid */
+            emis_par: string | null;
+            /** @enum {string} */
+            statut: "emis" | "annule";
+            annule_le: string | null;
+            /** Format: uuid */
+            annule_par: string | null;
+            motif_annulation: string | null;
         };
         EtatDemo: {
             communeId: string;

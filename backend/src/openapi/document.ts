@@ -57,6 +57,7 @@ import {
 } from '../routes/citoyen.routes.js';
 import { frontiereSchema, recepisseInpdpSchema } from '../routes/communes.routes.js';
 import { demandeDemoSchema } from '../routes/demo.routes.js';
+import { emissionSchema, annulationSchema } from '../routes/documents.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
@@ -1819,6 +1820,108 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: recepisseInpdpSchema } } },
   },
   responses: { 200: json(z.any(), 'Paramètres de la commune.'), ...REPONSES_COMMUNES },
+});
+
+// --- Documents à numérotation scellée (lot 16.2) ---------------------------
+
+const DocumentEmis = registry.register(
+  'DocumentEmis',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    type_document: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne']),
+    exercice: z.number().int(),
+    numero: z.number().int().openapi({ description: 'Rang continu dans le registre commune × type × exercice. Jamais réutilisé.' }),
+    numero_affiche: z.string().openapi({ example: 'BC-2026-00042' }),
+    contenu: z.record(z.unknown()).openapi({ description: 'Contenu tel qu’émis, figé.' }),
+    empreinte_contenu: z.string().openapi({ description: 'SHA-256 du contenu à l’émission.' }),
+    objet_type: z.string().nullable(),
+    objet_id: z.string().nullable(),
+    emis_le: z.string(),
+    emis_par: z.string().uuid().nullable(),
+    statut: z.enum(['emis', 'annule']),
+    annule_le: z.string().nullable(),
+    annule_par: z.string().uuid().nullable(),
+    motif_annulation: z.string().nullable(),
+  })
+);
+
+const DESCRIPTION_SCELLE =
+  'Numéro continu par commune, type et exercice, attribué par la base sous verrou dans la même transaction que le document : ' +
+  'deux émissions simultanées reçoivent deux numéros distincts, une émission qui échoue n’en consomme aucun. Un document émis ' +
+  'ne se modifie pas et ne s’efface pas ; seule l’annulation motivée est permise, et le numéro reste au registre.';
+
+registry.registerPath({
+  method: 'get',
+  path: '/documents',
+  tags: ['Documents'],
+  summary: 'Registre des documents émis',
+  description: DESCRIPTION_SCELLE,
+  security: SECURISE,
+  request: {
+    query: z.object({
+      communeId: paramCommuneId.optional(),
+      type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne']).optional(),
+      exercice: z.number().int().optional(),
+      statut: z.enum(['emis', 'annule']).optional(),
+    }),
+  },
+  responses: { 200: json(z.array(DocumentEmis), 'Documents.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/documents/trous',
+  tags: ['Documents'],
+  summary: 'Numéros attribués sans document au registre',
+  description: 'Ne devrait jamais rien rendre. Une ligne signale une manipulation hors de l’application : la plateforme la montre au lieu de la taire.',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional() }) },
+  responses: {
+    200: json(z.array(z.object({ type_document: z.string(), exercice: z.number().int(), numero_manquant: z.number().int() })), 'Trous.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/documents/{id}',
+  tags: ['Documents'],
+  summary: 'Un document émis',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 200: json(DocumentEmis, 'Document.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/documents',
+  tags: ['Documents'],
+  summary: 'Émettre un document',
+  description:
+    DESCRIPTION_SCELLE +
+    ' Réservé à l’admin de la commune : émettre une pièce de la commune est un acte de la commune, pas de la FNCT. ' +
+    'L’objet éventuel (engin, circuit, agent, intervention) doit appartenir à la commune.',
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: paramCommuneId.optional() }),
+    body: { content: { 'application/json': { schema: emissionSchema } } },
+  },
+  responses: { 201: json(DocumentEmis, 'Document émis.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/documents/{id}/annuler',
+  tags: ['Documents'],
+  summary: 'Annuler un document, avec un motif',
+  description: 'Le numéro reste au registre et le contenu reste lisible. Un document déjà annulé répond 409. Réservé à l’admin de la commune.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: annulationSchema } } },
+  },
+  responses: { 200: json(DocumentEmis, 'Document annulé.'), 409: json(Erreur, 'Déjà annulé.'), ...REPONSES_COMMUNES },
 });
 
 // --- Mode démo : le jumeau numérique (lot S1) ------------------------------
@@ -5496,7 +5599,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.5',
+      version: '0.15.6',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

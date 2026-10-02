@@ -46,6 +46,7 @@ import {
 import { citoyenRouter } from './routes/citoyen.routes.js';
 import { enlevementsRouter } from './routes/enlevements.routes.js';
 import { demoRouter } from './routes/demo.routes.js';
+import { documentsRouter } from './routes/documents.routes.js';
 import { genererDocumentOpenApi } from './openapi/document.js';
 
 
@@ -214,6 +215,8 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/citoyen', pointsSuggeresCitoyenRouter],
   // Le jumeau numérique (lot S1) : le mode démo de l'observatoire.
   ['/demo', demoRouter],
+  // Les documents à numérotation scellée (lot 16.2).
+  ['/documents', documentsRouter],
 ];
 
 for (const [prefixe, routeur] of ROUTEURS) {

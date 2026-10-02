@@ -5,6 +5,66 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.6] — 2026-10-02 — Lot 16.2 : la numérotation scellée (mécanique)
+
+Décision du 02/10 : construire la mécanique sans attendre les gabarits. Les
+quatre pièces opposables du dépôt (référentiel § 2.1) — **ordre de mission** (D3),
+**bon de sortie carburant** (D7), **bon de travail maintenance** (D11), **fiche de
+déclaration de panne** (D9) — ont désormais un registre dont la base garantit ce
+qu'un registre papier montre de lui-même : aucune page arrachée, aucune réécrite,
+aucune glissée après coup.
+
+### Ajouté
+- **Migration 057** — `sequences_documents` et `documents_emis` :
+  - **numéro continu** par commune, par type et par exercice (année à l'heure de
+    Tunis), attribué **sous verrou** dans la même transaction que le document :
+    deux émissions simultanées reçoivent deux numéros distincts, une émission qui
+    échoue n'en consomme aucun ;
+  - **jamais réutilisé** : un document annulé garde son numéro ;
+  - **contenu figé**, avec son empreinte SHA-256 : un document émis ne se modifie
+    pas et ne s'efface pas, pas même logiquement ; seule l'**annulation motivée**
+    est permise (motif d'au moins cinq caractères) ;
+  - **aucun numéro glissé** : une insertion qui ne porte pas le numéro que le
+    compteur vient d'attribuer est refusée, même au super-utilisateur ;
+  - l'application n'a **aucun droit d'écriture directe** : `app.emettre_document()`
+    et `app.annuler_document()` sont les deux seules portes ;
+  - `app.trous_documents()` : les numéros attribués sans document. Il ne devrait
+    jamais rien rendre ; une ligne trahit une manipulation hors de l'application,
+    et la plateforme la montre.
+- Émettre et annuler sont des actes de la commune : son admin, pas la FNCT, qui
+  lit les registres. L'objet d'un document (engin, circuit, agent, intervention)
+  doit appartenir à la commune.
+- Routes `GET /documents`, `GET /documents/trous`, `GET /documents/{id}`,
+  `POST /documents`, `POST /documents/{id}/annuler` — ni modification ni
+  suppression.
+- **Campagne `documents`** : elle commence par les refus (réutiliser un numéro,
+  devancer le compteur, modifier, supprimer, annuler sans motif, émettre à la place
+  de la commune, lire ou annuler chez une autre commune), puis vérifie dix
+  émissions simultanées (dix numéros distincts et contigus), qu'une émission
+  ratée ne consomme rien, l'annulation qui garde son numéro, et la détection d'un
+  trou créé hors de l'application. Elle travaille dans une commune de test qu'elle
+  crée et efface : un document émis ne s'efface pas, aucun registre réel n'est touché.
+
+### Corrigé en cours de lot
+- Le déclencheur qui fige le contenu comparait la ligne entière ; dans un
+  déclencheur `BEFORE`, la colonne générée `numero_affiche` n'est pas encore
+  calculée, si bien que **toute annulation** passait pour une réécriture du numéro.
+  Trouvé par la campagne avant toute livraison.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 57 migrations ; la 057 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 256/256, **36 bilans, 1 311 tests
+  réussis, aucun échec** (dont `documents` : 33).
+- Recomptage : 36 campagnes présentes, 36 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+
+### En attente
+- La **mise en page** (PDF bilingue A4 via `scripts/skills/pdf-template.mjs`) attend
+  les gabarits validés par un chef de dépôt en exercice (SPEC § 6). Le contenu est
+  conservé tel qu'émis : l'impression le relira, elle ne le recalculera pas.
+- Pas encore d'écran d'émission : ses formulaires dépendent des gabarits. Les bons
+  de carburant du lot 16.3 seront les premiers à passer par ce registre.
+
 ## [0.15.5] — 2026-10-02 — Lot 16.1 : conformité du registre des pré-collecteurs
 
 Premier lot du jalon 11 (v0.16, conformité et pièces opposables). La table
