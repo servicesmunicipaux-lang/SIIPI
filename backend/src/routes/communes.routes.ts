@@ -184,6 +184,8 @@ const PARAMETRES_DEFAUT = {
   seuil_entretien_jours: 30,
   alerter_actions_retard: true,
   objectif_balayage_ml_j: null as number | null,
+  recepisse_inpdp: null as string | null,
+  recepisse_inpdp_date: null as string | null,
 };
 
 export const parametresCommuneSchema = z
@@ -202,6 +204,7 @@ export async function parametresDeCommune(communeId: string) {
   const ligne = await queryOne<typeof PARAMETRES_DEFAUT & { updated_at: string; auteur: string | null }>(
     `SELECT p.delai_reclamation_jours, p.seuil_entretien_km, p.seuil_entretien_jours,
             p.alerter_actions_retard, p.objectif_balayage_ml_j::float AS objectif_balayage_ml_j,
+            p.recepisse_inpdp, p.recepisse_inpdp_date,
             p.updated_at, u.full_name AS auteur
        FROM parametres_commune p LEFT JOIN users u ON u.id = p.updated_by
       WHERE p.commune_id = $1`,
@@ -253,6 +256,39 @@ communesRouter.put(
         d.objectifBalayageMlJ !== undefined,
         d.objectifBalayageMlJ ?? null,
       ]
+    );
+    res.json(await parametresDeCommune(req.params.id));
+  })
+);
+
+// PUT /communes/:id/recepisse-inpdp — le récépissé de déclaration du
+// traitement des identités de pré-collecteurs auprès de l'INPDP (lot 16.1,
+// SPEC_v0.16 R3). Sans lui, la base refuse d'enregistrer la moindre identité
+// dans la commune. Effacer le récépissé (null) referme cette porte, sans
+// effacer les identités déjà enregistrées : leur retrait est un acte distinct.
+export const recepisseInpdpSchema = z
+  .object({
+    numero: z.string().trim().min(1).max(100).nullable(),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.').nullable(),
+  })
+  .strict()
+  .refine((d) => (d.numero === null) === (d.date === null), 'Le numéro et la date du récépissé vont ensemble.');
+
+communesRouter.put(
+  '/:id/recepisse-inpdp',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  requireCommuneAccess((req) => req.params.id),
+  asyncHandler(async (req, res) => {
+    const d = recepisseInpdpSchema.parse(req.body);
+    const commune = await queryOne('SELECT id FROM communes WHERE id = $1', [req.params.id]);
+    if (!commune) throw new ApiError(404, 'Commune introuvable.');
+    await query(
+      `INSERT INTO parametres_commune (commune_id, recepisse_inpdp, recepisse_inpdp_date, updated_by)
+       VALUES ($1, $2, $3::date, app.current_user_id())
+       ON CONFLICT (commune_id) DO UPDATE SET
+         recepisse_inpdp = $2, recepisse_inpdp_date = $3::date, updated_by = app.current_user_id()`,
+      [req.params.id, d.numero, d.date]
     );
     res.json(await parametresDeCommune(req.params.id));
   })

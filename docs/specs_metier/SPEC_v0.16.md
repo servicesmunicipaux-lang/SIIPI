@@ -50,6 +50,7 @@ exclusion est un choix, écrit au §4 de `01-referentiel-depot-municipal.md`.)*
 | D5 | Identité des pré-collecteurs : identifiant communal pseudonyme + table d'identité séparée (voir R1-R3). | 30/09 |
 | D6 | Densité : matrice engin × flux, plus jamais une constante globale (voir R4). | 30/09 |
 | D7 | La redevance ANGeD est un paramètre **historisé**, jamais une constante de code (voir R5). | 30/09 |
+| D8 | `earnings_this_month_tnd` est **supprimé**. Le revenu ne se lit plus qu'agrégé par zone et par mois, recalculé depuis les livraisons, masqué sous **cinq** pré-collecteurs distincts. Livré en v0.15.5 (lot 16.1, migration 056). | 02/10 |
 
 ---
 
@@ -215,7 +216,7 @@ v0.17 (36 circuits, 2 855 points, mais ni personnel ni pesées).
 
 | Lot | Contenu | Bloque |
 | :--- | :--- | :--- |
-| **16.1** | Conformité `barbechas` (R1-R3) : suppression des colonnes, table d'identité séparée sous RLS restreinte, empreinte HMAC, garde-fous `hebergement_pii_accredite` et `recepisse_inpdp` | Aucune pièce ; arbitrage sur `earnings_this_month_tnd` |
+| **16.1** | Conformité `barbechas` (R1-R3) : suppression des colonnes, table d'identité séparée sous RLS restreinte, empreinte HMAC, garde-fous `hebergement_pii_accredite` et `recepisse_inpdp` | ✅ **Fait** (v0.15.5) — arbitrage rendu (D8) |
 | **16.2** | Documents légaux à **numérotation scellée** : `sequences_documents` + `documents_emis` (numéro continu par commune / type / exercice, attribué sous verrou, jamais réutilisé, annulation avec motif, contenu figé), détection de trous, PDF bilingue via `scripts/skills/pdf-template.mjs` — *ordre de mission, bon carburant, bon de travail, fiche de déclaration de panne* | Gabarits à faire valider par un chef de dépôt |
 | **16.3** | **Carnet de bord** (compteurs sortie/retour, séance, chauffeur, circuit, n° de bon de pesée ; distance *déduite*, jamais saisie), **bons de carburant** numérotés, **quota mensuel par engin**, ratio litres / km ou heures, écart au quota dans « À vérifier » | — |
 | **16.4** | **Dossier de déclassement** : cumul des dépenses / prix d'acquisition avec seuil de 80 % *affiché*, rapport de rendement (jours d'immobilisation / jours travaillés), pièces jointes (stockage 041), suivi du circuit d'autorisation | `vehicules` n'a ni prix ni date d'acquisition : colonnes à ajouter |
@@ -287,7 +288,7 @@ dédiée dans `intercommunal.sh`, et **pas avant que v0.16-v0.18 aient tourné e
 | Blocage | Pour | Qui |
 | :--- | :--- | :--- |
 | Commune de recette à confirmer | tous les lots | Nacer |
-| `earnings_this_month_tnd` : supprimé ou agrégé ? | 16.1 | Nacer |
+| ~~`earnings_this_month_tnd` : supprimé ou agrégé ?~~ — **levé le 02/10 (D8)** : supprimé, agrégat seuillé | 16.1 | Nacer |
 | Confirmation juridique : responsable du traitement, déclaration ou autorisation (photos), texte à citer (loi organique 2004-63) | 16.1, 18 | Juriste FNCT |
 | Hébergement accrédité pour les identités nominatives : où, et quand | 16.1, 18 | FNCT / ANGeD |
 | Gabarits des 4 documents à faire valider par un chef de dépôt en exercice | 16.2 | Commune de recette |

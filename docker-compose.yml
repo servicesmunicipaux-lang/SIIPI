@@ -54,6 +54,9 @@ services:
     environment:
       DATABASE_URL: postgres://siipi_admin:${DB_PASSWORD:-siipi_dev_password}@db:5432/siipi_national
       JWT_SECRET: ${JWT_SECRET:-dev_only_change_me_before_any_real_deployment}
+      # Secret maître des empreintes de CIN (lot 16.1) : hors de la base, jamais
+      # dans le dépôt. L'API refuse de démarrer en production avec cette valeur.
+      SIIPI_SECRET_IDENTITES: ${SIIPI_SECRET_IDENTITES:-dev_only_secret_identites_a_remplacer}
       JWT_EXPIRES_IN: 8h
       PORT: 4000
       SIIPI_FICHIERS_DIR: /var/siipi/fichiers

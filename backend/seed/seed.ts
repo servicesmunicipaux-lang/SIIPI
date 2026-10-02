@@ -167,11 +167,14 @@ async function seedFleetAndOperations() {
   }
 
   // Module Barbécha : conservé fonctionnel (voir note dans backend/src/routes/barbechas.routes.ts),
-  // toujours rattaché à la commune pilote 1 pour la démonstration.
+  // toujours rattaché à la commune pilote 1 pour la démonstration. Registre
+  // PSEUDONYME depuis le lot 16.1 (migration 056) : ni nom, ni CIN, ni
+  // revenu — l'identité ne s'enregistre que par l'écran, et seulement quand
+  // l'hébergement est accrédité.
   await pool.query(
-    `INSERT INTO barbechas (code_id, name, zone, commune_id, vehicle_type, health_insurance_status)
-     VALUES ('BARB-MARSA-04','Salem Bouazizi','La Marsa & Bhar Lazreg',$1,'tricycle_electrique','active')
-     ON CONFLICT (code_id) DO NOTHING`,
+    `INSERT INTO barbechas (id_precollecteur, zone, commune_id, vehicle_type)
+     VALUES ('BARB-MARSA-04','La Marsa & Bhar Lazreg',$1,'tricycle_electrique')
+     ON CONFLICT (id_precollecteur) DO NOTHING`,
     [PILOT_COMMUNE_1_ID]
   );
 

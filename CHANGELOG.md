@@ -5,6 +5,68 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.5] — 2026-10-02 — Lot 16.1 : conformité du registre des pré-collecteurs
+
+Premier lot du jalon 11 (v0.16, conformité et pièces opposables). La table
+`barbechas`, héritée du prototype, portait le CIN, le nom, un statut d'assurance
+maladie, un revenu individuel et un lien de compte — ce que CLAUDE.md § 2
+interdit de stocker. SPEC_v0.16.md, réserves R1 à R3.
+
+### Supprimé
+- Du registre `barbechas` : `cin`, `health_insurance_status`, `earnings_this_month_tnd`,
+  `user_id` et `name`. Le registre devient **pseudonyme** : `id_precollecteur`
+  (ex-`code_id`), zone, commune, véhicule, cumul pesé. *Pseudonyme*, pas anonyme
+  (R1) : tant que la table d'identité existe, la donnée reste personnelle.
+- Les noms présents n'ont pas été recopiés dans la table d'identité : elle refuse
+  toute écriture tant que l'hébergement n'est pas accrédité, migration comprise.
+  En base principale, il n'y en avait qu'un, celui du jeu de démonstration du seed.
+- Du **journal d'audit** : les copies du nom, du CIN, de l'assurance et du revenu
+  que le journal gardait des lignes du registre.
+- Le revenu individuel, sur décision du 02/10/2026 (SPEC D8).
+
+### Ajouté
+- **Migration 056.**
+  - `donnees_personnelles_barbechas` : nom et **empreinte du CIN**, sous RLS forcée,
+    lue et écrite par le **seul admin de la commune** — ni la FNCT, ni une autre
+    commune. Hors du journal d'audit, qui en recopierait le contenu ; chaque
+    lecture passe par le journal des consultations (`access_log.precollecteur_ids`).
+  - La base **refuse** toute identité tant que la FNCT n'a pas déclaré
+    l'hébergement accrédité (`parametres_nationaux.hebergement_pii_accredite`,
+    pièce justificative obligatoire), et pour une commune sans **récépissé INPDP**
+    (`parametres_commune.recepisse_inpdp`, numéro et date). Le retrait d'une
+    identité, lui, reste toujours possible.
+  - `app.revenus_precollecteurs()` : le revenu par zone et par mois, recalculé
+    depuis les livraisons, **masqué sous cinq pré-collecteurs** distincts.
+- **L'empreinte** : HMAC-SHA256 du CIN normalisé, sous une clé de commune dérivée
+  d'un secret d'environnement (`SIIPI_SECRET_IDENTITES`), calculée dans l'API —
+  jamais en SQL, jamais en base. Une clé par commune : deux registres ne se
+  recoupent pas. Le CIN en clair n'est ni écrit, ni journalisé, ni renvoyé ; le
+  message d'erreur d'un CIN mal formé ne le répète pas. L'API refuse de démarrer
+  en production avec le secret de développement.
+- Routes : `GET|PUT|DELETE /barbechas/{id}/identite`, `GET /barbechas/revenus`,
+  `GET|PUT /observatoire/hebergement-identites` (FNCT), `PUT /communes/{id}/recepisse-inpdp`.
+- **Campagne `barbechas`** : elle commence par ce que la base refuse (colonnes
+  disparues, copies du journal, identité sans hébergement accrédité, sans
+  récépissé, accréditation sans pièce, lecture par la FNCT et par une autre
+  commune), puis vérifie l'empreinte (ni le CIN, ni un simple SHA-256), le
+  dédoublonnage, le journal des lectures, le revenu masqué et le retrait.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence (le seed crée le pré-collecteur de
+  démonstration sans nom) : 56 migrations ; la 056 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 251/251, **35 bilans, 1 278 tests
+  réussis, aucun échec** (dont `barbechas` : 40).
+- Recomptage : 35 campagnes présentes, 35 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Pas d'écran dans ce lot : le registre n'en avait pas ; l'API et la base portent
+  les règles.
+
+### Reste ouvert (SPEC § 6)
+- Confirmation juridique : responsable du traitement, déclaration ou autorisation.
+- Hébergement accrédité : où, et quand — d'ici là, la base refuse les identités.
+- Les **exports antérieurs** qui contenaient le CIN ou la santé : les retirer de la
+  base ne les rappelle pas. Purge à décider.
+
 ## [0.15.4] — 2026-10-01 — S1 : le jumeau numérique
 
 Aucune commune n'utilise encore la plateforme au quotidien. Le jumeau numérique

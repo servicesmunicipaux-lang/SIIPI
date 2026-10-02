@@ -75,4 +75,51 @@ observatoireRouter.patch(
   })
 );
 
-export { provenanceSchema };
+// GET|PUT /observatoire/hebergement-identites — l'hébergement des identités
+// nominatives est-il accrédité ? (lot 16.1, SPEC_v0.16 R3). Tant qu'il ne
+// l'est pas, la base refuse toute identité de pré-collecteur, dans toutes les
+// communes. Seule la FNCT le déclare, en citant la pièce qui le fonde : la
+// base refuse « accrédité » sans référence.
+const hebergementSchema = z
+  .object({
+    accredite: z.boolean(),
+    reference: z.string().trim().min(1).max(300).nullable().optional(),
+  })
+  .strict()
+  .refine((d) => !d.accredite || Boolean(d.reference), {
+    message: 'Citez la pièce qui fonde l’accréditation (arrêté, convention d’hébergement…).',
+    path: ['reference'],
+  });
+
+const lireHebergement = async () => {
+  const [ligne] = await query<{ valeur: string; reference: string | null; updated_at: string }>(
+    "SELECT valeur, reference, updated_at FROM parametres_nationaux WHERE cle = 'hebergement_pii_accredite'"
+  );
+  return { accredite: ligne?.valeur === 'true', reference: ligne?.reference ?? null, depuis: ligne?.updated_at ?? null };
+};
+
+observatoireRouter.get(
+  '/hebergement-identites',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    res.json(await lireHebergement());
+  })
+);
+
+observatoireRouter.put(
+  '/hebergement-identites',
+  requireAuth,
+  requireRole('super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const d = hebergementSchema.parse(req.body);
+    await query(
+      `UPDATE parametres_nationaux
+          SET valeur = $1, reference = $2, updated_at = now(), updated_by = app.current_user_id()
+        WHERE cle = 'hebergement_pii_accredite'`,
+      [d.accredite ? 'true' : 'false', d.accredite ? d.reference : (d.reference ?? null)]
+    );
+    res.json(await lireHebergement());
+  })
+);
+
+export { provenanceSchema, hebergementSchema };
