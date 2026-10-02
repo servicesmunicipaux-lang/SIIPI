@@ -5,6 +5,71 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.7] — 2026-10-02 — Lot 16.3 : carnet de bord, bons de carburant, L/100 km
+
+Le carnet de bord est, selon le référentiel du dépôt, « le premier manque à
+combler » : sans lui, aucun coût par engin n'est calculable. Il donne le ratio
+mensuel du référentiel (diapo 44), que SIIPI exprime d'abord en **litres aux
+100 km** — demande du 02/10.
+
+### Ajouté
+- **Migration 058.**
+  - `carnets_de_bord` : une sortie par engin, par jour et par séance (matin,
+    après-midi, nuit), compteur à la sortie et au retour, chauffeur, circuit,
+    numéro du bon de pesée, tonnage. La **distance parcourue est une colonne
+    calculée** par la base (retour − sortie) : jamais saisie. Un retour inférieur
+    à la sortie est refusé ; le chauffeur et le circuit appartiennent à la
+    commune de l'engin ; le compteur de l'engin suit le carnet, à la hausse.
+  - `vehicules.unite_compteur` (km | heures) : L/100 km pour un compteur
+    kilométrique, L/heure pour un compteur horaire. Les engins lourds de
+    chantier sont passés en heures à la création de la colonne ; la commune
+    corrige engin par engin.
+  - **Bons de carburant par le registre scellé** (lot 16.2) :
+    `app.emettre_bon_carburant()` émet le bon numéroté **et** enregistre le plein,
+    dans la même transaction. Annuler le bon retire le plein ; un plein sous bon
+    valable ne se modifie ni ne se retire seul.
+  - `quotas_carburant` : quota mensuel par engin, **daté** — celui d'un mois est
+    celui en vigueur au premier jour du mois.
+  - `app.consommation_engins()` : par engin et par mois, litres, distance,
+    **L/100 km** (ou L/heure), quota et écart. Une source absente rend `null`,
+    jamais 0 : sans carnet, pas de ratio ; sans quota, pas d'écart.
+  - **« À vérifier »** (famille carburant) : le dépassement du quota
+    (avertissement, avec la lecture du référentiel — un indicateur d'avarie, pas
+    une faute), le compteur qui recule, la sortie jamais rentrée. Aucun ratio par
+    chauffeur, aucun classement.
+- Routes `/exploitation/carnets`, `/exploitation/bons-carburant`,
+  `/exploitation/quotas`, `/exploitation/engins/{id}/unite-compteur`,
+  `/exploitation/consommation`.
+- **Écran « Carnet & carburant »** (pôle Flotte) : la consommation du mois, avec
+  la colonne **L/100 km** mise en avant et « non renseigné » là où le carnet
+  manque ; la saisie des sorties et des retours ; l'émission et l'annulation des
+  bons ; les quotas et l'unité des compteurs. FR et AR.
+- **Jumeau numérique** : 736 sorties au carnet et 8 quotas ajoutés au jeu (tirés
+  après tout le reste, avec leur propre graine : aucune donnée existante ne
+  change). La campagne `simulation-3mois` compare la consommation de juillet,
+  engin par engin, au calcul indépendant de `jumeau_attendus.py`.
+- **Campagne `exploitation`** : elle commence par les refus (retour inférieur à la
+  sortie, litres négatifs, distance saisie, sortie dans l'avenir, séance en double,
+  chauffeur ou engin d'une autre commune, bon émis par la FNCT, quota nul, plein
+  sous bon modifié ou retiré seul), puis recalcule à la main un mois de
+  consommation (25,0 L/100 km, 8,00 L/heure, écart au quota), vérifie « À
+  vérifier », et l'annulation d'un bon qui retire son plein et ramène le ratio à
+  14,6 L/100 km. Elle travaille dans deux communes de test qu'elle efface : un bon
+  consomme un numéro du registre scellé.
+- `seed:parc` pose l'unité du compteur à la création d'un engin (heures pour un
+  engin lourd) : sans cela, une installation neuve — où la colonne naît avant le
+  parc — aurait laissé les chargeuses en kilomètres.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 58 migrations ; la 058 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 266/266, **37 bilans, 1 358 tests
+  réussis, aucun échec** (dont `exploitation` : 38 ; `simulation-3mois` : 82, avec
+  la consommation de juillet des huit engins du jumeau).
+- Recomptage : 37 campagnes présentes, 37 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur, jumeau numérique, juillet 2026 : 36,6 L/100 km pour une benne, 28,3
+  pour un tracteur, écart au quota affiché ; version arabe en RTL.
+
 ## [0.15.6] — 2026-10-02 — Lot 16.2 : la numérotation scellée (mécanique)
 
 Décision du 02/10 : construire la mécanique sans attendre les gabarits. Les

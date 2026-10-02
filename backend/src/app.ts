@@ -47,6 +47,7 @@ import { citoyenRouter } from './routes/citoyen.routes.js';
 import { enlevementsRouter } from './routes/enlevements.routes.js';
 import { demoRouter } from './routes/demo.routes.js';
 import { documentsRouter } from './routes/documents.routes.js';
+import { exploitationRouter } from './routes/exploitation.routes.js';
 import { genererDocumentOpenApi } from './openapi/document.js';
 
 
@@ -217,6 +218,8 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/demo', demoRouter],
   // Les documents à numérotation scellée (lot 16.2).
   ['/documents', documentsRouter],
+  // Carnet de bord, bons de carburant, quota, L/100 km (lot 16.3).
+  ['/exploitation', exploitationRouter],
 ];
 
 for (const [prefixe, routeur] of ROUTEURS) {

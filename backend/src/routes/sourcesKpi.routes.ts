@@ -207,7 +207,15 @@ registresRouter.delete(
   requireAuth,
   requireRole(...ROLES),
   asyncHandler(async (req, res) => {
-    await retirer('fuel_logs', req.params.id, 'Plein');
+    try {
+      await retirer('fuel_logs', req.params.id, 'Plein');
+    } catch (err) {
+      // Un plein justifié par un bon encore valable (lot 16.3) : la base le
+      // refuse, et dit quoi faire — annuler le bon, qui retire le plein.
+      const message = (err as { message?: string }).message ?? '';
+      if (message.includes('PLEIN_SOUS_BON')) throw new ApiError(409, message.replace(/^.*PLEIN_SOUS_BON: /, ''));
+      throw err;
+    }
     res.status(204).end();
   })
 );

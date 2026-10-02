@@ -121,11 +121,15 @@ async function main() {
       );
       maj++;
     } else {
+      // L'unité du compteur (lot 16.3) se pose à la création seulement : un
+      // engin lourd de chantier a un compteur horaire. À la mise à jour, on ne
+      // touche pas à ce que la commune a pu corriger.
       await query(
         `INSERT INTO vehicules (id, registration, commune_id, type, categorie, marque,
                 date_premiere_circulation, valeur_achat_tnd, charge_utile_t, domaine_emploi,
-                etat, motif_immobilisation, inventaire_le)
-         VALUES ($13,$1,$2,$3,$4,$5,$6::date,$7,$8,$9,$10,$11,$12::date)`,
+                etat, motif_immobilisation, inventaire_le, unite_compteur)
+         VALUES ($13,$1,$2,$3,$4,$5,$6::date,$7,$8,$9,$10,$11,$12::date,
+                 CASE WHEN $4 = 'engin_lourd' THEN 'heures' ELSE 'km' END)`,
         [...valeurs, id]
       );
       crees++;
