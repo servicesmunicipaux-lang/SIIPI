@@ -17,7 +17,7 @@ l'objectif de clôture d'une version mais ne bloque plus l'ouverture des jalons
 suivants. Les lots 17.1, 17.3 et 17.5 peuvent avancer en parallèle de R1 ; 17.2 et
 17.4 restent suspendus à leurs préalables externes. Ordre : S0, S1 (jumeau
 numérique), jalon 11. **S0 est fait (v0.15.2, v0.15.3) sauf la carte du conseiller SIG,
-attendue lundi 5 octobre, qui ne bloque pas S1 : la suite est S1.**
+attendue lundi 5 octobre. S1 est fait (v0.15.4) : la suite est le jalon 11 (16.1 → 16.4).**
 
 ---
 
@@ -66,6 +66,13 @@ Suppression **logique** partout : `deleted_at` + `deleted_by`, via
 `app.supprimer(table, id)` — seule voie offerte à l'API, et sa liste blanche
 dit ce qui est supprimable. Une affectation se **clôt** (`date_fin`), elle ne
 disparaît pas : la tournée de la semaine dernière garde l'équipe qui l'a faite.
+
+**Une seule exception, assumée : le jeu de démonstration** (jumeau numérique,
+migration 055). `app.retirer_jeu_demo()` efface vraiment la commune de
+démonstration et tout ce qu'elle contient. La suppression logique protège un
+historique réel ; une pesée simulée n'est l'historique de rien, et la garder
+« supprimée » laisserait du faux en base. L'exception est tenue par la base :
+la fonction est réservée à la FNCT et refuse toute commune réelle.
 
 ### 1.5 La plateforme constate, elle ne corrige pas
 
@@ -134,7 +141,7 @@ données personnelles). Jusqu'à confirmation par un juriste de la FNCT :
 ```bash
 docker compose exec -T api npm run migrate            # migrations en attente
 docker compose exec -T api npm run verifier:contrat   # toute route servie est documentée
-docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (33 au 30/09/2026)
+docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (34 au 01/10/2026)
 docker compose exec -T api npm run test:module4       # une seule campagne
 docker compose run  --rm web npx tsc --noEmit         # typage du front
 ```
@@ -154,7 +161,7 @@ docker compose run --rm web npx openapi-typescript http://api:4000/openapi.json 
 
 | Couche | Choix | Note |
 |---|---|---|
-| Base | PostgreSQL 16 + PostGIS 3.4 | 54 migrations au 30/09/2026, rejouées sur base neuve à chaque livraison |
+| Base | PostgreSQL 16 + PostGIS 3.4 | 55 migrations au 01/10/2026, rejouées sur base neuve à chaque livraison |
 | API | Node 22 + Express + TypeScript (ESM) | zod pour la validation |
 | Contrat | OpenAPI 3.1 **généré depuis les schémas zod d'exécution** | la documentation ne peut pas décrire autre chose que ce qui est contrôlé |
 | Front | React 19 + Vite + Tailwind v4 + Leaflet | PWA (`manifest.webmanifest`, `sw.js`) |
@@ -276,9 +283,8 @@ sans erreur de :**
 
 1. **`npm run verifier:contrat`** — toute route servie est documentée ;
 2. **toutes les campagnes `backend/tests/*.sh`** — pas « celles qui concernent
-   la tâche ». Elles étaient 33 au 30/09/2026 (S0 a ajouté `assainissement`) ;
-   **`simulation-3mois`** (`npm run test:simulation-3mois`, lot S1) s'y ajoute à
-   sa création.
+   la tâche ». Elles étaient 34 au 01/10/2026 (S0 a ajouté `assainissement`,
+   S1 `simulation-3mois`).
 
 Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 
@@ -286,7 +292,7 @@ Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 docker compose exec -T api npm test
 ```
 
-Le dossier `backend/tests/` contenait **34 fichiers `.sh`** au 30/09/2026 : 33
+Le dossier `backend/tests/` contenait **35 fichiers `.sh`** au 01/10/2026 : 34
 campagnes et `executer.sh`, le lanceur, qui n'est pas une campagne. Ces chiffres
 ne sont pas des valeurs à retenir mais à **recalculer** — un critère d'acceptation qui se
 dessèche sans bruit est pire qu'aucun :
@@ -348,12 +354,15 @@ ce qu'il n'a pas laissé entrer. Elle bâtit ses propres données (`TEST-…`) e
 nettoie — travailler sur le jeu de Dar Chaabane l'abîme à chaque passage.
 Enregistrement dans `backend/package.json` et dans `MIGRER.bat`.
 
-**Exception assumée : `simulation-3mois`.** Elle charge un jeu de trois mois
-d'activité, non pas sur le jeu de Dar Chaabane, mais sur une **base neuve**, dans
-une commune de démonstration fictive (`est_demo`). Ses lignes portent
-`provenance = 'simule'`, elle refuse de charger sur une commune réelle, et ses
-valeurs attendues sont calculées par un script indépendant du code testé. Voir
-`FEUILLE_DE_ROUTE.md` § 6bis.
+**Exception assumée : `simulation-3mois`.** Elle ne bâtit pas de lignes `TEST-…` :
+elle charge le jeu du jumeau numérique (`backend/seed/data/jumeau_3mois.json`,
+produit une fois pour toutes par `scripts/jumeau/generer.py`) dans sa commune de
+démonstration fictive (`est_demo`), et la **retire** en partant. Ses lignes portent
+`provenance = 'simule'` ; la base refuse une ligne simulée dans une commune réelle.
+Ses valeurs attendues sont calculées par `backend/tests/jumeau_attendus.py`, qui ne
+lit que le fichier du jeu et la définition des indicateurs — jamais le code testé.
+Le jeu change ? On relance `generer.py` et on versionne le fichier : l'application
+ne génère rien. Voir `FEUILLE_DE_ROUTE.md` § 6bis.
 
 ---
 
@@ -361,12 +370,12 @@ valeurs attendues sont calculées par un script indépendant du code testé. Voi
 
 ```
 backend/
-  migrations/      054 fichiers numérotés au 30/09/2026 — l'ordre fait foi, l'empreinte aussi
+  migrations/      055 fichiers numérotés au 01/10/2026 — l'ordre fait foi, l'empreinte aussi
   src/routes/      une route par domaine ; les littéraux avant /:id
   src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF)
   src/openapi/     document.ts — le contrat, généré depuis les schémas zod
   seed/            jeux réels : Dar Chaabane, Djerba (Houmt Souk, Midoun, Ajim)
-  tests/           33 campagnes au 30/09/2026, lancées par tests/executer.sh
+  tests/           34 campagnes au 01/10/2026, lancées par tests/executer.sh
 web/
   src/composants/  communal/ · national/ · prestataire/ · kpi/ · registres/
   src/lib/api.ts   client HTTP ; api-types.ts est GÉNÉRÉ, ne pas l'écrire à la main

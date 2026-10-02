@@ -11,10 +11,17 @@ communesRouter.get(
   '/',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const gouvernorat = typeof req.query.gouvernorat === 'string' ? req.query.gouvernorat : undefined;
-    const rows = gouvernorat
-      ? await query('SELECT * FROM communes WHERE gouvernorat = $1 ORDER BY name', [gouvernorat])
-      : await query('SELECT * FROM communes ORDER BY name');
+    const gouvernorat = typeof req.query.gouvernorat === 'string' ? req.query.gouvernorat : null;
+    // La commune de démonstration (jumeau numérique) n'est pas une commune :
+    // l'annuaire ne la montre que si on la demande — le sélecteur de la FNCT,
+    // qui doit pouvoir ouvrir son portail.
+    const avecDemo = req.query.avecDemo === '1';
+    const rows = await query(
+      `SELECT * FROM communes
+        WHERE ($1::text IS NULL OR gouvernorat = $1) AND ($2 OR NOT est_demo)
+        ORDER BY name`,
+      [gouvernorat, avecDemo]
+    );
     res.json(rows);
   })
 );
@@ -32,6 +39,7 @@ communesRouter.get(
         ROUND(COALESCE(SUM(waste_tons_per_day), 0)::numeric, 1) AS total_waste_daily_tons,
         COUNT(DISTINCT gouvernorat)::int AS total_governorates
       FROM communes
+     WHERE NOT est_demo
     `);
     res.json(stats);
   })

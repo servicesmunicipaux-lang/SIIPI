@@ -34,7 +34,7 @@ de l'observatoire national (contrôlée au typage, non commitée).
 | # | Jalon | Contenu | Pourquoi à cette place | Prêt ? |
 |---|---|---|---|---|
 | **S0** | Assainissement (v0.15.2, v0.15.3) | Commit du Lot 0 ; retrait des anciennes références légales dans le code, les commentaires et l'OpenAPI ; import des KMZ issus d'ArcGIS ; **un seul guide de démarrage** (`DEMARRER.bat`) au lieu de trois documents qui se contredisent, `.env.example` aligné sur le mot de passe de la base du fichier Compose, et un `/health` qui dit « base non initialisée » au lieu d'une erreur 500 à la connexion ; **intégration de la carte du conseiller SIG** (gestion des couches, fonds OpenStreetMap et Esri, sans tuiles Google chargées hors API), prévue lundi 5 octobre | Le dépôt doit être propre avant qu'un lot s'y ajoute ; le KMZ est le préalable des données de M'hamdia | ✅ **Fait**, sauf la carte du conseiller SIG — v0.15.2 : Lot 0, références légales, KMZ ; v0.15.3 : guide de démarrage unique, `.env.example`, `/health`. La carte, attendue lundi 5 octobre, ne bloque pas S1 (décision du 1er octobre) |
-| **S1** | Jumeau numérique | Jeu de données simulé de trois mois (structure de Dar Chaâbane), campagne `test:simulation-3mois`, écran « Mode démo » (§ 6bis) | Donne à tous les lots suivants un banc d'essai chiffré sans attendre une commune ; chaque lot y ajoute ses propres données | **Oui**, dès que S0 est clos |
+| **S1** | Jumeau numérique (v0.15.4) | Jeu de données simulé de trois mois (structure de Dar Chaâbane), campagne `test:simulation-3mois`, écran « Mode démo » (§ 6bis) | Donne à tous les lots suivants un banc d'essai chiffré sans attendre une commune ; chaque lot y ajoute ses propres données | ✅ **Fait** (v0.15.4) — voir le CHANGELOG |
 | **11** | v0.16 — Conformité et pièces opposables | 16.1 barbechas · 16.2 documents à numérotation scellée · 16.3 carnet de bord et carburant · 16.4 dossier de déclassement | 16.1 d'abord : on **retire** des colonnes avant que de vraies données n'y entrent. 16.2 avant 16.3 : le bon de carburant emprunte la séquence scellée | **Oui** — rien ne bloque |
 | **R1** | Recette **Dar Chaâbane** — *différée* | Un mois d'usage réel du lot 11 (parc, personnel, 13 circuits déjà chargés). En attendant, le jumeau numérique (§ 6bis) | Reste l'objectif de **clôture de la version** (§ 6), mais ne bloque plus l'ouverture des jalons suivants | Dès que la commune est disponible |
 | **12** | v0.17 — Paramétrage, estimation, coût complet | 17.1 paramètres étendus · 17.3 paramètres nationaux historisés · 17.2 moteur volumétrique · 17.5 rejeu du coût de M'hamdia · 17.4 connecteur GPS | 17.3 avant 17.2 : le moteur lit la densité et la redevance ANGeD. 17.5 ferme la boucle avec une commune qui a déjà un coût calculé par un bureau d'études | **En parallèle de R1.** 17.1, 17.3, 17.5 : débloqués. 17.2 et 17.4 : **suspendus** à leurs préalables externes |
@@ -1300,20 +1300,43 @@ s'éteint quand on corrige la donnée.
 **Compléments non codés**, à produire dès que le mode démo existe : un guide
 d'accueil de deux pages et une vidéo de cinq minutes.
 
+**Livré en v0.15.4 (lot S1).**
+- *Le jeu* : `backend/seed/data/jumeau_3mois.json`, du 1er juin au 31 août 2026,
+  produit par `scripts/jumeau/generer.py` (graine fixe) et versionné — 29 engins,
+  61 agents, 13 circuits, présences quotidiennes, pesées, fins de poste, pleins,
+  150 réclamations, nettoyages, contrôles, incidents, EPI, un sondage et ses
+  réponses. Quatre anomalies **volontaires** (surcharge, réclamation en souffrance,
+  nettoyage oublié, engin immobilisé sans motif) ; ailleurs le jeu est propre.
+- *Les garde-fous en base* (migration 055) : `communes.est_demo`, `provenance` sur
+  dix-huit tables, refus d'une ligne simulée dans une commune réelle, exclusion du
+  statut de déploiement (donc du tableau par gouvernorat) et de la carte publique ;
+  les routes nationales (KPI, annuaire, statistiques) l'écartent aussi.
+- *Le retrait* : `app.retirer_jeu_demo()`, seule exception à la suppression
+  logique (`CLAUDE.md` § 1.4), réservée à la FNCT, refusée sur une commune réelle.
+- *L'écran* : observatoire → Outils de la FNCT → **Mode démo** (charger, ouvrir le
+  portail, recharger à l'identique, retirer) ; bannière permanente sur chaque écran
+  du portail de démonstration, en FR et en AR.
+- *La campagne* `simulation-3mois` : 22 indicateurs comparés à
+  `backend/tests/jumeau_attendus.py`, qui ne lit que le fichier du jeu.
+- *Constat* : le jeu s'arrête au 31 août ; passé trente jours, chaque circuit est
+  signalé « aucune pesée depuis trente jours » — c'est exact. Les circuits de
+  balayage reçoivent ce même signal alors qu'ils ne se pèsent pas : défaut de la
+  règle de cohérence, à revoir dans un lot à part.
+
 ---
 
 ## 6. Comment on valide : deux niveaux, et ils ne se remplacent pas
 
 ### Niveau 1 — Les campagnes automatisées *(en place)*
 
-**Trente-trois campagnes rejouables** au 30/09/2026, lancées par `backend/tests/executer.sh
+**Trente-quatre campagnes rejouables** au 01/10/2026, lancées par `backend/tests/executer.sh
 <campagne>` et enchaînées par `npm test` (`assainissement`, `audit`, `champs-points`, `circuits`,
 `citoyen`, `cloisonnement`, `comptes`, `contacts`, `decoupage`, `enlevements`,
 `exports`, `fichiers`, `imports`, `intercommunal`, `kpi-5-axes`, `kpi-sources`,
 `maintenance`, `module2` à `module6`, `notifications`, `notifications-citoyen`,
 `observatoire`, `parametres`, `periode`, `prestataires`, `rapports`,
-`releves-terrain`, `suggestions`, `suppression`, `versions-decoupage`). Une
-campagne de plus, `simulation-3mois`, s'y ajoute à la création du lot S1 (§ 6bis).
+`releves-terrain`, `simulation-3mois`, `suggestions`, `suppression`,
+`versions-decoupage`). `simulation-3mois` est celle du jumeau numérique (lot S1, § 6bis).
 
 **Le critère d'acceptation** est celui de `CLAUDE.md` § 7 : `npm run
 verifier:contrat` et toutes ces campagnes passent, et les deux commandes de
@@ -1468,7 +1491,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **54 migrations** au 30/09/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **55 migrations** au 01/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

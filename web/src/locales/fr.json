@@ -123,13 +123,48 @@
     "poles": {
       "cockpit": "Synthèse nationale",
       "terrain": "Communes",
-      "pilotage": "Performance & déploiement"
+      "pilotage": "Performance & déploiement",
+      "administration": "Outils de la FNCT"
     },
     "onglets": {
       "synthese": "Synthèse",
       "communes": "Annuaire des communes",
       "performance": "Concours & 5 axes",
-      "deploiement": "Déploiement par gouvernorat"
+      "deploiement": "Déploiement par gouvernorat",
+      "demo": "Mode démo"
+    },
+    "demo": {
+      "titre": "Mode démo — le jumeau numérique",
+      "intro": "Trois mois d'activité simulée dans une commune de démonstration fictive, pour préparer une démonstration ou éprouver un écran sans attendre une commune. Le jeu est fixe : chaque chargement donne exactement les mêmes données.",
+      "garde1": "La commune de démonstration est fictive : aucun nom, aucune immatriculation, aucun chiffre ne vient d’une commune réelle.",
+      "garde2": "Elle n'apparaît dans aucune vue nationale : ni synthèse, ni annuaire, ni concours, ni déploiement.",
+      "garde3": "Tout ce qui y est saisi est marqué « simulé » ; la base refuse une donnée simulée dans une commune réelle.",
+      "periode": "Période simulée",
+      "periodeValeur": "du {{debut}} au {{fin}}",
+      "etat": "État",
+      "chargee": "chargée",
+      "nonChargee": "non chargée",
+      "charger": "Charger le jeu de démonstration",
+      "recharger": "Recharger à l’identique",
+      "enChargement": "Chargement…",
+      "ouvrir": "Ouvrir le portail de démonstration",
+      "retirer": "Retirer le jeu de démonstration",
+      "enRetrait": "Retrait…",
+      "charge": "Jeu de démonstration chargé.",
+      "retire": "Jeu de démonstration retiré : la commune de démonstration et tout son contenu sont effacés.",
+      "confirmerRecharger": "Recharger rend le jeu dans son état initial : tout ce qui a été saisi ou corrigé dans le portail de démonstration sera effacé. Continuer ?",
+      "confirmerRetirer": "Retirer efface la commune de démonstration et tout ce qu’elle contient. Aucune commune réelle n’est touchée. Continuer ?",
+      "tables": {
+        "vehicules": "Engins",
+        "personnel": "Agents",
+        "circuits": "Circuits",
+        "presences": "Présences",
+        "pesees": "Pesées",
+        "tickets": "Réclamations",
+        "fins_de_poste": "Fins de poste",
+        "fuel_logs": "Pleins de carburant",
+        "actions_planifiees": "Nettoyages"
+      }
     }
   },
   "commun": {
@@ -1384,6 +1419,11 @@
       "flotte": "Flotte, GMAO & dépôt",
       "pilotage": "Pilotage & évaluation",
       "administration": "Administration"
+    },
+    "demo": {
+      "groupe": "Démonstration (fictive)",
+      "banniereTitre": "Données de démonstration",
+      "banniereTexte": "Cette commune est fictive et ses chiffres sont simulés (jumeau numérique). Ils ne décrivent aucune commune réelle et ne comptent dans aucune vue nationale."
     }
   },
   "prestataire": {

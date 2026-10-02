@@ -305,11 +305,14 @@ export interface paths {
         };
         /**
          * Annuaire des 350 communes
-         * @description Visible par tout utilisateur authentifié, quelle que soit sa commune : le TDR en fait un référentiel national partagé, support de la comparaison entre communes.
+         * @description Visible par tout utilisateur authentifié, quelle que soit sa commune : le TDR en fait un référentiel national partagé, support de la comparaison entre communes. La commune de démonstration (jumeau numérique) n’y figure que sur demande, avec `avecDemo=1`.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    gouvernorat?: string;
+                    avecDemo?: "1";
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -6586,6 +6589,266 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * État du jeu de démonstration (jumeau numérique)
+         * @description FNCT seulement. La commune de démonstration est fictive, marquée `est_demo`, et exclue de toute agrégation nationale.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description État du jeu. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtatDemo"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/demo/charger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Charger, ou recharger à l’identique, le jeu de démonstration
+         * @description FNCT seulement. Trois mois d’activité simulée (fichier versionné, graine fixe) dans une commune de démonstration ; un jeu déjà chargé est d’abord retiré. Chaque ligne porte `provenance = simule`. Une commune réelle est refusée (409), et la base refuse de toute façon une ligne simulée hors d’une commune de démonstration.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        communeId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Jeu chargé. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtatDemo"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Commune réelle. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/demo/retirer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retirer le jeu de démonstration
+         * @description FNCT seulement. Efface la commune de démonstration et tout ce qu’elle contient — exception assumée à la suppression logique : rien de ce qui est effacé n’a eu lieu. Une commune réelle est refusée (409), par la route puis par la base.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        communeId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Jeu retiré (lignesEffacees : pesées, présences et réclamations). */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            communeId: string;
+                            /** @enum {boolean} */
+                            retiree: true;
+                            lignesEffacees: number;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Commune réelle. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/comptes": {
@@ -17754,6 +18017,8 @@ export interface components {
             cleanliness_index: number | null;
             /** @description Commune pilote du MVP (TDR §1.2). */
             is_pilot: boolean;
+            /** @description Commune de démonstration fictive (jumeau numérique). Absente de l’annuaire sauf `avecDemo=1`. */
+            est_demo: boolean;
             has_pcgd: boolean | null;
             pcgd_status: string | null;
             lat: number | null;
@@ -18183,6 +18448,20 @@ export interface components {
             derniere_activite: string | null;
             ecritures_30j: number;
             a_des_pesees: boolean;
+        };
+        EtatDemo: {
+            communeId: string;
+            /** @description Vrai si la commune de démonstration existe, avec son jeu. */
+            chargee: boolean;
+            /** @description Les trois mois simulés, fixes. */
+            periode: {
+                debut: string;
+                fin: string;
+            };
+            /** @description Lignes chargées, par table. Vide si rien n’est chargé. */
+            compteurs: {
+                [key: string]: number;
+            };
         };
         Circuit: {
             /** Format: uuid */

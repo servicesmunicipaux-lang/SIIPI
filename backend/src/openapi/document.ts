@@ -56,6 +56,7 @@ import {
   souscriptionSchema,
 } from '../routes/citoyen.routes.js';
 import { frontiereSchema } from '../routes/communes.routes.js';
+import { demandeDemoSchema } from '../routes/demo.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
@@ -211,6 +212,7 @@ const Commune = registry.register(
       collection_rate: z.number().nullable(),
       cleanliness_index: z.number().nullable(),
       is_pilot: z.boolean().openapi({ description: 'Commune pilote du MVP (TDR §1.2).' }),
+      est_demo: z.boolean().openapi({ description: 'Commune de démonstration fictive (jumeau numérique). Absente de l’annuaire sauf `avecDemo=1`.' }),
       has_pcgd: z.boolean().nullable(),
       pcgd_status: z.string().nullable(),
       lat: z.number().nullable(),
@@ -597,8 +599,15 @@ registry.registerPath({
   tags: ['Communes'],
   summary: 'Annuaire des 350 communes',
   description:
-    'Visible par tout utilisateur authentifié, quelle que soit sa commune : le TDR en fait un référentiel national partagé, support de la comparaison entre communes.',
+    'Visible par tout utilisateur authentifié, quelle que soit sa commune : le TDR en fait un référentiel national partagé, support de la comparaison entre communes. ' +
+    'La commune de démonstration (jumeau numérique) n’y figure que sur demande, avec `avecDemo=1`.',
   security: SECURISE,
+  request: {
+    query: z.object({
+      gouvernorat: z.string().optional(),
+      avecDemo: z.enum(['1']).optional().openapi({ description: 'Inclure la commune de démonstration (sélecteur de la FNCT).' }),
+    }),
+  },
   responses: { 200: json(z.array(Commune), 'Les 350 communes.'), 401: REPONSES_COMMUNES[401] },
 });
 
@@ -1666,6 +1675,62 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: provenanceSchema } } },
   },
   responses: { 200: json(z.any(), 'Provenance mise à jour.'), ...REPONSES_COMMUNES },
+});
+
+// --- Mode démo : le jumeau numérique (lot S1) ------------------------------
+
+const EtatDemo = registry.register(
+  'EtatDemo',
+  z.object({
+    communeId: z.string(),
+    chargee: z.boolean().openapi({ description: 'Vrai si la commune de démonstration existe, avec son jeu.' }),
+    periode: z.object({ debut: z.string(), fin: z.string() }).openapi({ description: 'Les trois mois simulés, fixes.' }),
+    compteurs: z.record(z.number().int()).openapi({ description: 'Lignes chargées, par table. Vide si rien n’est chargé.' }),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/demo',
+  tags: ['Observatoire'],
+  summary: 'État du jeu de démonstration (jumeau numérique)',
+  description: 'FNCT seulement. La commune de démonstration est fictive, marquée `est_demo`, et exclue de toute agrégation nationale.',
+  security: SECURISE,
+  responses: { 200: json(EtatDemo, 'État du jeu.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/demo/charger',
+  tags: ['Observatoire'],
+  summary: 'Charger, ou recharger à l’identique, le jeu de démonstration',
+  description:
+    'FNCT seulement. Trois mois d’activité simulée (fichier versionné, graine fixe) dans une commune de démonstration ; un jeu déjà ' +
+    'chargé est d’abord retiré. Chaque ligne porte `provenance = simule`. Une commune réelle est refusée (409), et la base refuse ' +
+    'de toute façon une ligne simulée hors d’une commune de démonstration.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: demandeDemoSchema } } } },
+  responses: { 201: json(EtatDemo, 'Jeu chargé.'), 409: json(Erreur, 'Commune réelle.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/demo/retirer',
+  tags: ['Observatoire'],
+  summary: 'Retirer le jeu de démonstration',
+  description:
+    'FNCT seulement. Efface la commune de démonstration et tout ce qu’elle contient — exception assumée à la suppression logique : ' +
+    'rien de ce qui est effacé n’a eu lieu. Une commune réelle est refusée (409), par la route puis par la base.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: demandeDemoSchema } } } },
+  responses: {
+    200: json(
+      z.object({ communeId: z.string(), retiree: z.literal(true), lignesEffacees: z.number().int() }),
+      'Jeu retiré (lignesEffacees : pesées, présences et réclamations).'
+    ),
+    409: json(Erreur, 'Commune réelle.'),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 // --- Circuits et contrôle terrain ------------------------------------------
@@ -5287,7 +5352,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.3',
+      version: '0.15.4',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
