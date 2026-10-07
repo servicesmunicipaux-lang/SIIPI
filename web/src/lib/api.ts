@@ -172,6 +172,12 @@ export type SortieCarnet = Reponse<'/exploitation/carnets', 'get'>[number];
 export type Consommation = Reponse<'/exploitation/consommation', 'get'>;
 export type QuotaCarburant = Reponse<'/exploitation/quotas', 'get'>[number];
 export type DocumentEmis = Reponse<'/documents', 'get'>[number];
+// --- Lot 16.4 : dossier de déclassement --------------------------------------
+export type ConstatDeclassement = Reponse<'/declassement/constat', 'get'>;
+export type ConstatEngin = ConstatDeclassement['engins'][number];
+export type Immobilisation = Reponse<'/declassement/immobilisations', 'get'>[number];
+export type LigneDossierDeclassement = Reponse<'/declassement/dossiers', 'get'>[number];
+export type DossierDeclassement = Reponse<'/declassement/dossiers/{id}', 'get'>;
 export type LigneEffectif = Reponse<'/personnel/effectif', 'get'>[number];
 export type EquipeDuJour = Reponse<'/personnel/equipes', 'get'>[number];
 export type FichierDepose = ReponseCreee<'/fichiers', 'post'>;
@@ -836,6 +842,40 @@ export const api = {
     requete<DocumentEmis[]>(`/documents?communeId=${encodeURIComponent(communeId)}&type=bon_carburant`),
   annulerDocument: (id: string, motif: string) =>
     requete<DocumentEmis>(`/documents/${id}/annuler`, { method: 'POST', body: JSON.stringify({ motif }) }),
+  // --- Lot 16.4 : dossier de déclassement -------------------------------------
+  //
+  // Les pièces se déposent d'abord par deposerFichier (usage « declassement »),
+  // puis se joignent au dossier par leur identifiant.
+  constatDeclassement: (communeId: string, annee: number) =>
+    requete<ConstatDeclassement>(`/declassement/constat?communeId=${encodeURIComponent(communeId)}&annee=${annee}`),
+  immobilisations: (communeId: string) =>
+    requete<Immobilisation[]>(`/declassement/immobilisations?communeId=${encodeURIComponent(communeId)}`),
+  inscrireImmobilisation: (communeId: string, saisie: Corps<'/declassement/immobilisations', 'post'>) =>
+    requete<Immobilisation>(`/declassement/immobilisations?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  fermerImmobilisation: (id: string, fin: string) =>
+    requete<Immobilisation>(`/declassement/immobilisations/${id}/fin`, { method: 'PATCH', body: JSON.stringify({ fin }) }),
+  retirerImmobilisation: (id: string) => requete<void>(`/declassement/immobilisations/${id}`, { method: 'DELETE' }),
+  dossiersDeclassement: (communeId: string) =>
+    requete<LigneDossierDeclassement[]>(`/declassement/dossiers?communeId=${encodeURIComponent(communeId)}`),
+  dossierDeclassement: (id: string) => requete<DossierDeclassement>(`/declassement/dossiers/${id}`),
+  proposerDeclassement: (communeId: string, saisie: Corps<'/declassement/dossiers', 'post'>) =>
+    requete<DossierDeclassement>(`/declassement/dossiers?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  corrigerDossierDeclassement: (id: string, saisie: Corps<'/declassement/dossiers/{id}', 'patch'>) =>
+    requete<DossierDeclassement>(`/declassement/dossiers/${id}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
+  inscrireEtapeDeclassement: (id: string, saisie: Corps<'/declassement/dossiers/{id}/etapes', 'post'>) =>
+    requete<DossierDeclassement>(`/declassement/dossiers/${id}/etapes`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerEtapeDeclassement: (id: string, etapeId: string) =>
+    requete<DossierDeclassement>(`/declassement/dossiers/${id}/etapes/${etapeId}`, { method: 'DELETE' }),
+  joindrePieceDeclassement: (id: string, saisie: Corps<'/declassement/dossiers/{id}/pieces', 'post'>) =>
+    requete<DossierDeclassement>(`/declassement/dossiers/${id}/pieces`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerPieceDeclassement: (id: string, pieceId: string) =>
+    requete<DossierDeclassement>(`/declassement/dossiers/${id}/pieces/${pieceId}`, { method: 'DELETE' }),
   changerUniteCompteur: (vehiculeId: string, unite: 'km' | 'heures') =>
     requete<unknown>(`/exploitation/engins/${encodeURIComponent(vehiculeId)}/unite-compteur`, {
       method: 'PUT',

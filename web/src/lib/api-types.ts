@@ -8306,6 +8306,1101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/declassement/constat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Constat par engin : âge, cumul des dépenses et seuil de 80 %, rapport de rendement
+         * @description Calculé par la base (app.constat_declassement). Une source non tenue rend null, jamais 0. Les engins déjà réformés n’y figurent pas.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    annee?: number | null;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Constat. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            communeId: string;
+                            annee: number;
+                            engins: components["schemas"]["ConstatDeclassement"][];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/declassement/immobilisations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Périodes d’immobilisation des engins */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    vehiculeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Périodes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImmobilisationEngin"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Inscrire une période d’immobilisation
+         * @description Pour le passé, ou une panne connue. Les périodes s’ouvrent et se ferment aussi d’elles-mêmes quand l’état de l’engin change. Deux périodes d’un même engin ne se chevauchent pas (409) ; ni le début ni la fin ne sont dans l’avenir.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        vehiculeId: string;
+                        debut: string;
+                        fin?: string | null;
+                        motif?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Période inscrite. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImmobilisationEngin"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Chevauchement. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/declassement/immobilisations/{id}/fin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Fermer (ou corriger la fin d’) une période d’immobilisation */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        fin: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Période mise à jour. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImmobilisationEngin"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Chevauchement. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/declassement/immobilisations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retirer une période d’immobilisation (retrait logique) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Période retirée. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/declassement/dossiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Liste de proposition au déclassement (diapo 85)
+         * @description Type, marque, matricule, âge en années décimales au jour de la proposition, date, motifs — et où en est le circuit.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    statut?: "en_cours" | "adjuge" | "sans_suite";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Dossiers. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            vehicule_id: string;
+                            registration: string;
+                            type_engin: string;
+                            marque: string | null;
+                            age_annees: number | null;
+                            date_proposition: string;
+                            motifs: ("depenses_80" | "pannes_repetees" | "reparation_excessive" | "service_degrade" | "mauvais_usage")[];
+                            /** @enum {string} */
+                            statut: "en_cours" | "adjuge" | "sans_suite";
+                            /**
+                             * @description Le seuil de 80 % du prix d’acquisition (référentiel, diapo 83), AFFICHÉ — il ne déclasse rien. indetermine : non atteint, mais des interventions n’ont pas de coût ; non_calculable : pas de valeur d’achat, ou carnet d’entretien non tenu.
+                             * @enum {string}
+                             */
+                            seuil_80: "atteint" | "non_atteint" | "indetermine" | "non_calculable";
+                            part_depenses_pct: number | null;
+                            /** @enum {string|null} */
+                            derniere_etape: "accord_commune" | "avis_domaines" | "avis_controle_technique" | "publicite_legale" | "adjudication" | "sans_suite" | null;
+                            date_derniere_etape: string | null;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Proposer un engin au déclassement
+         * @description Ouvre le dossier : motifs (conditions de la diapo 83), rapport détaillé, coût estimatif de la réparation. Le constat est calculé et figé par la base au jour de la proposition. Un seul dossier en cours par engin (409). Réservé à l’admin de la commune.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        vehiculeId: string;
+                        motifs: ("depenses_80" | "pannes_repetees" | "reparation_excessive" | "service_degrade" | "mauvais_usage")[];
+                        expose: string;
+                        coutReparationEstimeTnd?: number | null;
+                        dateProposition?: string;
+                        anneeRendement?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Dossier ouvert. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DossierDeclassement"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Dossier déjà en cours, ou engin réformé. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/declassement/dossiers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Un dossier de déclassement : constat figé et du jour, dépenses, pièces, circuit */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Dossier. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DossierDeclassement"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Corriger les motifs, le rapport ou le coût estimatif
+         * @description Tant qu’aucune étape du circuit n’est inscrite. Ensuite, le dossier est figé (409).
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motifs?: ("depenses_80" | "pannes_repetees" | "reparation_excessive" | "service_degrade" | "mauvais_usage")[];
+                        expose?: string;
+                        coutReparationEstimeTnd?: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Dossier corrigé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DossierDeclassement"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Dossier figé. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/declassement/dossiers/{id}/etapes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inscrire une étape du circuit d’autorisation
+         * @description Dans l’ordre que la base impose : accord de l’administration communale ; avis des Domaines de l’État et du contrôle technique (après un accord favorable) ; publicité légale (après deux avis favorables) ; adjudication, qui clôt le dossier. « sans_suite », avec son motif, le clôt à tout moment. Une date ne précède ni la proposition ni l’étape précédente, et n’est pas dans l’avenir. L’engin adjugé ne passe pas « réformé » de lui-même : « À vérifier » le rappelle. Réservé à l’admin de la commune.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        etape: "accord_commune" | "avis_domaines" | "avis_controle_technique" | "publicite_legale" | "adjudication" | "sans_suite";
+                        dateEtape: string;
+                        /** @enum {string|null} */
+                        sens?: "favorable" | "defavorable" | null;
+                        reference?: string | null;
+                        observation?: string | null;
+                        /** @enum {string|null} */
+                        modeAdjudication?: "pli_ferme" | "enchere_publique" | null;
+                        montantAdjugeTnd?: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Étape inscrite. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DossierDeclassement"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Étape prématurée, en double, ou dossier clos. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/declassement/dossiers/{id}/etapes/{etapeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer une étape saisie à tort
+         * @description Tant que le dossier est en cours et qu’aucune étape suivante ne s’appuie sur elle (409 sinon).
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    etapeId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Étape retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DossierDeclassement"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Étape dont une autre dépend, ou dossier clos. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/declassement/dossiers/{id}/pieces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Joindre une pièce au dossier
+         * @description Le fichier est déposé d’abord par POST /fichiers (usage « declassement ») ; il appartient à la commune du dossier.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        fichierId: string;
+                        /** @enum {string} */
+                        nature: "facture_acquisition" | "inventaire_depenses" | "rapport_rendement" | "devis_reparation" | "decision_commune" | "avis_domaines" | "avis_controle_technique" | "publicite" | "pv_adjudication" | "autre";
+                    };
+                };
+            };
+            responses: {
+                /** @description Pièce jointe. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DossierDeclassement"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Fichier déjà joint. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/declassement/dossiers/{id}/pieces/{pieceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer une pièce jointe
+         * @description Tant que le dossier est en cours : les pièces d’un dossier clos restent (409).
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    pieceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Pièce retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DossierDeclassement"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Dossier clos. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/demo": {
         parameters: {
             query?: never;
@@ -16007,7 +17102,7 @@ export interface paths {
                         nomFichier: string;
                         contenu: string;
                         /** @enum {string} */
-                        usage?: "reclamation" | "preuve_traitement" | "constat_terrain" | "passage" | "incident" | "suggestion_point" | "document_projet" | "enlevement" | "rapport_etude" | "autre";
+                        usage?: "reclamation" | "preuve_traitement" | "constat_terrain" | "passage" | "incident" | "suggestion_point" | "document_projet" | "enlevement" | "rapport_etude" | "declassement" | "autre";
                         /** Format: uuid */
                         destinataireCitoyenId?: string;
                     };
@@ -20242,6 +21337,118 @@ export interface components {
             tonnage_t: number | null;
             observation: string | null;
             created_at: string;
+        };
+        ConstatDeclassement: {
+            vehicule_id: string;
+            registration: string;
+            type_engin: string;
+            categorie: string | null;
+            marque: string | null;
+            etat: string;
+            date_premiere_circulation: string | null;
+            /** @description Âge en années décimales (diapo 85), depuis la première mise en circulation. */
+            age_annees: number | null;
+            valeur_achat_tnd: number | null;
+            /** @description Entretien et réparation depuis l’acquisition (carburant exclu). Null si le carnet d’entretien n’est pas tenu. */
+            cumul_depenses_tnd: number | null;
+            interventions: number | null;
+            interventions_sans_cout: number | null;
+            part_depenses_pct: number | null;
+            /**
+             * @description Le seuil de 80 % du prix d’acquisition (référentiel, diapo 83), AFFICHÉ — il ne déclasse rien. indetermine : non atteint, mais des interventions n’ont pas de coût ; non_calculable : pas de valeur d’achat, ou carnet d’entretien non tenu.
+             * @enum {string}
+             */
+            seuil_80: "atteint" | "non_atteint" | "indetermine" | "non_calculable";
+            pannes_12_mois: number | null;
+            annee: number;
+            /** @description Dans l’année. Null si le registre des immobilisations n’est pas tenu, ou si le début de l’immobilisation en cours est inconnu. */
+            jours_immobilisation: number | null;
+            debut_immobilisation_inconnu: boolean;
+            /** @description Jours distincts au carnet de bord dans l’année. Null si la commune ne tient pas le carnet cette année-là. */
+            jours_travailles: number | null;
+            /** @description Jours d’immobilisation / jours travaillés. */
+            rapport_rendement: number | null;
+        };
+        ImmobilisationEngin: {
+            /** Format: uuid */
+            id: string;
+            vehicule_id: string;
+            registration: string;
+            debut: string;
+            /** @description Dernier jour d’immobilisation, compris. Null : toujours à l’arrêt. */
+            fin: string | null;
+            motif: string | null;
+            /** @enum {string} */
+            origine: "saisie" | "etat_engin";
+            jours: number;
+            created_at: string;
+        };
+        DossierDeclassement: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            vehicule_id: string;
+            registration: string;
+            type_engin: string;
+            marque: string | null;
+            etat_engin: string;
+            date_proposition: string;
+            motifs: ("depenses_80" | "pannes_repetees" | "reparation_excessive" | "service_degrade" | "mauvais_usage")[];
+            expose: string;
+            cout_reparation_estime_tnd: number | null;
+            annee_rendement: number;
+            constat: components["schemas"]["ConstatDeclassement"] & unknown;
+            /** @enum {string} */
+            statut: "en_cours" | "adjuge" | "sans_suite";
+            created_at: string;
+            constat_du_jour: components["schemas"]["ConstatDeclassement"] & (Record<string, never> | null);
+            etapes: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                etape: "accord_commune" | "avis_domaines" | "avis_controle_technique" | "publicite_legale" | "adjudication" | "sans_suite";
+                date_etape: string;
+                /** @enum {string|null} */
+                sens: "favorable" | "defavorable" | null;
+                reference: string | null;
+                observation: string | null;
+                /** @enum {string|null} */
+                mode_adjudication: "pli_ferme" | "enchere_publique" | null;
+                montant_adjuge_tnd: number | null;
+                created_at: string;
+            }[];
+            pieces: {
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                nature: "facture_acquisition" | "inventaire_depenses" | "rapport_rendement" | "devis_reparation" | "decision_commune" | "avis_domaines" | "avis_controle_technique" | "publicite" | "pv_adjudication" | "autre";
+                /** Format: uuid */
+                fichier_id: string;
+                nom_original: string;
+                type_mime: string;
+                taille_octets: number;
+                url: string;
+                created_at: string;
+            }[];
+            /** @description L’inventaire des dépenses de l’engin depuis son acquisition : son carnet d’entretien. */
+            depenses: {
+                /** Format: uuid */
+                id: string;
+                date_intervention: string;
+                type: string;
+                nature: string;
+                description: string | null;
+                cout_tnd: number | null;
+                prestataire: string | null;
+            }[];
+            /** @description Les quatre pièces obligatoires (diapo 83) et leur état. Affiché, jamais bloquant. */
+            completude: {
+                /** @enum {string} */
+                piece: "facture_acquisition" | "inventaire_depenses" | "rapport_rendement" | "devis_reparation";
+                /** @enum {string} */
+                statut: "jointe" | "calculee" | "renseignee" | "manquante";
+            }[];
+            etapes_possibles: ("accord_commune" | "avis_domaines" | "avis_controle_technique" | "publicite_legale" | "adjudication" | "sans_suite")[];
         };
         EtatDemo: {
             communeId: string;

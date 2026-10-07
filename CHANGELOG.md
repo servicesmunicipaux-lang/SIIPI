@@ -5,6 +5,90 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.8] — 2026-10-07 — Lot 16.4 : le dossier de déclassement
+
+Le référentiel du dépôt (diapos 83 à 85) ne décrit pas une fiche mais une
+**procédure** : des conditions de proposition, quatre pièces obligatoires, un
+circuit d'autorisation. SIIPI l'instruit ; il ne déclasse rien. Le prix et la
+date de mise en circulation existaient déjà (`valeur_achat_tnd`,
+`date_premiere_circulation`, migration 032) : aucune colonne n'a été ajoutée aux
+engins.
+
+### Ajouté
+- **Migration 059.**
+  - `immobilisations_engins` : les périodes où un engin n'a pas pu servir. Elles
+    **s'ouvrent et se ferment d'elles-mêmes** quand l'état de l'engin change
+    (en service ↔ en panne / à réformer), à la date que porte l'état ; elles se
+    saisissent aussi pour le passé. Deux périodes d'un même engin ne se
+    chevauchent pas. Un engin à l'arrêt **sans date connue n'ouvre rien** : son
+    immobilisation est dite « de début inconnu » (les 13 engins immobilisés de
+    Dar Chaabane, dont l'inventaire ne date aucune panne).
+  - `app.constat_declassement()` : par engin, âge en années décimales, cumul des
+    dépenses d'entretien et de réparation (carburant exclu) rapporté à la valeur
+    d'achat, et le **seuil de 80 % affiché** — atteint, non atteint,
+    *indéterminé* (des interventions sans coût), *non calculable* (pas de valeur
+    d'achat, ou carnet d'entretien non tenu) ; pannes des 12 derniers mois ;
+    **rapport de rendement** de l'année : jours d'immobilisation / jours
+    travaillés au carnet de bord. Un registre non tenu rend `null`, jamais 0 ; un
+    registre tenu et vide rend 0.
+  - `dossiers_declassement` : motifs (les cinq conditions de la diapo 83),
+    rapport détaillé, coût estimatif de la réparation, et le **constat figé** par
+    la base au jour de la proposition. Un seul dossier en cours par engin ; aucun
+    sur un engin réformé ou déjà adjugé. Motifs et rapport se corrigent jusqu'à
+    la première étape ; ensuite, le dossier est figé. Il ne s'efface pas : un
+    abandon se clôt « sans suite », avec son motif.
+  - `etapes_declassement` : le **circuit dans l'ordre que la base impose** —
+    accord de l'administration communale ; avis des Domaines de l'État et du
+    contrôle technique (après un accord favorable) ; publicité légale (après deux
+    avis favorables) ; adjudication (pli fermé ou enchère publique), qui clôt le
+    dossier. Une étape ne se modifie pas ; la dernière se retire tant que rien ne
+    s'appuie sur elle et que le dossier est en cours.
+  - `pieces_declassement` : les pièces jointes (stockage, migration 041 ; usage
+    `declassement`). Le fichier d'une pièce ne se retire pas par `/fichiers` ; les
+    pièces d'un dossier clos restent.
+  - Proposer, inscrire une étape, joindre une pièce : **l'admin de la commune**
+    (`app.peut_instruire_declassement`). La FNCT lit.
+  - **« À vérifier »** (famille déclassement) : l'engin adjugé encore inscrit au
+    parc (la plateforme ne le passe pas « réformé » à la place de la commune),
+    l'engin « à réformer » sans dossier, le motif « 80 % » que le cumul enregistré
+    contredit.
+- Routes `/declassement/constat`, `/declassement/immobilisations`,
+  `/declassement/dossiers` (liste de proposition de la diapo 85, fiche, étapes,
+  pièces) — 13 routes au contrat.
+- **Écran « Déclassement »** (pôle Flotte) : il s'ouvre sur le constat du parc,
+  colonne « part du prix » mise en avant ; la fiche d'un dossier montre le constat
+  figé à côté de celui du jour, les quatre pièces obligatoires (jointe, calculée
+  par SIIPI, saisie, manquante — affichées, jamais bloquantes), l'inventaire des
+  dépenses, le circuit avec les seules étapes que la base accepterait ; le
+  registre des immobilisations. FR et AR (RTL vérifié).
+- **Campagne `declassement`** : elle commence par les refus (FNCT qui propose,
+  dossier sans motif, motif hors référentiel, rapport trop court, proposition
+  dans l'avenir, engin réformé ou d'une autre commune, second dossier en cours,
+  périodes qui se chevauchent ou à l'envers, étape prématurée, en double, datée
+  avant la proposition ou après la clôture, dossier engagé réécrit, pièce d'une
+  autre commune), puis recalcule à la main : 42 000 TND sur 50 000 → 84,0 %,
+  atteint ; 25,0 % avec une intervention sans coût → indéterminé ; 10 + 4 jours
+  d'immobilisation (la période à cheval bornée au 1er janvier) pour 20 jours
+  travaillés → 0,70 ; le constat figé qui reste à 84,0 quand une facture porte le
+  cumul du jour à 94,0. Elle travaille sur l'an dernier et l'an d'avant, dans deux
+  communes de test qu'elle efface.
+
+### Corrigé en cours de lot
+- Une période d'immobilisation saisie à l'envers (fin avant le début) faisait
+  échouer la base sur la construction de l'intervalle (500) avant son propre
+  refus : le contrôle des dates passe désormais en premier (400, message clair).
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 59 migrations ; la 059 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 279/279, **38 bilans, 1 437 tests
+  réussis, aucun échec** (dont `declassement` : 79).
+- Recomptage : 38 campagnes présentes, 38 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur (pile d'essai) : constat d'une benne à 85,5 %, « 80 % atteint », 82 jours
+  d'immobilisation (46 saisis + 36 ouverts par l'état de l'engin), jours travaillés
+  « non renseigné » sans carnet ; dossier ouvert et accord de la commune inscrits depuis
+  l'écran ; version arabe en RTL.
+
 ## [0.15.7] — 2026-10-02 — Lot 16.3 : carnet de bord, bons de carburant, L/100 km
 
 Le carnet de bord est, selon le référentiel du dépôt, « le premier manque à
