@@ -9401,6 +9401,275 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/parametres-nationaux": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les paramètres nationaux : valeur en vigueur, valeurs à venir, historique
+         * @description Redevance ANGeD, ministère de tutelle, formule d’en-tête des documents. Chaque valeur porte sa date d’effet ; la valeur d’une date est la dernière entrée en vigueur. « en_vigueur » est null tant qu’aucune ne s’applique. Lisible par tout utilisateur authentifié.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Paramètres. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            /** @enum {string} */
+                            nature: "nombre" | "texte";
+                            unite: string | null;
+                            borne_min: number | null;
+                            borne_max: number | null;
+                            libelle_fr: string;
+                            libelle_ar: string;
+                            description: string;
+                            en_vigueur: components["schemas"]["ValeurParametreNational"] & (Record<string, never> | null);
+                            a_venir: components["schemas"]["ValeurParametreNational"][];
+                            historique: components["schemas"]["ValeurParametreNational"][];
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/parametres-nationaux/valeurs/{id}/retrait": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retirer une valeur saisie à tort
+         * @description Avec un motif. La valeur reste lisible dans l’historique ; les calculs ne l’utilisent plus. Réservé à la FNCT.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Valeur retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValeurParametreNational"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/parametres-nationaux/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter une valeur datée à un paramètre national
+         * @description Une valeur ne se réécrit pas : un changement s’ajoute avec sa date d’effet. Un nombre pour la redevance (strictement entre ses bornes) ; un intitulé en français ET en arabe pour un texte. Provisoire par défaut ; une valeur officielle cite sa pièce (la base le refuse sinon). Une seconde valeur à la même date : 409. Réservé à la FNCT.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    code: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateEffet: string;
+                        valeurNombre?: number | null;
+                        valeurFr?: string | null;
+                        valeurAr?: string | null;
+                        /** @default true */
+                        provisoire?: boolean;
+                        reference?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Valeur ajoutée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValeurParametreNational"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Une valeur commence déjà à cette date. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/demo": {
         parameters: {
             query?: never;
@@ -13009,6 +13278,93 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["TonnageMensuel"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pesees/redevance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Redevance ANGeD par mois, au taux de la date de chaque pesée
+         * @description Chaque pesée est valorisée au taux de la redevance en vigueur à SA date (paramètre national daté, lot 17.3) — jamais au taux du jour du calcul. Une pesée antérieure à toute valeur n’a pas de taux : son tonnage est compté à part et le montant porte sur le reste ; montant null s’il n’y a rien de taxable. « provisoire » : un taux provisoire a servi (barème officiel non saisi).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    annee?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Redevance mensuelle. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            annee: number;
+                            mois: number;
+                            pesees: number;
+                            tonnes: number;
+                            tonnes_sans_taux: number;
+                            montant_tnd: number | null;
+                            taux_appliques: number[] | null;
+                            provisoire: boolean;
+                        }[];
                     };
                 };
                 /** @description Requête invalide — le détail indique les champs en cause. */
@@ -21449,6 +21805,21 @@ export interface components {
                 statut: "jointe" | "calculee" | "renseignee" | "manquante";
             }[];
             etapes_possibles: ("accord_commune" | "avis_domaines" | "avis_controle_technique" | "publicite_legale" | "adjudication" | "sans_suite")[];
+        };
+        ValeurParametreNational: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            /** @description Premier jour où la valeur s’applique ; peut être dans l’avenir. */
+            date_effet: string;
+            valeur_nombre: number | null;
+            valeur_fr: string | null;
+            valeur_ar: string | null;
+            provisoire: boolean;
+            reference: string | null;
+            created_at: string;
+            retire_le: string | null;
+            motif_retrait: string | null;
         };
         EtatDemo: {
             communeId: string;

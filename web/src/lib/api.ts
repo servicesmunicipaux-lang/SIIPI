@@ -192,6 +192,9 @@ export type Pesee = Reponse<'/pesees', 'get'>[number];
 export type PeseeAttendue = Reponse<'/pesees/attendues', 'get'>[number];
 export type TonnageCircuit = Reponse<'/pesees/tonnages', 'get'>[number];
 export type TonnageMensuel = Reponse<'/pesees/mensuel', 'get'>[number];
+export type RedevanceMensuelle = Reponse<'/pesees/redevance', 'get'>[number];
+export type ParametreNational = Reponse<'/parametres-nationaux', 'get'>[number];
+export type ValeurParametreNational = ParametreNational['historique'][number];
 export type Incoherence = Reponse<'/communes/{id}/coherence', 'get'>[number];
 export type ControleTerrain = Reponse<'/circuits/controles', 'get'>[number];
 export type PerformancePrestataire = Reponse<'/circuits/performance', 'get'>[number];
@@ -1037,6 +1040,23 @@ export const api = {
     requete<TonnageMensuel[]>(
       `/pesees/mensuel?communeId=${encodeURIComponent(communeId)}` + (annee ? `&annee=${annee}` : '')
     ),
+  // Lot 17.3 : chaque pesée au taux de la redevance en vigueur à SA date.
+  redevanceAnged: (communeId: string, annee?: number) =>
+    requete<RedevanceMensuelle[]>(
+      `/pesees/redevance?communeId=${encodeURIComponent(communeId)}` + (annee ? `&annee=${annee}` : '')
+    ),
+  // --- Lot 17.3 : paramètres nationaux historisés (écriture : FNCT) ----------
+  parametresNationaux: () => requete<ParametreNational[]>('/parametres-nationaux'),
+  ajouterValeurParametre: (code: string, saisie: Corps<'/parametres-nationaux/{code}', 'post'>) =>
+    requete<ValeurParametreNational>(`/parametres-nationaux/${encodeURIComponent(code)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  retirerValeurParametre: (id: string, motif: string) =>
+    requete<ValeurParametreNational>(`/parametres-nationaux/valeurs/${id}/retrait`, {
+      method: 'POST',
+      body: JSON.stringify({ motif }),
+    }),
   coherencePesees: (communeId: string) =>
     requete<Incoherence[]>(`/pesees/coherence?communeId=${encodeURIComponent(communeId)}`),
   creerPesee: (communeId: string, saisie: Record<string, unknown>) =>

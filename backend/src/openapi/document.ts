@@ -70,6 +70,7 @@ import {
   ETAPES_DECLASSEMENT,
   NATURES_PIECE,
 } from '../routes/declassement.routes.js';
+import { valeurParametreSchema, retraitValeurSchema } from '../routes/parametresNationaux.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
@@ -2417,6 +2418,88 @@ registry.registerPath({
   responses: { 200: json(DossierDeclassement, 'Pièce retirée.'), 409: json(Erreur, 'Dossier clos.'), ...REPONSES_COMMUNES },
 });
 
+// --- Paramètres nationaux historisés (lot 17.3) ----------------------------
+
+const ValeurParametreNational = registry.register(
+  'ValeurParametreNational',
+  z.object({
+    id: z.string().uuid(),
+    code: z.string(),
+    date_effet: z.string().openapi({ description: 'Premier jour où la valeur s’applique ; peut être dans l’avenir.' }),
+    valeur_nombre: z.number().nullable(),
+    valeur_fr: z.string().nullable(),
+    valeur_ar: z.string().nullable(),
+    provisoire: z.boolean(),
+    reference: z.string().nullable(),
+    created_at: z.string(),
+    retire_le: z.string().nullable(),
+    motif_retrait: z.string().nullable(),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/parametres-nationaux',
+  tags: ['Paramètres nationaux'],
+  summary: 'Les paramètres nationaux : valeur en vigueur, valeurs à venir, historique',
+  description:
+    'Redevance ANGeD, ministère de tutelle, formule d’en-tête des documents. Chaque valeur porte sa date d’effet ; la valeur d’une ' +
+    'date est la dernière entrée en vigueur. « en_vigueur » est null tant qu’aucune ne s’applique. Lisible par tout utilisateur authentifié.',
+  security: SECURISE,
+  responses: {
+    200: json(
+      z.array(
+        z.object({
+          code: z.string(),
+          nature: z.enum(['nombre', 'texte']),
+          unite: z.string().nullable(),
+          borne_min: z.number().nullable(),
+          borne_max: z.number().nullable(),
+          libelle_fr: z.string(),
+          libelle_ar: z.string(),
+          description: z.string(),
+          en_vigueur: ValeurParametreNational.nullable(),
+          a_venir: z.array(ValeurParametreNational),
+          historique: z.array(ValeurParametreNational),
+        })
+      ),
+      'Paramètres.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/parametres-nationaux/valeurs/{id}/retrait',
+  tags: ['Paramètres nationaux'],
+  summary: 'Retirer une valeur saisie à tort',
+  description: 'Avec un motif. La valeur reste lisible dans l’historique ; les calculs ne l’utilisent plus. Réservé à la FNCT.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: retraitValeurSchema } } },
+  },
+  responses: { 200: json(ValeurParametreNational, 'Valeur retirée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/parametres-nationaux/{code}',
+  tags: ['Paramètres nationaux'],
+  summary: 'Ajouter une valeur datée à un paramètre national',
+  description:
+    'Une valeur ne se réécrit pas : un changement s’ajoute avec sa date d’effet. Un nombre pour la redevance (strictement entre ses ' +
+    'bornes) ; un intitulé en français ET en arabe pour un texte. Provisoire par défaut ; une valeur officielle cite sa pièce (la base ' +
+    'le refuse sinon). Une seconde valeur à la même date : 409. Réservé à la FNCT.',
+  security: SECURISE,
+  request: {
+    params: z.object({ code: z.string() }),
+    body: { content: { 'application/json': { schema: valeurParametreSchema } } },
+  },
+  responses: { 201: json(ValeurParametreNational, 'Valeur ajoutée.'), 409: json(Erreur, 'Une valeur commence déjà à cette date.'), ...REPONSES_COMMUNES },
+});
+
 // --- Mode démo : le jumeau numérique (lot S1) ------------------------------
 
 const EtatDemo = registry.register(
@@ -3811,6 +3894,37 @@ registry.registerPath({
   security: SECURISE,
   request: { query: z.object({ communeId: paramCommuneId.optional(), annee: z.string().optional() }) },
   responses: { 200: json(z.array(TonnageMensuel), 'Tonnage mensuel.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/pesees/redevance',
+  tags: ['Pesées'],
+  summary: 'Redevance ANGeD par mois, au taux de la date de chaque pesée',
+  description:
+    'Chaque pesée est valorisée au taux de la redevance en vigueur à SA date (paramètre national daté, lot 17.3) — jamais au taux du ' +
+    'jour du calcul. Une pesée antérieure à toute valeur n’a pas de taux : son tonnage est compté à part et le montant porte sur le ' +
+    'reste ; montant null s’il n’y a rien de taxable. « provisoire » : un taux provisoire a servi (barème officiel non saisi).',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional(), annee: z.string().optional() }) },
+  responses: {
+    200: json(
+      z.array(
+        z.object({
+          annee: z.number().int(),
+          mois: z.number().int(),
+          pesees: z.number().int(),
+          tonnes: z.number(),
+          tonnes_sans_taux: z.number(),
+          montant_tnd: z.number().nullable(),
+          taux_appliques: z.array(z.number()).nullable(),
+          provisoire: z.boolean(),
+        })
+      ),
+      'Redevance mensuelle.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 registry.registerPath({
@@ -6092,7 +6206,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.8',
+      version: '0.15.9',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

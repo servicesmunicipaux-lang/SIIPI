@@ -9,6 +9,7 @@ import { DecoupageCommunal } from '../composants/national/DecoupageCommunal';
 import { PropositionsDecoupage } from '../composants/national/PropositionsDecoupage';
 import { KpiNational } from '../composants/national/KpiNational';
 import { ModeDemo } from '../composants/national/ModeDemo';
+import { ParametresNationaux } from '../composants/national/ParametresNationaux';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 import {
@@ -77,7 +78,7 @@ function sansAccent(texte: string): string {
 // Concours, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
 // bas. Même défaut que les dix-sept onglets du portail communal — ce qu'on ne
 // voit pas, on ne sait pas que ça existe — et même remède : la barre latérale.
-type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'demo';
+type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'parametres' | 'demo';
 
 const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   { cle: 'synthese',    pole: 'cockpit' },
@@ -85,6 +86,8 @@ const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   { cle: 'performance', pole: 'pilotage' },
   { cle: 'deploiement', pole: 'pilotage' },
   // Le jumeau numérique (lot S1) : un outil de la FNCT, pas une donnée nationale.
+  // Les paramètres nationaux datés (lot 17.3) : redevance ANGeD, en-têtes.
+  { cle: 'parametres',  pole: 'administration' },
   { cle: 'demo',        pole: 'administration' },
 ];
 
@@ -300,6 +303,7 @@ export function TableauDeBordNational() {
           montre le déploiement ; ceci montre la performance. */}
       {onglet === 'performance' && <KpiNational onOuvrirCommune={setCommuneKpi} />}
       {onglet === 'demo' && <ModeDemo />}
+      {onglet === 'parametres' && <ParametresNationaux />}
 
       {onglet === 'deploiement' && (
       <>
