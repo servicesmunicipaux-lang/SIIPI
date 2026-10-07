@@ -13326,6 +13326,99 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pesees/production-specifique": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Production spécifique par mois : kg/hab/jour sur la population permanente et, en saison, sur la population présente
+         * @description Les deux ratios côte à côte (lot 17.1). La population permanente est celle que la commune retient, sinon celle du recensement (source_population le dit). Pour un mois de saison, le ratio retenu est celui de la population présente. L’écart au repère théorique de la commune s’affiche ; il ne se corrige pas. Une population ou un repère absents rendent null, jamais 0.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    annee?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Production spécifique mensuelle. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            annee: number;
+                            mois: number;
+                            tonnes: number;
+                            jours: number;
+                            population_permanente: number | null;
+                            /** @enum {string|null} */
+                            source_population: "declaree" | "recensement" | null;
+                            kg_hab_j_permanente: number | null;
+                            en_saison: boolean;
+                            population_saisonniere: number | null;
+                            kg_hab_j_saison: number | null;
+                            kg_hab_j_retenu: number | null;
+                            production_theorique: number | null;
+                            ecart_theorique_pct: number | null;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pesees/redevance": {
         parameters: {
             query?: never;
@@ -14120,6 +14213,95 @@ export interface paths {
                         seuilEntretienJours?: number;
                         alerterActionsRetard?: boolean;
                         objectifBalayageMlJ?: number | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Paramètres enregistrés. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ParametresCommune"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/communes/{id}/population": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Population permanente, population de saison, production théorique (lot 17.1)
+         * @description Corps complet : chaque champ est donné, null l’efface. Une population permanente ou une production théorique se donne avec sa source ; la saison se donne d’un bloc (population présente, mois de début, mois de fin — elle peut chevaucher l’année). La population de saison comprend les permanents : inférieure à la population permanente retenue, elle est refusée.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        populationPermanente: number | null;
+                        populationPermanenteSource: string | null;
+                        populationSaisonniere: number | null;
+                        saisonDebutMois: number | null;
+                        saisonFinMois: number | null;
+                        productionTheoriqueKgHabJ: number | null;
+                        productionTheoriqueSource: string | null;
                     };
                 };
             };
@@ -22332,6 +22514,18 @@ export interface components {
             alerter_actions_retard: boolean;
             /** @description Cible du balayage mesuré (M1-1), en mètres linéaires par jour. */
             objectif_balayage_ml_j: number | null;
+            /** @description Population du recensement (communes.population) : celle qui s’applique tant que la commune n’en retient pas une autre. */
+            population_recensement: number | null;
+            /** @description Population permanente retenue par la commune (lot 17.1) ; null : le recensement s’applique. */
+            population_permanente: number | null;
+            population_permanente_source: string | null;
+            /** @description Population présente en saison, permanents compris. */
+            population_saisonniere: number | null;
+            saison_debut_mois: number | null;
+            saison_fin_mois: number | null;
+            /** @description Production spécifique théorique, repère du pesé. */
+            production_theorique_kg_hab_j: number | null;
+            production_theorique_source: string | null;
             updated_at: string | null;
             auteur: string | null;
             /** @description Vrai tant que la commune n’a jamais enregistré ses paramètres. */

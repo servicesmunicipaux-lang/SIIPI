@@ -23,6 +23,7 @@ import {
   ErreurApi,
   type Pesee,
   type PeseeAttendue,
+  type ProductionSpecifique,
   type RedevanceMensuelle,
   type TonnageCircuit,
   type TonnageMensuel,
@@ -59,22 +60,25 @@ export function Pesees({ communeId }: { communeId: string }) {
   const [tonnages, setTonnages] = useState<TonnageCircuit[] | null>(null);
   const [mensuel, setMensuel] = useState<TonnageMensuel[] | null>(null);
   const [redevance, setRedevance] = useState<Map<string, RedevanceMensuelle>>(new Map());
+  const [production, setProduction] = useState<Map<string, ProductionSpecifique>>(new Map());
   const [erreur, setErreur] = useState<string | null>(null);
 
   const charger = useCallback(async () => {
     try {
-      const [a, r, tg, m, rd] = await Promise.all([
+      const [a, r, tg, m, rd, ps] = await Promise.all([
         api.peseesAttendues(communeId, jour),
         api.pesees(communeId),
         api.tonnages(communeId),
         api.tonnageMensuel(communeId),
         api.redevanceAnged(communeId),
+        api.productionSpecifique(communeId),
       ]);
       setAttendues(a);
       setRegistre(r);
       setTonnages(tg);
       setMensuel(m);
       setRedevance(new Map(rd.map((x) => [`${x.annee}-${x.mois}`, x])));
+      setProduction(new Map(ps.map((x) => [`${x.annee}-${x.mois}`, x])));
       setErreur(null);
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
@@ -263,19 +267,54 @@ export function Pesees({ communeId }: { communeId: string }) {
                   <tr>
                     <th className="p-3">{t('communal.pesees.colMois')}</th>
                     <th className="p-3 text-right">{t('communal.pesees.colTonnage')}</th>
-                    <th className="p-3 text-right">{t('communal.pesees.colKgHab')}</th>
+                    <th className="p-3 text-end">{t('communal.pesees.colKgHab')}</th>
+                    <th className="p-3 text-end">{t('communal.pesees.colEcartTheorique')}</th>
                     <th className="p-3 text-end">{t('communal.pesees.colRedevance')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ardoise-200">
                   {mensuel.map((m) => {
                     const r = redevance.get(`${m.annee}-${m.mois}`);
+                    const p = production.get(`${m.annee}-${m.mois}`);
                     return (
                       <tr key={`${m.annee}-${m.mois}`}>
                         <td className="p-3">{MOIS[m.mois - 1]} {m.annee}</td>
                         <td className="p-3 text-right tabular-nums">{f.masse(m.tonnage_t, 2)}</td>
-                        <td className="p-3 text-right tabular-nums">
-                          {m.kg_hab_jour === null ? '—' : nombre(m.kg_hab_jour, 3)}
+                        <td className="p-3 text-end tabular-nums">
+                          {/* Le ratio retenu ; en saison, les deux côte à côte : sur la
+                              population présente (retenu) et sur les permanents. */}
+                          {!p || p.kg_hab_j_retenu === null ? (
+                            <span className="text-ardoise-400">{t('communal.pesees.populationInconnue')}</span>
+                          ) : (
+                            <>
+                              <span className="font-semibold">{nombre(p.kg_hab_j_retenu, 3)}</span>
+                              <span className="block text-xs text-ardoise-500">
+                                {p.en_saison
+                                  ? t('communal.pesees.ratioSaison', {
+                                      population: nombre(p.population_saisonniere),
+                                      permanent: nombre(p.kg_hab_j_permanente, 3),
+                                    })
+                                  : t(
+                                      p.source_population === 'declaree'
+                                        ? 'communal.pesees.ratioDeclaree'
+                                        : 'communal.pesees.ratioRecensement',
+                                      { population: nombre(p.population_permanente) }
+                                    )}
+                              </span>
+                            </>
+                          )}
+                        </td>
+                        <td className="p-3 text-end tabular-nums">
+                          {!p || p.ecart_theorique_pct === null ? (
+                            <span className="text-ardoise-400">—</span>
+                          ) : (
+                            <>
+                              {`${p.ecart_theorique_pct > 0 ? '+' : ''}${nombre(p.ecart_theorique_pct, 1)} %`}
+                              <span className="block text-xs text-ardoise-500">
+                                {t('communal.pesees.repere', { theorique: nombre(p.production_theorique, 3) })}
+                              </span>
+                            </>
+                          )}
                         </td>
                         <td className="p-3 text-end tabular-nums">
                           {/* Pas de montant tant qu'aucun taux ne s'applique : « non
@@ -302,7 +341,7 @@ export function Pesees({ communeId }: { communeId: string }) {
                 </tbody>
               </table>
               <p className="border-t border-ardoise-200 p-3 text-xs text-ardoise-500">
-                {t('communal.pesees.noteKgHab')}
+                {t('communal.pesees.noteKgHab')} {t('communal.pesees.noteSaison')}
               </p>
               <p className="border-t border-ardoise-200 p-3 text-xs text-ardoise-500">
                 {t('communal.pesees.noteRedevance')}

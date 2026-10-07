@@ -133,6 +133,29 @@ peseesRouter.get(
   })
 );
 
+// La production spécifique par mois (lot 17.1) : kg/hab/jour sur la population
+// permanente retenue ET, en saison, sur la population présente — côte à côte,
+// avec l'écart au repère théorique de la commune.
+peseesRouter.get(
+  '/production-specifique',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise.');
+    const annee = typeof req.query.annee === 'string' && /^\d{4}$/.test(req.query.annee)
+      ? Number(req.query.annee) : null;
+    res.json(
+      await query(
+        `SELECT annee, mois, tonnes::float, jours, population_permanente, source_population,
+                kg_hab_j_permanente::float, en_saison, population_saisonniere, kg_hab_j_saison::float,
+                kg_hab_j_retenu::float, production_theorique::float, ecart_theorique_pct::float
+           FROM app.production_specifique($1, $2::integer)`,
+        [communeId, annee]
+      )
+    );
+  })
+);
+
 // La redevance ANGeD par mois (lot 17.3) : chaque pesée au taux en vigueur à
 // SA date — un relèvement du barème en juin ne renchérit pas les tonnes de mars.
 peseesRouter.get(
