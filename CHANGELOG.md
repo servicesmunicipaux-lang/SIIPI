@@ -5,6 +5,68 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.10] — 2026-10-07 — Lot 17.1 : la population de saison et le repère de production
+
+Une commune côtière triple en été. Le kilo par habitant et par jour (migration
+036) rapportait le tonnage du mois à la population du recensement, toute
+l'année : en juillet, il triplait, et l'on concluait à un problème de collecte
+là où il n'y avait que des estivants. Faux cinq mois par an.
+
+### Ajouté
+- **Migration 061** — trois réglages ajoutés à `parametres_commune` :
+  - la **population permanente** que la commune retient, avec sa source (à
+    défaut, le recensement s'applique, et l'écran le dit) ;
+  - la **population présente en saison** et ses mois (la saison peut
+    chevaucher l'année : de novembre à février) ;
+  - la **production spécifique théorique** (kg/hab/jour), avec sa source : le
+    repère du pesé.
+  - Refusés en base : un chiffre sans sa source, une saison incomplète, un mois
+    hors de 1 à 12, une population de saison inférieure à la population
+    permanente retenue (elle la comprend), une production théorique nulle ou
+    absurde.
+  - `app.production_specifique(commune, année)` : par mois, le ratio sur la
+    population permanente et, pour un mois de saison, sur la population
+    présente — **côte à côte** ; le ratio retenu (celui de la saison quand elle
+    s'applique) et son **écart au repère**. Sans population, pas de ratio ; sans
+    repère, pas d'écart (null, jamais 0). Rien n'est « corrigé ».
+- Routes `PUT /communes/{id}/population` (corps complet, null efface) et
+  `GET /pesees/production-specifique` ; `GET /communes/{id}/parametres` rend
+  aussi la population du recensement.
+- **Paramètres** (admin de la commune) : une section « Population et production
+  de référence » ; les mois de la saison se choisissent par leur nom, dans la
+  langue de l'écran.
+- **Pesées** (vue « Tonnages ») : la colonne kg/hab/jour donne le ratio retenu
+  et dit sur quelle population — recensement, population retenue, ou population
+  présente en saison avec le ratio des seuls permanents à côté ; une colonne
+  « Écart au repère ». FR et AR.
+- **Campagne `parametres-communaux`** : elle commence par les refus (API et
+  base), puis recalcule à la main sur une commune de 8 000 habitants : mars
+  0,125 kg/hab/jour sur le recensement ; 0,100 sur 10 000 habitants déclarés ;
+  juillet 0,600 sur les permanents et 0,200 sur 30 000 présents, ratio retenu
+  0,200, −20,0 % du repère 0,25 ; une saison de novembre à février qui contient
+  janvier ; sans population, le tonnage reste et le ratio est null.
+
+### Corrigé en cours de lot
+- La contrainte « saison complète » laissait passer des mois sans population :
+  `NULL BETWEEN 1 AND 12` vaut NULL, et une contrainte qui vaut NULL est
+  satisfaite. Les `IS NOT NULL` sont désormais explicites — c'est la campagne,
+  qui commence par les refus, qui l'a révélé.
+
+### Non traité ici
+- L'indicateur KG_HAB_J des cinq axes (migration 050) et la vue nationale
+  rapportent encore le tonnage à la population du recensement.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 61 migrations ; la 061 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 285/285, **40 bilans, 1 500 tests
+  réussis, aucun échec** (dont `parametres-communaux` : 30).
+- Recomptage : 40 campagnes présentes, 40 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur (pile d'essai, La Marsa, 92 987 habitants au recensement) : une
+  saison de 50 000 personnes refusée avec son motif ; avec 250 000 présentes de
+  juin à septembre, juillet 0,400 kg/hab/jour (1,075 sur les seuls permanents),
+  mars 0,538 « recensement », écarts au repère 0,8 affichés.
+
 ## [0.15.9] — 2026-10-07 — Lot 17.3 : les paramètres nationaux datés
 
 Premier lot du jalon 12. Trois valeurs que fixe l'échelon national — la

@@ -55,7 +55,7 @@ import {
   photoSchema,
   souscriptionSchema,
 } from '../routes/citoyen.routes.js';
-import { frontiereSchema, recepisseInpdpSchema } from '../routes/communes.routes.js';
+import { frontiereSchema, recepisseInpdpSchema, populationCommuneSchema } from '../routes/communes.routes.js';
 import { demandeDemoSchema } from '../routes/demo.routes.js';
 import { emissionSchema, annulationSchema } from '../routes/documents.routes.js';
 import { carnetSchema, retourSchema, bonCarburantSchema, quotaSchema, uniteCompteurSchema } from '../routes/exploitation.routes.js';
@@ -3898,6 +3898,42 @@ registry.registerPath({
 
 registry.registerPath({
   method: 'get',
+  path: '/pesees/production-specifique',
+  tags: ['Pesées'],
+  summary: 'Production spécifique par mois : kg/hab/jour sur la population permanente et, en saison, sur la population présente',
+  description:
+    'Les deux ratios côte à côte (lot 17.1). La population permanente est celle que la commune retient, sinon celle du recensement ' +
+    '(source_population le dit). Pour un mois de saison, le ratio retenu est celui de la population présente. L’écart au repère ' +
+    'théorique de la commune s’affiche ; il ne se corrige pas. Une population ou un repère absents rendent null, jamais 0.',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional(), annee: z.string().optional() }) },
+  responses: {
+    200: json(
+      z.array(
+        z.object({
+          annee: z.number().int(),
+          mois: z.number().int(),
+          tonnes: z.number(),
+          jours: z.number().int(),
+          population_permanente: z.number().int().nullable(),
+          source_population: z.enum(['declaree', 'recensement']).nullable(),
+          kg_hab_j_permanente: z.number().nullable(),
+          en_saison: z.boolean(),
+          population_saisonniere: z.number().int().nullable(),
+          kg_hab_j_saison: z.number().nullable(),
+          kg_hab_j_retenu: z.number().nullable(),
+          production_theorique: z.number().nullable(),
+          ecart_theorique_pct: z.number().nullable(),
+        })
+      ),
+      'Production spécifique mensuelle.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'get',
   path: '/pesees/redevance',
   tags: ['Pesées'],
   summary: 'Redevance ANGeD par mois, au taux de la date de chaque pesée',
@@ -4185,6 +4221,14 @@ const ParametresCommune = registry.register(
       seuil_entretien_jours: z.number().int(),
       alerter_actions_retard: z.boolean(),
       objectif_balayage_ml_j: z.number().nullable().openapi({ description: 'Cible du balayage mesuré (M1-1), en mètres linéaires par jour.' }),
+      population_recensement: z.number().int().nullable().openapi({ description: 'Population du recensement (communes.population) : celle qui s’applique tant que la commune n’en retient pas une autre.' }),
+      population_permanente: z.number().int().nullable().openapi({ description: 'Population permanente retenue par la commune (lot 17.1) ; null : le recensement s’applique.' }),
+      population_permanente_source: z.string().nullable(),
+      population_saisonniere: z.number().int().nullable().openapi({ description: 'Population présente en saison, permanents compris.' }),
+      saison_debut_mois: z.number().int().nullable(),
+      saison_fin_mois: z.number().int().nullable(),
+      production_theorique_kg_hab_j: z.number().nullable().openapi({ description: 'Production spécifique théorique, repère du pesé.' }),
+      production_theorique_source: z.string().nullable(),
       updated_at: z.string().nullable(),
       auteur: z.string().nullable(),
       par_defaut: z.boolean().openapi({ description: 'Vrai tant que la commune n’a jamais enregistré ses paramètres.' }),
@@ -4213,6 +4257,23 @@ registry.registerPath({
   request: {
     params: z.object({ id: z.string().openapi({ description: 'Identifiant de la commune.' }) }),
     body: { content: { 'application/json': { schema: parametresCommuneSchema } } },
+  },
+  responses: { 200: json(ParametresCommune, 'Paramètres enregistrés.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/communes/{id}/population',
+  tags: ['Circuits et contrôle terrain'],
+  summary: 'Population permanente, population de saison, production théorique (lot 17.1)',
+  description:
+    'Corps complet : chaque champ est donné, null l’efface. Une population permanente ou une production théorique se donne avec sa ' +
+    'source ; la saison se donne d’un bloc (population présente, mois de début, mois de fin — elle peut chevaucher l’année). La ' +
+    'population de saison comprend les permanents : inférieure à la population permanente retenue, elle est refusée.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().openapi({ description: 'Identifiant de la commune.' }) }),
+    body: { content: { 'application/json': { schema: populationCommuneSchema } } },
   },
   responses: { 200: json(ParametresCommune, 'Paramètres enregistrés.'), ...REPONSES_COMMUNES },
 });
@@ -6206,7 +6267,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.9',
+      version: '0.15.10',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

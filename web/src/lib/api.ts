@@ -193,6 +193,7 @@ export type PeseeAttendue = Reponse<'/pesees/attendues', 'get'>[number];
 export type TonnageCircuit = Reponse<'/pesees/tonnages', 'get'>[number];
 export type TonnageMensuel = Reponse<'/pesees/mensuel', 'get'>[number];
 export type RedevanceMensuelle = Reponse<'/pesees/redevance', 'get'>[number];
+export type ProductionSpecifique = Reponse<'/pesees/production-specifique', 'get'>[number];
 export type ParametreNational = Reponse<'/parametres-nationaux', 'get'>[number];
 export type ValeurParametreNational = ParametreNational['historique'][number];
 export type Incoherence = Reponse<'/communes/{id}/coherence', 'get'>[number];
@@ -507,6 +508,12 @@ export const api = {
     requete<ParametresCommune>(`/communes/${encodeURIComponent(communeId)}/parametres`),
   changerParametresCommune: (communeId: string, saisie: Corps<'/communes/{id}/parametres', 'put'>) =>
     requete<ParametresCommune>(`/communes/${encodeURIComponent(communeId)}/parametres`, {
+      method: 'PUT',
+      body: JSON.stringify(saisie),
+    }),
+  // Lot 17.1 : corps complet, null efface.
+  changerPopulationCommune: (communeId: string, saisie: Corps<'/communes/{id}/population', 'put'>) =>
+    requete<ParametresCommune>(`/communes/${encodeURIComponent(communeId)}/population`, {
       method: 'PUT',
       body: JSON.stringify(saisie),
     }),
@@ -1039,6 +1046,11 @@ export const api = {
   tonnageMensuel: (communeId: string, annee?: number) =>
     requete<TonnageMensuel[]>(
       `/pesees/mensuel?communeId=${encodeURIComponent(communeId)}` + (annee ? `&annee=${annee}` : '')
+    ),
+  // Lot 17.1 : kg/hab/jour sur la population permanente et, en saison, présente.
+  productionSpecifique: (communeId: string, annee?: number) =>
+    requete<ProductionSpecifique[]>(
+      `/pesees/production-specifique?communeId=${encodeURIComponent(communeId)}` + (annee ? `&annee=${annee}` : '')
     ),
   // Lot 17.3 : chaque pesée au taux de la redevance en vigueur à SA date.
   redevanceAnged: (communeId: string, annee?: number) =>

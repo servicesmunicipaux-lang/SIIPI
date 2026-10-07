@@ -230,7 +230,7 @@ score, aucun classement de chauffeurs.
 
 | Lot | Contenu |
 | :--- | :--- |
-| **17.1** | Paramètres communaux étendus (population permanente / saisonnière, production spécifique kg/hab/jour) — s'ajoute à `parametres_commune` (048), qui existe déjà |
+| **17.1** ✅ v0.15.10 | Paramètres communaux étendus (population permanente / saisonnière, production spécifique kg/hab/jour) — s'ajoute à `parametres_commune` (048), qui existe déjà ; migration 061, `app.production_specifique` |
 | **17.2** | Moteur d'estimation volumétrique : `densites_reference`, formule R4, provenance `estime`, plausibilité |
 | **17.3** ✅ v0.15.9 | Paramètres nationaux historisés (R5) : redevance ANGeD, ministère de tutelle et intitulés des en-têtes de documents — `definitions_parametres_nationaux` et `valeurs_parametres_nationaux` (migration 060), redevance au taux de la date de la pesée (`app.redevance_anged`) |
 | **17.4** | Connecteur GPS : configuration webhook / clé API, réception de positions **d'engins uniquement**, comparaison au tracé standard, détection des points non desservis. **Bloqué** tant que la documentation des API des opérateurs n'est pas fournie. |

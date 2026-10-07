@@ -1288,7 +1288,14 @@
       "redevanceTaux": "à {{taux}} TND/t",
       "redevanceProvisoire": "taux provisoire",
       "redevanceTonnesSansTaux": "{{tonnes}} t sans taux",
-      "noteRedevance": "Redevance ANGeD : chaque pesée au taux en vigueur à sa date (paramètre national fixé par la FNCT), jamais au taux du jour. « Taux provisoire » : le barème officiel n’est pas encore saisi. Une pesée antérieure à tout taux n’entre pas dans le montant."
+      "noteRedevance": "Redevance ANGeD : chaque pesée au taux en vigueur à sa date (paramètre national fixé par la FNCT), jamais au taux du jour. « Taux provisoire » : le barème officiel n’est pas encore saisi. Une pesée antérieure à tout taux n’entre pas dans le montant.",
+      "colEcartTheorique": "Écart au repère",
+      "populationInconnue": "population inconnue",
+      "ratioSaison": "saison : {{population}} pers. présentes · sur les permanents : {{permanent}}",
+      "ratioDeclaree": "sur {{population}} hab. (population retenue)",
+      "ratioRecensement": "sur {{population}} hab. (recensement)",
+      "repere": "repère {{theorique}} kg/hab/jour",
+      "noteSaison": "En saison, le ratio retenu est rapporté à la population présente (permanents et estivants) ; celui des seuls permanents est donné à côté. L’écart au repère théorique de la commune s’affiche, il ne se corrige pas."
     },
     "menu": {
       "ouvrir": "Ouvrir le menu de navigation",
@@ -1821,6 +1828,21 @@
       "enregistre": "Seuils enregistrés.",
       "balayage": "Objectif de balayage (mètres linéaires par jour)",
       "balayageAide": "La cible du balayage mesuré par les nettoyages (M1-1), selon la taille de la commune. Vide : la cible déclarée dans la fiche sert."
+    },
+    "population": {
+      "titre": "Population et production de référence",
+      "aide": "Une commune côtière peut tripler en été : rapporter les déchets de juillet à la seule population permanente gonfle le kilo par habitant et par jour, et fait croire à un problème de collecte. Déclarez la population présente en saison et ses mois : en saison, le ratio retenu sera celui de la population présente. Chaque chiffre se donne avec sa source ; laissé vide, il s’efface.",
+      "recensement": "Population du recensement : {{population}} habitants. Elle s’applique tant que la commune n’en retient pas une autre.",
+      "recensementInconnu": "Population du recensement inconnue : sans population retenue, le kilo par habitant ne se calcule pas.",
+      "permanente": "Population permanente retenue",
+      "source": "Source",
+      "saison": "Population présente en saison",
+      "debut": "Premier mois de la saison",
+      "fin": "Dernier mois de la saison",
+      "aideSaison": "La population présente compte les permanents et les estivants : elle n’est jamais inférieure à la population permanente. La saison peut chevaucher l’année (de novembre à février).",
+      "theorique": "Production théorique (kg/hab/jour)",
+      "enregistrer": "Enregistrer la population et le repère",
+      "enregistre": "Population et repère enregistrés."
     },
     "motDePasse": {
       "titre": "Mot de passe",

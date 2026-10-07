@@ -186,7 +186,19 @@ const PARAMETRES_DEFAUT = {
   objectif_balayage_ml_j: null as number | null,
   recepisse_inpdp: null as string | null,
   recepisse_inpdp_date: null as string | null,
+  population_permanente: null as number | null,
+  population_permanente_source: null as string | null,
+  population_saisonniere: null as number | null,
+  saison_debut_mois: null as number | null,
+  saison_fin_mois: null as number | null,
+  production_theorique_kg_hab_j: null as number | null,
+  production_theorique_source: null as string | null,
 };
+
+const COLONNES_POPULATION = `
+  p.population_permanente, p.population_permanente_source, p.population_saisonniere,
+  p.saison_debut_mois, p.saison_fin_mois, p.production_theorique_kg_hab_j::float AS production_theorique_kg_hab_j,
+  p.production_theorique_source`;
 
 export const parametresCommuneSchema = z
   .object({
@@ -204,15 +216,22 @@ export async function parametresDeCommune(communeId: string) {
   const ligne = await queryOne<typeof PARAMETRES_DEFAUT & { updated_at: string; auteur: string | null }>(
     `SELECT p.delai_reclamation_jours, p.seuil_entretien_km, p.seuil_entretien_jours,
             p.alerter_actions_retard, p.objectif_balayage_ml_j::float AS objectif_balayage_ml_j,
-            p.recepisse_inpdp, p.recepisse_inpdp_date,
+            p.recepisse_inpdp, p.recepisse_inpdp_date, ${COLONNES_POPULATION},
             p.updated_at, u.full_name AS auteur
        FROM parametres_commune p LEFT JOIN users u ON u.id = p.updated_by
       WHERE p.commune_id = $1`,
     [communeId]
   );
+  // Le recensement, rendu à côté : c'est lui qui s'applique tant que la
+  // commune ne retient pas une autre population permanente.
+  const recensement = await queryOne<{ population: number | null }>(
+    'SELECT NULLIF(population, 0) AS population FROM communes WHERE id = $1',
+    [communeId]
+  );
+  const population_recensement = recensement?.population ?? null;
   return ligne
-    ? { commune_id: communeId, ...ligne, par_defaut: false }
-    : { commune_id: communeId, ...PARAMETRES_DEFAUT, updated_at: null, auteur: null, par_defaut: true };
+    ? { commune_id: communeId, ...ligne, population_recensement, par_defaut: false }
+    : { commune_id: communeId, ...PARAMETRES_DEFAUT, population_recensement, updated_at: null, auteur: null, par_defaut: true };
 }
 
 communesRouter.get(
@@ -257,6 +276,71 @@ communesRouter.put(
         d.objectifBalayageMlJ ?? null,
       ]
     );
+    res.json(await parametresDeCommune(req.params.id));
+  })
+);
+
+// PUT /communes/:id/population — la population permanente retenue, la
+// population présente en saison et ses mois, la production spécifique
+// théorique (lot 17.1, migration 061). Le corps est COMPLET : chaque champ est
+// donné, null l'efface. Un chiffre se donne avec sa source ; la saison se donne
+// d'un bloc.
+const moisSaison = z.number().int().min(1).max(12);
+export const populationCommuneSchema = z
+  .object({
+    populationPermanente: z.number().int().min(1).max(5_000_000).nullable(),
+    populationPermanenteSource: z.string().trim().max(200).nullable(),
+    populationSaisonniere: z.number().int().min(1).max(10_000_000).nullable(),
+    saisonDebutMois: moisSaison.nullable(),
+    saisonFinMois: moisSaison.nullable(),
+    productionTheoriqueKgHabJ: z.number().gt(0).lt(5).nullable(),
+    productionTheoriqueSource: z.string().trim().max(200).nullable(),
+  })
+  .strict()
+  .refine((d) => d.populationPermanente === null || Boolean(d.populationPermanenteSource), {
+    message: 'Dites d’où vient la population permanente retenue (recensement, estimation, état civil…).',
+    path: ['populationPermanenteSource'],
+  })
+  .refine(
+    (d) => [d.populationSaisonniere, d.saisonDebutMois, d.saisonFinMois].every((v) => v === null) ||
+      [d.populationSaisonniere, d.saisonDebutMois, d.saisonFinMois].every((v) => v !== null),
+    { message: 'La population de saison se donne avec ses mois de début et de fin — ou pas du tout.', path: ['populationSaisonniere'] }
+  )
+  .refine((d) => d.productionTheoriqueKgHabJ === null || Boolean(d.productionTheoriqueSource), {
+    message: 'Dites d’où vient la production théorique (PCGD, étude de caractérisation…).',
+    path: ['productionTheoriqueSource'],
+  });
+
+communesRouter.put(
+  '/:id/population',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  requireCommuneAccess((req) => req.params.id),
+  asyncHandler(async (req, res) => {
+    const d = populationCommuneSchema.parse(req.body);
+    const commune = await queryOne('SELECT id FROM communes WHERE id = $1', [req.params.id]);
+    if (!commune) throw new ApiError(404, 'Commune introuvable.');
+    try {
+      await query(
+        `INSERT INTO parametres_commune
+           (commune_id, population_permanente, population_permanente_source, population_saisonniere,
+            saison_debut_mois, saison_fin_mois, production_theorique_kg_hab_j, production_theorique_source, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, app.current_user_id())
+         ON CONFLICT (commune_id) DO UPDATE SET
+           population_permanente = $2, population_permanente_source = $3, population_saisonniere = $4,
+           saison_debut_mois = $5, saison_fin_mois = $6, production_theorique_kg_hab_j = $7,
+           production_theorique_source = $8, updated_by = app.current_user_id()`,
+        [
+          req.params.id, d.populationPermanente, d.populationPermanente === null ? null : d.populationPermanenteSource,
+          d.populationSaisonniere, d.saisonDebutMois, d.saisonFinMois, d.productionTheoriqueKgHabJ,
+          d.productionTheoriqueKgHabJ === null ? null : d.productionTheoriqueSource,
+        ]
+      );
+    } catch (err) {
+      const m = (err as { message?: string }).message ?? '';
+      if (m.startsWith('PARAMETRES_SAISON: ')) throw new ApiError(400, m.slice('PARAMETRES_SAISON: '.length));
+      throw err;
+    }
     res.json(await parametresDeCommune(req.params.id));
   })
 );
