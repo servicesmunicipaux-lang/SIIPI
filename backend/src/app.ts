@@ -48,6 +48,7 @@ import { enlevementsRouter } from './routes/enlevements.routes.js';
 import { demoRouter } from './routes/demo.routes.js';
 import { documentsRouter } from './routes/documents.routes.js';
 import { exploitationRouter } from './routes/exploitation.routes.js';
+import { declassementRouter } from './routes/declassement.routes.js';
 import { genererDocumentOpenApi } from './openapi/document.js';
 
 
@@ -220,6 +221,8 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/documents', documentsRouter],
   // Carnet de bord, bons de carburant, quota, L/100 km (lot 16.3).
   ['/exploitation', exploitationRouter],
+  // Le dossier de déclassement (lot 16.4).
+  ['/declassement', declassementRouter],
 ];
 
 for (const [prefixe, routeur] of ROUTEURS) {

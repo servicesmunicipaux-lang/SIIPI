@@ -59,6 +59,17 @@ import { frontiereSchema, recepisseInpdpSchema } from '../routes/communes.routes
 import { demandeDemoSchema } from '../routes/demo.routes.js';
 import { emissionSchema, annulationSchema } from '../routes/documents.routes.js';
 import { carnetSchema, retourSchema, bonCarburantSchema, quotaSchema, uniteCompteurSchema } from '../routes/exploitation.routes.js';
+import {
+  dossierSchema,
+  majDossierSchema,
+  etapeSchema,
+  pieceSchema,
+  immobilisationSchema,
+  finImmobilisationSchema,
+  MOTIFS_DECLASSEMENT,
+  ETAPES_DECLASSEMENT,
+  NATURES_PIECE,
+} from '../routes/declassement.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
@@ -2107,6 +2118,303 @@ registry.registerPath({
     ),
     ...REPONSES_COMMUNES,
   },
+});
+
+// --- Dossier de déclassement (lot 16.4) -----------------------------------
+
+const SEUIL_80 = z.enum(['atteint', 'non_atteint', 'indetermine', 'non_calculable']).openapi({
+  description:
+    'Le seuil de 80 % du prix d’acquisition (référentiel, diapo 83), AFFICHÉ — il ne déclasse rien. indetermine : non atteint, ' +
+    'mais des interventions n’ont pas de coût ; non_calculable : pas de valeur d’achat, ou carnet d’entretien non tenu.',
+});
+
+const ConstatEngin = registry.register(
+  'ConstatDeclassement',
+  z.object({
+    vehicule_id: z.string(),
+    registration: z.string(),
+    type_engin: z.string(),
+    categorie: z.string().nullable(),
+    marque: z.string().nullable(),
+    etat: z.string(),
+    date_premiere_circulation: z.string().nullable(),
+    age_annees: z.number().nullable().openapi({ description: 'Âge en années décimales (diapo 85), depuis la première mise en circulation.' }),
+    valeur_achat_tnd: z.number().nullable(),
+    cumul_depenses_tnd: z.number().nullable().openapi({ description: 'Entretien et réparation depuis l’acquisition (carburant exclu). Null si le carnet d’entretien n’est pas tenu.' }),
+    interventions: z.number().int().nullable(),
+    interventions_sans_cout: z.number().int().nullable(),
+    part_depenses_pct: z.number().nullable(),
+    seuil_80: SEUIL_80,
+    pannes_12_mois: z.number().int().nullable(),
+    annee: z.number().int(),
+    jours_immobilisation: z.number().int().nullable().openapi({ description: 'Dans l’année. Null si le registre des immobilisations n’est pas tenu, ou si le début de l’immobilisation en cours est inconnu.' }),
+    debut_immobilisation_inconnu: z.boolean(),
+    jours_travailles: z.number().int().nullable().openapi({ description: 'Jours distincts au carnet de bord dans l’année. Null si la commune ne tient pas le carnet cette année-là.' }),
+    rapport_rendement: z.number().nullable().openapi({ description: 'Jours d’immobilisation / jours travaillés.' }),
+  })
+);
+
+const Immobilisation = registry.register(
+  'ImmobilisationEngin',
+  z.object({
+    id: z.string().uuid(),
+    vehicule_id: z.string(),
+    registration: z.string(),
+    debut: z.string(),
+    fin: z.string().nullable().openapi({ description: 'Dernier jour d’immobilisation, compris. Null : toujours à l’arrêt.' }),
+    motif: z.string().nullable(),
+    origine: z.enum(['saisie', 'etat_engin']),
+    jours: z.number().int(),
+    created_at: z.string(),
+  })
+);
+
+const LigneDossier = z.object({
+  id: z.string().uuid(),
+  vehicule_id: z.string(),
+  registration: z.string(),
+  type_engin: z.string(),
+  marque: z.string().nullable(),
+  age_annees: z.number().nullable(),
+  date_proposition: z.string(),
+  motifs: z.array(z.enum(MOTIFS_DECLASSEMENT)),
+  statut: z.enum(['en_cours', 'adjuge', 'sans_suite']),
+  seuil_80: SEUIL_80,
+  part_depenses_pct: z.number().nullable(),
+  derniere_etape: z.enum(ETAPES_DECLASSEMENT).nullable(),
+  date_derniere_etape: z.string().nullable(),
+});
+
+const DossierDeclassement = registry.register(
+  'DossierDeclassement',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    vehicule_id: z.string(),
+    registration: z.string(),
+    type_engin: z.string(),
+    marque: z.string().nullable(),
+    etat_engin: z.string(),
+    date_proposition: z.string(),
+    motifs: z.array(z.enum(MOTIFS_DECLASSEMENT)),
+    expose: z.string(),
+    cout_reparation_estime_tnd: z.number().nullable(),
+    annee_rendement: z.number().int(),
+    constat: ConstatEngin.openapi({ description: 'Le constat FIGÉ au jour de la proposition.' }),
+    statut: z.enum(['en_cours', 'adjuge', 'sans_suite']),
+    created_at: z.string(),
+    constat_du_jour: ConstatEngin.nullable(),
+    etapes: z.array(
+      z.object({
+        id: z.string().uuid(),
+        etape: z.enum(ETAPES_DECLASSEMENT),
+        date_etape: z.string(),
+        sens: z.enum(['favorable', 'defavorable']).nullable(),
+        reference: z.string().nullable(),
+        observation: z.string().nullable(),
+        mode_adjudication: z.enum(['pli_ferme', 'enchere_publique']).nullable(),
+        montant_adjuge_tnd: z.number().nullable(),
+        created_at: z.string(),
+      })
+    ),
+    pieces: z.array(
+      z.object({
+        id: z.string().uuid(),
+        nature: z.enum(NATURES_PIECE),
+        fichier_id: z.string().uuid(),
+        nom_original: z.string(),
+        type_mime: z.string(),
+        taille_octets: z.number().int(),
+        url: z.string(),
+        created_at: z.string(),
+      })
+    ),
+    depenses: z.array(
+      z.object({
+        id: z.string().uuid(),
+        date_intervention: z.string(),
+        type: z.string(),
+        nature: z.string(),
+        description: z.string().nullable(),
+        cout_tnd: z.number().nullable(),
+        prestataire: z.string().nullable(),
+      })
+    ).openapi({ description: 'L’inventaire des dépenses de l’engin depuis son acquisition : son carnet d’entretien.' }),
+    completude: z.array(
+      z.object({
+        piece: z.enum(['facture_acquisition', 'inventaire_depenses', 'rapport_rendement', 'devis_reparation']),
+        statut: z.enum(['jointe', 'calculee', 'renseignee', 'manquante']),
+      })
+    ).openapi({ description: 'Les quatre pièces obligatoires (diapo 83) et leur état. Affiché, jamais bloquant.' }),
+    etapes_possibles: z.array(z.enum(ETAPES_DECLASSEMENT)),
+  })
+);
+
+const paramAnnee = z.coerce.number().int().openapi({ param: { name: 'annee', in: 'query' }, example: 2026, description: 'Année du rapport de rendement. Par défaut, l’année en cours.' });
+
+registry.registerPath({
+  method: 'get',
+  path: '/declassement/constat',
+  tags: ['Déclassement'],
+  summary: 'Constat par engin : âge, cumul des dépenses et seuil de 80 %, rapport de rendement',
+  description:
+    'Calculé par la base (app.constat_declassement). Une source non tenue rend null, jamais 0. Les engins déjà réformés n’y figurent pas.',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional(), annee: paramAnnee.optional() }) },
+  responses: {
+    200: json(z.object({ communeId: z.string(), annee: z.number().int(), engins: z.array(ConstatEngin) }), 'Constat.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/declassement/immobilisations',
+  tags: ['Déclassement'],
+  summary: 'Périodes d’immobilisation des engins',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional(), vehiculeId: z.string().optional() }) },
+  responses: { 200: json(z.array(Immobilisation), 'Périodes.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/declassement/immobilisations',
+  tags: ['Déclassement'],
+  summary: 'Inscrire une période d’immobilisation',
+  description:
+    'Pour le passé, ou une panne connue. Les périodes s’ouvrent et se ferment aussi d’elles-mêmes quand l’état de l’engin change. ' +
+    'Deux périodes d’un même engin ne se chevauchent pas (409) ; ni le début ni la fin ne sont dans l’avenir.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: immobilisationSchema } } } },
+  responses: { 201: json(Immobilisation, 'Période inscrite.'), 409: json(Erreur, 'Chevauchement.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/declassement/immobilisations/{id}/fin',
+  tags: ['Déclassement'],
+  summary: 'Fermer (ou corriger la fin d’) une période d’immobilisation',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: finImmobilisationSchema } } },
+  },
+  responses: { 200: json(Immobilisation, 'Période mise à jour.'), 409: json(Erreur, 'Chevauchement.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/declassement/immobilisations/{id}',
+  tags: ['Déclassement'],
+  summary: 'Retirer une période d’immobilisation (retrait logique)',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 204: { description: 'Période retirée.' }, ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/declassement/dossiers',
+  tags: ['Déclassement'],
+  summary: 'Liste de proposition au déclassement (diapo 85)',
+  description: 'Type, marque, matricule, âge en années décimales au jour de la proposition, date, motifs — et où en est le circuit.',
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: paramCommuneId.optional(), statut: z.enum(['en_cours', 'adjuge', 'sans_suite']).optional() }),
+  },
+  responses: { 200: json(z.array(LigneDossier), 'Dossiers.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/declassement/dossiers',
+  tags: ['Déclassement'],
+  summary: 'Proposer un engin au déclassement',
+  description:
+    'Ouvre le dossier : motifs (conditions de la diapo 83), rapport détaillé, coût estimatif de la réparation. Le constat est calculé ' +
+    'et figé par la base au jour de la proposition. Un seul dossier en cours par engin (409). Réservé à l’admin de la commune.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: dossierSchema } } } },
+  responses: { 201: json(DossierDeclassement, 'Dossier ouvert.'), 409: json(Erreur, 'Dossier déjà en cours, ou engin réformé.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/declassement/dossiers/{id}',
+  tags: ['Déclassement'],
+  summary: 'Un dossier de déclassement : constat figé et du jour, dépenses, pièces, circuit',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 200: json(DossierDeclassement, 'Dossier.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/declassement/dossiers/{id}',
+  tags: ['Déclassement'],
+  summary: 'Corriger les motifs, le rapport ou le coût estimatif',
+  description: 'Tant qu’aucune étape du circuit n’est inscrite. Ensuite, le dossier est figé (409).',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: majDossierSchema } } },
+  },
+  responses: { 200: json(DossierDeclassement, 'Dossier corrigé.'), 409: json(Erreur, 'Dossier figé.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/declassement/dossiers/{id}/etapes',
+  tags: ['Déclassement'],
+  summary: 'Inscrire une étape du circuit d’autorisation',
+  description:
+    'Dans l’ordre que la base impose : accord de l’administration communale ; avis des Domaines de l’État et du contrôle technique ' +
+    '(après un accord favorable) ; publicité légale (après deux avis favorables) ; adjudication, qui clôt le dossier. « sans_suite », ' +
+    'avec son motif, le clôt à tout moment. Une date ne précède ni la proposition ni l’étape précédente, et n’est pas dans l’avenir. ' +
+    'L’engin adjugé ne passe pas « réformé » de lui-même : « À vérifier » le rappelle. Réservé à l’admin de la commune.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: etapeSchema } } },
+  },
+  responses: { 201: json(DossierDeclassement, 'Étape inscrite.'), 409: json(Erreur, 'Étape prématurée, en double, ou dossier clos.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/declassement/dossiers/{id}/etapes/{etapeId}',
+  tags: ['Déclassement'],
+  summary: 'Retirer une étape saisie à tort',
+  description: 'Tant que le dossier est en cours et qu’aucune étape suivante ne s’appuie sur elle (409 sinon).',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid(), etapeId: z.string().uuid() }) },
+  responses: { 200: json(DossierDeclassement, 'Étape retirée.'), 409: json(Erreur, 'Étape dont une autre dépend, ou dossier clos.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/declassement/dossiers/{id}/pieces',
+  tags: ['Déclassement'],
+  summary: 'Joindre une pièce au dossier',
+  description: 'Le fichier est déposé d’abord par POST /fichiers (usage « declassement ») ; il appartient à la commune du dossier.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: pieceSchema } } },
+  },
+  responses: { 201: json(DossierDeclassement, 'Pièce jointe.'), 409: json(Erreur, 'Fichier déjà joint.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/declassement/dossiers/{id}/pieces/{pieceId}',
+  tags: ['Déclassement'],
+  summary: 'Retirer une pièce jointe',
+  description: 'Tant que le dossier est en cours : les pièces d’un dossier clos restent (409).',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid(), pieceId: z.string().uuid() }) },
+  responses: { 200: json(DossierDeclassement, 'Pièce retirée.'), 409: json(Erreur, 'Dossier clos.'), ...REPONSES_COMMUNES },
 });
 
 // --- Mode démo : le jumeau numérique (lot S1) ------------------------------
@@ -5784,7 +6092,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.7',
+      version: '0.15.8',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

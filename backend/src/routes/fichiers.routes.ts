@@ -39,7 +39,7 @@ export const fichiersRouter = Router();
 const USAGES = [
   'reclamation', 'preuve_traitement', 'constat_terrain', 'passage',
   'incident', 'suggestion_point', 'document_projet', 'enlevement',
-  'rapport_etude', 'autre',
+  'rapport_etude', 'declassement', 'autre',
 ] as const;
 
 const FICHE = `
@@ -271,10 +271,19 @@ fichiersRouter.delete(
   requireAuth,
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
-    const [resultat] = await query<{ supprimer: boolean }>(
-      'SELECT app.supprimer($1, $2) AS supprimer',
-      ['fichiers', req.params.id]
-    );
+    let resultat: { supprimer: boolean } | undefined;
+    try {
+      [resultat] = await query<{ supprimer: boolean }>(
+        'SELECT app.supprimer($1, $2) AS supprimer',
+        ['fichiers', req.params.id]
+      );
+    } catch (err) {
+      // La pièce d'un dossier de déclassement (migration 059) ne se retire
+      // pas par ici : le dossier pointerait vers des octets illisibles.
+      const m = (err as { message?: string }).message ?? '';
+      if (m.startsWith('FICHIER_PIECE_DECLASSEMENT: ')) throw new ApiError(409, m.slice('FICHIER_PIECE_DECLASSEMENT: '.length));
+      throw err;
+    }
     if (!resultat?.supprimer) throw new ApiError(404, 'Fichier introuvable.');
     res.status(204).end();
   })

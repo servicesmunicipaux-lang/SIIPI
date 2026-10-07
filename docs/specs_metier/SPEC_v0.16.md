@@ -219,7 +219,7 @@ v0.17 (36 circuits, 2 855 points, mais ni personnel ni pesées).
 | **16.1** | Conformité `barbechas` (R1-R3) : suppression des colonnes, table d'identité séparée sous RLS restreinte, empreinte HMAC, garde-fous `hebergement_pii_accredite` et `recepisse_inpdp` | ✅ **Fait** (v0.15.5) — arbitrage rendu (D8) |
 | **16.2** | Documents légaux à **numérotation scellée** : `sequences_documents` + `documents_emis` (numéro continu par commune / type / exercice, attribué sous verrou, jamais réutilisé, annulation avec motif, contenu figé), détection de trous, PDF bilingue via `scripts/skills/pdf-template.mjs` — *ordre de mission, bon carburant, bon de travail, fiche de déclaration de panne* | **Mécanique faite** (v0.15.6, migration 057, décision du 02/10 : sans attendre les gabarits) ; PDF bilingue en attente des gabarits validés par un chef de dépôt |
 | **16.3** ✅ v0.15.7 | **Carnet de bord** (compteurs sortie/retour, séance, chauffeur, circuit, n° de bon de pesée ; distance *déduite*, jamais saisie), **bons de carburant** numérotés, **quota mensuel par engin**, ratio litres / km ou heures, écart au quota dans « À vérifier » | — |
-| **16.4** | **Dossier de déclassement** : cumul des dépenses / prix d'acquisition avec seuil de 80 % *affiché*, rapport de rendement (jours d'immobilisation / jours travaillés), pièces jointes (stockage 041), suivi du circuit d'autorisation | `vehicules` n'a ni prix ni date d'acquisition : colonnes à ajouter |
+| **16.4** ✅ v0.15.8 | **Dossier de déclassement** : cumul des dépenses / prix d'acquisition avec seuil de 80 % *affiché*, rapport de rendement (jours d'immobilisation / jours travaillés), pièces jointes (stockage 041), suivi du circuit d'autorisation | — (le prix et la date de mise en circulation existaient depuis la migration 032 : `valeur_achat_tnd`, `date_premiere_circulation`) |
 
 Règles communes à 16.2-16.4 : **SIIPI constate, il ne décide pas.** Le seuil de 80 % s'affiche
 « atteint / non atteint » ; il ne déclasse rien. Une surconsommation s'affiche comme un écart,
@@ -295,7 +295,7 @@ dédiée dans `intercommunal.sh`, et **pas avant que v0.16-v0.18 aient tourné e
 | Articles 4 et 13 du projet, date de départ de la période transitoire, sens exact du dernier alinéa arabe de l'article 13.1 (voir `02-…` § 5) | 18.2, 18.3 | FNCT / ministères |
 | Barème ANGeD en vigueur et sa date d'effet | 17.3, coût complet | ANGeD |
 | Documentation des API GPS (Orange, Ooredoo, prestataires locaux) | 17.4 | Opérateurs |
-| Prix et date d'acquisition des engins de la commune de recette | 16.4 | Commune de recette |
+| Prix et date d'acquisition des engins de la commune de recette — l'inventaire de Dar Chaabane donne la valeur d'achat et la mise en circulation ; la facture d'acquisition reste à joindre engin par engin | 16.4 | Commune de recette |
 | Exports antérieurs contenant `cin` / santé : purge à décider | 16.1 | Nacer / FNCT |
 
 ---
