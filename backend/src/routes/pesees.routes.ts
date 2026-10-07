@@ -133,6 +133,27 @@ peseesRouter.get(
   })
 );
 
+// La redevance ANGeD par mois (lot 17.3) : chaque pesée au taux en vigueur à
+// SA date — un relèvement du barème en juin ne renchérit pas les tonnes de mars.
+peseesRouter.get(
+  '/redevance',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise.');
+    const annee = typeof req.query.annee === 'string' && /^\d{4}$/.test(req.query.annee)
+      ? Number(req.query.annee) : null;
+    res.json(
+      await query(
+        `SELECT annee, mois, pesees::int, tonnes::float, tonnes_sans_taux::float, montant_tnd::float,
+                taux_appliques::float[] AS taux_appliques, provisoire
+           FROM app.redevance_anged($1, $2::integer)`,
+        [communeId, annee]
+      )
+    );
+  })
+);
+
 peseesRouter.get(
   '/coherence',
   requireAuth,

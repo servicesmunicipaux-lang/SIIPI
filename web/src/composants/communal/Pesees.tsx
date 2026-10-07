@@ -23,6 +23,7 @@ import {
   ErreurApi,
   type Pesee,
   type PeseeAttendue,
+  type RedevanceMensuelle,
   type TonnageCircuit,
   type TonnageMensuel,
 } from '../../lib/api';
@@ -57,20 +58,23 @@ export function Pesees({ communeId }: { communeId: string }) {
   const [registre, setRegistre] = useState<Pesee[] | null>(null);
   const [tonnages, setTonnages] = useState<TonnageCircuit[] | null>(null);
   const [mensuel, setMensuel] = useState<TonnageMensuel[] | null>(null);
+  const [redevance, setRedevance] = useState<Map<string, RedevanceMensuelle>>(new Map());
   const [erreur, setErreur] = useState<string | null>(null);
 
   const charger = useCallback(async () => {
     try {
-      const [a, r, tg, m] = await Promise.all([
+      const [a, r, tg, m, rd] = await Promise.all([
         api.peseesAttendues(communeId, jour),
         api.pesees(communeId),
         api.tonnages(communeId),
         api.tonnageMensuel(communeId),
+        api.redevanceAnged(communeId),
       ]);
       setAttendues(a);
       setRegistre(r);
       setTonnages(tg);
       setMensuel(m);
+      setRedevance(new Map(rd.map((x) => [`${x.annee}-${x.mois}`, x])));
       setErreur(null);
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
@@ -260,22 +264,48 @@ export function Pesees({ communeId }: { communeId: string }) {
                     <th className="p-3">{t('communal.pesees.colMois')}</th>
                     <th className="p-3 text-right">{t('communal.pesees.colTonnage')}</th>
                     <th className="p-3 text-right">{t('communal.pesees.colKgHab')}</th>
+                    <th className="p-3 text-end">{t('communal.pesees.colRedevance')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ardoise-200">
-                  {mensuel.map((m) => (
-                    <tr key={`${m.annee}-${m.mois}`}>
-                      <td className="p-3">{MOIS[m.mois - 1]} {m.annee}</td>
-                      <td className="p-3 text-right tabular-nums">{f.masse(m.tonnage_t, 2)}</td>
-                      <td className="p-3 text-right tabular-nums">
-                        {m.kg_hab_jour === null ? '—' : nombre(m.kg_hab_jour, 3)}
-                      </td>
-                    </tr>
-                  ))}
+                  {mensuel.map((m) => {
+                    const r = redevance.get(`${m.annee}-${m.mois}`);
+                    return (
+                      <tr key={`${m.annee}-${m.mois}`}>
+                        <td className="p-3">{MOIS[m.mois - 1]} {m.annee}</td>
+                        <td className="p-3 text-right tabular-nums">{f.masse(m.tonnage_t, 2)}</td>
+                        <td className="p-3 text-right tabular-nums">
+                          {m.kg_hab_jour === null ? '—' : nombre(m.kg_hab_jour, 3)}
+                        </td>
+                        <td className="p-3 text-end tabular-nums">
+                          {/* Pas de montant tant qu'aucun taux ne s'applique : « non
+                              renseigné », jamais 0 (règle d'or 1.1). */}
+                          {!r || r.montant_tnd === null ? (
+                            <span className="text-ardoise-400">{t('communal.pesees.redevanceSansTaux')}</span>
+                          ) : (
+                            <>
+                              {nombre(r.montant_tnd, 3)}
+                              <span className="block text-xs text-ardoise-500">
+                                {t('communal.pesees.redevanceTaux', {
+                                  taux: (r.taux_appliques ?? []).map((x) => nombre(x, 3)).join(' ; '),
+                                })}
+                                {r.provisoire && ` · ${t('communal.pesees.redevanceProvisoire')}`}
+                                {r.tonnes_sans_taux > 0 &&
+                                  ` · ${t('communal.pesees.redevanceTonnesSansTaux', { tonnes: nombre(r.tonnes_sans_taux, 2) })}`}
+                              </span>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               <p className="border-t border-ardoise-200 p-3 text-xs text-ardoise-500">
                 {t('communal.pesees.noteKgHab')}
+              </p>
+              <p className="border-t border-ardoise-200 p-3 text-xs text-ardoise-500">
+                {t('communal.pesees.noteRedevance')}
               </p>
             </div>
           )}

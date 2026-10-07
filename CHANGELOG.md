@@ -5,6 +5,75 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.9] — 2026-10-07 — Lot 17.3 : les paramètres nationaux datés
+
+Premier lot du jalon 12. Trois valeurs que fixe l'échelon national — la
+redevance ANGeD, le ministère de tutelle, la formule d'en-tête des documents —
+vivent désormais dans un registre national daté, tenu par la FNCT, au lieu de
+350 copies communales qui divergeraient (SPEC § R5). **Un tarif change à une
+date** : la redevance d'une pesée est celle en vigueur à la date de la pesée,
+jamais celle du jour où l'on calcule.
+
+### Ajouté
+- **Migration 060.**
+  - `definitions_parametres_nationaux` : ce qui se paramètre (nature nombre ou
+    texte bilingue, unité, bornes). Trois paramètres : `redevance_anged`
+    (TND/t), `ministere_tutelle`, `entete_etat`.
+  - `valeurs_parametres_nationaux` : chaque valeur avec sa **date d'effet** (qui
+    peut être à venir : un barème publié d'avance). Une valeur **ne se réécrit
+    pas** ; une autre s'ajoute. Une valeur saisie à tort se retire, avec un
+    motif, et reste lisible. Écriture : la FNCT seule (RLS) ; aucun droit
+    d'effacement pour l'application.
+  - **Une valeur officielle cite sa pièce** : la base refuse une valeur non
+    provisoire sans référence (barème, arrêté). La redevance de référence des
+    PCGD, **6,516 TND/t**, est posée **provisoire** au 1er janvier 2025 : le
+    barème officiel et sa date d'effet manquent toujours.
+  - Un nombre hors de ses bornes, un intitulé sans sa version arabe, deux
+    valeurs à la même date : refusés en base.
+  - `app.parametre_national(code, date)` : la valeur en vigueur à une date.
+  - `app.redevance_anged(commune, année)` : par mois, **chaque pesée au taux en
+    vigueur à sa date**. Une pesée antérieure à toute valeur n'a pas de taux :
+    son tonnage est compté à part, et le montant porte sur le reste (`null`
+    s'il n'y a rien de taxable, jamais 0). Le mois dit si un taux provisoire a
+    servi.
+- Routes `/parametres-nationaux` (lecture pour tout utilisateur authentifié,
+  ajout et retrait pour la FNCT) et `/pesees/redevance` — 4 routes au contrat.
+- **Écran « Paramètres nationaux »** dans l'observatoire (outils de la FNCT) :
+  valeur en vigueur avec sa pièce et la mention « provisoire », valeurs à venir,
+  historique avec les retraits et leur motif ; ajout d'une valeur datée,
+  « provisoire » coché par défaut. Pas de bouton « modifier ».
+- **Pesées** (vue « Tonnages ») : la redevance ANGeD de chaque mois à côté du
+  tonnage, avec le taux appliqué et « taux provisoire » quand c'est le cas. FR et
+  AR.
+- **Campagne `parametres-nationaux`** : elle commence par les refus (commune qui
+  fixe ou retire une valeur nationale, valeur officielle sans pièce — API et
+  base —, texte pour un nombre, redevance nulle ou de 5 000 TND/t, intitulé sans
+  arabe, date d'avant 2000, paramètre inconnu, doublon de date, valeur réécrite
+  en base, effacement par l'application, retrait sans motif), puis l'historique
+  (barème à venir qui attend sa date, intitulé retiré qui laisse « non
+  renseigné »), puis la règle du lot, recalculée à la main : 5 TND/t au 1er
+  janvier 2001, 8 TND/t au 1er juin — mars 2 t → 10 TND, juin 4,5 t → 36 TND (le
+  jour d'effet compte déjà au nouveau taux), décembre 2000 sans taux → montant
+  null ; le taux de juin retiré, juin repasse à 22,5 TND. Valeurs de test datées
+  de 2001 et effacées en partant ; la valeur de référence n'est jamais touchée.
+
+### Non traité ici
+- L'assiette exacte de la redevance (tous les flux pesés, ou les seuls déchets
+  mis en décharge) est à confirmer avec le barème officiel ANGeD.
+- Les noms de mois de l'écran Pesées restent écrits en français en version arabe
+  (liste antérieure au lot).
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 60 migrations ; la 060 rejouée : « Base déjà à jour » (la valeur de référence n'est posée qu'une fois).
+- `npm test` : code de sortie 0 — contrat 283/283, **39 bilans, 1 470 tests
+  réussis, aucun échec** (dont `parametres-nationaux` : 33).
+- Recomptage : 39 campagnes présentes, 39 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur (pile d'essai) : observatoire, redevance en vigueur 6,516 TND/t
+  « provisoire » depuis le 01/01/2025, ministère et en-tête « non renseigné » ;
+  jumeau numérique, juin 2026 : 1 229,08 t → 8 008,685 TND « à 6,516 TND/t · taux
+  provisoire » ; version arabe en RTL.
+
 ## [0.15.8] — 2026-10-07 — Lot 16.4 : le dossier de déclassement
 
 Le référentiel du dépôt (diapos 83 à 85) ne décrit pas une fiche mais une

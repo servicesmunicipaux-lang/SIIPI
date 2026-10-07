@@ -37,7 +37,7 @@ de l'observatoire national (contrôlée au typage, non commitée).
 | **S1** | Jumeau numérique (v0.15.4) | Jeu de données simulé de trois mois (structure de Dar Chaâbane), campagne `test:simulation-3mois`, écran « Mode démo » (§ 6bis) | Donne à tous les lots suivants un banc d'essai chiffré sans attendre une commune ; chaque lot y ajoute ses propres données | ✅ **Fait** (v0.15.4) — voir le CHANGELOG |
 | **11** | v0.16 — Conformité et pièces opposables | 16.1 barbechas · 16.2 documents à numérotation scellée · 16.3 carnet de bord et carburant · 16.4 dossier de déclassement | 16.1 d'abord : on **retire** des colonnes avant que de vraies données n'y entrent. 16.2 avant 16.3 : le bon de carburant emprunte la séquence scellée | **16.1 fait** (v0.15.5) ; **16.2 : mécanique faite** (v0.15.6), mise en page en attente des gabarits ; **16.3 fait** (v0.15.7) ; **16.4 fait** (v0.15.8) |
 | **R1** | Recette **Dar Chaâbane** — *différée* | Un mois d'usage réel du lot 11 (parc, personnel, 13 circuits déjà chargés). En attendant, le jumeau numérique (§ 6bis) | Reste l'objectif de **clôture de la version** (§ 6), mais ne bloque plus l'ouverture des jalons suivants | Dès que la commune est disponible |
-| **12** | v0.17 — Paramétrage, estimation, coût complet | 17.1 paramètres étendus · 17.3 paramètres nationaux historisés · 17.2 moteur volumétrique · 17.5 rejeu du coût de M'hamdia · 17.4 connecteur GPS | 17.3 avant 17.2 : le moteur lit la densité et la redevance ANGeD. 17.5 ferme la boucle avec une commune qui a déjà un coût calculé par un bureau d'études | **En parallèle de R1.** 17.1, 17.3, 17.5 : débloqués. 17.2 et 17.4 : **suspendus** à leurs préalables externes |
+| **12** | v0.17 — Paramétrage, estimation, coût complet | 17.1 paramètres étendus · 17.3 paramètres nationaux historisés · 17.2 moteur volumétrique · 17.5 rejeu du coût de M'hamdia · 17.4 connecteur GPS | 17.3 avant 17.2 : le moteur lit la densité et la redevance ANGeD. 17.5 ferme la boucle avec une commune qui a déjà un coût calculé par un bureau d'études | **En parallèle de R1.** **17.3 fait** (v0.15.9) ; 17.1, 17.5 : débloqués. 17.2 et 17.4 : **suspendus** à leurs préalables externes |
 | **R2** | Recette **M'hamdia** (puis Djerba pour le GPS) — *différée* | Circuits importés, séries de tonnage, coût rejoué | Son PCGD 2026 est le seul jeu où circuits, tonnage et coût existent ensemble | Dès que la commune est disponible ; le rejeu 17.5 se prépare sur le fichier reçu |
 | **13** | v0.18 — Secteur informel | Registre communal des acteurs, carte de pré-collecteur, suivi de la période transitoire | Dépend de 16.1 (données nominatives) et du scellement de 16.2. Le **texte des articles 13.1 et 14 est reçu — en projet, non en vigueur** : le lot est livré derrière un paramètre national, inactif par défaut | Après 16.1 et 16.2. Restent à lever : articles 4 et 13, date de départ de la période transitoire |
 | **14** | v0.19 — Mutualisation | Points limitrophes, prêts d'engins | Première exception au cloisonnement : pas avant que 11 à 13 aient tourné en production | Spécifiable dès maintenant ; ouverture après 11 à 13 en production |
@@ -1087,7 +1087,7 @@ restent suspendus à leurs préalables externes** (matrice de densités validée
 | Lot | Contenu | Test de validation |
 |---|---|---|
 | **17.1** | Paramètres communaux étendus : population permanente et saisonnière, production spécifique théorique (s'ajoute à `parametres_commune`, migration 048) | Un ratio kg/hab/jour calculé sur la population saisonnière diffère du ratio permanent, et l'écran le dit |
-| **17.3** | **Paramètres nationaux historisés** à date d'effet : redevance ANGeD (valeur de référence des PCGD 6,516 DT/t, nommée « provisoire » tant que le barème officiel manque), intitulés d'en-tête des documents, ministère de tutelle | La redevance appliquée est celle en vigueur **à la date de la pesée**, pas à celle du calcul |
+| **17.3** | **Paramètres nationaux historisés** à date d'effet : redevance ANGeD (valeur de référence des PCGD 6,516 DT/t, nommée « provisoire » tant que le barème officiel manque), intitulés d'en-tête des documents, ministère de tutelle. ✅ **Fait** (v0.15.9, migration 060, campagne `parametres-nationaux`) | La redevance appliquée est celle en vigueur **à la date de la pesée**, pas à celle du calcul |
 | **17.2** | **Moteur d'estimation volumétrique** : matrice `densites_reference(type d'engin compactant, flux, min / typique / max, source, date d'effet)` ; `tonnage estimé = volume utile × taux de remplissage × densité` ; provenance `estime` | Un tonnage estimé ne s'additionne jamais à un tonnage pesé. Une benne tasseuse dont la densité n'excède pas celle d'une benne non compactante est signalée |
 | **17.5** | **Rejeu du coût complet de M'hamdia** (voir encadré ci-dessous) | Le moteur retrouve les totaux du bureau d'études quand on lui donne les mêmes entrées, et **affiche le dénominateur** de chaque coût à la tonne |
 | **17.4** | **Connecteur GPS tiers** : URL, jeton, cadence, correspondance boîtier/engin ; positions **d'engins uniquement** ; provenance de la trace. **Bloqué** tant que la documentation des API n'est pas fournie | Fournisseur injoignable : l'écran affiche la date du dernier relevé. Trace sans engin correspondant : signalée, jamais rattachée au hasard |
@@ -1329,18 +1329,19 @@ d'accueil de deux pages et une vidéo de cinq minutes.
 
 ### Niveau 1 — Les campagnes automatisées *(en place)*
 
-**Trente-huit campagnes rejouables** au 07/10/2026, lancées par `backend/tests/executer.sh
+**Trente-neuf campagnes rejouables** au 07/10/2026, lancées par `backend/tests/executer.sh
 <campagne>` et enchaînées par `npm test` (`assainissement`, `audit`, `barbechas`, `champs-points`, `circuits`,
 `citoyen`, `cloisonnement`, `comptes`, `contacts`, `declassement`, `decoupage`, `documents`, `enlevements`, `exploitation`,
 `exports`, `fichiers`, `imports`, `intercommunal`, `kpi-5-axes`, `kpi-sources`,
 `maintenance`, `module2` à `module6`, `notifications`, `notifications-citoyen`,
-`observatoire`, `parametres`, `periode`, `prestataires`, `rapports`,
+`observatoire`, `parametres`, `parametres-nationaux`, `periode`, `prestataires`, `rapports`,
 `releves-terrain`, `simulation-3mois`, `suggestions`, `suppression`,
 `versions-decoupage`). `simulation-3mois` est celle du jumeau numérique (lot S1, § 6bis) ;
 `barbechas`, celle de la conformité du registre des pré-collecteurs (lot 16.1) ; `documents`,
 celle des documents à numérotation scellée (lot 16.2) ; `exploitation`, celle du carnet de bord,
 des bons de carburant et du ratio L/100 km (lot 16.3) ; `declassement`, celle du dossier de
-déclassement, du seuil de 80 % et du circuit d'autorisation (lot 16.4).
+déclassement, du seuil de 80 % et du circuit d'autorisation (lot 16.4) ; `parametres-nationaux`,
+celle des paramètres nationaux datés et de la redevance au taux de la date de la pesée (lot 17.3).
 
 **Le critère d'acceptation** est celui de `CLAUDE.md` § 7 : `npm run
 verifier:contrat` et toutes ces campagnes passent, et les deux commandes de
@@ -1495,7 +1496,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **59 migrations** au 07/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **60 migrations** au 07/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

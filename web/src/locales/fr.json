@@ -131,6 +131,7 @@
       "communes": "Annuaire des communes",
       "performance": "Concours & 5 axes",
       "deploiement": "Déploiement par gouvernorat",
+      "parametres": "Paramètres nationaux",
       "demo": "Mode démo"
     },
     "demo": {
@@ -164,6 +165,33 @@
         "fins_de_poste": "Fins de poste",
         "fuel_logs": "Pleins de carburant",
         "actions_planifiees": "Nettoyages"
+      }
+    },
+    "parametres": {
+      "titre": "Paramètres nationaux",
+      "intro": "Les valeurs que fixe la FNCT pour toutes les communes, chacune avec sa date d’effet. Une valeur ne se réécrit pas : un changement s’ajoute à sa date, et l’ancienne valeur continue de s’appliquer à ce qui la précède — une pesée de mars reste au taux de mars. Une valeur est provisoire tant qu’elle ne cite pas la pièce qui la fonde.",
+      "enVigueur": "En vigueur",
+      "depuis": "depuis le {{date}}",
+      "provisoire": "provisoire",
+      "nonRenseigne": "non renseigné",
+      "aVenir": "À partir du {{date}}",
+      "dateEffet": "Date d’effet",
+      "valeur": "Valeur",
+      "valeurFr": "Intitulé en français",
+      "valeurAr": "Intitulé en arabe",
+      "reference": "Pièce qui fonde la valeur (barème, arrêté…)",
+      "retireLe": "retirée — {{motif}}",
+      "retirer": "Retirer",
+      "motifRetrait": "Motif du retrait",
+      "confirmerRetrait": "Confirmer le retrait",
+      "ajouter": "Ajouter cette valeur",
+      "aideAjout": "Pour changer une valeur, ajoutez la nouvelle avec sa date d’effet : l’ancienne reste en vigueur jusqu’à la veille. Décochez « provisoire » seulement en citant la pièce officielle.",
+      "valeurAjoutee": "Valeur ajoutée.",
+      "valeurRetiree": "Valeur retirée. Elle reste lisible dans l’historique.",
+      "descriptions": {
+        "redevance_anged": "Montant par tonne pesée. Chaque pesée est valorisée au taux en vigueur à sa date.",
+        "ministere_tutelle": "Intitulé porté en tête des documents administratifs des communes.",
+        "entete_etat": "Première ligne de l’en-tête des documents administratifs."
       }
     }
   },
@@ -1254,7 +1282,13 @@
         "metal": "Métaux",
         "tri": "Tri sélectif",
         "autre": "Autre"
-      }
+      },
+      "colRedevance": "Redevance ANGeD (TND)",
+      "redevanceSansTaux": "aucun taux",
+      "redevanceTaux": "à {{taux}} TND/t",
+      "redevanceProvisoire": "taux provisoire",
+      "redevanceTonnesSansTaux": "{{tonnes}} t sans taux",
+      "noteRedevance": "Redevance ANGeD : chaque pesée au taux en vigueur à sa date (paramètre national fixé par la FNCT), jamais au taux du jour. « Taux provisoire » : le barème officiel n’est pas encore saisi. Une pesée antérieure à tout taux n’entre pas dans le montant."
     },
     "menu": {
       "ouvrir": "Ouvrir le menu de navigation",
