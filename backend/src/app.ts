@@ -50,6 +50,7 @@ import { documentsRouter } from './routes/documents.routes.js';
 import { exploitationRouter } from './routes/exploitation.routes.js';
 import { declassementRouter } from './routes/declassement.routes.js';
 import { parametresNationauxRouter } from './routes/parametresNationaux.routes.js';
+import { coutCompletRouter } from './routes/coutComplet.routes.js';
 import { genererDocumentOpenApi } from './openapi/document.js';
 
 
@@ -226,6 +227,8 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/declassement', declassementRouter],
   // Les paramètres nationaux historisés (lot 17.3).
   ['/parametres-nationaux', parametresNationauxRouter],
+  // Le rejeu du coût complet d'un bureau d'études (lot 17.5).
+  ['/cout-complet', coutCompletRouter],
 ];
 
 for (const [prefixe, routeur] of ROUTEURS) {

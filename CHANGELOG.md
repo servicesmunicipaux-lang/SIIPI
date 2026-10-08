@@ -5,6 +5,70 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.11] — 2026-10-08 — Lot 17.5 : le rejeu du coût complet d'un bureau d'études
+
+Un PCGD publie un coût complet — M'hamdia 2025 : 1 914 830 DT, « 155 DT/t ».
+SIIPI ne le recopie pas comme une vérité : il range les chiffres **déclarés** par
+le bureau d'études, rejoue la méthode **Z = (A + B) + (C + D)** (skill
+pcgd-cout-complet-methodologie) et montre les écarts **E1 à E8**, sans les
+trancher. Décision du 08/10/2026 : le fichier d'agrégats réel de M'hamdia reste
+**hors du dépôt public** (accord de la commune et du bureau d'études non vérifié) ;
+il se charge localement par l'écran.
+
+### Ajouté
+- **Migration 062.**
+  - `etudes_cout_complet` : une étude par commune et exercice ; provenance imposée
+    « déclaré par le bureau d'études ».
+  - `valeurs_cout_complet` : postes (blocs A à D), totaux, ratios publiés — avec
+    leur **pas d'arrondi** et, quand le rapport le donne à part, leur numérateur —,
+    ventilation par flux. Un poste absent du rapport a un montant NULL : **non
+    renseigné, jamais 0**. Deux versions publiées d'un même chiffre se rangent
+    toutes les deux ; une seule est retenue pour le calcul.
+  - `constats_lecture_cout_complet` : ce que la lecture relève et que SIIPI ne
+    recalcule pas (un millésime « 2017 » dans un titre de 2025).
+  - Refusés en base : une autre provenance, un ratio sans pas d'arrondi, un
+    montant négatif, un total absent, un code hors nomenclature, deux versions
+    retenues du même chiffre, une ligne réécrite ; l'application n'a aucun droit
+    d'effacement. Une étude se retire (retrait logique) pour être rechargée.
+- **Le rejeu** (`services/coutComplet.ts`), calculé à chaque lecture, jamais
+  stocké : blocs A à D, X, Y, Z face aux totaux publiés ; le coût rapporté au
+  tonnage **pesé** ; pour chaque ratio publié, le dénominateur qu'il implique.
+  **L'arrondi n'est pas une tolérance** : « 155 » couvre 154,5 à 155,5, le
+  dénominateur implicite est un **intervalle**, et il n'y a écart que si le chiffre
+  déclaré en sort.
+  - E1 dénominateur du coût à la tonne · E2 dénominateurs différents selon
+    l'indicateur · E3 totaux qui ne se recoupent pas · E4 deux versions d'un même
+    poste · E5 dénominateurs par habitant, ménage, habitat · E6 constats de
+    lecture · E7 postes non renseignés · E8 ventilation par flux.
+- **La lecture d'un fichier « agrégats de PCGD »** (`services/importCoutComplet.ts`)
+  : refuse en bloc tout champ qui ressemble à une donnée personnelle (nom d'agent,
+  CIN, téléphone, salaire individuel), vérifie que le gouvernorat du fichier est
+  celui de la commune, range les versions concurrentes, et ne recopie pas les
+  écarts que SIIPI recalcule.
+- Routes `/cout-complet/etudes` (liste, chargement, étude et rejeu, retrait) —
+  4 routes au contrat.
+- **Écran « Coût complet »** (pôle Pilotage) : chargement du fichier, tableau du
+  rejeu bloc par bloc face aux totaux publiés, tableau des ratios et de leur
+  dénominateur, cartes E1 à E8 qui finissent toutes par « à demander au bureau
+  d'études ». FR et AR.
+- **Campagne `cout-complet`** sur un **jeu fictif** de même structure
+  (`tests/donnees/cout-complet-fictif.json`), comparée à un **témoin
+  indépendant** (`tests/cout_complet_attendus.py`), qui ne lit que le fichier et
+  la méthode : refus au chargement et en base, puis blocs, Z, intervalles, statut
+  de chaque écart, retrait et rechargement.
+- `.gitignore` : le fichier réel `docs/specs_metier/sources/mhamdia-pcgd-2025-agregats.json`.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 62 migrations ; la 062 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 289/289, **41 bilans, 1 545 tests
+  réussis, aucun échec** (dont `cout-complet` : 45, comparés au témoin indépendant).
+- Recomptage : 41 campagnes présentes, 41 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Fichier réel de M'hamdia, chargé **localement** sur la pile d'essai (jamais
+  versionné) : le rejeu de l'API et le témoin indépendant donnent les mêmes blocs
+  A à D, le même Z (égal au coût total publié) et le même statut pour les huit
+  écarts ; l'écran l'affiche en entier.
+
 ## [0.15.10] — 2026-10-07 — Lot 17.1 : la population de saison et le repère de production
 
 Une commune côtière triple en été. Le kilo par habitant et par jour (migration

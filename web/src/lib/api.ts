@@ -194,6 +194,9 @@ export type TonnageCircuit = Reponse<'/pesees/tonnages', 'get'>[number];
 export type TonnageMensuel = Reponse<'/pesees/mensuel', 'get'>[number];
 export type RedevanceMensuelle = Reponse<'/pesees/redevance', 'get'>[number];
 export type ProductionSpecifique = Reponse<'/pesees/production-specifique', 'get'>[number];
+// --- Lot 17.5 : rejeu du coût complet d'un bureau d'études ------------------
+export type EtudeCoutComplet = Reponse<'/cout-complet/etudes', 'get'>[number];
+export type EtudeCoutCompletDetail = Reponse<'/cout-complet/etudes/{id}', 'get'>;
 export type ParametreNational = Reponse<'/parametres-nationaux', 'get'>[number];
 export type ValeurParametreNational = ParametreNational['historique'][number];
 export type Incoherence = Reponse<'/communes/{id}/coherence', 'get'>[number];
@@ -1047,6 +1050,17 @@ export const api = {
     requete<TonnageMensuel[]>(
       `/pesees/mensuel?communeId=${encodeURIComponent(communeId)}` + (annee ? `&annee=${annee}` : '')
     ),
+  // Lot 17.5 : le fichier « agrégats de PCGD » est posté tel quel (objet JSON) ;
+  // l'API le lit, refuse toute donnée personnelle et rend l'étude avec son rejeu.
+  etudesCoutComplet: (communeId: string) =>
+    requete<EtudeCoutComplet[]>(`/cout-complet/etudes?communeId=${encodeURIComponent(communeId)}`),
+  etudeCoutComplet: (id: string) => requete<EtudeCoutCompletDetail>(`/cout-complet/etudes/${id}`),
+  chargerEtudeCoutComplet: (communeId: string, fichier: Record<string, unknown>) =>
+    requete<EtudeCoutCompletDetail>(`/cout-complet/etudes?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify({ fichier }),
+    }),
+  retirerEtudeCoutComplet: (id: string) => requete<void>(`/cout-complet/etudes/${id}`, { method: 'DELETE' }),
   // Lot 17.1 : kg/hab/jour sur la population permanente et, en saison, présente.
   productionSpecifique: (communeId: string, annee?: number) =>
     requete<ProductionSpecifique[]>(

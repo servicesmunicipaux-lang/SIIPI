@@ -1,0 +1,66 @@
+{
+  "_meta": {
+    "objet": "Jeu FICTIF de la campagne cout-complet (lot 17.5) : même structure qu'un fichier « agrégats de PCGD », aucun chiffre réel.",
+    "source": "TEST — rapport fictif d'un bureau d'études fictif, construit pour déclencher les écarts E1 à E8.",
+    "bureau_etudes": "TEST Bureau",
+    "provenance": "declare_par_bureau_etudes",
+    "devise": "DT",
+    "exercice": 2025
+  },
+  "commune": {
+    "nom": "TEST commune coût",
+    "gouvernorat": "TEST",
+    "population_2024_ins": 40000,
+    "menages": 10000
+  },
+  "tonnages": {
+    "unite": "tonnes pesées (fictives)",
+    "annuel": { "2025": 10000 }
+  },
+  "charges_directes_collecte_2025": {
+    "frais_de_personnel": 600000,
+    "depenses_engins_carburant_entretien": 150000,
+    "transfert_et_mise_en_decharge": 50000,
+    "sous_total_hors_amortissements": 800000,
+    "amortissements_materiel_collecte_et_precollecte": 100000,
+    "total_charges_directes": 900000,
+    "autres_chiffres_du_rapport": {
+      "carburant_gasoil": 60000,
+      "cout_maintenance_parc_total": 90000,
+      "entretien_engins_tableau_III_5_2_2": 152000,
+      "frais_de_personnel_tableau_III_5_2_2": 600500
+    },
+    "postes_absents_du_rapport_a_la_lecture": [
+      "intérêts de la dette CPSCL",
+      "assurance, habillement, taxes de circulation en postes séparés",
+      "amortissement détaillé par engin et durées retenues"
+    ]
+  },
+  "charges_indirectes_collecte_2025": {
+    "siege": 100000,
+    "parc_municipal": 150000,
+    "direction_proprete": 50000,
+    "total_tableau_19": 300000,
+    "total_tableaux_20_et_21": 303000
+  },
+  "totaux_et_ratios_publies": {
+    "cout_total": 1200000,
+    "cout_par_tonne": 150,
+    "cout_direct_par_tonne": 112,
+    "cout_indirect_par_tonne": 37,
+    "personnel_par_tonne": 75,
+    "maintenance_par_tonne": 9,
+    "gasoil_par_tonne": 7.5,
+    "cout_par_jour": 4000,
+    "cout_par_habitant": 30,
+    "cout_par_menage": 120,
+    "cible_nationale_cout_par_tonne": "texte ignoré"
+  },
+  "campagnes_de_proprete_2025": {
+    "total_publie": 100000
+  },
+  "ecarts_constates_a_la_lecture": [
+    { "id": "E1", "sujet": "TEST", "constat": "Recalculé par SIIPI : ne doit pas être recopié." },
+    { "id": "E6", "sujet": "Millésimes", "constat": "TEST : le tableau fictif 18 porte « 2017 » dans son titre." }
+  ]
+}

@@ -71,6 +71,7 @@ import {
   NATURES_PIECE,
 } from '../routes/declassement.routes.js';
 import { valeurParametreSchema, retraitValeurSchema } from '../routes/parametresNationaux.routes.js';
+import { chargementEtudeSchema } from '../routes/coutComplet.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
@@ -2498,6 +2499,149 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: valeurParametreSchema } } },
   },
   responses: { 201: json(ValeurParametreNational, 'Valeur ajoutée.'), 409: json(Erreur, 'Une valeur commence déjà à cette date.'), ...REPONSES_COMMUNES },
+});
+
+// --- Rejeu du coût complet (lot 17.5) ---------------------------------------
+
+const EtudeCoutComplet = registry.register(
+  'EtudeCoutComplet',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    exercice: z.number().int(),
+    document: z.string(),
+    bureau_etudes: z.string().nullable(),
+    lu_le: z.string().nullable(),
+    tonnage_pese_t: z.number().nullable().openapi({ description: 'Tonnage PESÉ de l’exercice cité par l’étude.' }),
+    tonnage_source: z.string().nullable(),
+    population: z.number().int().nullable(),
+    population_source: z.string().nullable(),
+    menages: z.number().int().nullable(),
+    provenance: z.literal('declare_bureau_etudes'),
+    created_at: z.string(),
+  })
+);
+
+const Intervalle = z.object({ min: z.number(), max: z.number() }).nullable();
+const PosteRejeu = z.object({
+  code: z.string(),
+  montant: z.number().nullable().openapi({ description: 'null : le rapport ne donne pas ce poste (non renseigné, jamais 0).' }),
+  reference: z.string().nullable(),
+  variantes: z.array(z.object({ montant: z.number().nullable(), reference: z.string().nullable() })),
+});
+const BlocRejeu = z.object({ montant: z.number().nullable(), postes: z.array(PosteRejeu) });
+const Comparaison = z.object({ siipi: z.number().nullable(), publie: z.number().nullable(), ecart: z.number().nullable() });
+
+const RejeuCoutComplet = registry.register(
+  'RejeuCoutComplet',
+  z.object({
+    formule: z.string(),
+    blocs: z.object({ A: BlocRejeu, B: BlocRejeu, C: BlocRejeu, D: BlocRejeu }),
+    X: z.number().nullable(),
+    Y: z.number().nullable(),
+    Z: z.number().nullable(),
+    complet: z.boolean().openapi({ description: 'Vrai si les quatre blocs sont renseignés.' }),
+    comparaison: z.object({ A: Comparaison, X: Comparaison, Y: Comparaison, Z: Comparaison }),
+    recalcul_tonnage_pese: z.object({
+      tonnage_pese: z.number().nullable(),
+      cout_par_tonne: z.number().nullable(),
+      direct_par_tonne: z.number().nullable(),
+      indirect_par_tonne: z.number().nullable(),
+    }),
+    ratios: z.array(
+      z.object({
+        code: z.string(),
+        valeur: z.number(),
+        pas_arrondi: z.number(),
+        numerateur: z.number().nullable(),
+        unite: z.enum(['t', 'jours', 'habitants', 'menages', 'habitats']),
+        denominateur_implicite: z.number().nullable(),
+        intervalle: Intervalle.openapi({ description: 'Dénominateur compatible avec le ratio publié, compte tenu de son arrondi.' }),
+        denominateur_declare: z.number().nullable(),
+        compatible: z.boolean().nullable(),
+        recalcule: z.number().nullable(),
+      })
+    ),
+    ecarts: z.array(
+      z.object({
+        code: z.string().openapi({ description: 'E1 à E8.' }),
+        statut: z.enum(['constate', 'aucun', 'non_verifiable', 'declare']),
+        donnees: z.record(z.unknown()),
+        notes: z.array(z.object({ sujet: z.string(), constat: z.string() })),
+      })
+    ),
+  })
+);
+
+const EtudeCoutCompletDetail = registry.register(
+  'EtudeCoutCompletDetail',
+  EtudeCoutComplet.extend({
+    valeurs: z.array(
+      z.object({
+        nature: z.enum(['poste', 'total', 'ratio', 'flux']),
+        code: z.string(),
+        montant: z.number().nullable(),
+        numerateur: z.number().nullable(),
+        pas_arrondi: z.number().nullable(),
+        retenue: z.boolean(),
+        reference: z.string().nullable(),
+      })
+    ),
+    constats: z.array(z.object({ code: z.string(), sujet: z.string(), constat: z.string() })),
+    rejeu: RejeuCoutComplet,
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/cout-complet/etudes',
+  tags: ['Coût complet'],
+  summary: 'Les études de coût complet chargées pour une commune',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional() }) },
+  responses: { 200: json(z.array(EtudeCoutComplet), 'Études.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/cout-complet/etudes',
+  tags: ['Coût complet'],
+  summary: 'Charger un fichier « agrégats de PCGD » (chiffres déclarés par un bureau d’études)',
+  description:
+    'Agrégats seulement : un fichier qui porte un champ de nom, de CIN, de téléphone ou de salaire individuel est refusé. Le ' +
+    'gouvernorat du fichier doit être celui de la commune. Les chiffres principaux sont retenus, les autres versions publiées ' +
+    'rangées comme variantes ; un poste que la lecture n’a pas trouvé est rangé « absent » (non renseigné, jamais 0). Une étude ' +
+    'déjà chargée pour la commune et l’exercice : 409, la retirer d’abord.',
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: paramCommuneId.optional() }),
+    body: { content: { 'application/json': { schema: chargementEtudeSchema } } },
+  },
+  responses: { 201: json(EtudeCoutCompletDetail, 'Étude chargée, avec son rejeu.'), 409: json(Erreur, 'Déjà chargée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/cout-complet/etudes/{id}',
+  tags: ['Coût complet'],
+  summary: 'Une étude et son rejeu : Z = (A+B)+(C+D), totaux publiés, dénominateurs, écarts E1 à E8',
+  description:
+    'Le rejeu n’est pas stocké : il se calcule à chaque lecture sur les chiffres déclarés. Un ratio publié est arrondi : son ' +
+    'dénominateur implicite est un intervalle, et un dénominateur déclaré hors de cet intervalle est un écart. Les écarts sont ' +
+    'montrés, jamais tranchés.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 200: json(EtudeCoutCompletDetail, 'Étude et rejeu.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/cout-complet/etudes/{id}',
+  tags: ['Coût complet'],
+  summary: 'Retirer une étude (retrait logique), pour la recharger',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 204: { description: 'Étude retirée.' }, ...REPONSES_COMMUNES },
 });
 
 // --- Mode démo : le jumeau numérique (lot S1) ------------------------------
@@ -6267,7 +6411,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.10',
+      version: '0.15.11',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

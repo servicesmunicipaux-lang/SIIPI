@@ -44,3 +44,8 @@ _to_delete/
 # --- Données de terrain brutes (noms de personnes) : jamais dans un dépôt public ---
 # Le script seed/djerba.ts les lit là où on les pose (DJERBA_DIR).
 backend/seed/data/djerba/
+
+# --- Agrégats d'un PCGD réel : accord de la commune et du bureau d'études non vérifié ---
+# (lot 17.5, décision du 08/10/2026). Le fichier se charge localement par l'écran
+# « Coût complet » ; les campagnes travaillent sur un jeu fictif de même structure.
+docs/specs_metier/sources/mhamdia-pcgd-2025-agregats.json
