@@ -27,7 +27,8 @@ date de la pesée), 17.1 aussi (v0.15.10 : population permanente et de saison, p
 théorique), 17.5 aussi (v0.15.11 : rejeu du coût complet d'un bureau d'études, écarts E1 à E8 ;
 le fichier réel de M'hamdia reste hors du dépôt public). Restent 17.2 et 17.4, suspendus.
 Au jalon 13, 18.1 est fait (v0.15.13 : registre communal des acteurs informels, derrière le
-paramètre national `cadre_secteur_informel_actif`, inactif) ; 18.2 et 18.3 attendent l'article 13
+paramètre national `cadre_secteur_informel_actif`, inactif ; v0.15.14 : l'écran n'apparaît pas tant
+que le cadre n'est pas en vigueur) ; 18.2 et 18.3 attendent l'article 13
 et la date de départ de la période transitoire.**
 
 ---

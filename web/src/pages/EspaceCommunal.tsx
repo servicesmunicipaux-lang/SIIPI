@@ -96,6 +96,20 @@ export function EspaceCommunal({
   const [onglet, setOnglet] = useState<Onglet>('constat');
 
   const estFnct = utilisateur?.role === 'super_admin_fnct';
+
+  // LE SECTEUR INFORMEL N'APPARAÎT PAS TANT QUE SON CADRE N'EST PAS EN VIGUEUR
+  // (jalon 13, test de validation). Le projet de décret n'est pas publié : un
+  // écran visible, même en lecture seule, le ferait passer pour une obligation
+  // faite à la commune. Tant que l'état n'est pas connu, l'entrée reste
+  // cachée — elle apparaît un instant plus tard plutôt qu'à tort.
+  const [cadreInformelActif, setCadreInformelActif] = useState(false);
+  useEffect(() => {
+    void api
+      .cadreSecteurInformel()
+      .then((c) => setCadreInformelActif(c.actif))
+      .catch(() => setCadreInformelActif(false));
+  }, []);
+  const entrees = cadreInformelActif ? ENTREES : ENTREES.filter((e) => e.cle !== 'acteursInformels');
   const [communes, setCommunes] = useState<{ id: string; name: string; gouvernorat?: string | null; activee?: boolean; est_demo?: boolean }[]>([]);
   const [nomCommune, setNomCommune] = useState<string | null>(null);
 
@@ -204,7 +218,7 @@ export function EspaceCommunal({
           étroite. Côte à côte seulement en grand (lg), où la barre est posée. */}
       <div className="flex flex-col lg:flex-row lg:gap-4">
         <BarreLaterale
-          entrees={ENTREES}
+          entrees={entrees}
           actif={onglet}
           onChoisir={setOnglet}
           libelle={t('communal.navigation')}
@@ -234,7 +248,7 @@ export function EspaceCommunal({
         {onglet === 'communication' && <Communication communeId={communeId} />}
         {onglet === 'rapports' && <RapportsEtudes communeId={communeId} />}
         {onglet === 'coutComplet' && <CoutComplet communeId={communeId} />}
-        {onglet === 'acteursInformels' && <ActeursInformels communeId={communeId} />}
+        {onglet === 'acteursInformels' && cadreInformelActif && <ActeursInformels communeId={communeId} />}
         {onglet === 'contacts' && <Contacts communeId={communeId} />}
         {onglet === 'comptes' && <Comptes communeId={communeId} />}
         </div>

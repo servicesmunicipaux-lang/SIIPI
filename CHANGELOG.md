@@ -5,6 +5,30 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.14] — 2026-10-08 — Secteur informel : aucun écran tant que le cadre n'est pas en vigueur
+
+### Corrigé
+- **L'écran « Acteurs informels » apparaissait cadre fermé.** La v0.15.13 le montrait
+  toujours dans le portail communal, en lecture seule avec un bandeau « pas en vigueur ».
+  Le test de validation du jalon 13 (`FEUILLE_DE_ROUTE.md`) demande au contraire qu'avec
+  le paramètre national inactif, **aucun écran du secteur informel n'apparaisse** : un
+  écran visible ferait passer un projet de décret pour une obligation faite à la commune.
+  Le portail lit l'état du cadre et n'offre l'entrée qu'une fois le cadre en vigueur ; tant
+  que l'état n'est pas connu, l'entrée reste cachée. La carte de l'observatoire, où la FNCT
+  met le cadre en vigueur, reste visible ; son texte dit désormais que la suspension retire
+  l'écran aux communes sans rien effacer. Rien ne change en base : l'écriture y était déjà
+  refusée cadre fermé.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 64 migrations ; la 064 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 297/297, **42 bilans, 1 613 tests réussis,
+  aucun échec**.
+- Recomptage : 42 campagnes présentes, 42 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur (pile d'essai), compte d'un admin communal : cadre inactif, l'entrée
+  « Acteurs informels » est absente (Pesées et Preuve présentes) ; cadre mis en vigueur,
+  elle apparaît au rechargement. Base d'essai remise en l'état (cadre inactif).
+
 ## [0.15.13] — 2026-10-08 — Lot 18.1 : registre communal des acteurs informels (cadre inactif)
 
 Projet de décret sur le tri à la source, article 13.1 — **non en vigueur**. Tout le lot
