@@ -1329,11 +1329,11 @@ d'accueil de deux pages et une vidéo de cinq minutes.
 
 ### Niveau 1 — Les campagnes automatisées *(en place)*
 
-**Quarante-deux campagnes rejouables** au 08/10/2026, lancées par `backend/tests/executer.sh
+**Quarante-trois campagnes rejouables** au 08/10/2026, lancées par `backend/tests/executer.sh
 <campagne>` et enchaînées par `npm test` (`acteurs-informels`, `assainissement`, `audit`, `barbechas`, `champs-points`, `circuits`,
 `citoyen`, `cloisonnement`, `comptes`, `contacts`, `cout-complet`, `declassement`, `decoupage`, `documents`, `enlevements`, `exploitation`,
 `exports`, `fichiers`, `imports`, `intercommunal`, `kpi-5-axes`, `kpi-sources`,
-`maintenance`, `module2` à `module6`, `notifications`, `notifications-citoyen`,
+`maintenance`, `module2` à `module6`, `mot-de-passe-public`, `notifications`, `notifications-citoyen`,
 `observatoire`, `parametres`, `parametres-communaux`, `parametres-nationaux`, `periode`, `prestataires`, `rapports`,
 `releves-terrain`, `simulation-3mois`, `suggestions`, `suppression`,
 `versions-decoupage`). `simulation-3mois` est celle du jumeau numérique (lot S1, § 6bis) ;
@@ -1345,7 +1345,9 @@ celle des paramètres nationaux datés et de la redevance au taux de la date de 
 `parametres-communaux`, celle de la population de saison et du repère de production (lot 17.1) ;
 `cout-complet`, celle du rejeu du coût complet d'un bureau d'études et des écarts E1 à E8 (lot 17.5),
 sur un jeu fictif contrôlé par un script témoin indépendant ; `acteurs-informels`, celle du
-registre des acteurs informels et de la démarche de formalisation, derrière le cadre national (lot 18.1).
+registre des acteurs informels et de la démarche de formalisation, derrière le cadre national (lot 18.1) ;
+`mot-de-passe-public`, celle du mot de passe des comptes de démonstration, refusé en production par
+une seconde API démarrée en `NODE_ENV=production` le temps de la campagne (v0.15.15).
 
 **Le critère d'acceptation** est celui de `CLAUDE.md` § 7 : `npm run
 verifier:contrat` et toutes ces campagnes passent, et les deux commandes de
@@ -1478,7 +1480,7 @@ question technique.
 | Documentation des API GPS des opérateurs | Opérateurs | Le connecteur 17.4 reste bloqué |
 | Confirmation juridique du traitement des identités de pré-collecteurs et hébergement accrédité | Juriste FNCT | La garde `hebergement_pii_accredite` reste à faux : aucune identité nominative n'entre en base |
 | Purge des exports antérieurs qui contiennent `cin` ou des données de santé | FNCT | Des copies subsistent hors de la base |
-| Mot de passe de démonstration `Siipi2026!` publié avec le code | FNCT | Toute instance installée avec les comptes de démonstration et jamais changée est ouverte |
+| Mot de passe de démonstration `Siipi2026!` publié avec le code | FNCT | ✅ **Traité** (v0.15.15) : en production, il n'ouvre aucun compte ; l'exploitant attribue un mot de passe provisoire depuis le serveur (`npm run mot-de-passe:provisoire:prod -- <adresse>`). Reste à la FNCT de décider si les comptes de démonstration doivent exister du tout sur une instance de production |
 
 ---
 

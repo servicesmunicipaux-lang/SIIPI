@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import bcrypt from 'bcryptjs';
+import { COMPTES_DE_DEMONSTRATION, MOT_DE_PASSE_PUBLIC } from '../src/motDePassePublic.js';
 // Le seed écrit dans des tables cloisonnées par RLS : contexte FNCT (src/db.ts).
 process.env.SIIPI_DB_CONTEXT = 'server';
 const { pool, withTransaction } = await import('../src/db.js');
@@ -42,7 +43,10 @@ interface CommuneSeed {
   notes?: string;
 }
 
-const DEMO_PASSWORD = 'Siipi2026!'; // à changer immédiatement après la première connexion
+// Public, et voulu tel en développement ; en production il n'ouvre aucun
+// compte (src/motDePassePublic.ts). Défini là-bas, une seule fois : le refus de
+// la connexion et le seed ne peuvent pas diverger.
+const DEMO_PASSWORD = MOT_DE_PASSE_PUBLIC;
 
 // Communes pilotes. Le CDC (§1.2) prévoit une approche MVP itérative sur un petit nombre
 // de communes ; le périmètre de démonstration a depuis été élargi à 5 communes pilotes à la
@@ -113,6 +117,13 @@ async function seedUsers() {
     { email: 'prestataire.ajim@siipi.tn', fullName: 'Walid Ben Younes', role: 'gestionnaire_prestataire', communeId: PILOT_COMMUNE_5_ID },
     { email: 'citoyen.demo@siipi.tn', fullName: 'Yassine Belhadj', role: 'citoyen', communeId: null },
   ] as const;
+
+  // Le contrôle du démarrage en production ne vérifie que les comptes de
+  // COMPTES_DE_DEMONSTRATION : un compte ajouté ici sans y figurer y échapperait.
+  const absents = demoUsers.map((u) => u.email).filter((e) => !(COMPTES_DE_DEMONSTRATION as readonly string[]).includes(e));
+  if (absents.length > 0) {
+    throw new Error(`Comptes de démonstration absents de src/motDePassePublic.ts : ${absents.join(', ')}. Ajoutez-les à COMPTES_DE_DEMONSTRATION.`);
+  }
 
   for (const u of demoUsers) {
     const { rows } = await pool.query(

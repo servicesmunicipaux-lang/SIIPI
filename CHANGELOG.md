@@ -5,6 +5,41 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.15] — 2026-10-08 — En production, le mot de passe de démonstration n'ouvre aucun compte
+
+### Sécurité
+- **Le risque.** Le mot de passe des comptes de démonstration est écrit dans le dépôt
+  (seed, `DEMARRAGE.md`, `DEMARRER.bat`), et l'image de production exécute le même seed :
+  une instance installée et jamais reprise avait onze comptes, dont celui de la FNCT, ouverts
+  à quiconque a lu le code (`FEUILLE_DE_ROUTE.md` § 8).
+- **En production (`NODE_ENV=production`), ce mot de passe n'ouvre aucun compte** : la
+  connexion répond 403, avec ce qu'il faut faire. Le refus précède la recherche du compte —
+  même réponse pour un compte connu ou inconnu — et vaut pour tout compte qui aurait gardé ce
+  mot de passe, pas seulement ceux du seed. En développement, rien ne change.
+- **Partout, il ne se choisit pas comme nouveau mot de passe** (400).
+- **Une commande serveur rouvre un compte** : `npm run mot-de-passe:provisoire:prod --
+  <adresse>` (ou `mot-de-passe:provisoire` en développement) attribue un mot de passe
+  provisoire, affiché une fois, à remplacer à la première connexion — y compris pour la FNCT,
+  qui ne peut plus se connecter avec le mot de passe public. La base n'en garde que l'empreinte.
+- **Au démarrage en production**, l'API nomme dans son journal les comptes de démonstration
+  qui gardent ce mot de passe.
+- Le mot de passe et la liste des comptes de démonstration sont définis une seule fois
+  (`src/motDePassePublic.ts`) ; le seed refuse de créer un compte de démonstration absent de
+  cette liste.
+- **Campagne `mot-de-passe-public`** : elle démarre une seconde API en production sur le port
+  4001 du conteneur, le temps de la campagne ; le nombre attendu de comptes exposés est
+  calculé par la base (`crypt()` de pgcrypto), pas par l'API. Contre-épreuve faite : garde
+  désactivée, ses trois contrôles de connexion en production échouent.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 64 migrations ; la 064 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 297/297, **43 bilans, 1 636 tests réussis,
+  aucun échec** (dont `mot-de-passe-public` : 23).
+- Recomptage : 43 campagnes présentes, 43 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Commande compilée (`tsc` vers un dossier d'essai, `node …/motDePasseProvisoire.js`) : sans
+  adresse, code 2 ; adresse inconnue, code 1 et aucun compte modifié.
+
 ## [0.15.14] — 2026-10-08 — Secteur informel : aucun écran tant que le cadre n'est pas en vigueur
 
 ### Corrigé

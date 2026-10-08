@@ -5,6 +5,7 @@ import { app } from './app.js';
 import { config } from './config.js';
 import { pool } from './db.js';
 import { preparerRacine, racine } from './services/fichiers.js';
+import { signalerComptesDeDemonstration } from './comptesDemonstration.js';
 
 // Le volume de stockage est éprouvé AU DÉMARRAGE, pas au premier dépôt. Un
 // volume non monté se découvrirait autrement le jour où un agent envoie la
@@ -24,6 +25,8 @@ app.listen(config.port, () => {
     `[siipi-backend] API démarrée sur http://localhost:${config.port} ` +
       `(CORS autorisé : ${config.corsOrigin}) — documentation sur /docs`
   );
+  // En production seulement : en développement, ces comptes servent tels quels.
+  if (config.isProduction) void signalerComptesDeDemonstration();
 });
 
 process.on('SIGTERM', async () => {

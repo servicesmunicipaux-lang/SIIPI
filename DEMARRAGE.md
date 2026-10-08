@@ -69,6 +69,14 @@ minutes avant que le port 3000 réponde.
 
 Mot de passe commun : `Siipi2026!`
 
+> **Ce mot de passe est public** : il est écrit dans le dépôt. Il ouvre ces comptes
+> en développement, et **aucun en production** (`NODE_ENV=production`), où la
+> connexion le refuse. Sur un serveur de production, l'exploitant attribue un mot
+> de passe provisoire à chaque compte qui doit servir, depuis le conteneur de l'API :
+> `npm run mot-de-passe:provisoire:prod -- admin.national@siipi.tn` — la personne le
+> remplace à sa première connexion. Au démarrage, l'API nomme dans son journal les
+> comptes de démonstration qui gardent encore ce mot de passe.
+
 | Espace | Compte |
 |---|---|
 | Observatoire national (FNCT) | `admin.national@siipi.tn` |

@@ -17,7 +17,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { randomInt } from 'node:crypto';
+import { MOT_DE_PASSE_PUBLIC, motDePasseProvisoire } from '../motDePassePublic.js';
 import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
@@ -39,20 +39,6 @@ const COMPTE_SELECT = `
 // le déclencheur de la migration 030 le refuserait de toute façon : la règle
 // est posée deux fois, dont une fois là où elle ne se contourne pas.
 const ROLES_COMMUNAUX = ['admin_commune', 'gestionnaire_prestataire', 'citoyen'] as const;
-
-/**
- * Mot de passe provisoire lisible à voix haute : ni « l » ni « 1 », ni « O »
- * ni « 0 ». Le cadre le dicte à son agent — s'il faut épeler trois fois, il
- * finira par écrire « Azerty123 » sur un papier.
- */
-function motDePasseProvisoire(): string {
-  const lettres = 'ABCDEFGHJKMNPQRSTUVWXYZ';
-  const minuscules = 'abcdefghijkmnpqrstuvwxyz';
-  const chiffres = '23456789';
-  const tirer = (source: string, n: number) =>
-    Array.from({ length: n }, () => source[randomInt(source.length)]).join('');
-  return `${tirer(lettres, 1)}${tirer(minuscules, 5)}-${tirer(chiffres, 4)}`;
-}
 
 // --- Liste ------------------------------------------------------------------
 
@@ -149,6 +135,12 @@ comptesRouter.post(
     }
     if (d.motDePasseActuel === d.nouveauMotDePasse) {
       throw new ApiError(400, 'Le nouveau mot de passe doit différer de l’actuel.');
+    }
+    // Le mot de passe des comptes de démonstration est écrit dans le dépôt :
+    // le choisir rouvrirait le compte à quiconque a lu le code. Refusé partout,
+    // pas seulement en production — on ne l'apprend pas en déployant.
+    if (d.nouveauMotDePasse === MOT_DE_PASSE_PUBLIC) {
+      throw new ApiError(400, 'Ce mot de passe est public (comptes de démonstration, publié avec le code) : choisissez-en un autre.');
     }
     await query(
       `UPDATE users SET password_hash = $1, mot_de_passe_provisoire = false, updated_at = now()

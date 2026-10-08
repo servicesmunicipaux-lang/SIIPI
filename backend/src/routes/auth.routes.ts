@@ -5,6 +5,8 @@ import { query, queryOne } from '../db.js';
 import { requireAuth, signToken, type UserRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { completer } from '../preferences.js';
+import { config } from '../config.js';
+import { MESSAGE_MOT_DE_PASSE_PUBLIC, MOT_DE_PASSE_PUBLIC } from '../motDePassePublic.js';
 
 export const authRouter = Router();
 
@@ -29,6 +31,14 @@ authRouter.post(
   '/login',
   asyncHandler(async (req, res) => {
     const { email, password } = loginSchema.parse(req.body);
+
+    // En production, le mot de passe publié avec le code n'ouvre aucun compte
+    // (src/motDePassePublic.ts). Le refus précède la recherche du compte : il
+    // ne dit donc rien de son existence, et vaut pour tout compte qui aurait
+    // gardé ce mot de passe, pas seulement ceux du seed.
+    if (config.isProduction && password === MOT_DE_PASSE_PUBLIC) {
+      throw new ApiError(403, MESSAGE_MOT_DE_PASSE_PUBLIC);
+    }
 
     // La table users est cloisonnée par RLS et n'est donc pas lisible avant
     // authentification. app.find_user_for_login est l'unique porte d'entrée
