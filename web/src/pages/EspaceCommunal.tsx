@@ -197,7 +197,10 @@ export function EspaceCommunal({
           <p className="mt-0.5">{t('communal.demo.banniereTexte')}</p>
         </div>
       )}
-      <div className="flex gap-4">
+      {/* En colonne sur téléphone : la barre du menu AU-DESSUS du contenu. En
+          ligne, elle se rangeait à côté et écrasait l'écran dans une colonne
+          étroite. Côte à côte seulement en grand (lg), où la barre est posée. */}
+      <div className="flex flex-col lg:flex-row lg:gap-4">
         <BarreLaterale
           entrees={ENTREES}
           actif={onglet}

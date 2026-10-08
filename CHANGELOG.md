@@ -5,6 +5,38 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.12] — 2026-10-08 — Trois correctifs relevés pendant les lots 16.4 à 17.5
+
+### Corrigé
+- **Téléphone : la barre latérale écrasait chaque écran.** Le portail communal et
+  l'observatoire posaient la barre du menu À CÔTÉ du contenu, dans une rangée
+  sans point de rupture : sur 375 px, l'écran tenait dans une colonne d'environ
+  160 px. Le conteneur passe en colonne sur téléphone (barre au-dessus, contenu
+  pleine largeur) et reste en ligne à partir de `lg`. Vérifié à 375 px en
+  français et en arabe (contenu 343 px, aucun défilement horizontal), et à
+  1 366 px où rien ne change.
+- **Pesées en arabe : les mois s'écrivaient en français.** La liste des mois
+  était écrite en dur ; elle suit maintenant la langue de l'écran, avec les noms
+  en usage en Tunisie (جانفي، جويلية…).
+- **Un kilo par habitant, pas deux (migration 063).** La fiche des cinq axes
+  (`app.mesures_kpi`, migration 050) divisait encore par le recensement, alors
+  que l'écran des pesées utilise depuis le lot 17.1 la population que la commune
+  retient. La fiche prend désormais la même population (déclarée, sinon
+  recensement), et le détail de la mesure dit laquelle. Deux contrôles ajoutés à
+  la campagne `parametres-communaux` : la fiche suit la population déclarée, puis
+  revient au recensement quand on l'efface.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 63 migrations ; la 063 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 289/289, **41 bilans, 1 547 tests
+  réussis, aucun échec** (dont `parametres-communaux` : 32, avec les deux contrôles
+  de la fiche des cinq axes).
+- Recomptage : 41 campagnes présentes, 41 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur (pile d'essai) : à 375 px, barre du menu au-dessus du contenu, contenu
+  de 343 px, aucun défilement horizontal, en français et en arabe ; à 1 366 px,
+  barre et contenu côte à côte comme avant ; mois « جانفي », « جويلية » en arabe.
+
 ## [0.15.11] — 2026-10-08 — Lot 17.5 : le rejeu du coût complet d'un bureau d'études
 
 Un PCGD publie un coût complet — M'hamdia 2025 : 1 914 830 DT, « 155 DT/t ».

@@ -169,7 +169,7 @@ docker compose run --rm web npx openapi-typescript http://api:4000/openapi.json 
 
 | Couche | Choix | Note |
 |---|---|---|
-| Base | PostgreSQL 16 + PostGIS 3.4 | 62 migrations au 08/10/2026, rejouées sur base neuve à chaque livraison |
+| Base | PostgreSQL 16 + PostGIS 3.4 | 63 migrations au 08/10/2026, rejouées sur base neuve à chaque livraison |
 | API | Node 22 + Express + TypeScript (ESM) | zod pour la validation |
 | Contrat | OpenAPI 3.1 **généré depuis les schémas zod d'exécution** | la documentation ne peut pas décrire autre chose que ce qui est contrôlé |
 | Front | React 19 + Vite + Tailwind v4 + Leaflet | PWA (`manifest.webmanifest`, `sw.js`) |
@@ -392,7 +392,7 @@ ne génère rien. Voir `FEUILLE_DE_ROUTE.md` § 6bis.
 
 ```
 backend/
-  migrations/      062 fichiers numérotés au 08/10/2026 — l'ordre fait foi, l'empreinte aussi
+  migrations/      063 fichiers numérotés au 08/10/2026 — l'ordre fait foi, l'empreinte aussi
   src/routes/      une route par domaine ; les littéraux avant /:id
   src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF)
   src/openapi/     document.ts — le contrat, généré depuis les schémas zod

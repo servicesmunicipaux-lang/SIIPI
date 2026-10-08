@@ -194,7 +194,10 @@ export function TableauDeBordNational() {
 
   const coque = (contenu: ReactNode) => (
     <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 sm:py-8">
-      <div className="flex gap-4">
+      {/* En colonne sur téléphone : la barre du menu AU-DESSUS du contenu. En
+          ligne, elle se rangeait à côté et écrasait l'écran dans une colonne
+          étroite. Côte à côte seulement en grand (lg), où la barre est posée. */}
+      <div className="flex flex-col lg:flex-row lg:gap-4">
         <BarreLaterale
           entrees={ENTREES_NATIONAL}
           actif={onglet}
