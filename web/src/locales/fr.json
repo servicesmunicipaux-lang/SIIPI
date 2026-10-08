@@ -195,7 +195,7 @@
       },
       "cadreInformel": {
         "titre": "Cadre du secteur informel",
-        "description": "Projet de décret sur le tri à la source, art. 13 : tant qu’il n’est pas en vigueur, aucune commune ne peut écrire dans son registre des acteurs informels. L’activer exige de citer le texte publié ; le suspendre referme l’écriture sans rien effacer.",
+        "description": "Projet de décret sur le tri à la source, art. 13 : tant qu’il n’est pas en vigueur, le registre des acteurs informels n’apparaît dans aucune commune, et la base en refuse toute écriture. L’activer exige de citer le texte publié ; le suspendre retire l’écran aux communes sans rien effacer.",
         "enVigueur": "En vigueur",
         "pasEnVigueur": "Pas en vigueur",
         "depuis": "dernier changement le {{date}}",

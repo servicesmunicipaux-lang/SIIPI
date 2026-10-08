@@ -1,9 +1,11 @@
 // Le registre communal des acteurs informels (lot 18.1).
 //
 // UN PROJET DE DÉCRET, PAS UN TEXTE EN VIGUEUR. Tant que la FNCT n'a pas
-// déclaré le cadre en vigueur (texte publié cité), l'écran se lit mais ne
-// s'écrit pas — et la base refuserait de toute façon. Le bandeau le dit en
-// tête, pour qu'on ne prenne pas un formulaire absent pour une panne.
+// déclaré le cadre en vigueur (texte publié cité), l'écran n'apparaît pas dans
+// le portail (EspaceCommunal) et la base refuse toute écriture. Le bandeau
+// « pas en vigueur » ne sert plus qu'au cas où la FNCT suspend le cadre
+// pendant qu'une commune a l'écran ouvert : un formulaire refusé ne doit pas
+// passer pour une panne.
 //
 // LA COMMUNE DÉCLARE, LES FAITS IMPLIQUENT. La catégorie (pré-collecteur ou
 // intermédiaire) est celle que la commune écrit ; à côté, l'écran montre ce
