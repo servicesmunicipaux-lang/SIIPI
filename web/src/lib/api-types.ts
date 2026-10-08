@@ -9670,6 +9670,291 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/cout-complet/etudes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les études de coût complet chargées pour une commune */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Études. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtudeCoutComplet"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Charger un fichier « agrégats de PCGD » (chiffres déclarés par un bureau d’études)
+         * @description Agrégats seulement : un fichier qui porte un champ de nom, de CIN, de téléphone ou de salaire individuel est refusé. Le gouvernorat du fichier doit être celui de la commune. Les chiffres principaux sont retenus, les autres versions publiées rangées comme variantes ; un poste que la lecture n’a pas trouvé est rangé « absent » (non renseigné, jamais 0). Une étude déjà chargée pour la commune et l’exercice : 409, la retirer d’abord.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        fichier: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Étude chargée, avec son rejeu. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtudeCoutCompletDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Déjà chargée. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cout-complet/etudes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Une étude et son rejeu : Z = (A+B)+(C+D), totaux publiés, dénominateurs, écarts E1 à E8
+         * @description Le rejeu n’est pas stocké : il se calcule à chaque lecture sur les chiffres déclarés. Un ratio publié est arrondi : son dénominateur implicite est un intervalle, et un dénominateur déclaré hors de cet intervalle est un écart. Les écarts sont montrés, jamais tranchés.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Étude et rejeu. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtudeCoutCompletDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Retirer une étude (retrait logique), pour la recharger */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Étude retirée. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/demo": {
         parameters: {
             query?: never;
@@ -22002,6 +22287,162 @@ export interface components {
             created_at: string;
             retire_le: string | null;
             motif_retrait: string | null;
+        };
+        EtudeCoutComplet: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            exercice: number;
+            document: string;
+            bureau_etudes: string | null;
+            lu_le: string | null;
+            /** @description Tonnage PESÉ de l’exercice cité par l’étude. */
+            tonnage_pese_t: number | null;
+            tonnage_source: string | null;
+            population: number | null;
+            population_source: string | null;
+            menages: number | null;
+            /** @enum {string} */
+            provenance: "declare_bureau_etudes";
+            created_at: string;
+        };
+        RejeuCoutComplet: {
+            formule: string;
+            blocs: {
+                A: {
+                    montant: number | null;
+                    postes: {
+                        code: string;
+                        /** @description null : le rapport ne donne pas ce poste (non renseigné, jamais 0). */
+                        montant: number | null;
+                        reference: string | null;
+                        variantes: {
+                            montant: number | null;
+                            reference: string | null;
+                        }[];
+                    }[];
+                };
+                B: {
+                    montant: number | null;
+                    postes: {
+                        code: string;
+                        /** @description null : le rapport ne donne pas ce poste (non renseigné, jamais 0). */
+                        montant: number | null;
+                        reference: string | null;
+                        variantes: {
+                            montant: number | null;
+                            reference: string | null;
+                        }[];
+                    }[];
+                };
+                C: {
+                    montant: number | null;
+                    postes: {
+                        code: string;
+                        /** @description null : le rapport ne donne pas ce poste (non renseigné, jamais 0). */
+                        montant: number | null;
+                        reference: string | null;
+                        variantes: {
+                            montant: number | null;
+                            reference: string | null;
+                        }[];
+                    }[];
+                };
+                D: {
+                    montant: number | null;
+                    postes: {
+                        code: string;
+                        /** @description null : le rapport ne donne pas ce poste (non renseigné, jamais 0). */
+                        montant: number | null;
+                        reference: string | null;
+                        variantes: {
+                            montant: number | null;
+                            reference: string | null;
+                        }[];
+                    }[];
+                };
+            };
+            X: number | null;
+            Y: number | null;
+            Z: number | null;
+            /** @description Vrai si les quatre blocs sont renseignés. */
+            complet: boolean;
+            comparaison: {
+                A: {
+                    siipi: number | null;
+                    publie: number | null;
+                    ecart: number | null;
+                };
+                X: {
+                    siipi: number | null;
+                    publie: number | null;
+                    ecart: number | null;
+                };
+                Y: {
+                    siipi: number | null;
+                    publie: number | null;
+                    ecart: number | null;
+                };
+                Z: {
+                    siipi: number | null;
+                    publie: number | null;
+                    ecart: number | null;
+                };
+            };
+            recalcul_tonnage_pese: {
+                tonnage_pese: number | null;
+                cout_par_tonne: number | null;
+                direct_par_tonne: number | null;
+                indirect_par_tonne: number | null;
+            };
+            ratios: {
+                code: string;
+                valeur: number;
+                pas_arrondi: number;
+                numerateur: number | null;
+                /** @enum {string} */
+                unite: "t" | "jours" | "habitants" | "menages" | "habitats";
+                denominateur_implicite: number | null;
+                /** @description Dénominateur compatible avec le ratio publié, compte tenu de son arrondi. */
+                intervalle: {
+                    min: number;
+                    max: number;
+                } | null;
+                denominateur_declare: number | null;
+                compatible: boolean | null;
+                recalcule: number | null;
+            }[];
+            ecarts: {
+                /** @description E1 à E8. */
+                code: string;
+                /** @enum {string} */
+                statut: "constate" | "aucun" | "non_verifiable" | "declare";
+                donnees: {
+                    [key: string]: unknown;
+                };
+                notes: {
+                    sujet: string;
+                    constat: string;
+                }[];
+            }[];
+        };
+        EtudeCoutCompletDetail: components["schemas"]["EtudeCoutComplet"] & {
+            valeurs: {
+                /** @enum {string} */
+                nature: "poste" | "total" | "ratio" | "flux";
+                code: string;
+                montant: number | null;
+                numerateur: number | null;
+                pas_arrondi: number | null;
+                retenue: boolean;
+                reference: string | null;
+            }[];
+            constats: {
+                code: string;
+                sujet: string;
+                constat: string;
+            }[];
+            rejeu: components["schemas"]["RejeuCoutComplet"];
         };
         EtatDemo: {
             communeId: string;
