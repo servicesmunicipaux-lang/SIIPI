@@ -37,10 +37,11 @@ type TypeDechet = (typeof TYPES_DECHET)[number];
 type Vue = 'saisie' | 'registre' | 'tonnages';
 const VUES: Vue[] = ['saisie', 'registre', 'tonnages'];
 
-const MOIS = [
-  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
-];
+// Le nom du mois dans la langue de l'écran. Une liste écrite en français
+// s'affichait telle quelle en arabe ; « ar-TN » donne les noms en usage en
+// Tunisie (جانفي، فيفري…), pas ceux du Machrek.
+const nomMois = (mois: number, langue: string) =>
+  new Intl.DateTimeFormat(langue === 'ar' ? 'ar-TN' : 'fr-TN', { month: 'long' }).format(new Date(2026, mois - 1, 1));
 
 const nombre = (n: unknown, d = 0) =>
   n === null || n === undefined
@@ -50,7 +51,7 @@ const nombre = (n: unknown, d = 0) =>
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
 
 export function Pesees({ communeId }: { communeId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const f = useFormats();
   const [vue, setVue] = useState<Vue>('saisie');
   const [jour, setJour] = useState(aujourdhui());
@@ -278,7 +279,7 @@ export function Pesees({ communeId }: { communeId: string }) {
                     const p = production.get(`${m.annee}-${m.mois}`);
                     return (
                       <tr key={`${m.annee}-${m.mois}`}>
-                        <td className="p-3">{MOIS[m.mois - 1]} {m.annee}</td>
+                        <td className="p-3">{nomMois(m.mois, i18n.language)} {m.annee}</td>
                         <td className="p-3 text-right tabular-nums">{f.masse(m.tonnage_t, 2)}</td>
                         <td className="p-3 text-end tabular-nums">
                           {/* Le ratio retenu ; en saison, les deux côte à côte : sur la

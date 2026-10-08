@@ -1499,7 +1499,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **62 migrations** au 08/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **63 migrations** au 08/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

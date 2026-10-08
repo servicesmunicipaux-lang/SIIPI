@@ -114,6 +114,15 @@ chk "la commune retient 10 000 habitants permanents, avec leur source" "200|1000
     "$CODE|$(val "d['population_permanente']")|$(val "d['population_recensement']")"
 production >/dev/null
 chk "mars : 0,100 kg/hab/jour sur la population déclarée" "0.1|declaree" "$(mois 3 kg_hab_j_permanente)|$(mois 3 source_population)"
+# La fiche des cinq axes divise par la MÊME population (migration 063) : pas
+# deux kilos par habitant pour une même commune.
+kpi_hab() {
+  $PSQL -c "SET app.role = 'super_admin_fnct';" \
+        -c "SELECT (detail->>'population') || '|' || (detail->>'source_population') || '|'
+                   || (valeur = round($1 / (detail->>'population')::numeric / (detail->>'jours_couverts')::numeric, 3))
+              FROM app.mesures_kpi($A1) WHERE commune_id = '$TC' AND code = 'KG_HAB_J';" 2>/dev/null
+}
+chk "la fiche des cinq axes rapporte à la même population déclarée (10 000), et le dit" "10000|declaree|true" "$(kpi_hab 279000)"
 chk "une saison de 9 000 personnes, sous les 10 000 permanents déclarés : refusée" 400 \
     "$(population "$(corps 10000 '"TEST estimation communale"' 9000 6 9 null null)")"
 CODE=$(population "$(corps 10000 '"TEST estimation communale"' 30000 6 9 0.25 '"TEST PCGD"')")
@@ -139,6 +148,7 @@ chk "… juillet n'en est plus : 0,600 retenu, +140,0 % du repère" "False|0.6|1
 
 CODE=$(population "$(corps null null null null null null null)")
 production >/dev/null
+chk "… et la fiche des cinq axes revient au recensement (8 000)" "8000|recensement|true" "$(kpi_hab 279000)"
 chk "tout effacé : retour au recensement, plus de saison ni de repère" "200|0.125|recensement|False|None" \
     "$CODE|$(mois 3 kg_hab_j_permanente)|$(mois 3 source_population)|$(mois 7 en_saison)|$(mois 3 ecart_theorique_pct)"
 $PSQL -c "UPDATE communes SET population = 0 WHERE id = '$TC';" >/dev/null
