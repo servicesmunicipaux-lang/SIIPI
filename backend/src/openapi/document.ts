@@ -606,6 +606,12 @@ registry.registerPath({
   responses: {
     200: json(z.object({ token: z.string(), user: Utilisateur }), 'Connexion réussie.'),
     401: json(Erreur, 'Identifiants incorrects — message identique que l’email soit inconnu ou le mot de passe faux.'),
+    403: json(
+      Erreur,
+      'En production seulement : le mot de passe des comptes de démonstration, publié avec le code, n’ouvre aucun compte. ' +
+        'Refusé avant toute recherche du compte, il ne renseigne pas sur son existence. L’exploitant attribue un mot de passe ' +
+        'provisoire avec `npm run mot-de-passe:provisoire:prod -- <adresse>`.'
+    ),
     429: json(Erreur, 'Trop de tentatives.'),
   },
 });
@@ -3060,7 +3066,9 @@ registry.registerPath({
   path: '/comptes/moi/mot-de-passe',
   tags: ['Comptes et accès'],
   summary: 'Changer son propre mot de passe',
-  description: "Ouvert à tous les rôles : c'est ce qui permet de remplacer un mot de passe provisoire sans dépendre de qui l'a fixé.",
+  description:
+    "Ouvert à tous les rôles : c'est ce qui permet de remplacer un mot de passe provisoire sans dépendre de qui l'a fixé. " +
+    'Le mot de passe des comptes de démonstration, publié avec le code, est refusé comme nouveau mot de passe (400), en tout environnement.',
   security: SECURISE,
   request: {
     body: {
@@ -6565,7 +6573,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.14',
+      version: '0.15.15',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
