@@ -122,4 +122,51 @@ observatoireRouter.put(
   })
 );
 
-export { provenanceSchema, hebergementSchema };
+// GET|PUT /observatoire/cadre-secteur-informel — le décret sur le tri à la
+// source (art. 13) est-il en vigueur ? (lot 18.1). Tant qu'il ne l'est pas, la
+// base refuse toute écriture au registre des acteurs informels, dans toutes
+// les communes. Même forme que l'hébergement : la FNCT seule l'active, en
+// citant le texte publié — la base refuse « actif » sans référence.
+const cadreInformelSchema = z
+  .object({
+    actif: z.boolean(),
+    reference: z.string().trim().min(1).max(300).nullable().optional(),
+  })
+  .strict()
+  .refine((d) => !d.actif || Boolean(d.reference), {
+    message: 'Citez le texte publié qui met le cadre en vigueur (décret, numéro du JORT).',
+    path: ['reference'],
+  });
+
+const lireCadreInformel = async () => {
+  const [ligne] = await query<{ valeur: string; reference: string | null; updated_at: string }>(
+    "SELECT valeur, reference, updated_at FROM parametres_nationaux WHERE cle = 'cadre_secteur_informel_actif'"
+  );
+  return { actif: ligne?.valeur === 'true', reference: ligne?.reference ?? null, depuis: ligne?.updated_at ?? null };
+};
+
+observatoireRouter.get(
+  '/cadre-secteur-informel',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    res.json(await lireCadreInformel());
+  })
+);
+
+observatoireRouter.put(
+  '/cadre-secteur-informel',
+  requireAuth,
+  requireRole('super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const d = cadreInformelSchema.parse(req.body);
+    await query(
+      `UPDATE parametres_nationaux
+          SET valeur = $1, reference = $2, updated_at = now(), updated_by = app.current_user_id()
+        WHERE cle = 'cadre_secteur_informel_actif'`,
+      [d.actif ? 'true' : 'false', d.actif ? d.reference : (d.reference ?? null)]
+    );
+    res.json(await lireCadreInformel());
+  })
+);
+
+export { provenanceSchema, hebergementSchema, cadreInformelSchema };

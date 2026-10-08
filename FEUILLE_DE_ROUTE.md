@@ -39,7 +39,7 @@ de l'observatoire national (contrôlée au typage, non commitée).
 | **R1** | Recette **Dar Chaâbane** — *différée* | Un mois d'usage réel du lot 11 (parc, personnel, 13 circuits déjà chargés). En attendant, le jumeau numérique (§ 6bis) | Reste l'objectif de **clôture de la version** (§ 6), mais ne bloque plus l'ouverture des jalons suivants | Dès que la commune est disponible |
 | **12** | v0.17 — Paramétrage, estimation, coût complet | 17.1 paramètres étendus · 17.3 paramètres nationaux historisés · 17.2 moteur volumétrique · 17.5 rejeu du coût de M'hamdia · 17.4 connecteur GPS | 17.3 avant 17.2 : le moteur lit la densité et la redevance ANGeD. 17.5 ferme la boucle avec une commune qui a déjà un coût calculé par un bureau d'études | **En parallèle de R1.** **17.3 fait** (v0.15.9) ; **17.1 fait** (v0.15.10) ; **17.5 fait** (v0.15.11, jeu réel hors dépôt public). 17.2 et 17.4 : **suspendus** à leurs préalables externes |
 | **R2** | Recette **M'hamdia** (puis Djerba pour le GPS) — *différée* | Circuits importés, séries de tonnage, coût rejoué | Son PCGD 2026 est le seul jeu où circuits, tonnage et coût existent ensemble | Dès que la commune est disponible ; le rejeu 17.5 se prépare sur le fichier reçu |
-| **13** | v0.18 — Secteur informel | Registre communal des acteurs, carte de pré-collecteur, suivi de la période transitoire | Dépend de 16.1 (données nominatives) et du scellement de 16.2. Le **texte des articles 13.1 et 14 est reçu — en projet, non en vigueur** : le lot est livré derrière un paramètre national, inactif par défaut | Après 16.1 et 16.2. Restent à lever : articles 4 et 13, date de départ de la période transitoire |
+| **13** | v0.18 — Secteur informel | Registre communal des acteurs, carte de pré-collecteur, suivi de la période transitoire | Dépend de 16.1 (données nominatives) et du scellement de 16.2. Le **texte des articles 13.1 et 14 est reçu — en projet, non en vigueur** : le lot est livré derrière un paramètre national, inactif par défaut | **18.1 fait** (v0.15.13, cadre inactif par défaut). Restent à lever : articles 4 et 13, date de départ de la période transitoire (18.2, 18.3) |
 | **14** | v0.19 — Mutualisation | Points limitrophes, prêts d'engins | Première exception au cloisonnement : pas avant que 11 à 13 aient tourné en production | Spécifiable dès maintenant ; ouverture après 11 à 13 en production |
 | **15** | Ensuite | Anomalies de tournée, projection du décret DMA, observatoire comparatif (axe 10), suivi de la sous-traitance (axe 12), régulation saisonnière (axe 3) | Chacun suppose des données **mesurées** de plusieurs communes | À instruire |
 
@@ -1151,7 +1151,7 @@ d'effet**, non des constantes du code.
 
 | Lot | Contenu | Bloque |
 |---|---|---|
-| **18.1** | **Registre communal des acteurs informels** (article 13.1) : catégorie *pré-collecteur* ou *intermédiaire*, établie par des faits (local, achat à d'autres pré-collecteurs, véhicule motorisé) avec signalement d'incohérence ; identifiant pseudonyme et table d'identité séparée ; zone ; statut de la démarche de formalisation, daté | 16.1 clos |
+| **18.1** | **Registre communal des acteurs informels** (article 13.1) : catégorie *pré-collecteur* ou *intermédiaire*, établie par des faits (local, achat à d'autres pré-collecteurs, véhicule motorisé) avec signalement d'incohérence ; identifiant pseudonyme et table d'identité séparée ; zone ; statut de la démarche de formalisation, daté. ✅ **Fait** (v0.15.13, migration 064, campagne `acteurs-informels`) : écriture refusée par la base tant que la FNCT n'a pas mis le cadre en vigueur, texte publié cité | 16.1 clos |
 | **18.2** | **Carte de pré-collecteur** : demande, trois attestations (déclaration simplifiée, engagement d'hygiène et de sécurité, acceptation de l'accompagnement), décision, numéro scellé, validité d'un an renouvelable, zones d'accès, retrait motivé. **Gratuite : aucun champ de paiement** | 16.2 ; article 13 du projet non fourni |
 | **18.3** | **Suivi de la période transitoire** : jalons d'accompagnement par acteur, échéance des agréments d'intermédiaires (délivrés par l'éco-organisme : SIIPI enregistre, n'agrée pas), tableau de conversion (tonnes détournées, redevance évitée, voyages économisés) en provenance déclarée | Date de départ de la période transitoire |
 | **18.4** | *Prospectif* : consultation et export vers le registre de traçabilité de l'ANGeD (article 14), profil de lecture seule pour l'auditeur | Publication de la plateforme ANGeD |
@@ -1329,8 +1329,8 @@ d'accueil de deux pages et une vidéo de cinq minutes.
 
 ### Niveau 1 — Les campagnes automatisées *(en place)*
 
-**Quarante et une campagnes rejouables** au 08/10/2026, lancées par `backend/tests/executer.sh
-<campagne>` et enchaînées par `npm test` (`assainissement`, `audit`, `barbechas`, `champs-points`, `circuits`,
+**Quarante-deux campagnes rejouables** au 08/10/2026, lancées par `backend/tests/executer.sh
+<campagne>` et enchaînées par `npm test` (`acteurs-informels`, `assainissement`, `audit`, `barbechas`, `champs-points`, `circuits`,
 `citoyen`, `cloisonnement`, `comptes`, `contacts`, `cout-complet`, `declassement`, `decoupage`, `documents`, `enlevements`, `exploitation`,
 `exports`, `fichiers`, `imports`, `intercommunal`, `kpi-5-axes`, `kpi-sources`,
 `maintenance`, `module2` à `module6`, `notifications`, `notifications-citoyen`,
@@ -1344,7 +1344,8 @@ déclassement, du seuil de 80 % et du circuit d'autorisation (lot 16.4) ; `param
 celle des paramètres nationaux datés et de la redevance au taux de la date de la pesée (lot 17.3) ;
 `parametres-communaux`, celle de la population de saison et du repère de production (lot 17.1) ;
 `cout-complet`, celle du rejeu du coût complet d'un bureau d'études et des écarts E1 à E8 (lot 17.5),
-sur un jeu fictif contrôlé par un script témoin indépendant.
+sur un jeu fictif contrôlé par un script témoin indépendant ; `acteurs-informels`, celle du
+registre des acteurs informels et de la démarche de formalisation, derrière le cadre national (lot 18.1).
 
 **Le critère d'acceptation** est celui de `CLAUDE.md` § 7 : `npm run
 verifier:contrat` et toutes ces campagnes passent, et les deux commandes de
@@ -1499,7 +1500,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **63 migrations** au 08/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **64 migrations** au 08/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

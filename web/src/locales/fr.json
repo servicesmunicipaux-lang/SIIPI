@@ -192,6 +192,18 @@
         "redevance_anged": "Montant par tonne pesée. Chaque pesée est valorisée au taux en vigueur à sa date.",
         "ministere_tutelle": "Intitulé porté en tête des documents administratifs des communes.",
         "entete_etat": "Première ligne de l’en-tête des documents administratifs."
+      },
+      "cadreInformel": {
+        "titre": "Cadre du secteur informel",
+        "description": "Projet de décret sur le tri à la source, art. 13 : tant qu’il n’est pas en vigueur, aucune commune ne peut écrire dans son registre des acteurs informels. L’activer exige de citer le texte publié ; le suspendre referme l’écriture sans rien effacer.",
+        "enVigueur": "En vigueur",
+        "pasEnVigueur": "Pas en vigueur",
+        "depuis": "dernier changement le {{date}}",
+        "texte": "Texte publié (décret, numéro du JORT)",
+        "activer": "Mettre en vigueur",
+        "suspendre": "Suspendre",
+        "active": "Le cadre du secteur informel est en vigueur.",
+        "suspendu": "Le cadre du secteur informel est suspendu."
       }
     }
   },
@@ -486,7 +498,8 @@
       "pesees": "Pesées",
       "contacts": "Contacts",
       "carburant": "Carnet & carburant",
-      "declassement": "Déclassement"
+      "declassement": "Déclassement",
+      "acteursInformels": "Acteurs informels"
     },
     "etats": {
       "fait": "Fait",
@@ -1808,6 +1821,59 @@
         "aucun": "aucun écart",
         "non_verifiable": "non vérifiable",
         "declare": "relevé à la lecture"
+      }
+    },
+    "acteursInformels": {
+      "titre": "Acteurs informels",
+      "intro": "Le registre communal des acteurs informels de la collecte (projet de décret sur le tri à la source, art. 13.1) : pré-collecteurs et intermédiaires, sous pseudonyme. Ni nom, ni CIN, ni position, ni rendement individuel : l’identité reste dans le registre du lot 16.1, lu par le seul admin de la commune.",
+      "cadreInactif": "Le cadre du secteur informel n’est pas en vigueur : le décret n’est qu’un projet. Le registre se lit, mais ne s’écrit pas ; la FNCT l’ouvrira quand le texte sera publié.",
+      "cadreActif": "Cadre en vigueur — {{reference}}.",
+      "aucun": "Aucun acteur inscrit.",
+      "pseudonyme": "Pseudonyme",
+      "zone": "Zone",
+      "vehicule": "Véhicule",
+      "categorieDeclaree": "Catégorie déclarée",
+      "categorieImpliquee": "Ce que les faits impliquent",
+      "faits": "Faits relevés",
+      "demarche": "Démarche",
+      "local": "Dispose d’un local",
+      "achat": "Achète à ses pairs",
+      "motorise": "Véhicule motorisé",
+      "relevesLe": "relevés le {{date}}",
+      "dateReleve": "Date du relevé",
+      "oui": "oui",
+      "non": "non",
+      "nonRenseigne": "non renseigné",
+      "ecart": "Écart avec la catégorie déclarée — à vérifier",
+      "ouvrir": "Ouvrir",
+      "fermer": "Fermer",
+      "inscrire": "Inscrire un acteur",
+      "aideInscription": "Le pseudonyme est attribué par la base. Un fait qu’on ignore reste « non renseigné » : il ne compte jamais pour « non ».",
+      "requalifier": "Catégorie et faits",
+      "enregistrer": "Enregistrer",
+      "demarcheTitre": "Démarche de formalisation",
+      "aucuneDemarche": "aucune démarche",
+      "etape": "Étape",
+      "dateEtape": "Date de l’étape",
+      "piece": "Pièce (référence)",
+      "observation": "Observation",
+      "ajouterEtape": "Ajouter l’étape",
+      "retirerEtape": "Retirer",
+      "aideDemarche": "Une démarche entamée se prouve par sa pièce ; une interruption se motive. L’accompagnement et la formalisation supposent une démarche entamée. Une étape ne se modifie pas : saisie à tort, elle se retire.",
+      "categories": {
+        "pre_collecteur": "Pré-collecteur",
+        "intermediaire": "Intermédiaire"
+      },
+      "statuts": {
+        "demarche_entamee": "Démarche entamée",
+        "en_accompagnement": "En accompagnement",
+        "formalisee": "Formalisée",
+        "interrompue": "Interrompue"
+      },
+      "vehicules": {
+        "charette": "Charrette",
+        "tricycle_electrique": "Tricycle électrique",
+        "triporteur_moteur": "Triporteur à moteur"
       }
     }
   },

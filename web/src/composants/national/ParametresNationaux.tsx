@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type ParametreNational, type ValeurParametreNational } from '../../lib/api';
+import { api, ErreurApi, type CadreSecteurInformel as EtatCadre, type ParametreNational, type ValeurParametreNational } from '../../lib/api';
 import { useFormats } from '../../lib/formats';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
@@ -60,6 +60,7 @@ export function ParametresNationaux() {
       {info && (
         <p role="status" className="rounded-lg border border-siipi-300 bg-siipi-50 p-3 text-sm text-siipi-900">{info}</p>
       )}
+      <CadreSecteurInformel onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
       {parametres.map((p) => (
         <FicheParametre key={p.code} p={p} onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
       ))}
@@ -253,6 +254,72 @@ function FicheParametre(props: { p: ParametreNational; onFait: (m: string) => vo
         </div>
         <p className="text-xs text-ardoise-600 sm:col-span-2 lg:col-span-4">{t('national.parametres.aideAjout')}</p>
       </div>
+    </article>
+  );
+}
+
+// Le cadre du secteur informel (lot 18.1) : un interrupteur, pas une valeur
+// datée. Le projet de décret n'est pas publié ; quand il le sera, la FNCT
+// l'active en citant le texte, et les communes peuvent tenir leur registre des
+// acteurs informels. Le suspendre referme l'écriture sans rien effacer.
+function CadreSecteurInformel({ onFait, onErreur }: { onFait: (m: string) => void; onErreur: (e: unknown) => void }) {
+  const { t } = useTranslation();
+  const f = useFormats();
+  const [etat, setEtat] = useState<EtatCadre | null>(null);
+  const [reference, setReference] = useState('');
+  const [envoi, setEnvoi] = useState(false);
+
+  useEffect(() => {
+    api.cadreSecteurInformel().then(setEtat).catch(onErreur);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function changer(actif: boolean) {
+    setEnvoi(true);
+    try {
+      setEtat(await api.changerCadreSecteurInformel({ actif, reference: actif ? reference.trim() : null }));
+      setReference('');
+      onFait(t(actif ? 'national.parametres.cadreInformel.active' : 'national.parametres.cadreInformel.suspendu'));
+    } catch (e) {
+      onErreur(e);
+    } finally {
+      setEnvoi(false);
+    }
+  }
+
+  if (!etat) return null;
+  return (
+    <article className="space-y-3 rounded-xl border border-ardoise-200 bg-white p-4">
+      <div>
+        <h3 className="font-semibold text-ardoise-900">{t('national.parametres.cadreInformel.titre')}</h3>
+        <p className="text-xs text-ardoise-600">{t('national.parametres.cadreInformel.description')}</p>
+      </div>
+      <div className="rounded-lg bg-ardoise-50 p-3 text-sm">
+        {etat.actif ? (
+          <>
+            <span className="font-semibold text-siipi-800">{t('national.parametres.cadreInformel.enVigueur')}</span>
+            {etat.reference && <span className="block text-xs text-ardoise-600">{etat.reference}</span>}
+          </>
+        ) : (
+          <span className="font-semibold text-amber-900">{t('national.parametres.cadreInformel.pasEnVigueur')}</span>
+        )}
+        {etat.depuis && <span className="block text-xs text-ardoise-500">{t('national.parametres.cadreInformel.depuis', { date: f.date(etat.depuis.slice(0, 10)) })}</span>}
+      </div>
+      {etat.actif ? (
+        <button type="button" onClick={() => void changer(false)} disabled={envoi} className={boutonDiscret}>
+          {t('national.parametres.cadreInformel.suspendre')}
+        </button>
+      ) : (
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="min-w-64 flex-1 text-sm">
+            <span className="font-medium">{t('national.parametres.cadreInformel.texte')}</span>
+            <input value={reference} onChange={(e) => setReference(e.target.value)} className={champ} />
+          </label>
+          <button type="button" onClick={() => void changer(true)} disabled={envoi || !reference.trim()} className={bouton}>
+            {t('national.parametres.cadreInformel.activer')}
+          </button>
+        </div>
+      )}
     </article>
   );
 }
