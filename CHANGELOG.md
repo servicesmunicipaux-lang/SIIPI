@@ -5,6 +5,56 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.13] — 2026-10-08 — Lot 18.1 : registre communal des acteurs informels (cadre inactif)
+
+Projet de décret sur le tri à la source, article 13.1 — **non en vigueur**. Tout le lot
+s'écrit derrière le paramètre national `cadre_secteur_informel_actif`, faux par défaut :
+tant que la FNCT ne l'a pas mis en vigueur en citant le texte publié, **la base refuse**
+toute catégorie, tout fait et toute démarche, dans toutes les communes. Le registre se
+lit ; il ne s'écrit pas.
+
+### Ajouté
+- **Migration 064.** Le registre des pré-collecteurs du lot 16.1 (`barbechas`) devient
+  celui des acteurs informels : catégorie déclarée (`pre_collecteur` ou `intermediaire`),
+  trois faits (dispose d'un local, achète à ses pairs, véhicule motorisé) à trois états —
+  *non renseigné* n'est jamais *non* — et la date de leur relevé, exigée par la base et
+  jamais dans l'avenir. Une inscription du lot 16.1, sans catégorie ni faits, reste permise.
+- **Pseudonyme attribué par la base** (`<COMMUNE>-I0001`, `app.prochain_identifiant_acteur`).
+  L'identité reste où le lot 16.1 l'a mise, lue par le seul admin de la commune ; le registre
+  ne porte ni nom, ni CIN, ni position, ni rendement individuel.
+- **La démarche de formalisation est un historique** (`demarches_formalisation`) : entamée
+  (avec sa pièce), en accompagnement, formalisée, interrompue (avec son motif). La base tient
+  l'ordre : pas d'accompagnement ni de formalisation sans démarche entamée, pas de date qui
+  recule ni dans l'avenir, rien après une formalisation. Une étape ne se réécrit pas, même au
+  super-utilisateur ; saisie à tort, elle se retire (suppression logique, `app.supprimer`).
+- **La plateforme constate, elle ne corrige pas.** `app.categorie_impliquee` dit ce que les
+  faits impliquent (un local ou des achats aux pairs : intermédiaire) ; un écart avec la
+  catégorie déclarée apparaît dans « À vérifier » (`app.incoherences_acteurs_informels`,
+  ajoutée à `app.incoherences_commune`) et dans le registre, sans que la catégorie change.
+- **Routes** `/acteurs-informels` (registre, inscription, catégorie et faits, démarches) et
+  `/observatoire/cadre-secteur-informel` (lecture pour tous ; mise en vigueur par la FNCT
+  seule, texte publié exigé par l'API et par la base). Un acteur d'une autre commune est
+  introuvable (404).
+- **Écrans.** Portail communal, pôle Terrain : « Acteurs informels », avec un bandeau qui dit
+  si le cadre est en vigueur ; formulaires réservés à l'admin de la commune, cadre en vigueur.
+  Observatoire, Paramètres nationaux : la carte « Cadre du secteur informel ». Français et
+  arabe ; vérifiés à 1 366 px et à 375 px (aucun défilement horizontal de la page).
+- **Campagne `acteurs-informels`**, qui commence par ce que la plateforme refuse (cadre
+  fermé, mise en vigueur sans texte ou par une commune, faits non datés, démarche hors de son
+  ordre) ; elle bâtit sa commune de test, l'efface et rend le paramètre national dans l'état
+  trouvé.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 64 migrations ; la 064 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 297/297, **42 bilans, 1 613 tests
+  réussis, aucun échec** (dont `acteurs-informels` : 66).
+- Recomptage : 42 campagnes présentes, 42 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur (pile d'essai) : mise en vigueur depuis l'observatoire, inscription d'un
+  acteur (pseudonyme `LAMARSA-I0001`, écart signalé), étape « démarche entamée »
+  inscrite ; arabe en RTL sans clé manquante ; à 375 px, aucun défilement horizontal
+  de la page. Base d'essai remise en l'état (cadre suspendu, acteur retiré).
+
 ## [0.15.12] — 2026-10-08 — Trois correctifs relevés pendant les lots 16.4 à 17.5
 
 ### Corrigé

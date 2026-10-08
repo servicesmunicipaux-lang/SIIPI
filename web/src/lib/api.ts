@@ -200,6 +200,11 @@ export type EtudeCoutCompletDetail = Reponse<'/cout-complet/etudes/{id}', 'get'>
 export type ParametreNational = Reponse<'/parametres-nationaux', 'get'>[number];
 export type ValeurParametreNational = ParametreNational['historique'][number];
 export type Incoherence = Reponse<'/communes/{id}/coherence', 'get'>[number];
+// --- Lot 18.1 : registre des acteurs informels, derrière le cadre national ---
+export type RegistreActeursInformels = Reponse<'/acteurs-informels', 'get'>;
+export type ActeurInformel = RegistreActeursInformels['acteurs'][number];
+export type DemarcheFormalisation = Reponse<'/acteurs-informels/{id}/demarches', 'get'>[number];
+export type CadreSecteurInformel = Reponse<'/observatoire/cadre-secteur-informel', 'get'>;
 export type ControleTerrain = Reponse<'/circuits/controles', 'get'>[number];
 export type PerformancePrestataire = Reponse<'/circuits/performance', 'get'>[number];
 export type LigneConfrontation = Reponse<'/passages/confrontation', 'get'>[number];
@@ -1071,6 +1076,24 @@ export const api = {
     requete<RedevanceMensuelle[]>(
       `/pesees/redevance?communeId=${encodeURIComponent(communeId)}` + (annee ? `&annee=${annee}` : '')
     ),
+  // --- Lot 18.1 : registre des acteurs informels ------------------------------
+  acteursInformels: (communeId: string) =>
+    requete<RegistreActeursInformels>(`/acteurs-informels?communeId=${encodeURIComponent(communeId)}`),
+  inscrireActeurInformel: (communeId: string, saisie: Corps<'/acteurs-informels', 'post'>) =>
+    requete<ActeurInformel>(`/acteurs-informels?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  faitsActeurInformel: (id: string, saisie: Corps<'/acteurs-informels/{id}/faits', 'put'>) =>
+    requete<ActeurInformel>(`/acteurs-informels/${id}/faits`, { method: 'PUT', body: JSON.stringify(saisie) }),
+  demarchesActeur: (id: string) => requete<DemarcheFormalisation[]>(`/acteurs-informels/${id}/demarches`),
+  inscrireDemarche: (id: string, saisie: Corps<'/acteurs-informels/{id}/demarches', 'post'>) =>
+    requete<DemarcheFormalisation[]>(`/acteurs-informels/${id}/demarches`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerDemarche: (id: string, demarcheId: string) =>
+    requete<void>(`/acteurs-informels/${id}/demarches/${demarcheId}`, { method: 'DELETE' }),
+  cadreSecteurInformel: () => requete<CadreSecteurInformel>('/observatoire/cadre-secteur-informel'),
+  changerCadreSecteurInformel: (saisie: Corps<'/observatoire/cadre-secteur-informel', 'put'>) =>
+    requete<CadreSecteurInformel>('/observatoire/cadre-secteur-informel', { method: 'PUT', body: JSON.stringify(saisie) }),
   // --- Lot 17.3 : paramètres nationaux historisés (écriture : FNCT) ----------
   parametresNationaux: () => requete<ParametreNational[]>('/parametres-nationaux'),
   ajouterValeurParametre: (code: string, saisie: Corps<'/parametres-nationaux/{code}', 'post'>) =>

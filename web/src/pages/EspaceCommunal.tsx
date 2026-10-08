@@ -31,6 +31,7 @@ import { Pesees } from '../composants/communal/Pesees';
 import { PointsSuggeres } from '../composants/communal/PointsSuggeres';
 import { RapportsEtudes } from '../composants/communal/RapportsEtudes';
 import { CoutComplet } from '../composants/communal/CoutComplet';
+import { ActeursInformels } from '../composants/communal/ActeursInformels';
 import { Contacts } from '../composants/communal/Contacts';
 import { TableauPoints } from '../composants/communal/TableauPoints';
 import { DecoupageCommune } from '../composants/communal/DecoupageCommune';
@@ -38,7 +39,7 @@ import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { Registres } from '../composants/registres/Registres';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 
-type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'coutComplet' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'personnel' | 'pesees' | 'communication' | 'rapports' | 'contacts' | 'comptes';
+type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'coutComplet' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -59,6 +60,7 @@ const ENTREES: EntreeNavigation<Onglet>[] = [
   { cle: 'circuits',      pole: 'terrain' },
   { cle: 'points',        pole: 'terrain' },
   { cle: 'pesees',        pole: 'terrain' },
+  { cle: 'acteursInformels', pole: 'terrain' },
   { cle: 'preuve',        pole: 'terrain' },
 
   { cle: 'reclamations',  pole: 'citoyens' },
@@ -232,6 +234,7 @@ export function EspaceCommunal({
         {onglet === 'communication' && <Communication communeId={communeId} />}
         {onglet === 'rapports' && <RapportsEtudes communeId={communeId} />}
         {onglet === 'coutComplet' && <CoutComplet communeId={communeId} />}
+        {onglet === 'acteursInformels' && <ActeursInformels communeId={communeId} />}
         {onglet === 'contacts' && <Contacts communeId={communeId} />}
         {onglet === 'comptes' && <Comptes communeId={communeId} />}
         </div>

@@ -9955,6 +9955,602 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/observatoire/cadre-secteur-informel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le cadre du secteur informel (décret sur le tri à la source, art. 13) est-il en vigueur ?
+         * @description Tant qu’il ne l’est pas, la base refuse toute écriture au registre des acteurs informels, dans toutes les communes (lot 18.1).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description État. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CadreSecteurInformel"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Déclarer le cadre du secteur informel en vigueur, ou le suspendre
+         * @description FNCT seulement. « En vigueur » exige la référence du texte publié ; la base la refuse sans elle.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        actif: boolean;
+                        reference?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description État mis à jour. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CadreSecteurInformel"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/acteurs-informels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le registre communal des acteurs informels (pseudonyme) et l’état du cadre national
+         * @description Pseudonyme seulement : l’identité reste sous /barbechas/{id}/identite. Aucune position, aucun rendement individuel. Lisible même quand le cadre n’est pas en vigueur ; seule l’écriture est fermée.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Registre. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RegistreActeursInformels"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Inscrire un acteur informel
+         * @description Admin de la commune. Le pseudonyme est attribué par la base. Catégorie déclarée et faits datés ; un fait inconnu reste null. Cadre national pas en vigueur : 409, et la base refuse de toute façon.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        zone: string;
+                        /** @enum {string|null} */
+                        vehicleType?: "charette" | "tricycle_electrique" | "triporteur_moteur" | null;
+                        /** @enum {string} */
+                        categorie: "pre_collecteur" | "intermediaire";
+                        disposeLocal: boolean | null;
+                        acheteAuxPairs: boolean | null;
+                        vehiculeMotorise: boolean | null;
+                        faitsRelevesLe: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Acteur inscrit. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ActeurInformel"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Cadre pas en vigueur. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/acteurs-informels/{id}/faits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Catégorie déclarée et faits relevés d’un acteur */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        categorie: "pre_collecteur" | "intermediaire";
+                        disposeLocal: boolean | null;
+                        acheteAuxPairs: boolean | null;
+                        vehiculeMotorise: boolean | null;
+                        faitsRelevesLe: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Acteur mis à jour. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ActeurInformel"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Cadre pas en vigueur. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/acteurs-informels/{id}/demarches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les étapes de la démarche de formalisation d’un acteur */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Étapes, de la plus ancienne à la plus récente. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemarcheFormalisation"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Ajouter une étape datée à la démarche de formalisation
+         * @description Une étape ne se modifie pas. « Entamée » exige sa pièce, « interrompue » son motif ; l’accompagnement et la formalisation supposent une démarche entamée ; rien ne suit une démarche aboutie ; les dates ne reculent pas et ne sont pas dans l’avenir.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        statut: "demarche_entamee" | "en_accompagnement" | "formalisee" | "interrompue";
+                        dateStatut: string;
+                        reference?: string | null;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Étapes après l’ajout. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemarcheFormalisation"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Cadre pas en vigueur, ou étape hors de l’ordre. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/acteurs-informels/{id}/demarches/{demarcheId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retirer une étape saisie à tort (retrait logique) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    demarcheId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Étape retirée. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/demo": {
         parameters: {
             query?: never;
@@ -22443,6 +23039,53 @@ export interface components {
                 constat: string;
             }[];
             rejeu: components["schemas"]["RejeuCoutComplet"];
+        };
+        CadreSecteurInformel: {
+            actif: boolean;
+            /** @description Le texte publié qui met le cadre en vigueur. */
+            reference: string | null;
+            depuis: string | null;
+        };
+        ActeurInformel: {
+            /** Format: uuid */
+            id: string;
+            /** @description Le pseudonyme, attribué par la base : <COMMUNE>-I0001. */
+            id_precollecteur: string;
+            zone: string | null;
+            vehicle_type: string | null;
+            /**
+             * @description La catégorie déclarée par la commune.
+             * @enum {string|null}
+             */
+            categorie: "pre_collecteur" | "intermediaire" | null;
+            /** @description null : non renseigné, jamais « non ». */
+            dispose_local: boolean | null;
+            achete_aux_pairs: boolean | null;
+            vehicule_motorise: boolean | null;
+            faits_releves_le: string | null;
+            /**
+             * @description Ce que les faits impliquent. Un écart avec la catégorie déclarée est montré dans « À vérifier », jamais corrigé.
+             * @enum {string|null}
+             */
+            categorie_impliquee: "pre_collecteur" | "intermediaire" | null;
+            derniere_demarche: string | null;
+            date_derniere_demarche: string | null;
+        };
+        RegistreActeursInformels: {
+            communeId: string;
+            cadre_actif: boolean;
+            reference_cadre: string | null;
+            acteurs: components["schemas"]["ActeurInformel"][];
+        };
+        DemarcheFormalisation: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            statut: "demarche_entamee" | "en_accompagnement" | "formalisee" | "interrompue";
+            date_statut: string;
+            reference: string | null;
+            observation: string | null;
+            created_at: string;
         };
         EtatDemo: {
             communeId: string;

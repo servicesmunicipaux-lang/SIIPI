@@ -37,7 +37,7 @@ import { citizenRegisterSchema } from '../routes/citizens.routes.js';
 import { barbechaDeliverySchema, barbechaRevenusSchema, identiteSchema } from '../routes/barbechas.routes.js';
 import { nationalKpiSchema, fiveAxisSchema } from '../routes/kpi.routes.js';
 import { zoneCreateSchema, zoneUpdateSchema } from '../routes/zones.routes.js';
-import { provenanceSchema, hebergementSchema } from '../routes/observatoire.routes.js';
+import { provenanceSchema, hebergementSchema, cadreInformelSchema } from '../routes/observatoire.routes.js';
 import {
   circuitCreateSchema,
   circuitUpdateSchema,
@@ -72,6 +72,7 @@ import {
 } from '../routes/declassement.routes.js';
 import { valeurParametreSchema, retraitValeurSchema } from '../routes/parametresNationaux.routes.js';
 import { chargementEtudeSchema } from '../routes/coutComplet.routes.js';
+import { inscriptionActeurSchema, faitsActeurSchema, demarcheSchema } from '../routes/acteursInformels.routes.js';
 import { fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
@@ -2642,6 +2643,159 @@ registry.registerPath({
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: { 204: { description: 'Étude retirée.' }, ...REPONSES_COMMUNES },
+});
+
+// --- Le registre des acteurs informels (lot 18.1) --------------------------
+
+const CadreInformel = registry.register(
+  'CadreSecteurInformel',
+  z.object({
+    actif: z.boolean(),
+    reference: z.string().nullable().openapi({ description: 'Le texte publié qui met le cadre en vigueur.' }),
+    depuis: z.string().nullable(),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/observatoire/cadre-secteur-informel',
+  tags: ['Observatoire'],
+  summary: 'Le cadre du secteur informel (décret sur le tri à la source, art. 13) est-il en vigueur ?',
+  description: 'Tant qu’il ne l’est pas, la base refuse toute écriture au registre des acteurs informels, dans toutes les communes (lot 18.1).',
+  security: SECURISE,
+  responses: { 200: json(CadreInformel, 'État.'), 401: REPONSES_COMMUNES[401] },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/observatoire/cadre-secteur-informel',
+  tags: ['Observatoire'],
+  summary: 'Déclarer le cadre du secteur informel en vigueur, ou le suspendre',
+  description: 'FNCT seulement. « En vigueur » exige la référence du texte publié ; la base la refuse sans elle.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: cadreInformelSchema } } } },
+  responses: { 200: json(CadreInformel, 'État mis à jour.'), ...REPONSES_COMMUNES },
+});
+
+const ActeurInformel = registry.register(
+  'ActeurInformel',
+  z.object({
+    id: z.string().uuid(),
+    id_precollecteur: z.string().openapi({ description: 'Le pseudonyme, attribué par la base : <COMMUNE>-I0001.' }),
+    zone: z.string().nullable(),
+    vehicle_type: z.string().nullable(),
+    categorie: z.enum(['pre_collecteur', 'intermediaire']).nullable().openapi({ description: 'La catégorie déclarée par la commune.' }),
+    dispose_local: z.boolean().nullable().openapi({ description: 'null : non renseigné, jamais « non ».' }),
+    achete_aux_pairs: z.boolean().nullable(),
+    vehicule_motorise: z.boolean().nullable(),
+    faits_releves_le: z.string().nullable(),
+    categorie_impliquee: z
+      .enum(['pre_collecteur', 'intermediaire'])
+      .nullable()
+      .openapi({ description: 'Ce que les faits impliquent. Un écart avec la catégorie déclarée est montré dans « À vérifier », jamais corrigé.' }),
+    derniere_demarche: z.string().nullable(),
+    date_derniere_demarche: z.string().nullable(),
+  })
+);
+
+const RegistreInformel = registry.register(
+  'RegistreActeursInformels',
+  z.object({
+    communeId: z.string(),
+    cadre_actif: z.boolean(),
+    reference_cadre: z.string().nullable(),
+    acteurs: z.array(ActeurInformel),
+  })
+);
+
+const DemarcheFormalisation = registry.register(
+  'DemarcheFormalisation',
+  z.object({
+    id: z.string().uuid(),
+    statut: z.enum(['demarche_entamee', 'en_accompagnement', 'formalisee', 'interrompue']),
+    date_statut: z.string(),
+    reference: z.string().nullable(),
+    observation: z.string().nullable(),
+    created_at: z.string(),
+  })
+);
+
+const paramActeur = z.object({ id: z.string().uuid() });
+
+registry.registerPath({
+  method: 'get',
+  path: '/acteurs-informels',
+  tags: ['GDMA'],
+  summary: 'Le registre communal des acteurs informels (pseudonyme) et l’état du cadre national',
+  description:
+    'Pseudonyme seulement : l’identité reste sous /barbechas/{id}/identite. Aucune position, aucun rendement individuel. Lisible même ' +
+    'quand le cadre n’est pas en vigueur ; seule l’écriture est fermée.',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional() }) },
+  responses: { 200: json(RegistreInformel, 'Registre.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/acteurs-informels',
+  tags: ['GDMA'],
+  summary: 'Inscrire un acteur informel',
+  description:
+    'Admin de la commune. Le pseudonyme est attribué par la base. Catégorie déclarée et faits datés ; un fait inconnu reste null. ' +
+    'Cadre national pas en vigueur : 409, et la base refuse de toute façon.',
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: paramCommuneId.optional() }),
+    body: { content: { 'application/json': { schema: inscriptionActeurSchema } } },
+  },
+  responses: { 201: json(ActeurInformel, 'Acteur inscrit.'), 409: json(Erreur, 'Cadre pas en vigueur.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'put',
+  path: '/acteurs-informels/{id}/faits',
+  tags: ['GDMA'],
+  summary: 'Catégorie déclarée et faits relevés d’un acteur',
+  security: SECURISE,
+  request: { params: paramActeur, body: { content: { 'application/json': { schema: faitsActeurSchema } } } },
+  responses: { 200: json(ActeurInformel, 'Acteur mis à jour.'), 409: json(Erreur, 'Cadre pas en vigueur.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/acteurs-informels/{id}/demarches',
+  tags: ['GDMA'],
+  summary: 'Les étapes de la démarche de formalisation d’un acteur',
+  security: SECURISE,
+  request: { params: paramActeur },
+  responses: { 200: json(z.array(DemarcheFormalisation), 'Étapes, de la plus ancienne à la plus récente.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/acteurs-informels/{id}/demarches',
+  tags: ['GDMA'],
+  summary: 'Ajouter une étape datée à la démarche de formalisation',
+  description:
+    'Une étape ne se modifie pas. « Entamée » exige sa pièce, « interrompue » son motif ; l’accompagnement et la formalisation ' +
+    'supposent une démarche entamée ; rien ne suit une démarche aboutie ; les dates ne reculent pas et ne sont pas dans l’avenir.',
+  security: SECURISE,
+  request: { params: paramActeur, body: { content: { 'application/json': { schema: demarcheSchema } } } },
+  responses: {
+    201: json(z.array(DemarcheFormalisation), 'Étapes après l’ajout.'),
+    409: json(Erreur, 'Cadre pas en vigueur, ou étape hors de l’ordre.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/acteurs-informels/{id}/demarches/{demarcheId}',
+  tags: ['GDMA'],
+  summary: 'Retirer une étape saisie à tort (retrait logique)',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid(), demarcheId: z.string().uuid() }) },
+  responses: { 204: { description: 'Étape retirée.' }, ...REPONSES_COMMUNES },
 });
 
 // --- Mode démo : le jumeau numérique (lot S1) ------------------------------
@@ -6411,7 +6565,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.12',
+      version: '0.15.13',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
