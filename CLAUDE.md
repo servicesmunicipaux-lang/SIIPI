@@ -30,7 +30,8 @@ Au jalon 13, 18.1 est fait (v0.15.13 : registre communal des acteurs informels, 
 paramètre national `cadre_secteur_informel_actif`, inactif ; v0.15.14 : l'écran n'apparaît pas tant
 que le cadre n'est pas en vigueur) ; 18.2 et 18.3 attendent l'article 13
 et la date de départ de la période transitoire. v0.15.15 : en production, le mot de passe public
-des comptes de démonstration n'ouvre aucun compte (`src/motDePassePublic.ts`).**
+des comptes de démonstration n'ouvre aucun compte (`src/motDePassePublic.ts`). v0.15.16 : la recette R1
+est préparée (`docs/recette/`, commande `recette:etat`) ; elle attend la commune.**
 
 ---
 
@@ -154,8 +155,9 @@ données personnelles). Jusqu'à confirmation par un juriste de la FNCT :
 ```bash
 docker compose exec -T api npm run migrate            # migrations en attente
 docker compose exec -T api npm run verifier:contrat   # toute route servie est documentée
-docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (43 au 08/10/2026)
+docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (44 au 09/10/2026)
 docker compose exec -T api npm run test:module4       # une seule campagne
+docker compose exec -T api npm run recette:etat -- <commune>   # une commune peut-elle commencer sa recette ? (lecture seule)
 docker compose run  --rm web npx tsc --noEmit         # typage du front
 ```
 
@@ -303,10 +305,11 @@ sans erreur de :**
 
 1. **`npm run verifier:contrat`** — toute route servie est documentée ;
 2. **toutes les campagnes `backend/tests/*.sh`** — pas « celles qui concernent
-   la tâche ». Elles étaient 43 au 08/10/2026 (S0 a ajouté `assainissement`,
+   la tâche ». Elles étaient 44 au 09/10/2026 (S0 a ajouté `assainissement`,
    S1 `simulation-3mois`, 16.1 `barbechas`, 16.2 `documents`, 16.3 `exploitation`,
    16.4 `declassement`, 17.3 `parametres-nationaux`, 17.1 `parametres-communaux`,
-   17.5 `cout-complet`, 18.1 `acteurs-informels`, v0.15.15 `mot-de-passe-public`).
+   17.5 `cout-complet`, 18.1 `acteurs-informels`, v0.15.15 `mot-de-passe-public`,
+   v0.15.16 `recette-etat`).
 
 Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 
@@ -314,7 +317,7 @@ Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 docker compose exec -T api npm test
 ```
 
-Le dossier `backend/tests/` contenait **44 fichiers `.sh`** au 08/10/2026 : 43
+Le dossier `backend/tests/` contenait **45 fichiers `.sh`** au 09/10/2026 : 44
 campagnes et `executer.sh`, le lanceur, qui n'est pas une campagne. Ces chiffres
 ne sont pas des valeurs à retenir mais à **recalculer** — un critère d'acceptation qui se
 dessèche sans bruit est pire qu'aucun :
@@ -402,7 +405,7 @@ backend/
   src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF)
   src/openapi/     document.ts — le contrat, généré depuis les schémas zod
   seed/            jeux réels : Dar Chaabane, Djerba (Houmt Souk, Midoun, Ajim)
-  tests/           43 campagnes au 08/10/2026, lancées par tests/executer.sh
+  tests/           44 campagnes au 09/10/2026, lancées par tests/executer.sh
 web/
   src/composants/  communal/ · national/ · prestataire/ · kpi/ · registres/
   src/lib/api.ts   client HTTP ; api-types.ts est GÉNÉRÉ, ne pas l'écrire à la main
@@ -425,4 +428,9 @@ quotidien.
 **Cinq défauts n'ont été révélés par aucune campagne automatisée.** Ils
 n'apparaissaient qu'en usage réel. C'est l'argument, s'il en fallait un, pour
 une recette terrain avant chaque jalon — et pour consigner chaque défaut trouvé
-dans le journal des corrections avec sa **portée**, pas seulement sa cause.
+dans le journal des corrections (`docs/recette/JOURNAL_DES_CORRECTIONS.md`) avec
+sa **portée**, pas seulement sa cause.
+
+**Pendant une recette, aucune campagne ne tourne sur sa base** : `module2` à
+`module6` et `fichiers` écrivent dans Dar Chaabane elle-même (JC-001). Les campagnes
+se lancent sur une pile d'essai séparée.
