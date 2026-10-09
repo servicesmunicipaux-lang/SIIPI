@@ -19,7 +19,7 @@ pass=0; fail=0
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"Siipi2026!\"}" \
+    -d "{\"email\":\"$1\",\"password\":\"${2:-Siipi2026!}\"}" \
     | python3 -c "import sys,json;print(json.load(sys.stdin).get('token',''))" 2>/dev/null
 }
 sql()  { $PSQL -c "$1" 2>/dev/null | tr -d ' '; }
@@ -40,9 +40,14 @@ if [ "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id L
   exit 1
 fi
 
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id='$COMMUNE' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-[ -n "$DIR_EMAIL" ] || DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_DIR=$(tok "$DIR_EMAIL")
+# Un directeur de la commune pour la durée de la campagne, effacé en partant
+# (tests/outils/directeur_temporaire.sh). La campagne empruntait le premier
+# directeur venu — un compte de démonstration — que module2 avait rattaché à
+# Dar Chaabane et y laissait (JC-001).
+. "$(dirname "$0")/outils/directeur_temporaire.sh"
+directeur_temporaire "$COMMUNE"
+trap retirer_directeur_temporaire EXIT
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
 [ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 PREST_EMAIL=$(sql "SELECT email FROM users WHERE role='gestionnaire_prestataire' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
 T_PREST=$(tok "$PREST_EMAIL")

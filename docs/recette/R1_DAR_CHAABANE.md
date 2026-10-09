@@ -69,10 +69,12 @@ code, et en production il n'ouvre aucun compte (v0.15.15).
 ### 2.2 Clore le rattachement du compte de démonstration
 
 Le compte de démonstration `directeur.marsa@siipi.tn` est rattaché à Dar Chaâbane, avec droit
-d'écriture. Ce rattachement n'a pas été voulu : la campagne de tests `module2` l'a posé pour
-tourner sur une base neuve, et ne le retire pas ([JC-001](JOURNAL_DES_CORRECTIONS.md#jc-001)).
-Tant qu'il est ouvert, quiconque connaît le mot de passe public écrit dans le registre réel de la
-commune.
+d'écriture. Ce rattachement n'a pas été voulu : jusqu'à la v0.15.16, la campagne de tests
+`module2` le posait pour tourner sur une base neuve, et ne le retirait pas
+([JC-001](JOURNAL_DES_CORRECTIONS.md#jc-001)). Depuis la v0.15.17, les campagnes ont chacune leur
+propre directeur temporaire et n'en posent plus ; mais celui qui a été posé reste tant qu'on ne le
+clôt pas. Tant qu'il est ouvert, quiconque connaît le mot de passe public écrit dans le registre
+réel de la commune.
 
 Il se **clôt**, il ne s'efface pas (règle d'or 1.4) : l'historique garde qui a eu accès, et
 quand. Aucun écran ne le fait encore ; l'exploitant l'exécute dans Adminer ou `psql` :
@@ -84,12 +86,14 @@ UPDATE utilisateur_communes
    AND user_id IN (SELECT id FROM users WHERE email = 'directeur.marsa@siipi.tn');
 ```
 
-Puis relancer `recette:etat` : la ligne doit passer à `[OK]`.
+Puis relancer `recette:etat` : la ligne doit passer à `[OK]`. Le clore ne gêne plus aucune
+campagne de tests (v0.15.17).
 
 > **Règle de la recette : ne jamais lancer `MIGRER.bat`, `TESTS.bat` ni `npm test` sur la base
-> de la recette.** Les campagnes `module2` à `module6` et `fichiers` travaillent sur Dar Chaâbane
-> elle-même et y rattachent un compte de démonstration (JC-001). Les campagnes se lancent sur une
-> pile d'essai séparée, jamais sur des données réelles en cours de recette.
+> de la recette.** Les campagnes `module2` à `module6` éprouvent les données réelles de
+> Dar Chaâbane — c'est leur objet — et y écrivent puis effacent leurs lignes de test (JC-001).
+> Les campagnes se lancent sur une pile d'essai séparée, jamais sur des données réelles en cours
+> de recette.
 
 ### 2.3 Affecter les équipes aux 13 circuits
 
