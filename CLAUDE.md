@@ -36,7 +36,8 @@ campagnes n'empruntent plus de compte de démonstration pour écrire dans Dar Ch
 v0.15.18 : `fichiers` ne saute plus sa partie citoyen en silence (JC-003). v0.15.19 : audit de
 tous les blocs conditionnels des campagnes, 4 sautaient des contrôles, corrigés (JC-004) ; outil
 `scripts/skills/audit-blocs.py`. Le jalon 14 (mutualisation) est spécifié, pas ouvert :
-`docs/specs_metier/SPEC_v0.19_mutualisation.md`, à valider par la FNCT (D-1 à D-7).**
+`docs/specs_metier/SPEC_v0.19_mutualisation.md`, à valider par la FNCT (D-1 à D-7). v0.15.21 :
+D-FNCT-1 tranchée — le citoyen trouve sa commune par sa position, ou par gouvernorat puis commune.**
 
 ---
 

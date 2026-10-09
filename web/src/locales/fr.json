@@ -291,7 +291,14 @@
       "localisation": "Localisation en cours…",
       "positionPrise": "Position enregistrée",
       "positionAide": "Facultatif, mais c’est ce qui permet de retrouver précisément votre secteur de collecte.",
-      "enregistrer": "Enregistrer"
+      "enregistrer": "Enregistrer",
+      "gouvernorat": "Gouvernorat",
+      "choisirGouvernorat": "Choisir un gouvernorat",
+      "recherche": "Recherche de votre commune…",
+      "localiseA": "Vous êtes localisé à {{commune}} ({{gouvernorat}}). Est-ce correct ?",
+      "oui": "Oui, c’est correct",
+      "non": "Non, choisir manuellement",
+      "horsCommune": "Nous n’avons pas pu déterminer votre commune. Choisissez-la manuellement."
     },
     "collecte": {
       "titre": "Ma collecte",
@@ -2576,5 +2583,31 @@
       "terminer": "Terminer",
       "termine": "Nettoyage terminé."
     }
+  },
+  "gouvernorats": {
+    "Tunis": "Tunis",
+    "Ariana": "Ariana",
+    "Ben Arous": "Ben Arous",
+    "Manouba": "Manouba",
+    "Nabeul": "Nabeul",
+    "Zaghouan": "Zaghouan",
+    "Bizerte": "Bizerte",
+    "Béja": "Béja",
+    "Jendouba": "Jendouba",
+    "Le Kef": "Le Kef",
+    "Siliana": "Siliana",
+    "Sousse": "Sousse",
+    "Monastir": "Monastir",
+    "Mahdia": "Mahdia",
+    "Sfax": "Sfax",
+    "Kairouan": "Kairouan",
+    "Kasserine": "Kasserine",
+    "Sidi Bouzid": "Sidi Bouzid",
+    "Gabès": "Gabès",
+    "Médenine": "Médenine",
+    "Tataouine": "Tataouine",
+    "Gafsa": "Gafsa",
+    "Tozeur": "Tozeur",
+    "Kébili": "Kébili"
   }
 }

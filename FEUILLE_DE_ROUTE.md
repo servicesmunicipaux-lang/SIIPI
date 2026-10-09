@@ -1488,7 +1488,7 @@ question technique.
 |---|---|---|
 | Zarzouna / El Hchachna (Bizerte) : la couche officielle et le référentiel listent des communes différentes | FNCT | Zarzouna reste sans territoire |
 | Les 5 districts FNCT : la base ne connaît que les 24 gouvernorats | FNCT | Aucune agrégation par district possible |
-| Homonymes dans la liste des communes (Ennour, Ezzouhour) | FNCT | Un citoyen peut choisir la mauvaise commune |
+| Homonymes dans la liste des communes (Ennour, Ezzouhour) | FNCT | ✅ **Tranchée** (D-FNCT-1, 9 octobre 2026 ; v0.15.21) : l'application citoyenne propose la commune qui contient la position du citoyen, qu'il confirme ; à défaut — refus, position hors de toute commune, ou « non » —, le gouvernorat puis la commune, affichée « Nom (Gouvernorat) ». Deux communes n'ont pas de contour dans le jeu de référence (Zarzouna, Djerba Midoun) : on y passe au choix manuel |
 | Affectation réelle des équipes aux 13 tournées de Dar Chaabane | Commune | 13 lignes bloquantes au panneau de cohérence (base de référence, 9 octobre 2026 ; 14 étaient annoncées, voir JC-002) — préalable de R1, recompté par `recette:etat` |
 | Purge des fichiers retirés | FNCT | Le volume grossit ; rien n'est perdu |
 | Articles 4 et 13 du projet de décret, date de départ de sa période transitoire | FNCT / ministères | Le jalon 13 ne peut pas être spécifié en entier |

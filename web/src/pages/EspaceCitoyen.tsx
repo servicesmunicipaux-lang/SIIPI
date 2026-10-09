@@ -6,7 +6,7 @@
 // signalement vient ensuite, la carte publique en dernier. Une application
 // citoyenne qui s'ouvre sur un formulaire de réclamation se fait désinstaller.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18next from 'i18next';
 import {
@@ -24,6 +24,7 @@ import { FormulaireSignalement } from '../composants/FormulaireSignalement';
 import { ProposerPoint } from '../composants/ProposerPoint';
 import { Enlevement } from '../composants/Enlevement';
 import { AbonnementPush } from '../composants/AbonnementPush';
+import { ChoixCommune } from '../composants/ChoixCommune';
 import {
   ClocheNotifications,
   MesNotifications,
@@ -391,11 +392,6 @@ function FormulaireAdresse({
       .catch(() => setCommunes([]));
   }, []);
 
-  const communesTriees = useMemo(
-    () => [...communes].sort((a, b) => a.name.localeCompare(b.name, 'fr')),
-    [communes]
-  );
-
   const localiser = () => {
     if (!navigator.geolocation) return;
     setGeoEnCours(true);
@@ -435,22 +431,12 @@ function FormulaireAdresse({
         <p className="mt-1 text-sm text-ardoise-500">{t('citoyen.adresse.pourquoi')}</p>
       </div>
 
-      <label className="block">
-        <span className="text-sm font-medium text-ardoise-700">{t('citoyen.adresse.commune')}</span>
-        <select
-          required
-          value={communeId}
-          onChange={(e) => setCommuneId(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-ardoise-300 bg-white px-3 py-2.5 text-base"
-        >
-          <option value="">{t('citoyen.adresse.choisir')}</option>
-          {communesTriees.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ChoixCommune
+        communes={communes}
+        valeur={communeId}
+        onChange={setCommuneId}
+        localiserAuDepart={!adresse?.commune_id}
+      />
 
       <label className="block">
         <span className="text-sm font-medium text-ardoise-700">{t('citoyen.adresse.libelle')}</span>

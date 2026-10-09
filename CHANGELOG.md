@@ -5,6 +5,53 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.21] — 2026-10-09 — D-FNCT-1 : le citoyen trouve sa commune par sa position, ou par gouvernorat
+
+Décision de la FNCT du 9 octobre 2026 (homonymes : deux Ennour, à Sfax et à Kasserine ; deux
+Ezzouhour, à Kasserine et à Sousse). La liste de 350 noms seuls faisait choisir la mauvaise commune
+sans que le citoyen le sache.
+
+### Ajouté
+- **`POST /communes/localiser`** : la commune dont le contour contient une position (`ST_Contains`).
+  « Trouvée » seulement si un seul contour la contient ; hors de tout contour ou dans deux : non
+  trouvée, raison donnée (`hors_commune`, `ambigue`). La position voyage **dans le corps**, jamais
+  dans l'URL — qui irait au journal d'accès — et **n'est écrite nulle part** (loi organique
+  n° 2004-63) : elle ne sert qu'à proposer.
+- **Application citoyenne, choix de la commune** (`ChoixCommune`) :
+  1. à l'ouverture du formulaire d'adresse, quand le citoyen n'a pas encore de commune, la position
+     est demandée ; la commune trouvée est proposée — « Vous êtes localisé à Ennour (Kasserine).
+     Est-ce correct ? » — avec « Oui, c'est correct » / « Non, choisir manuellement » ;
+  2. refus, géolocalisation indisponible, ou « non » : le **gouvernorat** (24), puis la **commune**,
+     affichée « Nom (Gouvernorat) » ;
+  3. position hors de toute commune : « Nous n'avons pas pu déterminer votre commune.
+     Choisissez-la manuellement. », puis le choix en deux étapes.
+  La position de l'*adresse* reste un geste à part (« Utiliser ma position actuelle ») : le citoyen
+  peut ne pas être chez lui quand il ouvre l'application. Français et arabe : noms arabes des
+  communes, et les 24 gouvernorats traduits dans les deux fichiers de langue.
+
+### Corrigé
+- Le type `Commune` du front déclarait `governorate`, quand l'API renvoie `gouvernorat` : le champ
+  restait toujours vide sans que le compilateur le voie.
+
+### Constaté (journal des corrections, ouverts)
+- **JC-005** : la campagne `citoyen` efface l'adresse de **tous** les citoyens de la base, au début
+  et à la fin. Sans conséquence sur une base de démonstration ; destructeur sur une base réelle.
+- **JC-006** : un corps JSON mal formé reçoit 500 au lieu de 400, sur toutes les routes.
+- Deux communes n'ont pas de contour dans le jeu de référence : **Zarzouna** et **Djerba Midoun**.
+  Un citoyen qui s'y trouve passe au choix manuel.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 64 migrations ; la 064 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat **298/298**, **44 bilans, 1 701 tests réussis, aucun
+  échec** (`citoyen` : 13 contrôles de plus). Recomptage : 44 campagnes présentes, 44 enchaînées.
+- `audit-blocs.py` : tous les contrôles sous condition ont tourné. `npm run lint` backend et web
+  (TypeScript 5.8.3) : code 0.
+- Navigateur (pile d'essai, compte citoyen d'essai), position simulée : dans l'Ennour de Kasserine,
+  la proposition s'affiche ; « non » ouvre le choix, gouvernorat présélectionné, 24 gouvernorats,
+  « Ennour (Kasserine) » ; géolocalisation réelle refusée : choix manuel direct ; position en mer :
+  le message, en arabe et de droite à gauche, puis « النور (القصرين) » ; à 375 px, aucun défilement
+  horizontal.
+
 ## [0.15.20] — 2026-10-09 — Jalon 14 spécifié : prêt d'engins et points limitrophes (documentaire)
 
 Aucun code. Le jalon 14 s'ouvre après que les jalons 11 à 13 ont tourné en production ; la feuille

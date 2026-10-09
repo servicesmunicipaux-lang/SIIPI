@@ -216,6 +216,52 @@ chk "elle reste en base" 1 "$(sql "SELECT count(*) FROM annonces_collecte WHERE 
 chk "et au journal d'audit" "t" \
     "$([ "$(sql "SELECT count(*) FROM audit_log WHERE record_id='$BROUILLON'")" -ge 1 ] && echo t || echo f)"
 
+echo
+echo "10. Trouver sa commune : la position d'abord, le choix en deux étapes à défaut (D-FNCT-1)"
+# Les positions sont prises DANS les contours par la base elle-même
+# (ST_PointOnSurface) : le témoin ne doit rien à la route qu'il contrôle.
+point() { sql "SELECT ST_Y(p)||','||ST_X(p) FROM (SELECT ST_PointOnSurface(boundary_geom) p FROM communes WHERE id='$1') x"; }
+localiser() { # « lat,lng » [jeton] -> code HTTP, réponse dans /tmp/siipi_k.json
+  code -X POST "$API/communes/localiser" -H "Authorization: Bearer ${2:-$T_CIT}" -H 'Content-Type: application/json' \
+    -d "{\"lat\":${1%,*},\"lng\":${1#*,}}"
+}
+P_KASSERINE=$(point kasserine_ennour)
+P_SFAX=$(point sfax_ennour)
+chk "sans jeton, rien" 401 "$(code -X POST "$API/communes/localiser" -H 'Content-Type: application/json' -d '{"lat":35,"lng":9}')"
+chk "une latitude impossible est refusée" 400 "$(localiser "200,9")"
+chk "un champ inconnu est refusé" 400 \
+    "$(code -X POST "$API/communes/localiser" -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' -d '{"lat":35,"lng":9,"adresse":"x"}')"
+AUDIT_AVANT=$(sql "SELECT count(*) FROM audit_log")
+CITOYEN_AVANT=$(sql "SELECT md5(coalesce(commune_id,'')||coalesce(ST_AsText(position),'')) FROM citoyens c JOIN users u ON u.id=c.user_id WHERE u.email='citoyen.demo@siipi.tn'")
+CODE=$(localiser "$P_KASSERINE")
+chk "localisé dans l'Ennour de Kasserine : c'est elle qui est proposée" "200|True|kasserine_ennour|Kasserine" \
+    "$CODE|$(jq_ "d['trouvee']")|$(jq_ "d['commune']['id']")|$(jq_ "d['commune']['gouvernorat']")"
+CODE=$(localiser "$P_SFAX")
+chk "dans l'Ennour de Sfax : la position distingue les homonymes" "200|sfax_ennour|Sfax" \
+    "$CODE|$(jq_ "d['commune']['id']")|$(jq_ "d['commune']['gouvernorat']")"
+chk "… avec son nom arabe, pour l'écran en arabe" "النور" "$(jq_ "d['commune']['name_ar']")"
+CODE=$(localiser "36.5,12.5")
+chk "en mer, hors de toute commune : non trouvée, et la raison est dite" "200|False|hors_commune" \
+    "$CODE|$(jq_ "d['trouvee']")|$(jq_ "d['raison']")"
+chk "la position n'est écrite nulle part : ni au journal, ni sur la fiche du citoyen" "$AUDIT_AVANT|$CITOYEN_AVANT" \
+    "$(sql "SELECT count(*) FROM audit_log")|$(sql "SELECT md5(coalesce(commune_id,'')||coalesce(ST_AsText(position),'')) FROM citoyens c JOIN users u ON u.id=c.user_id WHERE u.email='citoyen.demo@siipi.tn'")"
+
+# Le choix manuel : gouvernorat, puis commune, affichée « Nom (Gouvernorat) ».
+code "$API/communes" -H "Authorization: Bearer $T_CIT" >/dev/null
+chk "les 24 gouvernorats sont proposés à la première étape" 24 \
+    "$(jq_ "len({c['gouvernorat'] for c in d if c.get('gouvernorat')})")"
+chk "deux noms au moins sont portés par deux communes (Ennour, Ezzouhour)…" "Ennour,Ezzouhour" \
+    "$(jq_ "','.join(sorted(n for n in {c['name'] for c in d} if sum(1 for x in d if x['name']==n) > 1))")"
+chk "… mais « Nom (Gouvernorat) » n'est jamais porté deux fois" 0 \
+    "$(jq_ "len(d) - len({(c['name'], c['gouvernorat']) for c in d})")"
+code "$API/communes?gouvernorat=Kasserine" -H "Authorization: Bearer $T_CIT" >/dev/null
+chk "la seconde étape ne propose que les communes du gouvernorat choisi" "True|True|False" \
+    "$(jq_ "all(c['gouvernorat']=='Kasserine' for c in d)")|$(jq_ "any(c['id']=='kasserine_ennour' for c in d)")|$(jq_ "any(c['id']=='sfax_ennour' for c in d)")"
+CODE=$(code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' \
+  -d '{"communeId":"kasserine_ennour","adresse":"TEST adresse, Ennour de Kasserine"}')
+code "$API/citoyen/adresse" -H "Authorization: Bearer $T_CIT" >/dev/null
+chk "le choix manuel est enregistré : l'Ennour de Kasserine, pas celle de Sfax" "200|kasserine_ennour" "$CODE|$(jq_ "d['commune_id']")"
+
 $PSQL -c "DELETE FROM annonces_collecte WHERE message_fr LIKE 'TEST %';
           DELETE FROM tickets WHERE title LIKE 'TEST signalement%';
           DELETE FROM circuits WHERE nom LIKE 'TEST circuit citoyen%';

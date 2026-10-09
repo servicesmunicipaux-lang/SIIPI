@@ -95,7 +95,7 @@ import {
   DOMAINES_ALERTE,
   GRAVITES,
 } from '../preferences.js';
-import { parametresCommuneSchema } from '../routes/communes.routes.js';
+import { parametresCommuneSchema, localisationSchema } from '../routes/communes.routes.js';
 import { propositionDecoupageSchema } from '../routes/decoupage.routes.js';
 import { baremeSchema, parametresKpiSchema, districtsSchema, ficheSchema } from '../routes/kpi5Axes.routes.js';
 import {
@@ -664,6 +664,33 @@ registry.registerPath({
   description: 'Contours réels des communes, pour la cartographie nationale. Réponse volumineuse (~1 Mo).',
   security: SECURISE,
   responses: { 200: json(z.any(), 'FeatureCollection GeoJSON.'), 401: REPONSES_COMMUNES[401] },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/communes/localiser',
+  tags: ['Communes'],
+  summary: 'Dans quelle commune se trouve une position ? (D-FNCT-1, application citoyenne)',
+  description:
+    'Le citoyen confirme la commune proposée, ou la choisit lui-même : la plateforme propose, elle ne décide pas. ' +
+    '« Trouvée » seulement si un seul contour contient le point ; hors de tout contour (en mer, hors du pays, commune ' +
+    'sans contour en base) ou dans deux : non trouvée, raison donnée. La position voyage dans le corps de la requête — ' +
+    'jamais dans l’URL, qui irait au journal d’accès — et n’est écrite nulle part (loi organique n° 2004-63).',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: localisationSchema } } } },
+  responses: {
+    200: json(
+      z.union([
+        z.object({
+          trouvee: z.literal(true),
+          commune: z.object({ id: z.string(), name: z.string(), name_ar: z.string().nullable(), gouvernorat: z.string().nullable() }),
+        }),
+        z.object({ trouvee: z.literal(false), raison: z.enum(['hors_commune', 'ambigue']) }),
+      ]),
+      'Commune trouvée, ou raison pour laquelle elle ne l’est pas.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 registry.registerPath({
@@ -6573,7 +6600,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.20',
+      version: '0.15.21',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
