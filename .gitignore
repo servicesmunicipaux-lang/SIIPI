@@ -49,3 +49,9 @@ backend/seed/data/djerba/
 # (lot 17.5, décision du 08/10/2026). Le fichier se charge localement par l'écran
 # « Coût complet » ; les campagnes travaillent sur un jeu fictif de même structure.
 docs/specs_metier/sources/mhamdia-pcgd-2025-agregats.json
+
+# --- Moteur WaPla (UNIDO / TU Wien) : port Python et correspondance ligne à ligne ---
+# avec le code d'origine. Licence non confirmée par écrit par l'UNIDO (décision du
+# 09/10/2026, SPEC_wapla_couche_planification.md) : un port est une œuvre dérivée,
+# il reste hors du dépôt public jusqu'à cette confirmation.
+docs/specs_metier/sources/wapla/
