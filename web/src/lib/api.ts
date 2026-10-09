@@ -574,8 +574,11 @@ export const api = {
       `/comptes/${id}/mot-de-passe`,
       { method: 'POST', body: JSON.stringify({}) }
     ),
+  // Rend un nouveau jeton : celui de la connexion, marqué « provisoire », n'ouvrait que ce changement (D-FNCT-5).
   changerMonMotDePasse: (saisie: { motDePasseActuel: string; nouveauMotDePasse: string }) =>
-    requete<void>('/comptes/moi/mot-de-passe', { method: 'POST', body: JSON.stringify(saisie) }),
+    requete<{ token: string }>('/comptes/moi/mot-de-passe', { method: 'POST', body: JSON.stringify(saisie) }),
+  // Sans authentification : le bandeau d'une base de formation s'affiche dès l'écran de connexion.
+  instance: () => requete<{ nature: 'developpement' | 'formation' | 'production'; bandeauFormation: boolean }>('/instance'),
   monAdresse: () => requete<AdresseCitoyen>('/citoyen/adresse'),
   enregistrerAdresse: (saisie: SaisieAdresse) =>
     requete<AdresseCitoyen>('/citoyen/adresse', {

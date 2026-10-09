@@ -4,6 +4,7 @@ import './i18n';
 import './index.css';
 import { App } from './App';
 import { FournisseurAuth } from './lib/auth';
+import { BandeauFormation } from './composants/BandeauFormation';
 
 // Service worker : l'application citoyenne doit s'ouvrir sans réseau et
 // garder les horaires lisibles hors ligne. Enregistré après le premier rendu
@@ -18,6 +19,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 createRoot(document.getElementById('racine')!).render(
   <StrictMode>
     <FournisseurAuth>
+      <BandeauFormation />
       <App />
     </FournisseurAuth>
   </StrictMode>

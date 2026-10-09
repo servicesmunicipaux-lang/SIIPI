@@ -5,6 +5,79 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.24] — 2026-10-09 — D-FNCT-5 : production, formation, mot de passe provisoire
+
+Décision de la FNCT du 9 octobre 2026. Contrainte : « aucun compte de démonstration ne doit être
+accessible sur une instance de production, même par erreur de configuration. » Une variable
+d'environnement est une configuration — elle s'oublie, se recopie d'un serveur à l'autre. **C'est
+donc la base qui retient ce qu'elle est.**
+
+### Ajouté
+- **Migration 067** — `instance_siipi` : la nature de l'instance (`developpement`, `formation`,
+  `production`). Une base neuve est en développement ; la première fois qu'elle est servie en
+  production ou en formation, elle le devient **définitivement** (la base refuse d'en changer).
+  `users.compte_demonstration` désigne les comptes du jeu de démonstration. En production : ils sont
+  désactivés, `app.find_user_for_login` ne les trouve plus, et la base refuse de les réactiver.
+- **`src/instance.ts`** — la nature demandée se lit dans l'environnement : `FORMATION=true` ; sinon
+  `PRODUCTION=true` ou `NODE_ENV=production` (réponse de l'utilisateur) ; `FORMATION` l'emporte sur
+  `NODE_ENV`, pour qu'une instance de formation tourne sur l'image de production (réponse de
+  l'utilisateur). Au démarrage, l'API la concilie avec la base, et **refuse de démarrer** sur
+  `FORMATION=true` et `PRODUCTION=true` ensemble, `FORMATION=true` sur une base de production, ou
+  une base de formation servie en production. Une base de production servie avec une configuration
+  de développement **reste** une instance de production.
+- **Connexion** : en production, le mot de passe publié n'ouvre aucun compte (v0.15.15) et les
+  comptes de démonstration sont refusés, quel que soit leur mot de passe, avec un message qui dit
+  comment créer le premier compte réel.
+- **Mot de passe provisoire, verrouillé par le serveur** : le jeton le porte, et toute route autre
+  que `GET /auth/me`, `PUT /comptes/moi/preferences` et `POST /comptes/moi/mot-de-passe` répond 403
+  « Vous devez changer votre mot de passe avant de continuer. » (code `MOT_DE_PASSE_A_CHANGER`).
+  L'écran le disait déjà ; un client appelant l'API directement passait outre. Le changement rend un
+  nouveau jeton.
+- **`GET /instance`** (sans authentification) et le **bandeau rouge permanent** « BASE DE
+  FORMATION — Données fictives. » sur chaque écran d'une instance de formation, connexion comprise,
+  sans bouton pour le fermer. Français et arabe.
+- **`npm run compte:fnct:creer[:prod] -- <adresse> "<nom>"`** : le premier compte réel de la FNCT,
+  mot de passe provisoire affiché une fois. `mot-de-passe:provisoire` refuse un compte de
+  démonstration sur une instance de production.
+- **Déploiement** : `docker-compose.prod.yml` porte `PRODUCTION` (vrai par défaut) et `FORMATION`,
+  et des noms de conteneurs paramétrables (`SIIPI_INSTANCE`) ; une instance de formation a ses
+  propres conteneurs et sa propre base. **`README.md`** : « Production et formation ».
+- **Campagnes** : `comptes` étendue (section 3 : le verrou du mot de passe provisoire ; section 7 :
+  production et formation, sur des bases d'essai à part) ; `tests/outils/instance_essai.sh`.
+
+### Corrigé
+- La campagne `mot-de-passe-public` démarrait une API de production **sur la base des campagnes** :
+  depuis la migration 067, elle l'aurait rendue définitivement « production », et toutes les
+  campagnes suivantes auraient vu leurs comptes de démonstration refusés. Elle travaille désormais
+  sur une base d'essai à part, et vérifie que le démarrage en production désactive les comptes de
+  démonstration.
+
+### Mise à jour d'une installation existante
+`npm run migrate`. Une base de développement le reste. **Ne jamais servir une base de
+développement ou de démonstration avec `PRODUCTION=true`** : elle deviendrait définitivement une
+base de production, comptes de démonstration désactivés.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 67 migrations ; la 067 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat **303/303**, **45 bilans, 1 818 tests réussis, aucun
+  échec** (`comptes` : 55 contrôles — `PRODUCTION=false`, connexion de démonstration permise ;
+  `PRODUCTION=true`, comptes de démonstration refusés et désactivés, compte réel ouvert, réactivation
+  et retour en développement refusés par la base ; base de production servie sans `PRODUCTION` :
+  toujours production ; `FORMATION=true` sur la production, et `FORMATION` avec `PRODUCTION` :
+  démarrage refusé ; base de formation : comptes de démonstration permis, bandeau demandé, refusée
+  en production ; mot de passe provisoire : toute autre route refusée avec le message de la
+  décision, mot pour mot, jusqu'au remplacement. `mot-de-passe-public` : 25 contrôles, sur une base
+  d'essai à part). Recomptage : 45 campagnes présentes, 45 enchaînées.
+- Après `npm test` : la base des campagnes est toujours une base de développement, ses 11 comptes de
+  démonstration actifs ; aucune base d'essai ne reste.
+- `audit-blocs.py` : 28 blocs sous condition, tous leurs contrôles ont tourné. `npm run lint`
+  backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur : instance de formation d'essai (base dédiée, `FORMATION=true`, `NODE_ENV=production`) —
+  bandeau rouge dès l'écran de connexion, puis sur l'observatoire, toujours en haut après défilement,
+  en arabe de droite à gauche, sans défilement horizontal à 375 px. Pile d'essai — un compte
+  provisoire n'ouvre que l'écran de changement, avec le message de la décision ; après le changement,
+  la plateforme s'ouvre sans recharger la page.
+
 ## [0.15.23] — 2026-10-09 — D-FNCT-4 : conservation des photos — compressées à 36 mois, originaux en archive froide
 
 Décision de la FNCT du 9 octobre 2026. **Rien ne se purge.** Les textes, dates, statuts et

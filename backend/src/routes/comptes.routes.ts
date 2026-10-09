@@ -19,7 +19,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { MOT_DE_PASSE_PUBLIC, motDePasseProvisoire } from '../motDePassePublic.js';
 import { query, queryOne } from '../db.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole, signToken } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
 import { completer, fusionner, preferencesSchema } from '../preferences.js';
@@ -147,7 +147,12 @@ comptesRouter.post(
         WHERE id = $2`,
       [await bcrypt.hash(d.nouveauMotDePasse, 12), req.user!.sub]
     );
-    res.status(204).end();
+    // Un nouveau jeton, sans la marque « provisoire » : celui de la connexion la
+    // porte encore, et le contexte de requête continuerait de tout refuser
+    // (D-FNCT-5). L'ancien jeton reste borné au changement jusqu'à expiration.
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
+    res.json({ token: signToken({ sub: qui.sub, role: qui.role, communeId: qui.communeId }) });
   })
 );
 

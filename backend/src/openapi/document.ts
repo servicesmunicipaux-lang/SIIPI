@@ -536,6 +536,26 @@ const paramCommuneId = z.string().openapi({
 
 registry.registerPath({
   method: 'get',
+  path: '/instance',
+  tags: ['Supervision'],
+  summary: "Nature de l'instance : développement, formation ou production",
+  description:
+    "Sans authentification (D-FNCT-5). La nature est celle que la base garde : fixée au premier démarrage en production ou en " +
+    'formation, définitive. Une base de production le reste même servie avec une configuration de développement ; une base ' +
+    "de formation affiche un bandeau rouge permanent, dès l'écran de connexion.",
+  responses: {
+    200: json(
+      z.object({
+        nature: z.enum(['developpement', 'formation', 'production']),
+        bandeauFormation: z.boolean().openapi({ description: '« BASE DE FORMATION — Données fictives. » à afficher en permanence.' }),
+      }),
+      'Nature de l’instance.'
+    ),
+  },
+});
+
+registry.registerPath({
+  method: 'get',
   path: '/health',
   tags: ['Supervision'],
   summary: "État de santé de l'API",
@@ -601,16 +621,20 @@ registry.registerPath({
   tags: ['Authentification'],
   summary: 'Se connecter',
   description:
-    'Renvoie un jeton JWT valable 8 heures. Limité à 20 tentatives par quart d’heure et par adresse IP.',
+    'Renvoie un jeton JWT valable 8 heures. Limité à 20 tentatives par quart d’heure et par adresse IP. Un compte au mot de ' +
+    'passe provisoire reçoit un jeton qui n’ouvre que GET /auth/me, PUT /comptes/moi/preferences et ' +
+    'POST /comptes/moi/mot-de-passe : toute autre route répond 403 « Vous devez changer votre mot de passe avant de ' +
+    'continuer. » (code MOT_DE_PASSE_A_CHANGER) tant qu’il n’est pas remplacé (D-FNCT-5).',
   request: { body: { content: { 'application/json': { schema: loginSchema } } } },
   responses: {
     200: json(z.object({ token: z.string(), user: Utilisateur }), 'Connexion réussie.'),
     401: json(Erreur, 'Identifiants incorrects — message identique que l’email soit inconnu ou le mot de passe faux.'),
     403: json(
       Erreur,
-      'En production seulement : le mot de passe des comptes de démonstration, publié avec le code, n’ouvre aucun compte. ' +
-        'Refusé avant toute recherche du compte, il ne renseigne pas sur son existence. L’exploitant attribue un mot de passe ' +
-        'provisoire avec `npm run mot-de-passe:provisoire:prod -- <adresse>`.'
+      'Sur une instance de production seulement : le mot de passe des comptes de démonstration, publié avec le code, n’ouvre ' +
+        'aucun compte — refusé avant toute recherche du compte, il ne renseigne pas sur son existence ; et les comptes de ' +
+        'démonstration eux-mêmes sont refusés, quel que soit leur mot de passe (D-FNCT-5). Le premier compte réel de la FNCT ' +
+        'se crée avec `npm run compte:fnct:creer:prod -- <adresse> "<nom>"`.'
     ),
     429: json(Erreur, 'Trop de tentatives.'),
   },
@@ -3125,7 +3149,8 @@ registry.registerPath({
   summary: 'Changer son propre mot de passe',
   description:
     "Ouvert à tous les rôles : c'est ce qui permet de remplacer un mot de passe provisoire sans dépendre de qui l'a fixé. " +
-    'Le mot de passe des comptes de démonstration, publié avec le code, est refusé comme nouveau mot de passe (400), en tout environnement.',
+    'Le mot de passe des comptes de démonstration, publié avec le code, est refusé comme nouveau mot de passe (400), en tout environnement. ' +
+    'Rend un nouveau jeton : celui de la connexion portait la marque « provisoire » et n’ouvrait que ce changement (D-FNCT-5).',
   security: SECURISE,
   request: {
     body: {
@@ -3136,7 +3161,10 @@ registry.registerPath({
       },
     },
   },
-  responses: { 204: { description: 'Mot de passe remplacé.' }, ...REPONSES_COMMUNES },
+  responses: {
+    200: json(z.object({ token: z.string() }), 'Mot de passe remplacé ; nouveau jeton, qui ouvre toute la plateforme.'),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 registry.registerPath({
@@ -6758,7 +6786,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.23',
+      version: '0.15.24',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

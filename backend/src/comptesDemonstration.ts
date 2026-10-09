@@ -1,40 +1,36 @@
-// Au démarrage en production : combien de comptes de démonstration gardent le
-// mot de passe publié avec le code ?
+// Au démarrage d'une instance de production : où en sont les comptes de
+// démonstration ?
 //
-// La connexion les refuse déjà (routes/auth) : il ne s'agit pas de fermer une
-// porte, mais de dire à l'exploitant pourquoi la FNCT ne pourra pas se
-// connecter, et comment y remédier — avant qu'elle ne l'apprenne en essayant.
-// Le contrôle ne porte que sur les comptes du seed : comparer une empreinte
-// bcrypt coûte un quart de seconde, et le faire sur tous les comptes
-// retarderait d'autant chaque démarrage.
-import bcrypt from 'bcryptjs';
-import { queryOne } from './db.js';
-import { COMPTES_DE_DEMONSTRATION, MOT_DE_PASSE_PUBLIC } from './motDePassePublic.js';
-
-export async function comptesAuMotDePassePublic(): Promise<string[]> {
-  const ouverts: string[] = [];
-  for (const email of COMPTES_DE_DEMONSTRATION) {
-    // app.find_user_for_login : la seule lecture des comptes permise sans
-    // utilisateur connecté (migration 013).
-    const compte = await queryOne<{ password_hash: string; is_active: boolean }>(
-      'SELECT password_hash, is_active FROM app.find_user_for_login($1)',
-      [email]
-    );
-    if (compte?.is_active && (await bcrypt.compare(MOT_DE_PASSE_PUBLIC, compte.password_hash))) ouverts.push(email);
-  }
-  return ouverts;
-}
+// Depuis D-FNCT-5, la base les désactive au premier démarrage en production et
+// la connexion ne les trouve plus (migration 067) : il ne s'agit plus de fermer
+// une porte, mais de dire à l'exploitant pourquoi le compte de la FNCT du jeu de
+// démonstration ne s'ouvre pas, et comment créer le premier compte réel — avant
+// qu'il ne l'apprenne en essayant.
+import { pool } from './db.js';
 
 export async function signalerComptesDeDemonstration(): Promise<void> {
   try {
-    const ouverts = await comptesAuMotDePassePublic();
-    if (ouverts.length === 0) return;
-    console.warn(
-      `[siipi-backend] ATTENTION : ${ouverts.length} compte(s) de démonstration gardent le mot de passe publié avec le code ` +
-        `(${ouverts.join(', ')}). En production, ce mot de passe n'ouvre aucun compte : attribuez-leur un mot de passe ` +
-        `provisoire (npm run mot-de-passe:provisoire:prod -- <adresse>), ou désactivez ceux qui ne servent pas.`
+    // Lecture directe sur le pool : la table users est cloisonnée, et ce contrôle
+    // n'a pas d'utilisateur connecté.
+    const { rows } = await pool.query<{ n: number; fnct_reels: number }>(
+      `SELECT count(*) FILTER (WHERE compte_demonstration)::int AS n,
+              count(*) FILTER (WHERE NOT compte_demonstration AND role = 'super_admin_fnct'
+                                 AND is_active AND deleted_at IS NULL)::int AS fnct_reels
+         FROM users`
     );
+    const { n, fnct_reels } = rows[0];
+    if (n > 0) {
+      console.log(
+        `[siipi-backend] ${n} compte(s) de démonstration en base : désactivés et refusés à la connexion sur cette instance de production.`
+      );
+    }
+    if (fnct_reels === 0) {
+      console.warn(
+        `[siipi-backend] ATTENTION : aucun compte réel de la FNCT. Créez-le depuis le serveur : ` +
+          `npm run compte:fnct:creer:prod -- <adresse> "<nom complet>" (mot de passe provisoire, à remplacer à la première connexion).`
+      );
+    }
   } catch (err) {
-    console.warn(`[siipi-backend] Contrôle des comptes de démonstration impossible : ${err instanceof Error ? err.message : err}`);
+    console.warn(`[siipi-backend] Contrôle des comptes impossible : ${err instanceof Error ? err.message : err}`);
   }
 }

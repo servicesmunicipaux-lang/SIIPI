@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi } from '../lib/api';
+import { api, ecrireJeton, ErreurApi } from '../lib/api';
 import { useAuth } from '../lib/auth';
 
 export function ChangerMotDePasse() {
@@ -27,7 +27,10 @@ export function ChangerMotDePasse() {
     setEnvoi(true);
     setErreur(null);
     try {
-      await api.changerMonMotDePasse({ motDePasseActuel: actuel, nouveauMotDePasse: nouveau });
+      const { token } = await api.changerMonMotDePasse({ motDePasseActuel: actuel, nouveauMotDePasse: nouveau });
+      // Le jeton de la connexion n'ouvrait que ce changement : sans le nouveau,
+      // chaque écran suivant recevrait le même refus (D-FNCT-5).
+      ecrireJeton(token);
       await rafraichir();
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
@@ -41,7 +44,10 @@ export function ChangerMotDePasse() {
   return (
     <div className="mx-auto max-w-md px-4 py-10">
       <h1 className="text-xl font-semibold text-ardoise-900">{t('motDePasse.titre')}</h1>
-      <p className="mt-1 text-sm text-ardoise-600">{t('motDePasse.pourquoi')}</p>
+      <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-900">
+        {t('motDePasse.obligatoire')}
+      </p>
+      <p className="mt-2 text-sm text-ardoise-600">{t('motDePasse.pourquoi')}</p>
 
       <form onSubmit={envoyer} className="mt-6 space-y-4 rounded-xl border border-ardoise-200 bg-white p-4">
         <label className="block">

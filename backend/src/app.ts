@@ -9,6 +9,7 @@ import rateLimit from 'express-rate-limit';
 
 import { config } from './config.js';
 import { etatDeLaBase } from './etatBase.js';
+import { natureDemandee, natureInstance } from './instance.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { attachRequestContext } from './middleware/requestContext.js';
 
@@ -161,6 +162,14 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+// La nature de l'instance (D-FNCT-5), sans authentification : l'écran de
+// connexion doit déjà porter le bandeau d'une base de formation — c'est là
+// qu'on se trompe de serveur.
+app.get('/instance', async (_req, res) => {
+  const nature = await natureInstance().catch(() => natureDemandee());
+  res.json({ nature, bandeauFormation: nature === 'formation' });
+});
+
 /**
  * Table de montage des routeurs métier.
  *
@@ -239,7 +248,7 @@ for (const [prefixe, routeur] of ROUTEURS) {
 }
 
 /** Routes servies directement par l'application, hors routeurs métier. */
-export const ROUTES_DIRECTES = ['GET /health', 'GET /openapi.json', 'GET /docs', 'GET /docs/init.js'];
+export const ROUTES_DIRECTES = ['GET /health', 'GET /instance', 'GET /openapi.json', 'GET /docs', 'GET /docs/init.js'];
 
 // --- Contrat d'API (TDR §4.2) ----------------------------------------------
 // Servi par la plateforme elle-même, sans dépendance à un service externe :

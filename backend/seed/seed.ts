@@ -9,6 +9,7 @@ import { COMPTES_DE_DEMONSTRATION, MOT_DE_PASSE_PUBLIC } from '../src/motDePasse
 // Le seed écrit dans des tables cloisonnées par RLS : contexte FNCT (src/db.ts).
 process.env.SIIPI_DB_CONTEXT = 'server';
 const { pool, withTransaction } = await import('../src/db.js');
+const { natureSansFixer } = await import('../src/instance.js');
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -130,6 +131,18 @@ async function seedCommunes() {
 // ('agent de terrain' et 'acteur GDMA/Barbécha' ne sont plus des rôles de connexion distincts —
 // voir migration 010 — leurs vues restent accessibles depuis le portail Admin Commune.)
 async function seedUsers() {
+  // Sur une instance de production, aucun compte de démonstration ne se crée
+  // (D-FNCT-5) : la base les refuserait de toute façon, et le seed échouerait
+  // sur un refus qu'il peut éviter. La nature se lit sans être fixée : ce n'est
+  // pas au seed de décider ce qu'est la base.
+  const nature = await natureSansFixer();
+  if (nature === 'production') {
+    console.log(
+      '[seed] Instance de production : aucun compte de démonstration créé. Premier compte réel de la FNCT : ' +
+        'npm run compte:fnct:creer:prod -- <adresse> "<nom complet>".'
+    );
+    return;
+  }
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
   const demoUsers = [
     { email: 'admin.national@siipi.tn', fullName: 'Amira Ben Slimane', role: 'super_admin_fnct', communeId: null },
@@ -156,8 +169,8 @@ async function seedUsers() {
 
   for (const u of demoUsers) {
     const { rows } = await pool.query(
-      `INSERT INTO users (email, password_hash, full_name, role, commune_id)
-       VALUES ($1,$2,$3,$4,$5)
+      `INSERT INTO users (email, password_hash, full_name, role, commune_id, compte_demonstration)
+       VALUES ($1,$2,$3,$4,$5,true)
        ON CONFLICT (email) DO NOTHING
        RETURNING id, role`,
       [u.email, passwordHash, u.fullName, u.role, u.communeId]

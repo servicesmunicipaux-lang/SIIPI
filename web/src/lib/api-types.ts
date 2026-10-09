@@ -4,6 +4,50 @@
  */
 
 export interface paths {
+    "/instance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Nature de l'instance : développement, formation ou production
+         * @description Sans authentification (D-FNCT-5). La nature est celle que la base garde : fixée au premier démarrage en production ou en formation, définitive. Une base de production le reste même servie avec une configuration de développement ; une base de formation affiche un bandeau rouge permanent, dès l'écran de connexion.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Nature de l’instance. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            nature: "developpement" | "formation" | "production";
+                            /** @description « BASE DE FORMATION — Données fictives. » à afficher en permanence. */
+                            bandeauFormation: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -191,7 +235,7 @@ export interface paths {
         put?: never;
         /**
          * Se connecter
-         * @description Renvoie un jeton JWT valable 8 heures. Limité à 20 tentatives par quart d’heure et par adresse IP.
+         * @description Renvoie un jeton JWT valable 8 heures. Limité à 20 tentatives par quart d’heure et par adresse IP. Un compte au mot de passe provisoire reçoit un jeton qui n’ouvre que GET /auth/me, PUT /comptes/moi/preferences et POST /comptes/moi/mot-de-passe : toute autre route répond 403 « Vous devez changer votre mot de passe avant de continuer. » (code MOT_DE_PASSE_A_CHANGER) tant qu’il n’est pas remplacé (D-FNCT-5).
          */
         post: {
             parameters: {
@@ -231,7 +275,7 @@ export interface paths {
                         "application/json": components["schemas"]["Erreur"];
                     };
                 };
-                /** @description En production seulement : le mot de passe des comptes de démonstration, publié avec le code, n’ouvre aucun compte. Refusé avant toute recherche du compte, il ne renseigne pas sur son existence. L’exploitant attribue un mot de passe provisoire avec `npm run mot-de-passe:provisoire:prod -- <adresse>`. */
+                /** @description Sur une instance de production seulement : le mot de passe des comptes de démonstration, publié avec le code, n’ouvre aucun compte — refusé avant toute recherche du compte, il ne renseigne pas sur son existence ; et les comptes de démonstration eux-mêmes sont refusés, quel que soit leur mot de passe (D-FNCT-5). Le premier compte réel de la FNCT se crée avec `npm run compte:fnct:creer:prod -- <adresse> "<nom>"`. */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -11331,7 +11375,7 @@ export interface paths {
         put?: never;
         /**
          * Changer son propre mot de passe
-         * @description Ouvert à tous les rôles : c'est ce qui permet de remplacer un mot de passe provisoire sans dépendre de qui l'a fixé. Le mot de passe des comptes de démonstration, publié avec le code, est refusé comme nouveau mot de passe (400), en tout environnement.
+         * @description Ouvert à tous les rôles : c'est ce qui permet de remplacer un mot de passe provisoire sans dépendre de qui l'a fixé. Le mot de passe des comptes de démonstration, publié avec le code, est refusé comme nouveau mot de passe (400), en tout environnement. Rend un nouveau jeton : celui de la connexion portait la marque « provisoire » et n’ouvrait que ce changement (D-FNCT-5).
          */
         post: {
             parameters: {
@@ -11349,12 +11393,16 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Mot de passe remplacé. */
-                204: {
+                /** @description Mot de passe remplacé ; nouveau jeton, qui ouvre toute la plateforme. */
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            token: string;
+                        };
+                    };
                 };
                 /** @description Requête invalide — le détail indique les champs en cause. */
                 400: {

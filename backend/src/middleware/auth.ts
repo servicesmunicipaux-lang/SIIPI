@@ -10,6 +10,8 @@ export interface AuthTokenPayload {
   sub: string;       // user id
   role: UserRole;
   communeId: string | null;
+  /** Mot de passe provisoire à remplacer (D-FNCT-5) : le jeton n'ouvre alors que le changement. */
+  provisoire?: boolean;
 }
 
 declare global {

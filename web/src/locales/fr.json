@@ -2020,7 +2020,8 @@
     "confirmation": "Confirmez le nouveau mot de passe",
     "longueur": "Dix caractères au minimum.",
     "discordance": "Les deux saisies diffèrent.",
-    "valider": "Enregistrer et continuer"
+    "valider": "Enregistrer et continuer",
+    "obligatoire": "Vous devez changer votre mot de passe avant de continuer."
   },
   "unites": {
     "t": "t",
@@ -2663,5 +2664,8 @@
     "Gafsa": "Gafsa",
     "Tozeur": "Tozeur",
     "Kébili": "Kébili"
+  },
+  "formation": {
+    "bandeau": "BASE DE FORMATION — Données fictives."
   }
 }

@@ -8,6 +8,12 @@
 #   docker compose -f docker-compose.prod.yml up -d --build
 #   docker compose -f docker-compose.prod.yml run --rm api npm run migrate:prod
 #   docker compose -f docker-compose.prod.yml run --rm api npm run medias:archive:initialiser:prod
+#   docker compose -f docker-compose.prod.yml run --rm api npm run compte:fnct:creer:prod -- <adresse> "<nom>"
+#
+# Production ou formation (D-FNCT-5, README.md « Production et formation ») :
+# PRODUCTION=true par défaut ici. Une instance de formation se lance avec
+# FORMATION=true et PRODUCTION=false, sous un autre nom (SIIPI_INSTANCE) : elle
+# a alors ses propres conteneurs et ses propres volumes, donc sa propre base.
 #
 # Conservation des photos (D-FNCT-4) : à 36 mois, chaque photo est compressée
 # et son original part dans l'archive froide (volume siipi_archive_froide).
@@ -25,7 +31,7 @@
 services:
   db:
     image: postgis/postgis:16-3.4-alpine
-    container_name: siipi_db
+    container_name: ${SIIPI_INSTANCE:-siipi}_db
     restart: always
     environment:
       POSTGRES_DB: siipi_national
@@ -44,7 +50,7 @@ services:
     build:
       context: ./backend
     image: siipi/api:latest
-    container_name: siipi_api
+    container_name: ${SIIPI_INSTANCE:-siipi}_api
     restart: always
     init: true
     environment:
@@ -55,6 +61,10 @@ services:
       SIIPI_FICHIERS_DIR: /var/siipi/fichiers
       SIIPI_ARCHIVE_DIR: /var/siipi/archive
       SIIPI_CONSERVATION_MEDIAS: active
+      # La base garde ce qu'elle est (migration 067) : une base servie une fois en
+      # production le reste, et refuse le mode formation.
+      PRODUCTION: ${PRODUCTION:-true}
+      FORMATION: ${FORMATION:-false}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       NODE_ENV: production
     volumes:
