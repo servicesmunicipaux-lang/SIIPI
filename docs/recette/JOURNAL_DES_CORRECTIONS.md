@@ -135,3 +135,17 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Gravité** | Gênant |
 | **Correction** | v0.15.22 : la campagne rejoue l'import officiel en partant et vérifie que Midoun a retrouvé son contour officiel et sa superficie. |
 | **Contrôle ajouté** | Deux contrôles en fin de campagne `decoupage`. |
+
+### JC-008
+
+| Champ | |
+|---|---|
+| **Date** | 9 octobre 2026 |
+| **Trouvé par** | D-FNCT-4, en ajoutant le volume de l'archive froide à l'image de production |
+| **Où** | `backend/Dockerfile` (image de production) et `docker-compose.prod.yml` |
+| **Constat** | L'image tourne sous l'utilisateur `node`, mais ne crée pas le dossier `/var/siipi/fichiers`. Un volume nommé monté sur un dossier absent de l'image naît propriété de root : `node` ne peut pas y écrire. Éprouvé sur l'image construite : écriture refusée dans un tel volume. |
+| **Cause** | Le dossier du volume n'était pas préparé dans l'image avant `USER node`. |
+| **Portée** | Toute installation faite avec `docker-compose.prod.yml` : aucun dépôt de photo ni de document n'aurait abouti (503 « volume non accessible »), et l'API l'aurait signalé au démarrage. Aucune installation de production n'existe encore : défaut latent, sans donnée touchée. L'environnement de développement (`docker-compose.yml`, conteneur en root) n'était pas concerné. |
+| **Gravité** | Bloquant (pour une mise en production) |
+| **Correction** | v0.15.23 : l'image crée `/var/siipi/fichiers` et `/var/siipi/archive` et les donne à `node`. Vérifié sur l'image reconstruite : les deux volumes neufs sont accessibles en écriture. |
+| **Contrôle ajouté** | Aucun automatique : les campagnes tournent dans le conteneur de développement, pas dans l'image de production. La vérification est consignée dans la note de v0.15.23. |

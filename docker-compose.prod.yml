@@ -7,6 +7,12 @@
 #
 #   docker compose -f docker-compose.prod.yml up -d --build
 #   docker compose -f docker-compose.prod.yml run --rm api npm run migrate:prod
+#   docker compose -f docker-compose.prod.yml run --rm api npm run medias:archive:initialiser:prod
+#
+# Conservation des photos (D-FNCT-4) : à 36 mois, chaque photo est compressée
+# et son original part dans l'archive froide (volume siipi_archive_froide).
+# Ce volume se SAUVEGARDE À PART et se garde hors ligne : c'est la seule copie
+# des originaux. La tâche refuse de compresser tant que son témoin n'y est pas.
 #
 # Le service front-end sera ajouté ici lors de la reconstruction du
 # front-end (il n'existe pas encore d'image web de production).
@@ -47,6 +53,8 @@ services:
       JWT_EXPIRES_IN: 8h
       PORT: 4000
       SIIPI_FICHIERS_DIR: /var/siipi/fichiers
+      SIIPI_ARCHIVE_DIR: /var/siipi/archive
+      SIIPI_CONSERVATION_MEDIAS: active
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       NODE_ENV: production
     volumes:
@@ -54,6 +62,7 @@ services:
       # reconstruction du conteneur, et une sauvegarde du volume suffit à les
       # emporter — ils ne sont pas en base, volontairement.
       - siipi_fichiers:/var/siipi/fichiers
+      - siipi_archive_froide:/var/siipi/archive
     depends_on:
       db:
         condition: service_healthy
@@ -64,6 +73,7 @@ services:
 volumes:
   siipi_postgres_data:
   siipi_fichiers:
+  siipi_archive_froide:
 
 networks:
   siipi-net:

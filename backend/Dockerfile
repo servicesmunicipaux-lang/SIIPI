@@ -32,6 +32,13 @@ COPY --from=build /app/dist ./dist
 COPY migrations ./dist/migrations
 COPY seed/data ./dist/seed/data
 
+# Les deux volumes de fichiers — le courant, et l'archive froide des originaux
+# (D-FNCT-4) — doivent appartenir à l'utilisateur qui écrit dedans : un volume
+# nommé reprend, à sa création, le propriétaire du dossier de l'image. Sans ce
+# dossier, il naîtrait à root, et aucun dépôt de photo n'aboutirait.
+RUN mkdir -p /var/siipi/fichiers /var/siipi/archive \
+ && chown -R node:node /var/siipi
+
 # Le conteneur ne tourne pas en root (l'image node fournit l'utilisateur 'node').
 USER node
 

@@ -18826,6 +18826,296 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/fichiers/conservation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Conservation des photos : passages et restaurations (FNCT)
+         * @description La tâche mensuelle de conservation (D-FNCT-4) vue de la FNCT : ses paramètres, ses douze derniers passages, les demandes de restauration — les ouvertes d'abord, avec leur échéance et leur retard éventuel — et deux compteurs nationaux.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description État de la conservation. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            parametres: {
+                                cle: string;
+                                valeur: string;
+                            }[];
+                            passages: components["schemas"]["PassageConservation"][];
+                            demandes: {
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                fichier_id: string;
+                                commune_id: string;
+                                motif: string;
+                                demandee_le: string;
+                                /** @description Date de la demande plus le délai de restauration (48 heures). */
+                                echeance: string;
+                                /** @enum {string} */
+                                statut: "demandee" | "restauree";
+                                restauree_le: string | null;
+                                tentatives: number;
+                                derniere_tentative_le: string | null;
+                                /** @description archive_absente, original_introuvable ou empreinte_differente. Un original qui ne correspond plus à sa fiche n’est jamais restauré. */
+                                derniere_erreur: string | null;
+                                commune: string;
+                                commune_ar: string | null;
+                                nom_original: string;
+                                /** @description Encore ouverte alors que l’échéance est passée. */
+                                en_retard: boolean;
+                            }[];
+                            photos_compressees: number;
+                            /** @description Photos qui ont l’âge et sont encore entières : ce que le prochain passage compressera. */
+                            photos_en_attente: number;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fichiers/{id}/restauration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Demander la restauration d'un original (FNCT)
+         * @description L'original d'une photo compressée est dans l'archive froide. La FNCT seule en demande la restauration, motif à l'appui ; la tâche de conservation la sert dès que l'archive est accessible, sous 48 heures. 409 si la photo n'est pas compressée, déjà restaurée, ou si une demande est déjà ouverte. La demande et la restauration sont au journal d'audit.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Demande ouverte. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemandeRestauration"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rien à restaurer, déjà restauré, ou déjà demandé. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fichiers/{id}/original": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lire l'original restauré (FNCT)
+         * @description Les octets de l'original, une fois restauré depuis l'archive froide. Réservé à la FNCT : la version compressée reste celle que tout le monde voit. 409 tant que la photo n'est pas compressée, ou que son original n'est pas restauré.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les octets de l'original. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/jpeg": string;
+                        "image/png": string;
+                        "image/webp": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Pas compressée, ou original pas encore restauré. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Restauré, mais les octets sont introuvables sur le volume. */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fichiers/{id}": {
         parameters: {
             query?: never;
@@ -18835,7 +19125,7 @@ export interface paths {
         };
         /**
          * Lire les octets
-         * @description Servi avec le type réel et « nosniff » : un fichier déposé par un utilisateur ne doit jamais pouvoir être pris pour du HTML par un navigateur. Un fichier hors du périmètre de l'appelant est INTROUVABLE (404) et non refusé — un refus renseignerait sur son existence.
+         * @description Servi avec le type réel et « nosniff » : un fichier déposé par un utilisateur ne doit jamais pouvoir être pris pour du HTML par un navigateur. Un fichier hors du périmètre de l'appelant est INTROUVABLE (404) et non refusé — un refus renseignerait sur son existence. Une photo compressée (D-FNCT-4) est servie dans sa version compressée, en JPEG, à la même adresse : le citoyen la consulte toujours.
          */
         get: {
             parameters: {
@@ -18916,7 +19206,7 @@ export interface paths {
         post?: never;
         /**
          * Retirer un fichier
-         * @description Retrait LOGIQUE. Les octets restent sur le volume : les effacer relève d'une purge datée, pas du geste d'un utilisateur. Tant qu'elle n'existe pas, mieux vaut un disque qui grossit qu'une pièce justificative qui disparaît d'un clic.
+         * @description Retrait LOGIQUE. Les octets restent sur le volume : aucun geste d'un utilisateur ne les efface. Seule la tâche de conservation (D-FNCT-4) change leur forme, à 36 mois : version compressée en ligne, original dans l'archive froide — jamais détruit.
          */
         delete: {
             parameters: {
@@ -24057,6 +24347,12 @@ export interface components {
             /** Format: uuid */
             televerse_par: string | null;
             created_at: string;
+            /** @description Date de la compression de conservation (D-FNCT-4) : à 36 mois, une photo est servie en JPEG qualité 70, 500 Ko au plus, et son original part dans l'archive froide. type_mime, taille_octets et sha256 restent ceux de l'ORIGINAL — la fiche du dépôt n'est jamais réécrite. */
+            compressee_le: string | null;
+            /** @description Poids de la version compressée servie. */
+            taille_compressee_octets: number | null;
+            /** @description Date de restauration de l'original depuis l'archive froide, sur demande de la FNCT. */
+            original_restaure_le: string | null;
         };
         FichierDepose: components["schemas"]["Fichier"] & {
             /** @description Chemin de lecture des octets, à ranger dans la colonne photo_url du registre concerné. */
@@ -24066,6 +24362,54 @@ export interface components {
                 lat: number;
                 lng: number;
             } | null;
+        };
+        PassageConservation: {
+            id: number;
+            debut: string;
+            fin: string | null;
+            /** @enum {string} */
+            declenche_par: "planificateur" | "commande";
+            /** @description NULL : le passage national du mois. Une commune : un passage restreint lancé à la main. */
+            perimetre: string | null;
+            /** @description Nom de la commune du périmètre, pour l’affichage. */
+            perimetre_nom?: string | null;
+            perimetre_nom_ar?: string | null;
+            /**
+             * @description « refuse » : le passage n’a touché à rien — archive froide absente ou non initialisée, par exemple. Le motif le dit.
+             * @enum {string}
+             */
+            statut: "en_cours" | "termine" | "refuse";
+            motif_refus: string | null;
+            /** @description Photos de plus de 36 mois encore entières au début du passage. */
+            photos_eligibles: number;
+            photos_compressees: number;
+            octets_avant: number;
+            octets_apres: number;
+            /** @description Photos laissées entières, et pourquoi (original introuvable, empreinte différente de la fiche, image illisible…). Constatées, jamais « réparées » : elles seront reprises au passage suivant. */
+            anomalies: {
+                fichier: string;
+                raison: string;
+            }[];
+        };
+        DemandeRestauration: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            fichier_id: string;
+            commune_id: string;
+            motif: string;
+            /** Format: uuid */
+            demandee_par: string | null;
+            demandee_le: string;
+            /** @description Date de la demande plus le délai de restauration (48 heures). */
+            echeance: string;
+            /** @enum {string} */
+            statut: "demandee" | "restauree";
+            restauree_le: string | null;
+            tentatives: number;
+            derniere_tentative_le: string | null;
+            /** @description archive_absente, original_introuvable ou empreinte_differente. Un original qui ne correspond plus à sa fiche n’est jamais restauré. */
+            derniere_erreur: string | null;
         };
         RapportEtude: {
             /** Format: uuid */

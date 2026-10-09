@@ -6,6 +6,7 @@ import { config } from './config.js';
 import { pool } from './db.js';
 import { preparerRacine, racine } from './services/fichiers.js';
 import { signalerComptesDeDemonstration } from './comptesDemonstration.js';
+import { demarrerPlanificateurConservation } from './services/conservationMedias.js';
 
 // Le volume de stockage est éprouvé AU DÉMARRAGE, pas au premier dépôt. Un
 // volume non monté se découvrirait autrement le jour où un agent envoie la
@@ -27,6 +28,8 @@ app.listen(config.port, () => {
   );
   // En production seulement : en développement, ces comptes servent tels quels.
   if (config.isProduction) void signalerComptesDeDemonstration();
+  // Conservation des photos (D-FNCT-4) : seulement si SIIPI_CONSERVATION_MEDIAS=active.
+  demarrerPlanificateurConservation();
 });
 
 process.on('SIGTERM', async () => {

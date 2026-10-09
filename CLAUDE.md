@@ -39,7 +39,9 @@ tous les blocs conditionnels des campagnes, 4 sautaient des contrôles, corrigé
 `docs/specs_metier/SPEC_v0.19_mutualisation.md`, à valider par la FNCT (D-1 à D-7). v0.15.21 :
 D-FNCT-1 tranchée — le citoyen trouve sa commune par sa position, ou par gouvernorat puis commune.
 v0.15.22 : D-FNCT-3 tranchée — Zarzouna rattachée à Bizerte (retirée, jamais effacée), El Hchachna
-créée ; une commune retirée disparaît de toute l'API par la politique de lecture de `communes`.**
+créée ; une commune retirée disparaît de toute l'API par la politique de lecture de `communes`.
+v0.15.23 : D-FNCT-4 tranchée — à 36 mois, une photo est compressée, l'original part dans l'archive
+froide (volume `siipi_archive_froide`, gardé sans limite) ; la FNCT en demande la restauration.**
 
 ---
 
@@ -163,7 +165,7 @@ données personnelles). Jusqu'à confirmation par un juriste de la FNCT :
 ```bash
 docker compose exec -T api npm run migrate            # migrations en attente
 docker compose exec -T api npm run verifier:contrat   # toute route servie est documentée
-docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (44 au 09/10/2026)
+docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (45 au 09/10/2026)
 docker compose exec -T api npm run test:module4       # une seule campagne
 docker compose exec -T api npm run recette:etat -- <commune>   # une commune peut-elle commencer sa recette ? (lecture seule)
 docker compose run  --rm web npx tsc --noEmit         # typage du front
@@ -184,7 +186,7 @@ docker compose run --rm web npx openapi-typescript http://api:4000/openapi.json 
 
 | Couche | Choix | Note |
 |---|---|---|
-| Base | PostgreSQL 16 + PostGIS 3.4 | 65 migrations au 09/10/2026, rejouées sur base neuve à chaque livraison |
+| Base | PostgreSQL 16 + PostGIS 3.4 | 66 migrations au 09/10/2026, rejouées sur base neuve à chaque livraison |
 | API | Node 22 + Express + TypeScript (ESM) | zod pour la validation |
 | Contrat | OpenAPI 3.1 **généré depuis les schémas zod d'exécution** | la documentation ne peut pas décrire autre chose que ce qui est contrôlé |
 | Front | React 19 + Vite + Tailwind v4 + Leaflet | PWA (`manifest.webmanifest`, `sw.js`) |
@@ -313,11 +315,11 @@ sans erreur de :**
 
 1. **`npm run verifier:contrat`** — toute route servie est documentée ;
 2. **toutes les campagnes `backend/tests/*.sh`** — pas « celles qui concernent
-   la tâche ». Elles étaient 44 au 09/10/2026 (S0 a ajouté `assainissement`,
+   la tâche ». Elles étaient 45 au 09/10/2026 (S0 a ajouté `assainissement`,
    S1 `simulation-3mois`, 16.1 `barbechas`, 16.2 `documents`, 16.3 `exploitation`,
    16.4 `declassement`, 17.3 `parametres-nationaux`, 17.1 `parametres-communaux`,
    17.5 `cout-complet`, 18.1 `acteurs-informels`, v0.15.15 `mot-de-passe-public`,
-   v0.15.16 `recette-etat`).
+   v0.15.16 `recette-etat`, v0.15.23 `purge-media`).
 
 Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 
@@ -325,7 +327,7 @@ Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 docker compose exec -T api npm test
 ```
 
-Le dossier `backend/tests/` contenait **45 fichiers `.sh`** au 09/10/2026 : 44
+Le dossier `backend/tests/` contenait **46 fichiers `.sh`** au 09/10/2026 : 45
 campagnes et `executer.sh`, le lanceur, qui n'est pas une campagne. Ces chiffres
 ne sont pas des valeurs à retenir mais à **recalculer** — un critère d'acceptation qui se
 dessèche sans bruit est pire qu'aucun :
@@ -423,12 +425,13 @@ ne génère rien. Voir `FEUILLE_DE_ROUTE.md` § 6bis.
 
 ```
 backend/
-  migrations/      065 fichiers numérotés au 09/10/2026 — l'ordre fait foi, l'empreinte aussi
+  migrations/      066 fichiers numérotés au 09/10/2026 — l'ordre fait foi, l'empreinte aussi
   src/routes/      une route par domaine ; les littéraux avant /:id
-  src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF)
+  src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF),
+                   conservationMedias.ts (photos de 36 mois, archive froide)
   src/openapi/     document.ts — le contrat, généré depuis les schémas zod
   seed/            jeux réels : Dar Chaabane, Djerba (Houmt Souk, Midoun, Ajim)
-  tests/           44 campagnes au 09/10/2026, lancées par tests/executer.sh
+  tests/           45 campagnes au 09/10/2026, lancées par tests/executer.sh
 web/
   src/composants/  communal/ · national/ · prestataire/ · kpi/ · registres/
   src/lib/api.ts   client HTTP ; api-types.ts est GÉNÉRÉ, ne pas l'écrire à la main
