@@ -37,8 +37,9 @@ sans que le citoyen le sache.
 - **JC-005** : la campagne `citoyen` efface l'adresse de **tous** les citoyens de la base, au début
   et à la fin. Sans conséquence sur une base de démonstration ; destructeur sur une base réelle.
 - **JC-006** : un corps JSON mal formé reçoit 500 au lieu de 400, sur toutes les routes.
-- Deux communes n'ont pas de contour dans le jeu de référence : **Zarzouna** et **Djerba Midoun**.
-  Un citoyen qui s'y trouve passe au choix manuel.
+- **Zarzouna** n'a pas de contour dans le jeu de référence : un citoyen qui s'y trouve passe au choix
+  manuel. *(Rectifié avant fusion : la première rédaction citait aussi Djerba Midoun. Son contour
+  existe ; c'est la campagne `decoupage` qui l'efface à chaque passage — défaut traité avec D-FNCT-3.)*
 
 ### Vérifié (lu dans les sorties)
 - Base neuve, ordre de référence : 64 migrations ; la 064 rejouée : « Base déjà à jour ».
