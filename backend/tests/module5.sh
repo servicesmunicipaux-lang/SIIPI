@@ -46,11 +46,18 @@ COMMUNE=$(sql "SELECT id FROM communes WHERE name ILIKE '%Chaâbane%' OR name IL
 # Dar Chaabane et y laissait (JC-001).
 . "$(dirname "$0")/outils/directeur_temporaire.sh"
 directeur_temporaire "$COMMUNE"
-trap retirer_directeur_temporaire EXIT
 T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
 [ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
-AUTRE=$(sql "SELECT id FROM communes WHERE id <> '$COMMUNE' ORDER BY id LIMIT 1")
+# L'autre commune est une commune de test, avec un secteur et une publication
+# à elle : le cloisonnement s'éprouve contre quelque chose. La campagne prenait
+# la première commune venue, qui n'avait ni secteur ni publication — le refus
+# de cibler un secteur étranger se sautait sans le dire (JC-004).
+AUTRE=test_m5_autre
+# Un citoyen d'essai, pour qu'un envoi ait au moins un destinataire quel que
+# soit le nombre d'inscrits de la commune (JC-004).
+CIT_EMAIL="test-m5-citoyen@example.test"
+CIT_MDP="TEST-Citoyen-$$"
 
 nettoyer() {
   $PSQL -c "DELETE FROM sondage_reponses WHERE publication_id IN (SELECT id FROM publications WHERE titre_fr LIKE 'TEST-M5%');" >/dev/null 2>&1
@@ -58,8 +65,19 @@ nettoyer() {
   $PSQL -c "DELETE FROM envois_notification WHERE publication_id IN (SELECT id FROM publications WHERE titre_fr LIKE 'TEST-M5%');" >/dev/null 2>&1
   $PSQL -c "DELETE FROM publication_documents WHERE publication_id IN (SELECT id FROM publications WHERE titre_fr LIKE 'TEST-M5%');" >/dev/null 2>&1
   $PSQL -c "DELETE FROM publications WHERE titre_fr LIKE 'TEST-M5%';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM notifications_citoyen WHERE citoyen_id IN (SELECT c.id FROM citoyens c JOIN users u ON u.id = c.user_id WHERE u.email = '$CIT_EMAIL');" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email = '$CIT_EMAIL');" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM users WHERE email = '$CIT_EMAIL';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM zones_collecte WHERE commune_id = '$AUTRE';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM communes WHERE id = '$AUTRE';" >/dev/null 2>&1
 }
+fin() { nettoyer; retirer_directeur_temporaire; }
+trap fin EXIT
 nettoyer
+$PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$AUTRE', 'TEST autre commune M5', 'TEST', 'TEST', 1000);" >/dev/null
+ZONE_AUTRE=$(sql "INSERT INTO zones_collecte (commune_id, name, geom)
+                  VALUES ('$AUTRE', 'TEST-M5 secteur', ST_Multi(ST_MakeEnvelope(9.0, 35.0, 9.001, 35.001, 4326))) RETURNING id")
+$PSQL -c "INSERT INTO publications (commune_id, type, titre_fr) VALUES ('$AUTRE', 'notification', 'TEST-M5 publication de l''autre commune');" >/dev/null
 
 # -----------------------------------------------------------------------------
 echo
@@ -138,17 +156,40 @@ chk "publication" 200 \
 chk "la date de publication se pose seule" "True" \
     "$(python3 -c "import json;print(json.load(open('/tmp/siipi_m5.json'))['publiee_le'] is not None)" 2>/dev/null)"
 
+# Les deux chemins de l'envoi s'éprouvent à chaque passage, quel que soit le
+# nombre d'inscrits de la commune. Ils se choisissaient sur ce nombre : le jeu
+# de référence n'ayant aucun citoyen joignable, l'envoi réussi et la garantie
+# « le nombre, pas les noms » ne tournaient jamais (JC-004).
+#
 # Un envoi vers zéro destinataire est un envoi raté : on refuse plutôt que
-# d'inscrire « 0 » à l'historique et de laisser croire que c'est parti.
+# d'inscrire « 0 » à l'historique et de laisser croire que c'est parti. Zéro,
+# par construction : un carré de dix mètres où personne n'a déclaré d'adresse.
+chk "création d'une notification ciblée sur un carré vide" 201 \
+    "$(code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+       -d '{"type":"notification","titreFr":"TEST-M5 carré vide","titreAr":"تجربة","perimetreType":"polygone","perimetre":{"type":"Polygon","coordinates":[[[10.0,36.0],[10.0001,36.0],[10.0001,36.0001],[10.0,36.0001],[10.0,36.0]]]}}' \
+       "$API/communication?communeId=$COMMUNE")"
+VIDE=$(val "['id']")
+code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' -d '{}' "$API/communication/$VIDE/publier" >/dev/null
+chk "… personne n'y est joignable" 0 "$(sql "SELECT joignables FROM app.destinataires_publication('$VIDE')")"
+chk "un envoi sans destinataire est refusé" 400 \
+    "$(code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' -d '{}' "$API/communication/$VIDE/envoyer")"
+
+# Au moins un destinataire : un citoyen d'essai s'inscrit et déclare son
+# adresse dans la commune — elle fait « sa commune » (migration 054).
+code -X POST "$API/citizens/register" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$CIT_EMAIL\",\"password\":\"$CIT_MDP\",\"fullName\":\"TEST-M5 Citoyen\"}" >/dev/null
+T_CIT=$(tok "$CIT_EMAIL" "$CIT_MDP")
+code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' \
+  -d "{\"communeId\":\"$COMMUNE\",\"adresse\":\"TEST-M5, rue de test\"}" >/dev/null
 JOIGNABLES=$(sql "SELECT joignables FROM app.destinataires_publication('$NOTIF')")
-CODE_ENVOI=$(code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' -d '{}' "$API/communication/$NOTIF/envoyer")
-if [ "${JOIGNABLES:-0}" = "0" ]; then
-  chk "un envoi sans destinataire est refusé" 400 "$CODE_ENVOI"
-else
-  chk "envoi enregistré" 201 "$CODE_ENVOI"
-  chk "l'historique retient le nombre, pas les noms" 0 \
-      "$(sql "SELECT count(*) FROM information_schema.columns WHERE table_name='envois_notification' AND column_name ~ 'citoyen|destinataire_id|liste'")"
-fi
+chk "avec le citoyen d'essai, la notification a au moins un destinataire" 1 \
+    "$([ "${JOIGNABLES:-0}" -ge 1 ] 2>/dev/null && echo 1 || echo 0)"
+chk "envoi enregistré" 201 \
+    "$(code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' -d '{}' "$API/communication/$NOTIF/envoyer")"
+chk "l'historique retient le nombre de destinataires" "$JOIGNABLES" \
+    "$(sql "SELECT max(destinataires) FROM envois_notification WHERE publication_id = '$NOTIF'")"
+chk "l'historique retient le nombre, pas les noms" 0 \
+    "$(sql "SELECT count(*) FROM information_schema.columns WHERE table_name='envois_notification' AND column_name ~ 'citoyen|destinataire_id|liste'")"
 
 # -----------------------------------------------------------------------------
 echo
@@ -199,15 +240,12 @@ chk "sans jeton, 401" 401 "$(code "$API/communication?communeId=$COMMUNE")"
 echo
 echo "6. Cloisonnement"
 
-if [ -n "$AUTRE" ]; then
-  ZONE_AUTRE=$(sql "SELECT id FROM zones_collecte WHERE commune_id='$AUTRE' AND deleted_at IS NULL LIMIT 1")
-  if [ -n "$ZONE_AUTRE" ]; then
-    chk "cibler le secteur d'une autre commune est refusé" 1 \
-        "$(refus "INSERT INTO publications (commune_id,type,titre_fr,perimetre_type,zone_ids) VALUES ('$COMMUNE','notification','TEST-M5 fuite','zones',ARRAY['$ZONE_AUTRE']::uuid[]);" ZONE_HORS_COMMUNE)"
-  fi
-  code -H "Authorization: Bearer $T_DIR" "$API/communication?communeId=$AUTRE" >/dev/null
-  chk "les publications d'une autre commune ne sont pas lisibles" 0 "$(nb)"
-fi
+chk "la commune de test a bien un secteur et une publication" "1|1" \
+    "$([ -n "$ZONE_AUTRE" ] && echo 1 || echo 0)|$(sql "SELECT count(*) FROM publications WHERE commune_id='$AUTRE'")"
+chk "cibler le secteur d'une autre commune est refusé" 1 \
+    "$(refus "INSERT INTO publications (commune_id,type,titre_fr,perimetre_type,zone_ids) VALUES ('$COMMUNE','notification','TEST-M5 fuite','zones',ARRAY['$ZONE_AUTRE']::uuid[]);" ZONE_HORS_COMMUNE)"
+code -H "Authorization: Bearer $T_DIR" "$API/communication?communeId=$AUTRE" >/dev/null
+chk "les publications d'une autre commune ne sont pas lisibles" 0 "$(nb)"
 
 chk "un compte anonyme ne voit aucune publication (base)" 0 \
     "$(sql "BEGIN; SET LOCAL ROLE siipi_app; SET LOCAL app.role='anonyme'; SELECT count(*) FROM publications; ROLLBACK;" | tail -1)"

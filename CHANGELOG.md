@@ -5,6 +5,48 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.19] — 2026-10-09 — JC-004 : audit des contrôles sous condition, quatre blocs corrigés
+
+### Corrigé
+- **Audit de tous les contrôles de campagne placés sous condition** (suite de JC-003) : 33 blocs
+  — 28 `if … fi`, 5 formes courtes `[ … ] && chk`. Sur le jeu de référence, **4 sautaient des
+  contrôles sans le dire** (JC-004) :
+  - `module5` — l'**envoi réussi** d'une notification et la garantie « **l'historique retient le
+    nombre, pas les noms** » ne tournaient jamais : aucun citoyen joignable dans la commune. Les
+    deux chemins tournent désormais à chaque passage : un citoyen d'essai rend l'envoi possible,
+    un carré de dix mètres sans adresse le rend impossible ;
+  - `module5` — le refus de **cibler le secteur d'une autre commune** ;
+  - `module6` — le refus d'une **pesée sur l'engin d'une autre commune** ;
+  - `suggestions` — le refus de **rattacher une proposition au circuit d'une autre commune**.
+  Chaque contrôle bâtit l'objet qu'il éprouve — secteur, publication, engin, pesée, circuit —
+  dans une commune de test retirée en partant. Plus aucune condition autour de ces contrôles.
+- Quatre des contrôles rendus passent : la plateforme se comportait bien. **Le cinquième attendait
+  une réponse fausse** : le circuit d'une commune hors du périmètre est *introuvable* (404,
+  `CLAUDE.md` § 5), pas « refusé » (400) — le test, jamais exécuté, contredisait la règle. Le 400
+  existe bien, pour un directeur rattaché aux deux communes, et il est éprouvé aussi.
+
+### Ajouté
+- **`scripts/skills/audit-blocs.py`** : sur le journal d'un `npm test` de référence, il nomme tout
+  contrôle sous condition qui n'a pas tourné et sort en erreur. Éprouvé sur les campagnes d'avant
+  la correction : il retrouve les cinq contrôles manquants (code 1) ; sur celles d'après, aucun
+  (code 0).
+- `CLAUDE.md` § 7 : **aucun contrôle sous condition d'une donnée qu'on espère trouver** — l'objet à
+  éprouver se bâtit, sinon le contrôle échoue.
+
+### Reste ouvert
+- Les 28 blocs restants tournent sur le jeu de référence mais **restent fragiles** : si la donnée
+  qu'ils cherchent disparaissait, ils se sauteraient en silence. `audit-blocs.py` le dirait.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 64 migrations ; la 064 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 297/297, **44 bilans, 1 688 tests réussis,
+  aucun échec** (`module5` 31 → 39, `module6` 40 → 42, `suggestions` 27 → 31).
+- Recomptage : 44 campagnes présentes, 44 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- `audit-blocs.py` sur ce journal : « 28 blocs sous condition contenant des contrôles ; tous leurs
+  contrôles ont tourné », code 0. Après la chaîne : aucune commune, aucun compte, aucun engin de
+  test restant.
+
 ## [0.15.18] — 2026-10-09 — JC-003 : la campagne `fichiers` ne saute plus sa partie citoyen
 
 ### Corrigé

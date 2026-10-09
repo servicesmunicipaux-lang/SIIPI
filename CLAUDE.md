@@ -33,8 +33,9 @@ et la date de départ de la période transitoire. v0.15.15 : en production, le m
 des comptes de démonstration n'ouvre aucun compte (`src/motDePassePublic.ts`). v0.15.16 : la recette R1
 est préparée (`docs/recette/`, commande `recette:etat`) ; elle attend la commune. v0.15.17 : les
 campagnes n'empruntent plus de compte de démonstration pour écrire dans Dar Chaabane (JC-001).
-v0.15.18 : `fichiers` ne saute plus sa partie citoyen en silence (JC-003) ; 30 autres blocs
-conditionnels dans 16 campagnes restent à auditer.**
+v0.15.18 : `fichiers` ne saute plus sa partie citoyen en silence (JC-003). v0.15.19 : audit de
+tous les blocs conditionnels des campagnes, 4 sautaient des contrôles, corrigés (JC-004) ; outil
+`scripts/skills/audit-blocs.py`.**
 
 ---
 
@@ -335,6 +336,13 @@ sans être exécutée : la tâche n'est pas terminée. *(La seconde commande ne 
 que la chaîne `test` depuis la v0.15.2 : l'ancienne comptait aussi les scripts
 `test:<campagne>`, si bien qu'une campagne retirée de la chaîne mais gardée en
 script à part restait comptée.)*
+
+**Aucun contrôle sous condition d'une donnée qu'on espère trouver.** Un `if [ -n "$X" ]`
+autour d'un `chk` se saute en silence quand la donnée manque, et la campagne se compte réussie :
+c'est ainsi que B5.1.3 n'était éprouvé par aucune campagne (JC-003, JC-004). L'objet à éprouver
+se **bâtit** (commune de test, engin, secteur, citoyen d'essai) ; si la campagne ne peut pas le
+bâtir, le contrôle **échoue**. `python3 scripts/skills/audit-blocs.py backend <journal de npm test>`
+nomme tout contrôle sous condition qui n'a pas tourné.
 
 **Une campagne ne se déclare jamais « sans objet ».** Jusqu'à la v0.15.2,
 `suggestions` s'arrêtait en SUCCÈS quand elle ne trouvait pas de compte citoyen :

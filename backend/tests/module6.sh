@@ -42,11 +42,24 @@ COMMUNE=$(sql "SELECT id FROM communes WHERE name ILIKE '%Chaâbane%' OR name IL
 # Dar Chaabane et y laissait (JC-001).
 . "$(dirname "$0")/outils/directeur_temporaire.sh"
 directeur_temporaire "$COMMUNE"
-trap retirer_directeur_temporaire EXIT
 T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
 [ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
-AUTRE=$(sql "SELECT id FROM communes WHERE id <> '$COMMUNE' ORDER BY id LIMIT 1")
+# L'autre commune est une commune de test, avec un engin et une pesée à elle :
+# le cloisonnement s'éprouve contre quelque chose. La campagne prenait la
+# première commune venue, qui n'avait aucun engin — le refus d'une pesée sur
+# l'engin d'une autre commune se sautait sans le dire (JC-004).
+AUTRE=test_m6_autre
+ENGIN_AUTRE=test-m6-engin
+nettoyer_autre() {
+  $PSQL -c "DELETE FROM pesees WHERE commune_id = '$AUTRE';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM vehicules WHERE id = '$ENGIN_AUTRE';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM communes WHERE id = '$AUTRE';" >/dev/null 2>&1
+}
+nettoyer_autre
+$PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$AUTRE', 'TEST autre commune M6', 'TEST', 'TEST', 1000);" >/dev/null
+$PSQL -c "INSERT INTO vehicules (id, registration, commune_id, type) VALUES ('$ENGIN_AUTRE', 'TEST-M6 0001', '$AUTRE', 'camion');" >/dev/null
+$PSQL -c "INSERT INTO pesees (commune_id, date_pesee, poids_net_kg, vehicule_immat, observation) VALUES ('$AUTRE', CURRENT_DATE - 1, 1000, 'TEST-M6 0001', 'TEST-M6 pesée de l''autre commune');" >/dev/null
 CIRCUIT=$(sql "SELECT id FROM circuits WHERE commune_id='$COMMUNE' AND actif AND deleted_at IS NULL AND prestataire_id IS NULL ORDER BY nom LIMIT 1")
 # On prend l'engin à la PLUS FORTE charge utile, pas le premier par
 # immatriculation : un tracteur de 2 t mettait la pesée d'essai de 4 200 kg en
@@ -57,7 +70,9 @@ CHARGE=$(sql "SELECT charge_utile_t::integer FROM vehicules WHERE id='$ENGIN'")
 # que soit le parc de la commune.
 POIDS=$(( CHARGE * 500 ))
 
-nettoyer() { $PSQL -c "DELETE FROM pesees WHERE bon_numero LIKE 'TEST-M6%' OR observation LIKE 'TEST-M6%';" >/dev/null 2>&1; }
+nettoyer() { $PSQL -c "DELETE FROM pesees WHERE (bon_numero LIKE 'TEST-M6%' OR observation LIKE 'TEST-M6%') AND commune_id <> '$AUTRE';" >/dev/null 2>&1; }
+fin() { nettoyer; nettoyer_autre; retirer_directeur_temporaire; }
+trap fin EXIT
 nettoyer
 
 # -----------------------------------------------------------------------------
@@ -78,11 +93,8 @@ chk "un brut et une tare qui ne donnent pas le net" 1 \
     "$(refus "INSERT INTO pesees (commune_id,circuit_id,vehicule_id,poids_net_kg,poids_brut_kg,poids_tare_kg,bon_numero) VALUES ('$COMMUNE','$CIRCUIT','$ENGIN',1000,9000,5000,'TEST-M6-6');" pesee_poids_coherents)"
 chk "un flux hors nomenclature (« gravats » et non « ddc »)" 1 \
     "$(refus "INSERT INTO pesees (commune_id,circuit_id,vehicule_id,poids_net_kg,type_dechet,bon_numero) VALUES ('$COMMUNE','$CIRCUIT','$ENGIN',1000,'gravats','TEST-M6-7');" pesee_type_dechet_valide)"
-if [ -n "$AUTRE" ]; then
-  ENGIN_AUTRE=$(sql "SELECT id FROM vehicules WHERE commune_id='$AUTRE' AND deleted_at IS NULL LIMIT 1")
-  [ -n "$ENGIN_AUTRE" ] && chk "un engin d'une autre commune" 1 \
+chk "un engin d'une autre commune" 1 \
     "$(refus "INSERT INTO pesees (commune_id,circuit_id,vehicule_id,poids_net_kg,bon_numero) VALUES ('$COMMUNE','$CIRCUIT','$ENGIN_AUTRE',1000,'TEST-M6-8');" PESEE_ENGIN_HORS_COMMUNE)"
-fi
 
 # -----------------------------------------------------------------------------
 echo
@@ -184,10 +196,9 @@ chk "un identifiant inconnu rend 404" 404 "$(code -H "Authorization: Bearer $T_D
 chk "un identifiant mal formé rend 400, pas 500" 400 "$(code -H "Authorization: Bearer $T_DIR" "$API/pesees/pas-un-uuid")"
 chk "sans jeton, 401" 401 "$(code "$API/pesees?communeId=$COMMUNE")"
 
-if [ -n "$AUTRE" ]; then
-  code -H "Authorization: Bearer $T_DIR" "$API/pesees?communeId=$AUTRE" >/dev/null
-  chk "les pesées d'une autre commune ne sont pas lisibles" 0 "$(nb)"
-fi
+chk "l'autre commune a bien une pesée" 1 "$(sql "SELECT count(*) FROM pesees WHERE commune_id='$AUTRE'")"
+code -H "Authorization: Bearer $T_DIR" "$API/pesees?communeId=$AUTRE" >/dev/null
+chk "les pesées d'une autre commune ne sont pas lisibles" 0 "$(nb)"
 chk "un compte anonyme ne voit aucune pesée (base)" 0 \
     "$(sql "BEGIN; SET LOCAL ROLE siipi_app; SET LOCAL app.role='anonyme'; SELECT count(*) FROM pesees; ROLLBACK;" | tail -1)"
 chk "un citoyen non plus (base)" 0 \

@@ -79,3 +79,17 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Gravité** | Gênant : une garantie annoncée n'était pas vérifiée |
 | **Correction** | v0.15.18 : `fichiers` bâtit sa commune de test, son directeur temporaire et son citoyen (inscrit par l'API, adresse déclarée dans la commune) ; plus aucun contrôle conditionnel — un administrateur d'une autre commune absent fait **échouer** le contrôle au lieu de le sauter ; catégorie `point_noir`. La campagne passe de 26 à 40 contrôles. Elle ne dépend plus ni de Dar Chaâbane ni d'un compte de démonstration pour écrire. |
 | **Contrôle ajouté** | Les quatorze contrôles de la partie 4 eux-mêmes, dont « la réclamation d'essai est ouverte ». L'audit des 30 autres blocs conditionnels reste à faire. |
+
+### JC-004
+
+| Champ | |
+|---|---|
+| **Date** | 9 octobre 2026 |
+| **Trouvé par** | Audit des blocs conditionnels de toutes les campagnes (suite de JC-003), outil `scripts/skills/audit-blocs.py` |
+| **Où** | Campagnes `module5` (deux blocs), `module6`, `suggestions` |
+| **Constat** | Sur 33 blocs de contrôles placés sous condition (28 `if … fi`, 5 formes courtes `[ … ] && chk`), **4 sautaient des contrôles** sur le jeu de référence, sans le dire : `module5` — l'envoi réussi d'une notification et la garantie « l'historique retient le nombre, pas les noms », ainsi que le refus de cibler le secteur d'une autre commune ; `module6` — le refus d'une pesée sur l'engin d'une autre commune ; `suggestions` — le refus de rattacher une proposition au circuit d'une autre commune. Les 29 autres ont tourné. |
+| **Cause** | Le contrôle se choisissait sur une donnée qu'on espérait trouver : un citoyen joignable dans la commune (il n'y en a aucun), un secteur, un engin ou un circuit dans « la première autre commune » par ordre alphabétique (elle n'en a pas). |
+| **Portée** | Cinq contrôles qui ne tournaient pas. **Une fois rendus, quatre passent** : la plateforme se comportait bien. **Le cinquième attendait une réponse fausse** : rattacher une proposition au circuit d'une commune hors de son périmètre rend 404 (introuvable, `CLAUDE.md` § 5), pas 400 — le test, écrit sans jamais tourner, contredisait la règle. Le 400 existe bien : pour un directeur rattaché aux deux communes, qui voit le circuit ; il est désormais éprouvé aussi. Les 29 autres blocs tournent sur le jeu de référence, mais **restent fragiles** : si la donnée qu'ils cherchent disparaissait, ils se sauteraient en silence — l'outil d'audit le dirait. |
+| **Gravité** | Gênant : des garanties annoncées n'étaient pas vérifiées |
+| **Correction** | v0.15.19 : chaque contrôle bâtit l'objet qu'il éprouve, dans une commune de test retirée en partant — un secteur, une publication, un engin, une pesée, un circuit ; un citoyen d'essai rend un envoi possible, un carré de dix mètres sans adresse le rend impossible : les deux chemins tournent à chaque passage. Plus aucune condition autour de ces contrôles. |
+| **Contrôle ajouté** | `scripts/skills/audit-blocs.py` : sur le journal d'un `npm test` de référence, il nomme tout contrôle sous condition qui n'a pas tourné, et sort en erreur. Éprouvé sur les campagnes d'avant la correction : il retrouve les cinq contrôles. |

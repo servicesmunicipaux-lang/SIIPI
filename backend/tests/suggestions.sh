@@ -168,19 +168,38 @@ print(sum(1 for x in json.load(open('$T/r.json')) if x['id']=='$SUG' and x['stat
 
 echo
 echo "5. Cloisonnement"
-AUTRE=$(sql "SELECT id FROM communes WHERE id <> '$COMMUNE' ORDER BY id LIMIT 1")
-AUTRE_CIRCUIT=''
-[ -n "$AUTRE" ] && AUTRE_CIRCUIT=$(sql "SELECT id FROM circuits WHERE commune_id='$AUTRE' AND deleted_at IS NULL LIMIT 1")
-if [ -n "$AUTRE_CIRCUIT" ]; then
-  SUG3=$(sql "INSERT INTO points_suggeres (commune_id, citoyen_id, nom, geom)
-              VALUES ('$COMMUNE','$CIT_ID','TEST-SUG hors commune', ST_SetSRID(ST_MakePoint(10.73,36.45),4326))
-              RETURNING id")
-  # Rattacher une proposition au circuit d'une autre commune créerait un arrêt
-  # que personne ne dessert, dans une tournée qui ne le connaît pas.
-  chk "un circuit d'une autre commune est refusé" 400 \
-      "$(code -X PATCH -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
-         -d "{\"circuitId\":\"$AUTRE_CIRCUIT\"}" "$API/points-suggeres/$SUG3/valider")"
-fi
+# L'autre commune est une commune de test, avec un circuit à elle. La campagne
+# prenait la première commune venue, qui n'avait aucun circuit : ce refus se
+# sautait sans le dire (JC-004).
+AUTRE=test_sug_autre
+nettoyer_autre() {
+  $PSQL -c "DELETE FROM circuits WHERE commune_id = '$AUTRE';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM communes WHERE id = '$AUTRE';" >/dev/null 2>&1
+}
+trap 'nettoyer_autre; rm -rf "$T"' EXIT
+nettoyer_autre
+$PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$AUTRE', 'TEST autre commune SUG', 'TEST', 'TEST', 1000);" >/dev/null
+AUTRE_CIRCUIT=$(sql "INSERT INTO circuits (commune_id, nom) VALUES ('$AUTRE', 'TEST-SUG circuit de l''autre commune') RETURNING id")
+chk "l'autre commune a bien un circuit" 1 "$([ -n "$AUTRE_CIRCUIT" ] && echo 1 || echo 0)"
+SUG3=$(sql "INSERT INTO points_suggeres (commune_id, citoyen_id, nom, geom)
+            VALUES ('$COMMUNE','$CIT_ID','TEST-SUG hors commune', ST_SetSRID(ST_MakePoint(10.73,36.45),4326))
+            RETURNING id")
+# Rattacher une proposition au circuit d'une autre commune créerait un arrêt
+# que personne ne dessert, dans une tournée qui ne le connaît pas. Deux cas :
+#  - hors de son périmètre, le circuit est INTROUVABLE (404, CLAUDE.md § 5) —
+#    ce contrôle attendait 400 ; il n'avait jamais tourné (JC-004) ;
+#  - rattaché aux deux communes, le directeur le voit : il est alors REFUSÉ
+#    (400), parce qu'il n'appartient pas à la commune de la proposition.
+chk "un circuit hors de son périmètre est introuvable (404)" 404 \
+    "$(code -X PATCH -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+       -d "{\"circuitId\":\"$AUTRE_CIRCUIT\"}" "$API/points-suggeres/$SUG3/valider")"
+DIR_ID=$(sql "SELECT id FROM users WHERE email='$DIR_EMAIL'")
+$PSQL -c "INSERT INTO utilisateur_communes (user_id, commune_id) VALUES ('$DIR_ID', '$AUTRE');" >/dev/null
+chk "rattaché aux deux communes, il le voit, mais il est refusé : il n'appartient pas à la commune de la proposition (400)" 400 \
+    "$(code -X PATCH -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+       -d "{\"circuitId\":\"$AUTRE_CIRCUIT\"}" "$API/points-suggeres/$SUG3/valider")"
+chk "… et aucun arrêt n'a été créé dans le circuit de l'autre commune" 0 \
+    "$(sql "SELECT count(*) FROM points_collecte WHERE circuit_id = '$AUTRE_CIRCUIT'")"
 chk "un identifiant inconnu rend 404" 404 \
     "$(code -X PATCH -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
        -d '{"motif":"peu importe"}' "$API/points-suggeres/00000000-0000-0000-0000-000000000000/refuser")"
