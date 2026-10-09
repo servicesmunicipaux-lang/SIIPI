@@ -12,6 +12,7 @@ une règle de gestion — ne doit être inventé.* Si ce n'est pas ici ou dans u
 | `01-referentiel-depot-municipal.md` | Référentiel officiel de gestion et maintenance de la flotte municipale : documents réglementaires, rôles, maintenance, déclassement, carburant | **déposé** 30/09/2026 |
 | `02-projet-decret-tri-source-art13-14.md` | Lecture orientée développement du **projet de décret** (définitions, art. 13.1 et 14) — non en vigueur | **déposé** 30/09/2026 |
 | `SPEC_v0.16.md` | **Spécification de travail v0.16 → v0.19** : lignes rouges, décisions, amendements, découpage en lots, tests, blocages | **v1** 30/09/2026 |
+| `SPEC_v0.19_mutualisation.md` | **Jalon 14 détaillé** : prêt d'engins et points limitrophes — ce qui existe, principes, lots 19.1 et 19.2, tests, questions à trancher (D-1 à D-7) | **v1, à valider** 09/10/2026 |
 | `sources/mhamdia-pcgd-2025-agregats.json` | Agrégats 2025 du PCGD de M'hamdia (coûts, tonnages, écarts constatés) — entrées du lot 17.5, sans donnée personnelle. **Hors du dépôt public** (`.gitignore`) tant que l'accord de la commune et du bureau d'études n'est pas vérifié : il se charge localement par l'écran « Coût complet » | **déposé localement** 08/10/2026 |
 | `sources/referentiel-mestoudaa-119-diapositives.txt` | Texte intégral extrait de la présentation source (119 diapositives) | **déposé** |
 
@@ -36,7 +37,9 @@ concernés ne sont pas spécifiables.
 2. **Inférence d'image : locale ou API externe**, si l'axe caractérisation est retenu — question de
    souveraineté de la donnée.
 3. **Ouverture trans-communale** (points limitrophes, prêt d'engins) : première exception délibérée
-   au cloisonnement absolu par commune.
+   au cloisonnement absolu par commune. *Spécifiée le 09/10/2026* (`SPEC_v0.19_mutualisation.md`) :
+   partage par objet, consentement à double sens. **Reste ouvert** : la forme juridique d'un prêt et
+   d'un accord de desserte (D-1), et six autres questions listées au § 7 de cette spécification.
 
 ## Divergences assumées avec le référentiel
 

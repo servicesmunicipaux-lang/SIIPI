@@ -261,6 +261,9 @@ C'est la **première exception délibérée au cloisonnement par commune** : con
 double sens (la prêteuse ouvre, la bénéficiaire accepte, seules les deux voient), campagne de tests
 dédiée dans `intercommunal.sh`, et **pas avant que v0.16-v0.18 aient tourné en production**.
 
+**Détaillé le 09/10/2026 dans `SPEC_v0.19_mutualisation.md`** (lots 19.1 prêt d'engins et 19.2
+points limitrophes, questions D-1 à D-7) — proposition à valider par la FNCT.
+
 ---
 
 ## 5. Tests

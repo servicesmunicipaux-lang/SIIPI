@@ -40,7 +40,7 @@ de l'observatoire national (contrôlée au typage, non commitée).
 | **12** | v0.17 — Paramétrage, estimation, coût complet | 17.1 paramètres étendus · 17.3 paramètres nationaux historisés · 17.2 moteur volumétrique · 17.5 rejeu du coût de M'hamdia · 17.4 connecteur GPS | 17.3 avant 17.2 : le moteur lit la densité et la redevance ANGeD. 17.5 ferme la boucle avec une commune qui a déjà un coût calculé par un bureau d'études | **En parallèle de R1.** **17.3 fait** (v0.15.9) ; **17.1 fait** (v0.15.10) ; **17.5 fait** (v0.15.11, jeu réel hors dépôt public). 17.2 et 17.4 : **suspendus** à leurs préalables externes |
 | **R2** | Recette **M'hamdia** (puis Djerba pour le GPS) — *différée* | Circuits importés, séries de tonnage, coût rejoué | Son PCGD 2026 est le seul jeu où circuits, tonnage et coût existent ensemble | Dès que la commune est disponible ; le rejeu 17.5 se prépare sur le fichier reçu |
 | **13** | v0.18 — Secteur informel | Registre communal des acteurs, carte de pré-collecteur, suivi de la période transitoire | Dépend de 16.1 (données nominatives) et du scellement de 16.2. Le **texte des articles 13.1 et 14 est reçu — en projet, non en vigueur** : le lot est livré derrière un paramètre national, inactif par défaut | **18.1 fait** (v0.15.13, cadre inactif par défaut). Restent à lever : articles 4 et 13, date de départ de la période transitoire (18.2, 18.3) |
-| **14** | v0.19 — Mutualisation | Points limitrophes, prêts d'engins | Première exception au cloisonnement : pas avant que 11 à 13 aient tourné en production | Spécifiable dès maintenant ; ouverture après 11 à 13 en production |
+| **14** | v0.19 — Mutualisation | Points limitrophes, prêts d'engins | Première exception au cloisonnement : pas avant que 11 à 13 aient tourné en production | **Spécifié le 09/10/2026** (`docs/specs_metier/SPEC_v0.19_mutualisation.md`, à valider : D-1 à D-7) ; ouverture après 11 à 13 en production |
 | **15** | Ensuite | Anomalies de tournée, projection du décret DMA, observatoire comparatif (axe 10), suivi de la sous-traitance (axe 12), régulation saisonnière (axe 3) | Chacun suppose des données **mesurées** de plusieurs communes | À instruire |
 
 **Note du 30 septembre 2026 (nuit).** La recette terrain R1 reste l'objectif de
@@ -1184,6 +1184,14 @@ cloisonnement par commune** : consentement explicite à double sens (la prêteus
 ouvre, la bénéficiaire accepte, seules les deux voient), campagne dédiée dans
 `intercommunal.sh`, et **pas avant que les jalons 11 à 13 aient tourné en
 production**.
+
+**Spécifié le 9 octobre 2026** : `docs/specs_metier/SPEC_v0.19_mutualisation.md`. Deux lots —
+**19.1** registre des prêts d'engins (le propriétaire reste propriétaire, l'usage est imputé à la
+bénéficiaire, une tonne ne compte qu'une fois) et **19.2** points limitrophes (constat des points
+hors territoire, accord de desserte, bande partagée le long de la limite). Mesuré sur les relevés
+réels de Djerba : 51 points de collecte sont situés hors du territoire de leur commune, dont 39
+d'Ajim dans Midoun — une mutualisation de fait que la plateforme ne voit pas aujourd'hui. Sept
+questions restent à trancher par la FNCT avant l'ouverture, dont la forme juridique d'un prêt (D-1).
 
 ### Jalon 15 — Ensuite, à instruire
 
