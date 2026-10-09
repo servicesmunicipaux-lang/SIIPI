@@ -5,6 +5,44 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.17] — 2026-10-09 — JC-001 : les campagnes n'empruntent plus de compte de démonstration
+
+### Corrigé
+- **Un compte de démonstration écrivait dans le registre réel de Dar Chaâbane** (JC-001,
+  `docs/recette/JOURNAL_DES_CORRECTIONS.md`). La campagne `module2` rattachait le premier directeur
+  venu — `directeur.marsa`, au mot de passe public — à Dar Chaâbane et ne le retirait pas ;
+  `module3` à `module6` en dépendaient pour écrire dans la commune. Chacune crée désormais **son
+  propre directeur** de Dar Chaâbane, avec un mot de passe de test à usage unique, et l'efface en
+  partant (`tests/outils/directeur_temporaire.sh`, rangé hors du recomptage des campagnes). Aucune
+  campagne ne rattache plus de compte à une commune ; clore le rattachement déjà posé ne casse plus
+  rien. Le prestataire de démonstration n'est plus retiré que si la campagne l'a rattachée
+  elle-même.
+- **JC-001 rectifiée** : sa première rédaction citait aussi la campagne `fichiers`, à tort — elle
+  travaille dans la commune de son directeur (La Marsa) et ne dépendait pas du rattachement.
+
+### Reste ouvert, et assumé
+- `module2` à `module6` éprouvent les **données réelles** de Dar Chaâbane (inventaire, effectif,
+  circuits) et y écrivent puis effacent leurs lignes de test : c'est leur objet. La règle demeure —
+  **aucune campagne sur la base d'une recette** (`CLAUDE.md` § 9).
+- **Le rattachement déjà posé n'est pas retiré par ce lot**, ni sur la pile d'essai ni dans le
+  dossier principal : le clore est une décision (date de fin, `docs/recette/R1_DAR_CHAABANE.md`
+  § 2.2).
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 64 migrations ; la 064 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 297/297, **44 bilans, 1 660 tests réussis,
+  aucun échec** (dont `module2` : 73, avec le nouveau contrôle de sortie).
+- Recomptage : 44 campagnes présentes, 44 enchaînées — l'outil sourcé n'est pas compté.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Après la chaîne complète sur base neuve : **aucun rattachement à Dar Chaâbane**, aucun directeur
+  temporaire restant ; `recette:etat` y rend « PAS PRÊTE — 2 préalable(s) » (compte propre,
+  équipes), le compte de démonstration étant à OK.
+- Rattachement de démonstration **clos** sur la pile d'essai : `module2` à `module6` passent
+  (72, 46, 79, 31, 40) ; l'ancienne `module3`, sur la même base, ne voit plus aucun engin
+  (« attendu 29, obtenu 0 ») — c'était bien la dépendance.
+- Contre-épreuve : directeur temporaire laissé en place, le contrôle de sortie de `module2` échoue
+  (« attendu 0|0, obtenu 0|1 »).
+
 ## [0.15.16] — 2026-10-09 — Recette R1 préparée : dossier, fiche bilingue, journal des corrections, état de la commune
 
 La recette terrain de Dar Chaâbane (R1) n'a pas commencé : la commune n'est pas disponible.

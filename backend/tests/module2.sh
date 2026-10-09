@@ -22,7 +22,7 @@ pass=0; fail=0
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"Siipi2026!\"}" \
+    -d "{\"email\":\"$1\",\"password\":\"${2:-Siipi2026!}\"}" \
     | python3 -c "import sys,json;print(json.load(sys.stdin).get('token',''))" 2>/dev/null
 }
 sql()  { $PSQL -c "$1" 2>/dev/null | tr -d ' '; }
@@ -40,18 +40,33 @@ if [ -z "$COMMUNE" ]; then
   exit 1
 fi
 
-# Le directeur de la commune pilote. À défaut, on rattache le directeur de
-# démonstration : le test doit pouvoir tourner sur une base fraîche.
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE commune_id='$COMMUNE' AND role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-[ -n "$DIR_EMAIL" ] || DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-DIR_ID=$(sql "SELECT id FROM users WHERE email='$DIR_EMAIL'")
-$PSQL -c "INSERT INTO utilisateur_communes (user_id, commune_id) VALUES ('$DIR_ID','$COMMUNE') ON CONFLICT DO NOTHING;" >/dev/null 2>&1
+# Un directeur de la commune pour la durée de la campagne, effacé en partant.
+# Il remplace le directeur de démonstration que la campagne rattachait à
+# Dar Chaabane et y laissait, avec son mot de passe public (JC-001).
+. "$(dirname "$0")/outils/directeur_temporaire.sh"
+# Les accès en cours à la commune, comptés avant que la campagne n'en pose :
+# elle doit partir en laissant exactement les mêmes (JC-001).
+acces() {
+  sql "SELECT (SELECT count(*) FROM utilisateur_communes WHERE commune_id='$COMMUNE' AND actif
+                 AND (date_fin IS NULL OR date_fin >= CURRENT_DATE))
+            ||'|'||(SELECT count(*) FROM users WHERE commune_id='$COMMUNE' AND deleted_at IS NULL)"
+}
+ACCES_AVANT=$(acces)
+directeur_temporaire "$COMMUNE"
 
+# Le prestataire de démonstration n'est rattaché que le temps de la campagne,
+# et seulement si le rattachement n'existait pas : on ne retire en partant que
+# ce que la campagne a posé.
 PREST_EMAIL=$(sql "SELECT email FROM users WHERE role='gestionnaire_prestataire' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
 PREST_ID=$(sql "SELECT id FROM users WHERE email='$PREST_EMAIL'")
-$PSQL -c "INSERT INTO utilisateur_communes (user_id, commune_id) VALUES ('$PREST_ID','$COMMUNE') ON CONFLICT DO NOTHING;" >/dev/null 2>&1
+PREST_RATTACHE=$($PSQL -c "INSERT INTO utilisateur_communes (user_id, commune_id) VALUES ('$PREST_ID','$COMMUNE') ON CONFLICT DO NOTHING RETURNING 1;" 2>/dev/null | head -1)
+fin() {
+  [ "${PREST_RATTACHE:-}" = 1 ] && $PSQL -c "DELETE FROM utilisateur_communes WHERE user_id='$PREST_ID' AND commune_id='$COMMUNE';" >/dev/null 2>&1
+  retirer_directeur_temporaire
+}
+trap fin EXIT
 
-T_DIR=$(tok "$DIR_EMAIL")
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
 T_PREST=$(tok "$PREST_EMAIL")
 [ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
@@ -361,7 +376,11 @@ chk "la provenance des arrêts est notée à part" "mixte.kml" \
     "$(sql "SELECT points_fichier FROM circuits WHERE id='$C_FICHE'")"
 
 nettoyer
-$PSQL -c "DELETE FROM utilisateur_communes WHERE user_id='$PREST_ID' AND commune_id='$COMMUNE';" >/dev/null 2>&1
+# fin() tourne aussi au trap EXIT, pour une campagne interrompue ; l'appeler
+# ici permet de vérifier ce qu'elle laisse. La seconde fois, elle ne retire rien.
+fin
+PREST_RATTACHE=""
+chk "en partant, la campagne laisse à la commune exactement les accès trouvés (JC-001)" "$ACCES_AVANT" "$(acces)"
 
 echo
 if [ "$fail" -eq 0 ]; then

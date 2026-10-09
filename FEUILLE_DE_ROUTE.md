@@ -1082,7 +1082,8 @@ adaptés au jalon 11 (à valider par la FNCT), critère de sortie, fiche quotidi
 journal des corrections — et commande `npm run recette:etat -- <commune>`, qui dit en lecture
 seule ce qui empêche de commencer. État lu ce jour sur la base d'essai : **pas prête, trois
 préalables** — aucun compte propre de la commune, un compte de démonstration rattaché (JC-001),
-13 circuits en régie sans équipe.
+13 circuits en régie sans équipe. Depuis la v0.15.17, aucune campagne ne pose plus ce rattachement ;
+celui qui existe se clôt à la main (`docs/recette/R1_DAR_CHAABANE.md` § 2.2) sans rien casser.
 
 ### Jalon 12 — v0.17 : paramétrage, estimation, coût complet *(en parallèle de R1)*
 

@@ -31,7 +31,8 @@ paramètre national `cadre_secteur_informel_actif`, inactif ; v0.15.14 : l'écra
 que le cadre n'est pas en vigueur) ; 18.2 et 18.3 attendent l'article 13
 et la date de départ de la période transitoire. v0.15.15 : en production, le mot de passe public
 des comptes de démonstration n'ouvre aucun compte (`src/motDePassePublic.ts`). v0.15.16 : la recette R1
-est préparée (`docs/recette/`, commande `recette:etat`) ; elle attend la commune.**
+est préparée (`docs/recette/`, commande `recette:etat`) ; elle attend la commune. v0.15.17 : les
+campagnes n'empruntent plus de compte de démonstration pour écrire dans Dar Chaabane (JC-001).**
 
 ---
 
@@ -379,6 +380,14 @@ ce qu'il n'a pas laissé entrer. Elle bâtit ses propres données (`TEST-…`) e
 nettoie — travailler sur le jeu de Dar Chaabane l'abîme à chaque passage.
 Enregistrement dans `backend/package.json` et dans `MIGRER.bat`.
 
+**Jamais un compte de démonstration pour écrire dans une commune réelle.** Une campagne
+qui doit éprouver les données réelles d'une commune (`module2` à `module6`, sur
+Dar Chaabane) crée son propre directeur, le temps de la campagne, avec
+`tests/outils/directeur_temporaire.sh`, et l'efface en partant. Elle ne rattache aucun
+compte à la commune : `module2` vérifie en partant qu'elle laisse exactement les accès
+trouvés (JC-001). Les fichiers sourcés vivent sous `tests/outils/`, que le recomptage
+ci-dessus (`tests/*.sh`) ne voit pas : ils ne sont pas des campagnes.
+
 **Témoin indépendant.** Quand une campagne vérifie un calcul, ses valeurs attendues viennent
 d'un script qui ne lit que le fichier d'entrée et la méthode, jamais le code testé :
 `jumeau_attendus.py` (S1), `cout_complet_attendus.py` (17.5, sur un jeu fictif de même structure
@@ -432,5 +441,5 @@ dans le journal des corrections (`docs/recette/JOURNAL_DES_CORRECTIONS.md`) avec
 sa **portée**, pas seulement sa cause.
 
 **Pendant une recette, aucune campagne ne tourne sur sa base** : `module2` à
-`module6` et `fichiers` écrivent dans Dar Chaabane elle-même (JC-001). Les campagnes
-se lancent sur une pile d'essai séparée.
+`module6` éprouvent les données réelles de Dar Chaabane et y écrivent leurs lignes
+de test (JC-001). Les campagnes se lancent sur une pile d'essai séparée.
