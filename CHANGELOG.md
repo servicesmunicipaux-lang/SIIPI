@@ -5,6 +5,41 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.20] — 2026-10-09 — Jalon 14 spécifié : prêt d'engins et points limitrophes (documentaire)
+
+Aucun code. Le jalon 14 s'ouvre après que les jalons 11 à 13 ont tourné en production ; la feuille
+de route le disait « spécifiable dès maintenant » : il l'est.
+
+### Ajouté
+- **`docs/specs_metier/SPEC_v0.19_mutualisation.md`** — proposition à valider par la FNCT :
+  - **Ce qui existe, et pourquoi ça ne suffit pas.** Le rattachement multi-communes ouvre *toute* la
+    commune voisine : trop large pour un prêt. Les verrous qui lient un engin à sa commune
+    (`app.controler_commune_engin()` sur huit tables, pesées, bons de carburant, carnet) restent ;
+    un prêt ouvre une exception datée et consentie, il n'en relâche aucun en silence.
+  - **Le partage existe déjà sur le terrain** : sur les relevés réels de Djerba, 51 points de
+    collecte sont situés hors du territoire de leur commune — dont 39 d'Ajim dans Midoun, jusqu'à
+    243 m de la limite — et 127 à moins de 150 m d'une limite. Aucun accord ne l'écrit.
+  - **Principes** : consentement à double sens, partage d'un objet et jamais d'une commune, seules
+    les deux voient, le propriétaire reste propriétaire, une tonne ne compte qu'une fois.
+  - **Lot 19.1, registre des prêts d'engins** : cycle proposé → accepté → clos, ce que la base
+    refuse, ce que le prêt ouvre et à qui, kilométrage déduit des compteurs, assiette de carburant
+    (pas de facturation), indicateurs des deux côtés, écarts dans « À vérifier ».
+  - **Lot 19.2, points limitrophes** : constat des points hors territoire (avec une tolérance pour
+    l'imprécision des contours), accord de desserte, bande partagée le long de la limite.
+  - Deux campagnes de tests proposées, et **sept questions à trancher** (D-1 à D-7), dont la forme
+    juridique d'un prêt : le référentiel cite la section 9 du Code des collectivités locales pour
+    l'achat groupé, pas pour le prêt.
+- Renvois depuis la feuille de route (§ 0 et jalon 14), `SPEC_v0.16.md` (v0.19) et
+  `docs/specs_metier/README.md` (arbitrage n° 3 : spécifié, reste ouvert).
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 64 migrations ; la 064 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 297/297, **44 bilans, 1 688 tests réussis,
+  aucun échec**. Recomptage : 44 campagnes présentes, 44 enchaînées.
+- `audit-blocs.py` sur ce journal : 28 blocs, tous leurs contrôles ont tourné.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Les chiffres de Djerba sont lus sur la base du poste, en transaction en lecture seule.
+
 ## [0.15.19] — 2026-10-09 — JC-004 : audit des contrôles sous condition, quatre blocs corrigés
 
 ### Corrigé
