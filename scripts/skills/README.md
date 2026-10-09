@@ -1,8 +1,9 @@
 # scripts/skills — les outils de vérification interne
 
-Quatre outils, chacun né d'un défaut réel. Ils ne remplacent pas les 33
-campagnes de tests : ils cherchent ce qu'une campagne ne voit pas, parce qu'une
-campagne éprouve un comportement alors que ceux-ci interrogent une **structure**.
+Cinq outils, chacun né d'un défaut réel. Ils ne remplacent pas les campagnes
+de tests : ils cherchent ce qu'une campagne ne voit pas, parce qu'une campagne
+éprouve un comportement alors que ceux-ci interrogent une **structure** — y
+compris celle des campagnes elles-mêmes (`audit-blocs.py`).
 
 | Outil | Ce qu'il cherche | Le défaut qui l'a fait naître |
 |---|---|---|
@@ -10,6 +11,7 @@ campagne éprouve un comportement alors que ceux-ci interrogent une **structure*
 | `kpi-evaluator.mjs` | Une absence de donnée transformée en `0` ; la chaîne Automatique > Déclaré > Non renseigné | « 0 accident » quand personne ne tient le registre est lu comme vrai, et opposé un jour à un conseil municipal |
 | `ui-builder.mjs` | Écran neuf conforme : trois états distingués, propriétés logiques (RTL), clés posées **dans les deux langues** | Une classe `ml-` casse la mise en page en arabe ; une clé absente d'`ar.json` affiche la clé brute |
 | `pdf-template.mjs` | Gabarit légal complet : numéro d'ordre continu, référence réglementaire, signatures qualifiées, mention d'édition | Un bon de carburant sans numéro continu ne prouve rien : on ne peut pas montrer qu'aucun bon ne manque |
+| `audit-blocs.py` | Les contrôles de campagne placés sous condition (`if [ -n "$X" ]`, `[ … ] && chk`) qui n'ont pas tourné sur le jeu de référence | La campagne `fichiers` imprimait « Le citoyen » et ne contrôlait rien : la preuve de traitement (B5.1.3) n'était éprouvée par aucune campagne, comptée réussie (JC-003, JC-004) |
 
 ## Emploi
 
@@ -25,6 +27,10 @@ node scripts/skills/ui-builder.mjs Carburant flotte --ecrire  # pose les fichier
 
 node scripts/skills/pdf-template.mjs bon-carburant            # sur la sortie standard
 node scripts/skills/pdf-template.mjs bon-carburant --ecrire   # backend/src/documents/gabarits/
+
+# sur une base neuve chargée dans l'ordre de référence (CLAUDE.md § 7)
+docker compose exec -T api npm test > npm-test.log 2>&1
+python3 scripts/skills/audit-blocs.py backend npm-test.log
 ```
 
 `db-check.sh` et `kpi-evaluator.mjs` ont besoin des conteneurs démarrés
@@ -40,6 +46,9 @@ s'enchaînent donc dans un script de vérification.
 - **`ui-builder`** au départ d'un écran, jamais après : il pose des conventions,
   il ne corrige pas.
 - **`pdf-template`** au départ d'un nouveau document légal.
+- **`audit-blocs`** après toute campagne nouvelle ou modifiée, sur le journal
+  du critère d'acceptation : un contrôle qui ne tourne pas ne se voit pas dans
+  le bilan « réussis ».
 
 ## Ce qu'ils ne font pas
 
