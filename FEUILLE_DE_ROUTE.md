@@ -245,7 +245,7 @@ les tonnes et la masse salariale.
 |---|---|---|---|
 | `B5.1.1` | Tableau de bord et carte à code couleur | ✅ Fait | Reclamations.tsx · campagne citoyen |
 | `B5.1.2` | Acceptation / refus motivé | ✅ Fait | notifierDecisionReclamation (migration 044) · campagne notifications |
-| `B5.1.3` | Preuve de traitement (photo « après ») | ✅ Fait | migration 041 · campagnes fichiers et citoyen |
+| `B5.1.3` | Preuve de traitement (photo « après ») | ✅ Fait | migration 041 · campagne fichiers, partie 4 — éprouvée de bout en bout depuis la v0.15.18 seulement : jusque-là ses contrôles se sautaient sans le dire (JC-003) |
 | `B5.1.4` | Transfert au prestataire | ✅ Fait | tickets.routes.ts · campagne prestataires |
 
 ### 5.2 Sondages

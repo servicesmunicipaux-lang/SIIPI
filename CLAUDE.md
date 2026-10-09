@@ -32,7 +32,9 @@ que le cadre n'est pas en vigueur) ; 18.2 et 18.3 attendent l'article 13
 et la date de départ de la période transitoire. v0.15.15 : en production, le mot de passe public
 des comptes de démonstration n'ouvre aucun compte (`src/motDePassePublic.ts`). v0.15.16 : la recette R1
 est préparée (`docs/recette/`, commande `recette:etat`) ; elle attend la commune. v0.15.17 : les
-campagnes n'empruntent plus de compte de démonstration pour écrire dans Dar Chaabane (JC-001).**
+campagnes n'empruntent plus de compte de démonstration pour écrire dans Dar Chaabane (JC-001).
+v0.15.18 : `fichiers` ne saute plus sa partie citoyen en silence (JC-003) ; 30 autres blocs
+conditionnels dans 16 campagnes restent à auditer.**
 
 ---
 
