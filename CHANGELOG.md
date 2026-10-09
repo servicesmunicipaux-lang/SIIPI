@@ -5,6 +5,51 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.16] — 2026-10-09 — Recette R1 préparée : dossier, fiche bilingue, journal des corrections, état de la commune
+
+La recette terrain de Dar Chaâbane (R1) n'a pas commencé : la commune n'est pas disponible.
+Ce lot la rend prête à démarrer le jour où elle le sera.
+
+### Ajouté
+- **`docs/recette/R1_DAR_CHAABANE.md`** : préalables et comment les lever, ce qui se recueille en
+  route, déroulé sur quatre semaines, **quatre parcours de bout en bout adaptés au jalon 11**
+  (une tournée, un plein, un engin à réformer, une journée de pointage jusqu'au coût à la tonne —
+  adaptation du § 6 de la feuille de route, **à valider par la FNCT**), critère de sortie, ce que
+  R1 ne vérifie pas, données personnelles.
+- **`docs/recette/FICHE_QUOTIDIENNE_R1.md`** : la fiche du chef de dépôt, en français et en arabe,
+  avec les noms d'écrans tels que le menu les affiche dans chaque langue.
+- **`docs/recette/JOURNAL_DES_CORRECTIONS.md`** : le journal que `CLAUDE.md` et la feuille de route
+  citaient **et qui n'existait pas dans le dépôt**. Format, portée obligatoire, aucune donnée
+  personnelle ; deux premières entrées (JC-001, JC-002).
+- **Commande `npm run recette:etat -- <commune>`** (`:prod` dans l'image de production) : dit en
+  une page si la commune peut commencer — compte propre, compte de démonstration rattaché,
+  registres chargés, incohérences bloquantes — puis ce qui se recueille en route et les registres
+  que la recette remplira. Elle lit dans une transaction en lecture seule : elle ne modifie rien.
+  Codes : 0 prête, 3 pas prête, 1 commune introuvable, 2 usage.
+- **Campagne `recette-etat`** : une commune de test passe de « pas prête » à « prête » préalable par
+  préalable ; la base est la même avant et après chaque appel. Contre-épreuve faite : un compte de
+  démonstration compté comme compte propre, trois de ses contrôles échouent.
+
+### Constaté (journal des corrections)
+- **JC-001 — ouverte.** La campagne `module2` rattache un compte de démonstration à Dar Chaâbane et
+  ne le retire pas ; `module3` à `module6` et `fichiers` en dépendent et écrivent dans la commune
+  réelle. Sur toute base où `npm test` a tourné — dont celle du dossier principal — ce compte, au
+  mot de passe public, peut écrire dans le registre de Dar Chaâbane. En attendant une correction
+  durable (que ces campagnes bâtissent leur propre commune de test) : aucune campagne sur la base
+  d'une recette, et le rattachement se clôt avant R1 (`docs/recette/R1_DAR_CHAABANE.md` § 2.2).
+- **JC-002.** La feuille de route annonçait 14 lignes bloquantes chez Dar Chaâbane ; le panneau en
+  compte 13 sur la base de référence. Corrigé dans la feuille de route, qui renvoie désormais à
+  `recette:etat` plutôt qu'à un chiffre figé.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 64 migrations ; la 064 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 297/297, **44 bilans, 1 659 tests réussis,
+  aucun échec** (dont `recette-etat` : 23).
+- Recomptage : 44 campagnes présentes, 44 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- `recette:etat` sur Dar Chaâbane (base d'essai, 9 octobre 2026) : « PAS PRÊTE — 3 préalable(s) » ;
+  forme compilée (`node …/etatRecette.js`) : même verdict, et code 2 sans commune.
+
 ## [0.15.15] — 2026-10-08 — En production, le mot de passe de démonstration n'ouvre aucun compte
 
 ### Sécurité

@@ -1077,6 +1077,13 @@ Contenu prévu, inchangé : un mois d'usage réel du jalon 11 par le chef de dé
 parc et personnel déjà chargés, treize circuits, gabarits de documents à valider
 sur pièce, recueil du prix et de la date d'acquisition des engins. Protocole du § 6.
 
+**Préparée le 9 octobre 2026** (v0.15.16) : dossier `docs/recette/` — déroulé, quatre parcours
+adaptés au jalon 11 (à valider par la FNCT), critère de sortie, fiche quotidienne bilingue,
+journal des corrections — et commande `npm run recette:etat -- <commune>`, qui dit en lecture
+seule ce qui empêche de commencer. État lu ce jour sur la base d'essai : **pas prête, trois
+préalables** — aucun compte propre de la commune, un compte de démonstration rattaché (JC-001),
+13 circuits en régie sans équipe.
+
 ### Jalon 12 — v0.17 : paramétrage, estimation, coût complet *(en parallèle de R1)*
 
 **Statut du 30 septembre 2026.** Le jalon 12 avance en parallèle de R1 pour les
@@ -1329,13 +1336,13 @@ d'accueil de deux pages et une vidéo de cinq minutes.
 
 ### Niveau 1 — Les campagnes automatisées *(en place)*
 
-**Quarante-trois campagnes rejouables** au 08/10/2026, lancées par `backend/tests/executer.sh
+**Quarante-quatre campagnes rejouables** au 09/10/2026, lancées par `backend/tests/executer.sh
 <campagne>` et enchaînées par `npm test` (`acteurs-informels`, `assainissement`, `audit`, `barbechas`, `champs-points`, `circuits`,
 `citoyen`, `cloisonnement`, `comptes`, `contacts`, `cout-complet`, `declassement`, `decoupage`, `documents`, `enlevements`, `exploitation`,
 `exports`, `fichiers`, `imports`, `intercommunal`, `kpi-5-axes`, `kpi-sources`,
 `maintenance`, `module2` à `module6`, `mot-de-passe-public`, `notifications`, `notifications-citoyen`,
 `observatoire`, `parametres`, `parametres-communaux`, `parametres-nationaux`, `periode`, `prestataires`, `rapports`,
-`releves-terrain`, `simulation-3mois`, `suggestions`, `suppression`,
+`recette-etat`, `releves-terrain`, `simulation-3mois`, `suggestions`, `suppression`,
 `versions-decoupage`). `simulation-3mois` est celle du jumeau numérique (lot S1, § 6bis) ;
 `barbechas`, celle de la conformité du registre des pré-collecteurs (lot 16.1) ; `documents`,
 celle des documents à numérotation scellée (lot 16.2) ; `exploitation`, celle du carnet de bord,
@@ -1347,7 +1354,8 @@ celle des paramètres nationaux datés et de la redevance au taux de la date de 
 sur un jeu fictif contrôlé par un script témoin indépendant ; `acteurs-informels`, celle du
 registre des acteurs informels et de la démarche de formalisation, derrière le cadre national (lot 18.1) ;
 `mot-de-passe-public`, celle du mot de passe des comptes de démonstration, refusé en production par
-une seconde API démarrée en `NODE_ENV=production` le temps de la campagne (v0.15.15).
+une seconde API démarrée en `NODE_ENV=production` le temps de la campagne (v0.15.15) ;
+`recette-etat`, celle de la commande qui dit si une commune peut commencer sa recette (v0.15.16).
 
 **Le critère d'acceptation** est celui de `CLAUDE.md` § 7 : `npm run
 verifier:contrat` et toutes ces campagnes passent, et les deux commandes de
@@ -1472,7 +1480,7 @@ question technique.
 | Zarzouna / El Hchachna (Bizerte) : la couche officielle et le référentiel listent des communes différentes | FNCT | Zarzouna reste sans territoire |
 | Les 5 districts FNCT : la base ne connaît que les 24 gouvernorats | FNCT | Aucune agrégation par district possible |
 | Homonymes dans la liste des communes (Ennour, Ezzouhour) | FNCT | Un citoyen peut choisir la mauvaise commune |
-| Affectation réelle des équipes aux 13 tournées de Dar Chaabane | Commune | 14 lignes bloquantes au panneau de cohérence ; à traiter pendant R1 |
+| Affectation réelle des équipes aux 13 tournées de Dar Chaabane | Commune | 13 lignes bloquantes au panneau de cohérence (base de référence, 9 octobre 2026 ; 14 étaient annoncées, voir JC-002) — préalable de R1, recompté par `recette:etat` |
 | Purge des fichiers retirés | FNCT | Le volume grossit ; rien n'est perdu |
 | Articles 4 et 13 du projet de décret, date de départ de sa période transitoire | FNCT / ministères | Le jalon 13 ne peut pas être spécifié en entier |
 | Date de la recette terrain (R1 chez Dar Chaâbane, R2 chez M'hamdia) | Communes / FNCT | Aucune version n'est *livrée* ; elles restent *développées* et éprouvées sur le jumeau |
