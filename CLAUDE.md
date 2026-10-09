@@ -41,7 +41,11 @@ D-FNCT-1 tranchée — le citoyen trouve sa commune par sa position, ou par gouv
 v0.15.22 : D-FNCT-3 tranchée — Zarzouna rattachée à Bizerte (retirée, jamais effacée), El Hchachna
 créée ; une commune retirée disparaît de toute l'API par la politique de lecture de `communes`.
 v0.15.23 : D-FNCT-4 tranchée — à 36 mois, une photo est compressée, l'original part dans l'archive
-froide (volume `siipi_archive_froide`, gardé sans limite) ; la FNCT en demande la restauration.**
+froide (volume `siipi_archive_froide`, gardé sans limite) ; la FNCT en demande la restauration.
+v0.15.24 : D-FNCT-5 tranchée — la base retient sa nature (développement, formation, production ;
+`src/instance.ts`, migration 067) ; comptes de démonstration refusés en production ; un mot de passe
+provisoire n'ouvre que son remplacement. Une campagne ne démarre jamais une API de production ou de
+formation sur la base des tests : elle la rendrait définitivement telle (`tests/outils/instance_essai.sh`).**
 
 ---
 
@@ -186,7 +190,7 @@ docker compose run --rm web npx openapi-typescript http://api:4000/openapi.json 
 
 | Couche | Choix | Note |
 |---|---|---|
-| Base | PostgreSQL 16 + PostGIS 3.4 | 66 migrations au 09/10/2026, rejouées sur base neuve à chaque livraison |
+| Base | PostgreSQL 16 + PostGIS 3.4 | 67 migrations au 09/10/2026, rejouées sur base neuve à chaque livraison |
 | API | Node 22 + Express + TypeScript (ESM) | zod pour la validation |
 | Contrat | OpenAPI 3.1 **généré depuis les schémas zod d'exécution** | la documentation ne peut pas décrire autre chose que ce qui est contrôlé |
 | Front | React 19 + Vite + Tailwind v4 + Leaflet | PWA (`manifest.webmanifest`, `sw.js`) |
@@ -425,7 +429,7 @@ ne génère rien. Voir `FEUILLE_DE_ROUTE.md` § 6bis.
 
 ```
 backend/
-  migrations/      066 fichiers numérotés au 09/10/2026 — l'ordre fait foi, l'empreinte aussi
+  migrations/      067 fichiers numérotés au 09/10/2026 — l'ordre fait foi, l'empreinte aussi
   src/routes/      une route par domaine ; les littéraux avant /:id
   src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF),
                    conservationMedias.ts (photos de 36 mois, archive froide)

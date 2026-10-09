@@ -1500,7 +1500,7 @@ question technique.
 | Documentation des API GPS des opérateurs | Opérateurs | Le connecteur 17.4 reste bloqué |
 | Confirmation juridique du traitement des identités de pré-collecteurs et hébergement accrédité | Juriste FNCT | La garde `hebergement_pii_accredite` reste à faux : aucune identité nominative n'entre en base |
 | Purge des exports antérieurs qui contiennent `cin` ou des données de santé | FNCT | Des copies subsistent hors de la base |
-| Mot de passe de démonstration `Siipi2026!` publié avec le code | FNCT | ✅ **Traité** (v0.15.15) : en production, il n'ouvre aucun compte ; l'exploitant attribue un mot de passe provisoire depuis le serveur (`npm run mot-de-passe:provisoire:prod -- <adresse>`). Reste à la FNCT de décider si les comptes de démonstration doivent exister du tout sur une instance de production |
+| Mot de passe de démonstration `Siipi2026!` publié avec le code | FNCT | ✅ **Tranchée** (D-FNCT-5, 9 octobre 2026 ; v0.15.24, migration 067, campagnes `comptes` et `mot-de-passe-public`) : sur une instance de production (`PRODUCTION=true` ou `NODE_ENV=production`), le mot de passe publié n'ouvre aucun compte et **les comptes de démonstration sont refusés**, quel que soit leur mot de passe — la base les désactive et la connexion ne les trouve plus. **La base retient sa nature** : servie une fois en production, elle le reste, même avec une configuration de développement. `FORMATION=true` : base dédiée, comptes de démonstration permis, bandeau rouge permanent « BASE DE FORMATION — Données fictives. » ; refusé au démarrage sur une base de production, et avec `PRODUCTION=true`. Un mot de passe provisoire n'ouvre que son remplacement : l'API refuse tout le reste (« Vous devez changer votre mot de passe avant de continuer. »). Premier compte réel de la FNCT : `npm run compte:fnct:creer:prod`. Instructions dans `README.md` |
 
 ---
 
@@ -1522,7 +1522,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **66 migrations** au 09/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **67 migrations** au 09/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

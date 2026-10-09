@@ -18,6 +18,7 @@ import bcrypt from 'bcryptjs';
 process.env.SIIPI_DB_CONTEXT = 'server';
 const { pool } = await import('../db.js');
 const { motDePasseProvisoire } = await import('../motDePassePublic.js');
+const { natureSansFixer } = await import('../instance.js');
 
 const adresse = process.argv[2]?.trim();
 if (!adresse) {
@@ -27,13 +28,27 @@ if (!adresse) {
 
 const provisoire = motDePasseProvisoire();
 try {
+  // Un compte de démonstration ne se rouvre pas sur une instance de production
+  // (D-FNCT-5) : la base le désactive et la connexion ne le trouve plus ; lui
+  // donner un mot de passe laisserait croire le contraire.
+  const production = (await natureSansFixer()) === 'production';
   const { rows } = await pool.query<{ email: string; role: string }>(
     `UPDATE users SET password_hash = $1, mot_de_passe_provisoire = true, updated_at = now()
       WHERE lower(email) = lower($2) AND deleted_at IS NULL
+        AND NOT ($3 AND compte_demonstration)
       RETURNING email, role`,
-    [await bcrypt.hash(provisoire, 12), adresse]
+    [await bcrypt.hash(provisoire, 12), adresse, production]
   );
-  if (rows.length === 0) {
+  const demonstration = production && rows.length === 0
+    ? (await pool.query(`SELECT 1 FROM users WHERE lower(email) = lower($1) AND compte_demonstration`, [adresse])).rowCount
+    : 0;
+  if (demonstration) {
+    console.error(
+      `« ${adresse} » est un compte de démonstration : refusé sur une instance de production (aucun compte n'a été modifié). ` +
+        `Créez un compte réel : npm run compte:fnct:creer:prod -- <adresse> "<nom complet>".`
+    );
+    process.exitCode = 1;
+  } else if (rows.length === 0) {
     console.error(`Aucun compte actif pour « ${adresse} ». Vérifiez l'adresse (aucun compte n'a été modifié).`);
     process.exitCode = 1;
   } else {

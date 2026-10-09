@@ -19,7 +19,12 @@ export const config = {
   // temporairement pour rejouer plusieurs campagnes de tests d'affilée, jamais
   // en production.
   authRateLimitMax: Number(process.env.AUTH_RATE_LIMIT_MAX ?? 20),
-  isProduction: process.env.NODE_ENV === 'production',
+  // L'image de production, ou PRODUCTION=true (D-FNCT-5) : les secrets de
+  // développement y sont refusés. Ce que la base EST — production, formation,
+  // développement — se lit dans src/instance.ts, qui a le dernier mot.
+  isProduction:
+    process.env.NODE_ENV === 'production' ||
+    ['true', '1', 'oui', 'yes'].includes((process.env.PRODUCTION ?? '').trim().toLowerCase()),
   // Notifications push (Jalon 2, lot 1) : une paire de clés VAPID identifie
   // le serveur auprès des navigateurs, comme un certificat auto-signé — ce
   // n'est pas un secret d'authentification, et son absence ne doit pas
