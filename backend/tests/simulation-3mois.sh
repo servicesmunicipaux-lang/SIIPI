@@ -78,7 +78,9 @@ empreinte_jeu() {
 # Partir d'un état connu : un jeu laissé par un essai précédent est retiré.
 appel POST /demo/retirer "$T_FNCT" '{}' >/dev/null
 AVANT_REELLE=$(empreinte_reelle)
-NB_REELLES=$(sql "SELECT count(*) FROM communes WHERE NOT est_demo")
+# Les communes réelles du référentiel : une commune retirée (D-FNCT-3) reste en
+# base, mais aucune route ne la rend.
+NB_REELLES=$(sql "SELECT count(*) FROM communes WHERE NOT est_demo AND deleted_at IS NULL")
 
 # -----------------------------------------------------------------------------
 echo

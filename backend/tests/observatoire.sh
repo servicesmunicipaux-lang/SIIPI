@@ -42,7 +42,9 @@ chk "les 24 gouvernorats sont couverts" 24 \
     "$(py "import json;print(len(json.load(open('/tmp/siipi_gouv.json'))))")"
 chk "le total des communes fait bien 350" 350 \
     "$(py "import json;print(sum(g['communes'] for g in json.load(open('/tmp/siipi_gouv.json'))))")"
-chk "la population totale correspond à la base" "$(sql "SELECT sum(population) FROM communes")" \
+# Une commune retirée du référentiel (D-FNCT-3, Zarzouna) reste en base mais
+# hors de l'API : le témoin compte ce que la politique de lecture laisse voir.
+chk "la population totale correspond à la base" "$(sql "SELECT sum(population) FROM communes WHERE deleted_at IS NULL")" \
     "$(py "import json;print(sum(g['population'] for g in json.load(open('/tmp/siipi_gouv.json'))))")"
 chk "les entiers arrivent comme nombres, pas comme texte" "int" \
     "$(py "import json;print(type(json.load(open('/tmp/siipi_gouv.json'))[0]['population']).__name__)")"
@@ -75,7 +77,7 @@ chk "le total des statuts par gouvernorat retombe sur 350" 350 \
 
 echo
 echo "4. Provenance des données"
-chk "toutes les communes sont « estimé » par défaut" "$(sql "SELECT count(*) FROM communes")" \
+chk "toutes les communes sont « estimé » par défaut" "$(sql "SELECT count(*) FROM communes WHERE deleted_at IS NULL")" \
     "$(py "import json;print(sum(g['communes_donnees_estimees'] for g in json.load(open('/tmp/siipi_gouv.json'))))")"
 CODE=$(curl -s -o /tmp/b.json -w '%{http_code}' -X PATCH "$API/observatoire/communes/tunis_la_marsa/provenance" \
   -H "Authorization: Bearer $T_FNCT" -H 'Content-Type: application/json' -d '{"donneesSource":"declare"}')

@@ -205,6 +205,7 @@ export type RegistreActeursInformels = Reponse<'/acteurs-informels', 'get'>;
 export type ActeurInformel = RegistreActeursInformels['acteurs'][number];
 export type DemarcheFormalisation = Reponse<'/acteurs-informels/{id}/demarches', 'get'>[number];
 export type CadreSecteurInformel = Reponse<'/observatoire/cadre-secteur-informel', 'get'>;
+export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type ControleTerrain = Reponse<'/circuits/controles', 'get'>[number];
 export type PerformancePrestataire = Reponse<'/circuits/performance', 'get'>[number];
 export type LigneConfrontation = Reponse<'/passages/confrontation', 'get'>[number];
@@ -1100,6 +1101,8 @@ export const api = {
   retirerDemarche: (id: string, demarcheId: string) =>
     requete<void>(`/acteurs-informels/${id}/demarches/${demarcheId}`, { method: 'DELETE' }),
   cadreSecteurInformel: () => requete<CadreSecteurInformel>('/observatoire/cadre-secteur-informel'),
+  // D-FNCT-3 : les corrections du référentiel des communes, avec leur source.
+  correctionsReferentiel: () => requete<CorrectionReferentiel[]>('/observatoire/corrections-referentiel'),
   changerCadreSecteurInformel: (saisie: Corps<'/observatoire/cadre-secteur-informel', 'put'>) =>
     requete<CadreSecteurInformel>('/observatoire/cadre-secteur-informel', { method: 'PUT', body: JSON.stringify(saisie) }),
   // --- Lot 17.3 : paramètres nationaux historisés (écriture : FNCT) ----------

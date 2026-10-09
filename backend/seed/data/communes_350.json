@@ -2201,7 +2201,41 @@
     "tclRecoveryRate": 88,
     "responsibleOfficer": "Directeur des Services Techniques & Propreté (Zarzouna)",
     "responsiblePhone": "98.528.404",
-    "notes": "Commune affiliée à la FNCT. Superficie estimée: 21.8 km². Population: 24,428 hab."
+    "notes": "Commune affiliée à la FNCT. Superficie estimée: 21.8 km². Population: 24,428 hab.",
+    "fusionneeDans": "bizerte_bizerte_nord_centre",
+    "motifRetrait": "Rattachée à la commune de Bizerte (décision FNCT D-FNCT-3, 9 octobre 2026). Source : Instance Prospective, arrêté conjoint en attente.",
+    "correction": {
+      "decision": "D-FNCT-3",
+      "source": "Instance Prospective, arrêté conjoint en attente",
+      "decideeLe": "2026-10-09",
+      "nature": "rattachee"
+    }
+  },
+  {
+    "id": "bizerte_el_hchachna",
+    "name": "El Hchachna",
+    "nameAr": "الحشاشنة",
+    "gouvernorat": "Bizerte",
+    "population": 18797,
+    "areaKm2": 364.36,
+    "wasteTonsPerDay": null,
+    "collectionRate": null,
+    "cleanlinessIndex": null,
+    "activeTrucks": null,
+    "totalContainers": null,
+    "openTickets": null,
+    "isPilot": false,
+    "coordinates": [
+      37.1465,
+      9.3315
+    ],
+    "notes": "Commune à part entière (décision FNCT D-FNCT-3, 9 octobre 2026). Source : Instance Prospective, arrêté conjoint en attente.",
+    "correction": {
+      "decision": "D-FNCT-3",
+      "source": "Instance Prospective, arrêté conjoint en attente",
+      "decideeLe": "2026-10-09",
+      "nature": "creee"
+    }
   },
   {
     "id": "jendouba_jendouba_ville",

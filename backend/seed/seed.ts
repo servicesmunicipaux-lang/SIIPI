@@ -19,12 +19,14 @@ interface CommuneSeed {
   gouvernorat: string;
   population: number;
   areaKm2: number;
-  wasteTonsPerDay: number;
-  collectionRate: number;
-  cleanlinessIndex: number;
-  activeTrucks: number;
-  totalContainers: number;
-  openTickets: number;
+  // null : non connu — une commune créée depuis le relevé n'a pas d'indicateur
+  // d'activité, et 0 serait lu comme une mesure (règle d'or 1.1).
+  wasteTonsPerDay: number | null;
+  collectionRate: number | null;
+  cleanlinessIndex: number | null;
+  activeTrucks: number | null;
+  totalContainers: number | null;
+  openTickets: number | null;
   isPilot: boolean;
   coordinates: [number, number];
   phone?: string;
@@ -41,6 +43,11 @@ interface CommuneSeed {
   responsibleOfficer?: string;
   responsiblePhone?: string;
   notes?: string;
+  /** Rattachée à une autre commune (D-FNCT-3) : la ligne reste, retirée. */
+  fusionneeDans?: string;
+  motifRetrait?: string;
+  /** La décision de la FNCT qui a corrigé le référentiel pour cette commune. */
+  correction?: { decision: string; nature: 'rattachee' | 'creee'; source: string; decideeLe: string };
 }
 
 // Public, et voulu tel en développement ; en production il n'ouvre aucun
@@ -93,7 +100,29 @@ async function seedCommunes() {
       ]
     );
   }
-  console.log('[seed] Communes importées.');
+
+  // Une commune rattachée à une autre est écrite, puis retirée : sur une base
+  // neuve comme sur une base existante, le référentiel finit dans le même état
+  // que celui que pose la migration 065. Jamais réactivée : le retrait ne se
+  // pose que sur une commune qui ne l'est pas déjà.
+  for (const c of communes.filter((x) => x.fusionneeDans)) {
+    await pool.query(
+      `UPDATE communes SET deleted_at = now(), fusionnee_dans = $2, motif_retrait = $3, activee = false
+        WHERE id = $1 AND deleted_at IS NULL`,
+      [c.id, c.fusionneeDans, c.motifRetrait]
+    );
+  }
+  for (const c of communes) {
+    const k = c.correction;
+    if (!k) continue;
+    await pool.query(
+      `INSERT INTO corrections_referentiel (decision, nature, commune_id, commune_cible, source, decidee_le)
+       VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (decision, commune_id) DO NOTHING`,
+      [k.decision, k.nature, c.id, c.fusionneeDans ?? null, k.source, k.decideeLe]
+    );
+  }
+  const actives = communes.length - communes.filter((x) => x.fusionneeDans).length;
+  console.log(`[seed] Communes importées : ${actives} au référentiel, ${communes.length - actives} rattachée(s) à une autre.`);
 }
 
 // Comptes de démonstration — 4 rôles RBAC officiels du CDC (§5, matrice de permissions) :

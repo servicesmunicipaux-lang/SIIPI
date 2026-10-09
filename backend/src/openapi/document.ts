@@ -2700,6 +2700,36 @@ registry.registerPath({
 });
 
 registry.registerPath({
+  method: 'get',
+  path: '/observatoire/corrections-referentiel',
+  tags: ['Observatoire'],
+  summary: 'Les corrections du référentiel des communes décidées par la FNCT, avec leur source',
+  description:
+    'D-FNCT-3 : Zarzouna rattachée à la commune de Bizerte (retirée du référentiel, jamais effacée), El Hchachna commune à ' +
+    'part entière. Une commune rattachée n’apparaît plus nulle part ailleurs dans l’API ; son nom reste lisible ici.',
+  security: SECURISE,
+  responses: {
+    200: json(
+      z.array(
+        z.object({
+          decision: z.string(),
+          nature: z.enum(['rattachee', 'creee']),
+          commune: z.string(),
+          commune_ar: z.string().nullable(),
+          gouvernorat: z.string().nullable(),
+          cible: z.string().nullable(),
+          cible_ar: z.string().nullable(),
+          source: z.string(),
+          decidee_le: z.string(),
+        })
+      ),
+      'Corrections, la plus récente d’abord.'
+    ),
+    401: REPONSES_COMMUNES[401],
+  },
+});
+
+registry.registerPath({
   method: 'put',
   path: '/observatoire/cadre-secteur-informel',
   tags: ['Observatoire'],
@@ -6600,7 +6630,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.21',
+      version: '0.15.22',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

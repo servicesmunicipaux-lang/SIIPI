@@ -121,3 +121,17 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Gravité** | Gênant |
 | **Correction** | **Ouverte.** |
 | **Contrôle ajouté** | Aucun encore ; une campagne pourra envoyer un corps mal formé à une route et attendre 400. |
+
+### JC-007
+
+| Champ | |
+|---|---|
+| **Date** | 9 octobre 2026 |
+| **Trouvé par** | D-FNCT-3, en étendant la campagne `decoupage` |
+| **Où** | Campagne `decoupage`, section « Remise en état » ; commune de Djerba Midoun |
+| **Constat** | La « remise en état » **effaçait** le contour officiel de Midoun (`boundary_geom = NULL`) et demandait de relancer l'import à la main. |
+| **Cause** | Le contour officiel n'était pas remis : seul le tracé d'essai était retiré. |
+| **Portée** | Toute base où `npm test` a tourné sans `import:decoupage` après : Midoun sans territoire — signalements non localisés, superficie et densités non calculables, la commune « hors de toute commune » pour l'application citoyenne (D-FNCT-1). Deux documents en ont gardé une mesure fausse : la note de v0.15.21 (rectifiée avant fusion) et la spécification du jalon 14 (« 348 communes sur 350 », rectifiée en v0.15.22). |
+| **Gravité** | Gênant |
+| **Correction** | v0.15.22 : la campagne rejoue l'import officiel en partant et vérifie que Midoun a retrouvé son contour officiel et sa superficie. |
+| **Contrôle ajouté** | Deux contrôles en fin de campagne `decoupage`. |

@@ -5,6 +5,68 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.22] — 2026-10-09 — D-FNCT-3 : Zarzouna rattachée à Bizerte, El Hchachna commune à part entière
+
+Décision de la FNCT du 9 octobre 2026. La couche officielle des contours (350 communes) et le
+référentiel des communes ne listaient pas les mêmes : le référentiel avait Zarzouna, la couche avait
+El Hchachna. Zarzouna restait sans territoire, El Hchachna n'existait pas. **La couche était juste ;
+c'est la table des communes qui est corrigée.** Source : Instance Prospective, arrêté conjoint en
+attente.
+
+### Ajouté
+- **Migration 065** :
+  - `communes` reçoit le retrait logique (`deleted_at`, `deleted_by`) et la trace de la fusion
+    (`fusionnee_dans`, `motif_retrait`). La base refuse un retrait sans motif, une fusion sans
+    retrait, une commune fusionnée dans elle-même.
+  - La politique de lecture de `communes` cache une commune retirée : elle disparaît d'un coup de
+    **toutes** les routes (annuaire, observatoire, application citoyenne, localisation), sans
+    qu'aucune ait à y penser. Les trois fonctions `SECURITY DEFINER` qui listent les communes
+    (`statut_communes`, `frontieres_communes`, `enregistrer_adresse`) la filtrent explicitement.
+  - **`app.rattacher_commune(source, cible, motif)`** : déplace les points de collecte, les circuits
+    et les pesées vers la commune cible, puis retire la source. Elle **refuse** de rattacher une
+    commune qui porte d'autres données (comptes, engins, personnel…) et les nomme : leur sort est
+    une décision, pas un effet de bord. Réservée au propriétaire de la base.
+  - **El Hchachna** (Bizerte, code 1727) entre au référentiel ; son contour vient de la couche
+    officielle, par `import:decoupage`.
+  - **Zarzouna** est rattachée à la commune de Bizerte, **jamais effacée** : la ligne reste, retirée,
+    avec sa population, son motif et la commune qui l'a reçue.
+  - Registre `corrections_referentiel` : chaque correction, sa décision, sa source, sa date.
+- **`GET /observatoire/corrections-referentiel`**, et sa carte dans *Observatoire → Paramètres
+  nationaux* : « Zarzouna (Bizerte) : rattachée à la commune de Bizerte. El Hchachna : commune à
+  part entière. Source : Instance Prospective, arrêté conjoint en attente. » — en français et en
+  arabe.
+- Le jeu de référence (`communes_350.json`, `appariement_communes.json`) porte la même correction :
+  une installation neuve et une base migrée arrivent au même état.
+
+### Corrigé
+- **JC-007** : la campagne `decoupage` effaçait le contour officiel de Djerba Midoun à chaque
+  passage. Elle rejoue désormais l'import officiel en partant, et vérifie que Midoun a retrouvé son
+  contour et sa superficie.
+- Trois témoins de campagne comptaient la table `communes` entière (`observatoire` : population
+  totale et nombre de communes estimées ; `simulation-3mois` : communes réelles) : ils comptent
+  désormais ce que l'API laisse voir, une commune retirée restant en base.
+- La spécification du jalon 14 disait « contours disponibles pour 348 communes sur 350 » : mesure
+  faite sur une base d'essai abîmée par JC-007. Rectifiée.
+
+### À confirmer
+- Le nom arabe de Zarzouna dans le jeu de référence est « جرونة » ; l'orthographe usuelle est
+  « جرزونة ». Non modifié, en attente de la FNCT.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 65 migrations ; la 065 rejouée : « Base déjà à jour ».
+  Après `npm test` : 350 communes au référentiel, 350 avec un contour (Midoun compris), 1 retirée.
+- `npm test` : code de sortie 0 — contrat **299/299**, **44 bilans, 1 724 tests réussis, aucun
+  échec** (`decoupage` : 49 contrôles — 350 communes et non 351, Zarzouna introuvable et refusée
+  comme adresse, El Hchachna localisée, le rattachement éprouvé sur des communes de test : refus,
+  blocage par un engin, déplacements, double rattachement, aucun droit pour l'application).
+  Recomptage : 44 campagnes présentes, 44 enchaînées.
+- `audit-blocs.py` : 28 blocs sous condition, tous leurs contrôles ont tourné. `npm run lint`
+  backend et web (TypeScript 5.8.3) : code 0.
+
+### Mise à jour d'une installation existante
+Après `npm run migrate`, lancer **`npm run import:decoupage`** : la migration crée El Hchachna, son
+contour vient de la couche officielle.
+
 ## [0.15.21] — 2026-10-09 — D-FNCT-1 : le citoyen trouve sa commune par sa position, ou par gouvernorat
 
 Décision de la FNCT du 9 octobre 2026 (homonymes : deux Ennour, à Sfax et à Kasserine ; deux

@@ -169,4 +169,17 @@ observatoireRouter.put(
   })
 );
 
+// GET /observatoire/corrections-referentiel — les corrections apportées au
+// référentiel des communes par décision de la FNCT (D-FNCT-3 : Zarzouna
+// rattachée à Bizerte, El Hchachna commune à part entière), avec leur source.
+// Lues par une fonction : la commune rattachée est retirée, et la politique de
+// `communes` ne la montre plus — son nom doit pourtant rester lisible ici.
+observatoireRouter.get(
+  '/corrections-referentiel',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    res.json(await query('SELECT * FROM app.corrections_referentiel()'));
+  })
+);
+
 export { provenanceSchema, hebergementSchema, cadreInformelSchema };

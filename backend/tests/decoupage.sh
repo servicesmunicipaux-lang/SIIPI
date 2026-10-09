@@ -146,15 +146,95 @@ chk "et elle a bien changé" "f" \
 
 echo
 echo "6. Remise en état"
-# On réimporte la limite officielle de cette commune : un banc d'essai ne doit
-# pas laisser derrière lui un référentiel national faux.
-$PSQL -c "BEGIN;
-SELECT set_config('app.role','super_admin_fnct',true),
-       set_config('app.user_id','00000000-0000-0000-0000-000000000000',true);
-UPDATE communes SET boundary_geom = NULL, boundary_source = NULL WHERE id='$COMMUNE';
-COMMIT;" >/dev/null 2>&1
-chk "la limite de test est retirée" "" "$(sql "SELECT boundary_source FROM communes WHERE id='$COMMUNE'")"
-echo "  → relancer « npm run import:decoupage » pour rétablir le tracé officiel de Midoun."
+# Un banc d'essai ne doit pas laisser derrière lui un référentiel national faux.
+# Cette section effaçait la limite de Midoun et demandait de relancer l'import
+# à la main : faute de quoi Midoun restait sans territoire après chaque
+# `npm test` — sur toute base où les campagnes tournent (JC-007). On rejoue
+# l'import officiel : c'est la limite de référence, et l'outil qui la pose.
+( cd "$(dirname "$0")/.." && npm run -s import:decoupage >/tmp/siipi_d_import.log 2>&1 )
+chk "la limite officielle de Midoun est rendue, telle que l'import la pose" "officiel|t" \
+    "$(sql "SELECT boundary_source FROM communes WHERE id='$COMMUNE'")|$(sql "SELECT (boundary_geom IS NOT NULL) FROM communes WHERE id='$COMMUNE'")"
+chk "et sa superficie n'est plus celle du tracé d'essai" "f" \
+    "$(python3 -c "
+s = float('$(sql "SELECT area_km2 FROM communes WHERE id='$COMMUNE'")' or 0)
+print('t' if 95 < s < 115 else 'f')" 2>/dev/null)"
+
+echo
+echo "7. Zarzouna rattachée à Bizerte, El Hchachna commune à part entière (D-FNCT-3)"
+# Le témoin est la couche officielle elle-même, lue ici : la campagne ne
+# compare pas l'API à la base, mais la base au document de référence.
+COUCHE=$(dirname "$0")/../seed/data/decoupage_communal.geojson.gz
+APPARIEMENT=$(dirname "$0")/../seed/data/appariement_communes.json
+couche() { python3 -c "
+import gzip, json
+f = json.load(gzip.open('$COUCHE', 'rt', encoding='utf-8'))['features']
+a = json.load(open('$APPARIEMENT', encoding='utf-8'))
+$1" 2>/dev/null || echo erreur; }
+code "$API/communes" -H "Authorization: Bearer $T_FNCT" >/dev/null
+chk "Zarzouna ne figure plus comme commune" 0 "$(jq_ "sum(1 for c in d if c['id']=='bizerte_zarzouna')")"
+chk "El Hchachna figure, commune active du gouvernorat de Bizerte" "1|Bizerte" \
+    "$(jq_ "sum(1 for c in d if c['id']=='bizerte_el_hchachna')")|$(jq_ "[c['gouvernorat'] for c in d if c['id']=='bizerte_el_hchachna'][0]")"
+chk "le référentiel compte autant de communes que la couche officielle" "$(couche "print(len(f))")" "$(jq_ "len(d)")"
+chk "… 350, pas 351" 350 "$(jq_ "len(d)")"
+IDS=$(jq_ "','.join(sorted(c['id'] for c in d))")
+chk "chaque commune de la couche a sa commune au référentiel" 0 \
+    "$(couche "ids = set('$IDS'.split(',')); print(sum(1 for x in f if a.get(str(x['properties']['code_municipalite']), {}).get('commune_id') not in ids))")"
+code "$API/observatoire/gouvernorats" -H "Authorization: Bearer $T_FNCT" >/dev/null
+chk "le tableau national compte à Bizerte les communes de la couche" "$(couche "print(sum(1 for x in f if x['properties']['nom_gouvernorat_fr']=='Bizerte'))")" \
+    "$(jq_ "[g['communes'] for g in d if g['gouvernorat']=='Bizerte'][0]")"
+chk "Zarzouna est introuvable, même pour la FNCT" 404 "$(code "$API/communes/bizerte_zarzouna" -H "Authorization: Bearer $T_FNCT")"
+chk "un citoyen ne peut pas y déclarer son adresse" 404 \
+    "$(code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' \
+       -d '{"communeId":"bizerte_zarzouna","adresse":"TEST adresse"}')"
+chk "rien ne s'efface : la ligne reste, retirée, rattachée à Bizerte, motif et source écrits" "true|bizerte_bizerte_nord_centre|true|false" \
+    "$(sql "SELECT (deleted_at IS NOT NULL)||'|'||fusionnee_dans||'|'||(motif_retrait LIKE '%Instance Prospective%')||'|'||activee FROM communes WHERE id='bizerte_zarzouna'")"
+chk "El Hchachna a son contour officiel, et la position la retrouve" "officiel|bizerte_el_hchachna" \
+    "$(sql "SELECT boundary_source FROM communes WHERE id='bizerte_el_hchachna'")|$(P=$(sql "SELECT ST_Y(p)||','||ST_X(p) FROM (SELECT ST_PointOnSurface(boundary_geom) p FROM communes WHERE id='bizerte_el_hchachna') x"); code -X POST "$API/communes/localiser" -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' -d "{\"lat\":${P%,*},\"lng\":${P#*,}}" >/dev/null; jq_ "d['commune']['id']")"
+code "$API/observatoire/corrections-referentiel" -H "Authorization: Bearer $T_CIT" >/dev/null
+chk "l'observatoire dit la correction et sa source" "Zarzouna>Bizerte (Nord & Centre)|El Hchachna|Instance Prospective, arrêté conjoint en attente" \
+    "$(jq_ "[c['commune']+'>'+c['cible'] for c in d if c['nature']=='rattachee'][0]")|$(jq_ "[c['commune'] for c in d if c['nature']=='creee'][0]")|$(jq_ "d[0]['source']")"
+
+# Le rattachement, éprouvé sur des communes de test : ce qu'il refuse d'abord.
+$PSQL -c "DELETE FROM pesees WHERE commune_id LIKE 'test_fusion_%';
+          DELETE FROM points_collecte WHERE commune_id LIKE 'test_fusion_%';
+          DELETE FROM circuits WHERE commune_id LIKE 'test_fusion_%';
+          DELETE FROM vehicules WHERE commune_id LIKE 'test_fusion_%';
+          UPDATE communes SET fusionnee_dans = NULL WHERE id LIKE 'test_fusion_%';
+          DELETE FROM communes WHERE id LIKE 'test_fusion_%';
+          INSERT INTO communes (id, name, name_ar, gouvernorat) VALUES
+            ('test_fusion_a', 'TEST rattachée', 'TEST', 'TEST'),
+            ('test_fusion_b', 'TEST qui reçoit', 'TEST', 'TEST'),
+            ('test_fusion_c', 'TEST déjà retirée', 'TEST', 'TEST');" >/dev/null 2>&1
+rattacher() { $PSQL -c "SELECT app.rattacher_commune('$1', '$2', '$3');" 2>&1 | head -1; }
+chk "une commune ne se rattache pas à elle-même" 1 "$(rattacher test_fusion_a test_fusion_a 'TEST motif' | grep -c RATTACHEMENT_SOI)"
+chk "un motif est exigé" 1 "$(rattacher test_fusion_a test_fusion_b 'x' | grep -c RATTACHEMENT_MOTIF)"
+$PSQL -c "SELECT app.rattacher_commune('test_fusion_c', 'test_fusion_b', 'TEST motif de retrait');" >/dev/null 2>&1
+chk "on ne rattache pas à une commune retirée" 1 "$(rattacher test_fusion_a test_fusion_c 'TEST motif' | grep -c RATTACHEMENT_CIBLE)"
+CIRCUIT=$(sql "INSERT INTO circuits (commune_id, nom) VALUES ('test_fusion_a', 'TEST circuit à rattacher') RETURNING id")
+$PSQL -c "INSERT INTO points_collecte (circuit_id, commune_id, voyage, ordre, nom, geom, source)
+            VALUES ('$CIRCUIT', 'test_fusion_a', 1, 1, 'TEST point', ST_SetSRID(ST_MakePoint(9.8, 37.2), 4326), 'saisie');
+          INSERT INTO pesees (commune_id, circuit_id, date_pesee, poids_net_kg, vehicule_immat, observation)
+            VALUES ('test_fusion_a', '$CIRCUIT', CURRENT_DATE - 1, 1000, 'TEST 9999', 'TEST pesée à rattacher');
+          INSERT INTO vehicules (id, registration, commune_id, type) VALUES ('test-fusion-engin', 'TEST 9999', 'test_fusion_a', 'camion');" >/dev/null 2>&1
+chk "une donnée hors du champ décidé (un engin) fait refuser, et la dit" 1 "$(rattacher test_fusion_a test_fusion_b 'TEST motif' | grep -c 'vehicules : 1')"
+chk "… sans rien avoir déplacé" "test_fusion_a|f" \
+    "$(sql "SELECT commune_id FROM circuits WHERE id='$CIRCUIT'")|$(sql "SELECT (deleted_at IS NOT NULL) FROM communes WHERE id='test_fusion_a'")"
+$PSQL -c "DELETE FROM vehicules WHERE id = 'test-fusion-engin';" >/dev/null 2>&1
+chk "le rattachement déplace circuits, points et pesées" '{"pesees": 1, "circuits": 1, "points_collecte": 1}' \
+    "$($PSQL -c "SELECT app.rattacher_commune('test_fusion_a', 'test_fusion_b', 'TEST motif de rattachement');" 2>/dev/null | head -1)"
+chk "… les données historiques sont à la commune qui reçoit" "test_fusion_b|test_fusion_b|test_fusion_b" \
+    "$(sql "SELECT commune_id FROM circuits WHERE id='$CIRCUIT'")|$(sql "SELECT commune_id FROM points_collecte WHERE circuit_id='$CIRCUIT'")|$(sql "SELECT commune_id FROM pesees WHERE circuit_id='$CIRCUIT'")"
+chk "… et la commune rattachée est retirée, jamais effacée" "t|test_fusion_b" \
+    "$(sql "SELECT (deleted_at IS NOT NULL) FROM communes WHERE id='test_fusion_a'")|$(sql "SELECT fusionnee_dans FROM communes WHERE id='test_fusion_a'")"
+chk "on ne rattache pas deux fois" 1 "$(rattacher test_fusion_a test_fusion_b 'TEST motif' | grep -c RATTACHEMENT_SOURCE)"
+chk "l'application n'a aucun droit sur le rattachement" "f" \
+    "$(sql "SELECT has_function_privilege('siipi_app', 'app.rattacher_commune(text,text,text)', 'EXECUTE')")"
+$PSQL -c "DELETE FROM pesees WHERE commune_id LIKE 'test_fusion_%';
+          DELETE FROM points_collecte WHERE commune_id LIKE 'test_fusion_%';
+          DELETE FROM circuits WHERE commune_id LIKE 'test_fusion_%';
+          UPDATE communes SET fusionnee_dans = NULL WHERE id LIKE 'test_fusion_%';
+          DELETE FROM communes WHERE id LIKE 'test_fusion_%';" >/dev/null 2>&1
+chk "les communes de test sont retirées" 0 "$(sql "SELECT count(*) FROM communes WHERE id LIKE 'test_fusion_%'")"
 
 echo
 if [ "$fail" -eq 0 ]; then

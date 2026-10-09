@@ -10174,6 +10174,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/observatoire/corrections-referentiel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les corrections du référentiel des communes décidées par la FNCT, avec leur source
+         * @description D-FNCT-3 : Zarzouna rattachée à la commune de Bizerte (retirée du référentiel, jamais effacée), El Hchachna commune à part entière. Une commune rattachée n’apparaît plus nulle part ailleurs dans l’API ; son nom reste lisible ici.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Corrections, la plus récente d’abord. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            decision: string;
+                            /** @enum {string} */
+                            nature: "rattachee" | "creee";
+                            commune: string;
+                            commune_ar: string | null;
+                            gouvernorat: string | null;
+                            cible: string | null;
+                            cible_ar: string | null;
+                            source: string;
+                            decidee_le: string;
+                        }[];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/acteurs-informels": {
         parameters: {
             query?: never;
