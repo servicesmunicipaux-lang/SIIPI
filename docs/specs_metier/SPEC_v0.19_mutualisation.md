@@ -47,7 +47,9 @@ La base refuse aujourd'hui tout usage d'un engin hors de sa commune. Ces verrous
 
 Le rattachement d'un point de collecte à sa commune est **administratif** : aucune règle ne
 vérifie qu'il est situé dans son territoire. Mesuré le 9 octobre 2026 sur les relevés GPS réels de
-Djerba (base du poste, lecture seule ; contours communaux disponibles pour 348 communes sur 350) :
+Djerba (base du poste, lecture seule ; contours communaux disponibles pour toutes les communes du
+référentiel depuis D-FNCT-3 — la première rédaction disait 348 sur 350, mesure faite sur une base
+d'essai d'où la campagne `decoupage` venait d'effacer le contour de Midoun, JC-007) :
 
 | Commune du point | Points relevés | Situés hors de son territoire | Dont, en réalité, chez | À moins de 150 m d'une limite (dans son territoire) |
 |---|---|---|---|---|
@@ -211,7 +213,8 @@ national daté, D-5). La plateforme le calcule à chaque lecture, sans rien modi
 dans « À vérifier » : « 39 points de vos circuits sont situés dans la commune de Midoun ; aucun
 accord de desserte n'est enregistré. »
 
-Une commune sans contour (2 sur 350 au 9 octobre 2026) : « non calculable », pas « aucun point ».
+Une commune sans contour (aucune depuis D-FNCT-3, mais la règle demeure) : « non calculable », pas
+« aucun point ».
 
 ### 4.2 La tolérance
 

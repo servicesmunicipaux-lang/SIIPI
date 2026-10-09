@@ -159,7 +159,8 @@ async function run() {
   );
 
   const [bilan] = await query<{ avec: number; total: number }>(
-    `SELECT count(*) FILTER (WHERE boundary_geom IS NOT NULL) AS avec, count(*) AS total FROM communes`
+    `SELECT count(*) FILTER (WHERE boundary_geom IS NOT NULL) AS avec, count(*) AS total FROM communes
+      WHERE deleted_at IS NULL AND NOT est_demo`
   );
 
   console.log(`[decoupage] ${importees} frontières importées.`);
@@ -176,7 +177,8 @@ async function run() {
   }
 
   const orphelines = await query<{ id: string; name: string; gouvernorat: string }>(
-    `SELECT id, name, gouvernorat FROM communes WHERE boundary_geom IS NULL ORDER BY gouvernorat, name`
+    `SELECT id, name, gouvernorat FROM communes
+      WHERE boundary_geom IS NULL AND deleted_at IS NULL AND NOT est_demo ORDER BY gouvernorat, name`
   );
   if (orphelines.length > 0) {
     console.warn(`[decoupage] ${orphelines.length} commune(s) sans frontière :`);

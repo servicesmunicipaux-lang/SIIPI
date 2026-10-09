@@ -212,6 +212,13 @@
         "suspendre": "تعليق",
         "active": "إطار القطاع غير المنظم نافذ.",
         "suspendu": "تم تعليق إطار القطاع غير المنظم."
+      },
+      "corrections": {
+        "titre": "تصحيحات المرجع البلدي",
+        "decision": "القرار {{decision}} بتاريخ {{date}}",
+        "rattachee": "{{commune}} ({{gouvernorat}}) : أُلحقت ببلدية {{cible}}.",
+        "creee": "{{commune}} : بلدية قائمة الذات.",
+        "source": "المصدر : {{source}}."
       }
     }
   },

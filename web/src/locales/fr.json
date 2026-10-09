@@ -204,6 +204,13 @@
         "suspendre": "Suspendre",
         "active": "Le cadre du secteur informel est en vigueur.",
         "suspendu": "Le cadre du secteur informel est suspendu."
+      },
+      "corrections": {
+        "titre": "Corrections du référentiel des communes",
+        "decision": "Décision {{decision}} du {{date}}",
+        "rattachee": "{{commune}} ({{gouvernorat}}) : rattachée à la commune de {{cible}}.",
+        "creee": "{{commune}} : commune à part entière.",
+        "source": "Source : {{source}}."
       }
     }
   },

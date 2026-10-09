@@ -11,7 +11,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type CadreSecteurInformel as EtatCadre, type ParametreNational, type ValeurParametreNational } from '../../lib/api';
+import {
+  api,
+  ErreurApi,
+  type CadreSecteurInformel as EtatCadre,
+  type CorrectionReferentiel,
+  type ParametreNational,
+  type ValeurParametreNational,
+} from '../../lib/api';
 import { useFormats } from '../../lib/formats';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
@@ -60,6 +67,7 @@ export function ParametresNationaux() {
       {info && (
         <p role="status" className="rounded-lg border border-siipi-300 bg-siipi-50 p-3 text-sm text-siipi-900">{info}</p>
       )}
+      <CorrectionsReferentiel />
       <CadreSecteurInformel onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
       {parametres.map((p) => (
         <FicheParametre key={p.code} p={p} onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
@@ -320,6 +328,55 @@ function CadreSecteurInformel({ onFait, onErreur }: { onFait: (m: string) => voi
           </button>
         </div>
       )}
+    </article>
+  );
+}
+
+// Les corrections du référentiel des communes décidées par la FNCT (D-FNCT-3) :
+// une commune rattachée à une autre n'apparaît plus nulle part dans la
+// plateforme ; c'est ici qu'on lit qu'elle a existé, à qui elle a été rattachée,
+// et sur quelle source. Rien ne s'y écrit depuis l'écran : une correction du
+// référentiel passe par une migration.
+function CorrectionsReferentiel() {
+  const { t, i18n } = useTranslation();
+  const f = useFormats();
+  const [corrections, setCorrections] = useState<CorrectionReferentiel[] | null>(null);
+
+  useEffect(() => {
+    api
+      .correctionsReferentiel()
+      .then(setCorrections)
+      .catch(() => setCorrections([]));
+  }, []);
+
+  if (!corrections || corrections.length === 0) return null;
+  const arabe = i18n.language === 'ar';
+  const nom = (fr: string | null, ar: string | null) => (arabe ? ar || fr : fr) ?? '';
+  const parDecision = new Map<string, CorrectionReferentiel[]>();
+  for (const c of corrections) parDecision.set(c.decision, [...(parDecision.get(c.decision) ?? []), c]);
+
+  return (
+    <article className="space-y-3 rounded-xl border border-ardoise-200 bg-white p-4">
+      <h3 className="font-semibold text-ardoise-900">{t('national.parametres.corrections.titre')}</h3>
+      {[...parDecision.entries()].map(([decision, lignes]) => (
+        <div key={decision} className="space-y-1 rounded-lg bg-ardoise-50 p-3 text-sm">
+          <p className="text-xs text-ardoise-500">
+            {t('national.parametres.corrections.decision', { decision, date: f.date(lignes[0].decidee_le) })}
+          </p>
+          {lignes.map((c) => (
+            <p key={c.commune} className="text-ardoise-800">
+              {c.nature === 'rattachee'
+                ? t('national.parametres.corrections.rattachee', {
+                    commune: nom(c.commune, c.commune_ar),
+                    gouvernorat: c.gouvernorat ? t(`gouvernorats.${c.gouvernorat}`, { defaultValue: c.gouvernorat }) : '',
+                    cible: nom(c.cible, c.cible_ar),
+                  })
+                : t('national.parametres.corrections.creee', { commune: nom(c.commune, c.commune_ar) })}
+            </p>
+          ))}
+          <p className="text-xs text-ardoise-600">{t('national.parametres.corrections.source', { source: lignes[0].source })}</p>
+        </div>
+      ))}
     </article>
   );
 }
