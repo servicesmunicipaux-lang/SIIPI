@@ -299,7 +299,14 @@
       "localisation": "جارٍ تحديد الموقع…",
       "positionPrise": "تم تسجيل الموقع",
       "positionAide": "اختياري، لكنه يسمح بتحديد قطاع الجمع الخاص بك بدقة.",
-      "enregistrer": "تسجيل"
+      "enregistrer": "تسجيل",
+      "gouvernorat": "الولاية",
+      "choisirGouvernorat": "اختر الولاية",
+      "recherche": "جارٍ تحديد بلديتك…",
+      "localiseA": "أنت موجود في {{commune}} ({{gouvernorat}}). هل هذا صحيح؟",
+      "oui": "نعم، هذا صحيح",
+      "non": "لا، أختار بنفسي",
+      "horsCommune": "لم نتمكن من تحديد بلديتك. اخترها بنفسك."
     },
     "collecte": {
       "titre": "جمع النفايات",
@@ -2661,5 +2668,31 @@
       "terminer": "إنهاء",
       "termine": "انتهى التنظيف."
     }
+  },
+  "gouvernorats": {
+    "Tunis": "تونس",
+    "Ariana": "أريانة",
+    "Ben Arous": "بن عروس",
+    "Manouba": "منوبة",
+    "Nabeul": "نابل",
+    "Zaghouan": "زغوان",
+    "Bizerte": "بنزرت",
+    "Béja": "باجة",
+    "Jendouba": "جندوبة",
+    "Le Kef": "الكاف",
+    "Siliana": "سليانة",
+    "Sousse": "سوسة",
+    "Monastir": "المنستير",
+    "Mahdia": "المهدية",
+    "Sfax": "صفاقس",
+    "Kairouan": "القيروان",
+    "Kasserine": "القصرين",
+    "Sidi Bouzid": "سيدي بوزيد",
+    "Gabès": "قابس",
+    "Médenine": "مدنين",
+    "Tataouine": "تطاوين",
+    "Gafsa": "قفصة",
+    "Tozeur": "توزر",
+    "Kébili": "قبلي"
   }
 }

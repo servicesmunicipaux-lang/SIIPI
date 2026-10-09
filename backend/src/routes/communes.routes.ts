@@ -94,6 +94,47 @@ communesRouter.get(
   })
 );
 
+// POST /communes/localiser — dans quelle commune se trouve une position ?
+// (D-FNCT-1, application citoyenne). Le citoyen confirme ensuite, ou choisit
+// à la main : la plateforme propose, elle ne décide pas.
+//
+// POST, et non GET : une position en paramètre d'URL finirait dans le journal
+// d'accès du serveur (morgan) ; dans le corps, elle n'y entre pas. Elle n'est
+// écrite nulle part — la position de l'ADRESSE reste un geste à part du
+// citoyen (« Utiliser ma position actuelle »), et il peut ne pas être chez lui
+// quand il ouvre l'application (loi organique n° 2004-63, minimisation).
+//
+// « Trouvée » seulement si un seul contour contient le point. Hors de tout
+// contour — en mer, hors du pays, ou dans une commune dont la base n'a pas le
+// contour — ou dans deux à la fois : non trouvée, et le citoyen choisit.
+export const localisationSchema = z
+  .object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+  })
+  .strict();
+
+communesRouter.post(
+  '/localiser',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { lat, lng } = localisationSchema.parse(req.body);
+    const trouvees = await query<{ id: string; name: string; name_ar: string | null; gouvernorat: string | null }>(
+      `SELECT id, name, name_ar, gouvernorat
+         FROM communes
+        WHERE NOT est_demo AND boundary_geom IS NOT NULL
+          AND ST_Contains(boundary_geom, ST_SetSRID(ST_MakePoint($1, $2), 4326))
+        LIMIT 2`,
+      [lng, lat]
+    );
+    res.json(
+      trouvees.length === 1
+        ? { trouvee: true, commune: trouvees[0] }
+        : { trouvee: false, raison: trouvees.length === 0 ? 'hors_commune' : 'ambigue' }
+    );
+  })
+);
+
 communesRouter.get(
   '/:id',
   requireAuth,

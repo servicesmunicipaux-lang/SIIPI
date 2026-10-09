@@ -231,6 +231,15 @@ export interface paths {
                         "application/json": components["schemas"]["Erreur"];
                     };
                 };
+                /** @description En production seulement : le mot de passe des comptes de démonstration, publié avec le code, n’ouvre aucun compte. Refusé avant toute recherche du compte, il ne renseigne pas sur son existence. L’exploitant attribue un mot de passe provisoire avec `npm run mot-de-passe:provisoire:prod -- <adresse>`. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
                 /** @description Trop de tentatives. */
                 429: {
                     headers: {
@@ -437,6 +446,102 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/communes/localiser": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dans quelle commune se trouve une position ? (D-FNCT-1, application citoyenne)
+         * @description Le citoyen confirme la commune proposée, ou la choisit lui-même : la plateforme propose, elle ne décide pas. « Trouvée » seulement si un seul contour contient le point ; hors de tout contour (en mer, hors du pays, commune sans contour en base) ou dans deux : non trouvée, raison donnée. La position voyage dans le corps de la requête — jamais dans l’URL, qui irait au journal d’accès — et n’est écrite nulle part (loi organique n° 2004-63).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        lat: number;
+                        lng: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Commune trouvée, ou raison pour laquelle elle ne l’est pas. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {boolean} */
+                            trouvee: true;
+                            commune: {
+                                id: string;
+                                name: string;
+                                name_ar: string | null;
+                                gouvernorat: string | null;
+                            };
+                        } | {
+                            /** @enum {boolean} */
+                            trouvee: false;
+                            /** @enum {string} */
+                            raison: "hors_commune" | "ambigue";
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -11167,7 +11272,7 @@ export interface paths {
         put?: never;
         /**
          * Changer son propre mot de passe
-         * @description Ouvert à tous les rôles : c'est ce qui permet de remplacer un mot de passe provisoire sans dépendre de qui l'a fixé.
+         * @description Ouvert à tous les rôles : c'est ce qui permet de remplacer un mot de passe provisoire sans dépendre de qui l'a fixé. Le mot de passe des comptes de démonstration, publié avec le code, est refusé comme nouveau mot de passe (400), en tout environnement.
          */
         post: {
             parameters: {

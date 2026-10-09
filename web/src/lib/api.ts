@@ -381,7 +381,9 @@ export type Commune = {
   id: string;
   name: string;
   name_ar?: string | null;
-  governorate?: string | null;
+  // « gouvernorat », comme la colonne que l'API renvoie : le type disait
+  // « governorate », qui restait toujours vide sans que le compilateur le voie.
+  gouvernorat?: string | null;
   /** Commune de démonstration fictive (jumeau numérique, lot S1). */
   est_demo?: boolean;
 };
@@ -532,6 +534,12 @@ export const api = {
   // La commune de démonstration n'est dans l'annuaire que demandée : le
   // sélecteur de la FNCT la demande, les écrans nationaux non.
   communes: (avecDemo = false) => requete<Commune[]>(avecDemo ? '/communes?avecDemo=1' : '/communes'),
+  // D-FNCT-1 : la position voyage dans le corps, jamais dans l'URL (journal d'accès).
+  localiserCommune: (lat: number, lng: number) =>
+    requete<
+      | { trouvee: true; commune: { id: string; name: string; name_ar: string | null; gouvernorat: string | null } }
+      | { trouvee: false; raison: 'hors_commune' | 'ambigue' }
+    >('/communes/localiser', { method: 'POST', body: JSON.stringify({ lat, lng }) }),
   etatDemo: () => requete<EtatDemo>('/demo'),
   chargerDemo: () => requete<EtatDemo>('/demo/charger', { method: 'POST', body: JSON.stringify({}) }),
   retirerDemo: () =>

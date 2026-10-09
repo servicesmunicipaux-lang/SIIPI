@@ -93,3 +93,31 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Gravité** | Gênant : des garanties annoncées n'étaient pas vérifiées |
 | **Correction** | v0.15.19 : chaque contrôle bâtit l'objet qu'il éprouve, dans une commune de test retirée en partant — un secteur, une publication, un engin, une pesée, un circuit ; un citoyen d'essai rend un envoi possible, un carré de dix mètres sans adresse le rend impossible : les deux chemins tournent à chaque passage. Plus aucune condition autour de ces contrôles. |
 | **Contrôle ajouté** | `scripts/skills/audit-blocs.py` : sur le journal d'un `npm test` de référence, il nomme tout contrôle sous condition qui n'a pas tourné, et sort en erreur. Éprouvé sur les campagnes d'avant la correction : il retrouve les cinq contrôles. |
+
+### JC-005
+
+| Champ | |
+|---|---|
+| **Date** | 9 octobre 2026 |
+| **Trouvé par** | Relecture de la campagne `citoyen`, en l'étendant pour D-FNCT-1 |
+| **Où** | Campagne `citoyen`, au début et à la fin |
+| **Constat** | La campagne exécute `UPDATE citoyens SET commune_id = NULL, adresse = NULL, position = NULL, zone_id = NULL` **sans condition** : elle efface l'adresse de **tous** les citoyens de la base, pas seulement celle du compte d'essai. |
+| **Cause** | Écrite pour une base de démonstration, où le seul citoyen est `citoyen.demo`. |
+| **Portée** | Toute base sur laquelle `npm test` tourne — `MIGRER.bat`, `TESTS.bat`, dont celle du dossier principal. Sur une instance où de vrais citoyens auraient déclaré leur adresse, chaque passage des campagnes l'effacerait : plus d'horaires de collecte, plus de ciblage des notifications, sans que personne ne le voie. |
+| **Gravité** | Bloquant pour toute base portant de vrais citoyens |
+| **Correction** | **Ouverte.** Proposée : que la campagne bâtisse son propre citoyen d'essai (comme `fichiers` et `module5` depuis JC-003 et JC-004) et ne touche qu'à lui. En attendant : la règle de `CLAUDE.md` § 9 — aucune campagne sur une base réelle. |
+| **Contrôle ajouté** | Aucun encore. |
+
+### JC-006
+
+| Champ | |
+|---|---|
+| **Date** | 9 octobre 2026 |
+| **Trouvé par** | Essai de la route `POST /communes/localiser` (D-FNCT-1) |
+| **Où** | Toutes les routes qui lisent un corps JSON (constaté sur `/communes/localiser` et `/citoyen/adresse`) |
+| **Constat** | Un corps JSON mal formé reçoit **500 « Erreur interne du serveur »** au lieu d'un 400 qui dise que la requête est illisible. |
+| **Cause** | Non établie ; vraisemblablement le gestionnaire d'erreurs ne reconnaît pas l'erreur d'analyse du corps levée par Express. |
+| **Portée** | Toute l'API : un client mal écrit croit à une panne du serveur ; le journal compte de fausses erreurs internes. Aucune donnée n'est touchée. |
+| **Gravité** | Gênant |
+| **Correction** | **Ouverte.** |
+| **Contrôle ajouté** | Aucun encore ; une campagne pourra envoyer un corps mal formé à une route et attendre 400. |
