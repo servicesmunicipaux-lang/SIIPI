@@ -5,6 +5,41 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.18] — 2026-10-09 — JC-003 : la campagne `fichiers` ne saute plus sa partie citoyen
+
+### Corrigé
+- **La partie 4 de `fichiers` ne s'exécutait jamais** (JC-003). Ses treize contrôles — photo
+  déposée par un citoyen, preuve de traitement adressée, et **B5.1.3 de bout en bout** (la
+  clôture d'une réclamation ouvre la photo à son auteur, et à lui seul) — étaient enveloppés dans
+  des `if` : faute de citoyen ayant la commune du directeur dans le jeu de référence, ils se
+  sautaient sans le dire, et la campagne se comptait réussie. **Aucune campagne n'éprouvait donc
+  réellement B5.1.3**, pourtant marqué « Fait » ; `citoyen` ne touche pas à la preuve.
+- Masqué par ce saut : la réclamation d'essai portait la catégorie `depot_sauvage`, renommée par la
+  migration 024 ; l'insertion n'aurait jamais réussi. Catégorie `point_noir` désormais.
+- `fichiers` bâtit sa **commune de test**, son **directeur temporaire** (`tests/outils/`) et son
+  **citoyen** (inscription par l'API, adresse déclarée dans la commune), et les retire en partant.
+  Plus aucun contrôle conditionnel : sans administrateur d'une autre commune, le contrôle
+  **échoue** au lieu de se sauter. La campagne ne dépend plus ni de Dar Chaâbane ni d'un compte de
+  démonstration pour écrire. **De 26 à 40 contrôles.**
+- Le comportement de la plateforme était juste : une fois rendus à la campagne, les contrôles
+  passent. Seul le test manquait.
+
+### Reste ouvert
+- **30 autres blocs conditionnels dans 16 campagnes**, non audités : certains peuvent sauter des
+  contrôles de la même façon, d'autres sont légitimes. À vérifier un par un sur le jeu de référence.
+- Le journal note qu'une numérotation de défauts plus ancienne a existé hors du dépôt
+  (`suggestions.sh` cite « le défaut n° 6 du journal ») ; les identifiants `JC-` ne la prolongent pas.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 64 migrations ; la 064 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat 297/297, **44 bilans, 1 674 tests réussis,
+  aucun échec** (1 660 + les 14 contrôles rendus à `fichiers`).
+- Recomptage : 44 campagnes présentes, 44 enchaînées.
+- `npm run lint` backend et web (TypeScript 5.8.3) : code 0.
+- Premier passage de la partie 4 rendue : 5 échecs (la catégorie périmée), puis 40/40 une fois
+  corrigée — les contrôles peuvent donc échouer, ils ne font pas que passer. Après la chaîne
+  complète : aucune commune ni aucun compte de test restant.
+
 ## [0.15.17] — 2026-10-09 — JC-001 : les campagnes n'empruntent plus de compte de démonstration
 
 ### Corrigé

@@ -10,6 +10,10 @@ antérieures sont décrites dans les sections « Corrigé » du `CHANGELOG.md`. 
 révélés seulement par l'usage réel » que cite `CLAUDE.md` § 9 n'y sont pas énumérés un par un ; ils
 ne sont pas recopiés ici de mémoire. Le journal commence avec la préparation de R1.
 
+Une numérotation plus ancienne a existé hors du dépôt : `backend/tests/suggestions.sh` cite « le
+défaut n° 6 du journal » (travailler sur un circuit réel abîmait le jeu de Dar Chaabane). Les
+identifiants `JC-` ne la prolongent pas ; un ancien numéro cité ailleurs renvoie à ce journal-là.
+
 ## Comment consigner
 
 Une entrée par défaut, la plus récente en bas. Champs :
@@ -61,3 +65,17 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Gravité** | D'apparence |
 | **Correction** | v0.15.16 : la feuille de route donne 13, avec la date, et renvoie à `recette:etat`, qui recompte au lieu de citer. |
 | **Contrôle ajouté** | Aucun chiffre figé : `recette:etat` le recalcule à chaque lecture. |
+
+### JC-003
+
+| Champ | |
+|---|---|
+| **Date** | 9 octobre 2026 |
+| **Trouvé par** | Relecture des campagnes (une campagne ne se déclare jamais « sans objet », `CLAUDE.md` § 7) |
+| **Où** | Campagne `fichiers`, partie 4 « Le citoyen » ; fonctionnalité B5.1.3 (preuve de traitement) |
+| **Constat** | La partie 4 imprimait son titre et **n'exécutait aucun contrôle** : ses treize contrôles — dépôt d'une photo par un citoyen, preuve de traitement adressée, et B5.1.3 de bout en bout (la clôture d'une réclamation ouvre la photo à son auteur, et à lui seul) — étaient enveloppés dans des `if` qui se sautaient sans rien dire. La campagne se comptait réussie (26/26). |
+| **Cause** | Elle cherchait un citoyen ayant la commune de son directeur ; le seul citoyen du jeu de référence n'a pas de commune. Masqué par ce saut, un second défaut : la réclamation d'essai portait la catégorie `depot_sauvage`, que la migration 024 a renommée — l'insertion n'aurait jamais pu réussir. |
+| **Portée** | B5.1.3 était marqué « Fait — campagnes fichiers et citoyen » dans la feuille de route ; `citoyen` ne touche pas à la preuve de traitement : **aucune campagne n'éprouvait réellement B5.1.3**. Une fois les contrôles rendus à la campagne, ils passent : le comportement de la plateforme était juste, seul le test manquait. La même construction — un bloc conditionnel autour de contrôles — se trouve dans d'autres campagnes : 30 blocs dans 16 campagnes, **non audités** à ce jour (certains peuvent être légitimes). |
+| **Gravité** | Gênant : une garantie annoncée n'était pas vérifiée |
+| **Correction** | v0.15.18 : `fichiers` bâtit sa commune de test, son directeur temporaire et son citoyen (inscrit par l'API, adresse déclarée dans la commune) ; plus aucun contrôle conditionnel — un administrateur d'une autre commune absent fait **échouer** le contrôle au lieu de le sauter ; catégorie `point_noir`. La campagne passe de 26 à 40 contrôles. Elle ne dépend plus ni de Dar Chaâbane ni d'un compte de démonstration pour écrire. |
+| **Contrôle ajouté** | Les quatorze contrôles de la partie 4 eux-mêmes, dont « la réclamation d'essai est ouverte ». L'audit des 30 autres blocs conditionnels reste à faire. |

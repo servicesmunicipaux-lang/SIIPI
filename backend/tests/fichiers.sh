@@ -17,7 +17,6 @@ API="${API_URL:-http://localhost:4000}"
 PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 pass=0; fail=0
 T=$(mktemp -d)
-trap 'rm -rf "$T"' EXIT
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
@@ -32,18 +31,51 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-COMMUNE=$(sql "SELECT id FROM communes WHERE name ILIKE '%Chaâbane%' OR name ILIKE '%Chaabane%' OR id LIKE '%dar_chaabane%' ORDER BY length(name) LIMIT 1")
-[ -n "$COMMUNE" ] || { echo "Dar Chaabane absente. Lancer : npm run seed" >&2; exit 1; }
-AUTRE=$(sql "SELECT id FROM communes WHERE id <> '$COMMUNE' AND activee ORDER BY id LIMIT 1")
-
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id='$COMMUNE' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-[ -n "$DIR_EMAIL" ] || DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_DIR=$(tok "$DIR_EMAIL")
-[ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-COMMUNE_DIR=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
-
-nettoyer() { $PSQL -c "DELETE FROM fichiers WHERE nom_original LIKE 'TEST-F%';" >/dev/null 2>&1; }
+# Une commune de test, avec son directeur et son citoyen : la campagne ne
+# dépend ni d'une commune réelle ni d'un compte de démonstration. Elle prenait
+# le directeur de Dar Chaabane, à défaut le premier directeur de démonstration,
+# et cherchait un citoyen de sa commune ; il n'y en avait aucun dans le jeu de
+# référence, et toute la partie 4 — dont la preuve de traitement de bout en
+# bout (B5.1.3) — se sautait sans le dire, campagne comptée réussie.
+TC=test_fichiers
+COMMUNE_DIR="$TC"
+CIT_EMAIL="test-fichiers-citoyen@example.test"
+CIT_MDP="TEST-Citoyen-$$"
+. "$(dirname "$0")/outils/directeur_temporaire.sh"
+# Dans l'ordre des clés étrangères : les fichiers et les réclamations tiennent
+# le citoyen ; un -c par ordre, pour qu'un refus n'emporte pas les suivants.
+nettoyer() {
+  $PSQL -c "DELETE FROM fichiers WHERE nom_original LIKE 'TEST-F%';" \
+        -c "DELETE FROM notifications_citoyen WHERE citoyen_id IN (SELECT c.id FROM citoyens c JOIN users u ON u.id = c.user_id WHERE u.email = '$CIT_EMAIL');" \
+        -c "DELETE FROM tickets WHERE ticket_number LIKE 'TEST-F-%';" \
+        -c "DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email = '$CIT_EMAIL');" \
+        -c "DELETE FROM users WHERE email = '$CIT_EMAIL';" >/dev/null 2>&1
+}
+fin() {
+  nettoyer
+  retirer_directeur_temporaire
+  $PSQL -c "DELETE FROM communes WHERE id = '$TC';" >/dev/null 2>&1
+  rm -rf "$T"
+}
 nettoyer
+$PSQL -c "DELETE FROM communes WHERE id = '$TC';" >/dev/null 2>&1
+$PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$TC', 'TEST commune des fichiers', 'TEST', 'TEST', 5000);" >/dev/null
+directeur_temporaire "$TC"
+trap fin EXIT
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
+[ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
+
+# Le citoyen s'inscrit comme tout citoyen, puis déclare son adresse dans la
+# commune de test : c'est elle qui fait « sa commune » (migration 054).
+code -X POST "$API/citizens/register" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$CIT_EMAIL\",\"password\":\"$CIT_MDP\",\"fullName\":\"TEST-F Citoyen\"}" >/dev/null
+T_CIT=$(tok "$CIT_EMAIL" "$CIT_MDP")
+CIT_ID=$(sql "SELECT c.id FROM users u JOIN citoyens c ON c.user_id = u.id WHERE u.email = '$CIT_EMAIL'")
+[ -n "$T_CIT" ] && [ -n "$CIT_ID" ] || { echo "Le citoyen d'essai n'a pas pu être créé." >&2; exit 1; }
+code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' \
+  -d "{\"communeId\":\"$TC\",\"adresse\":\"TEST-F, rue de test\"}" >/dev/null
+[ "$(sql "SELECT commune_id FROM citoyens WHERE id = '$CIT_ID'")" = "$TC" ] \
+  || { echo "Le citoyen d'essai n'a pas pu déclarer son adresse." >&2; exit 1; }
 
 # --- Les pièces à conviction, fabriquées ici pour ne dépendre d'aucun dépôt ---
 python3 - "$T" <<'PY'
@@ -185,72 +217,64 @@ chk "un identifiant inconnu rend 404" 404 \
 chk "un identifiant mal formé rend 400, pas 500" 400 \
     "$(code -H "Authorization: Bearer $T_DIR" "$API/fichiers/pas-un-uuid")"
 
+# Un administrateur d'une autre commune, en lecture seulement. S'il n'y en a
+# pas, le contrôle ÉCHOUE : une campagne ne saute pas un contrôle en silence.
 AUTRE_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id <> '$COMMUNE_DIR' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-if [ -n "$AUTRE_EMAIL" ]; then
-  T_AUTRE=$(tok "$AUTRE_EMAIL")
-  # INTROUVABLE et non « refusé » : un refus renseignerait sur son existence.
-  chk "l'administrateur d'une autre commune ne la trouve pas" 404 \
-      "$(code -H "Authorization: Bearer $T_AUTRE" "$API/fichiers/$FICHIER")"
-fi
+T_AUTRE=$([ -n "$AUTRE_EMAIL" ] && tok "$AUTRE_EMAIL")
+# INTROUVABLE et non « refusé » : un refus renseignerait sur son existence.
+chk "l'administrateur d'une autre commune ne la trouve pas" 404 \
+    "$([ -n "$T_AUTRE" ] && code -H "Authorization: Bearer $T_AUTRE" "$API/fichiers/$FICHIER" || echo "aucun administrateur d'une autre commune")"
 
 # -----------------------------------------------------------------------------
 echo
 echo "4. Le citoyen : sa photo, et la preuve qu'on lui doit"
-CIT_EMAIL=$(sql "SELECT u.email FROM users u JOIN citoyens c ON c.user_id=u.id WHERE u.role='citoyen' AND u.commune_id='$COMMUNE_DIR' AND u.deleted_at IS NULL AND u.is_active ORDER BY u.created_at LIMIT 1")
-CIT_ID=$(sql "SELECT c.id FROM users u JOIN citoyens c ON c.user_id=u.id WHERE u.email='$CIT_EMAIL'")
-if [ -n "$CIT_EMAIL" ]; then
-  T_CIT=$(tok "$CIT_EMAIL")
-  if [ -n "$T_CIT" ]; then
-    chk "un citoyen dépose une photo pour sa commune" 201 \
-        "$(depot gps.jpg 'TEST-F-citoyen.jpg' reclamation "$T_CIT" "$COMMUNE_DIR")"
-    SIENNE=$(val "['id']")
-    chk "il relit la sienne" 200 "$(code -H "Authorization: Bearer $T_CIT" "$API/fichiers/$SIENNE")"
-    chk "il ne voit pas celle de la commune" 404 "$(code -H "Authorization: Bearer $T_CIT" "$API/fichiers/$FICHIER")"
-    chk "et ne peut pas rendre la sienne publique" 403 \
-        "$(code -X PATCH -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' \
-           -d '{"visibilite":"publique"}' "$API/fichiers/$SIENNE")"
+chk "un citoyen dépose une photo pour sa commune" 201 \
+    "$(depot gps.jpg 'TEST-F-citoyen.jpg' reclamation "$T_CIT" "$COMMUNE_DIR")"
+SIENNE=$(val "['id']")
+chk "il relit la sienne" 200 "$(code -H "Authorization: Bearer $T_CIT" "$API/fichiers/$SIENNE")"
+chk "il ne voit pas celle de la commune" 404 "$(code -H "Authorization: Bearer $T_CIT" "$API/fichiers/$FICHIER")"
+chk "et ne peut pas rendre la sienne publique" 403 \
+    "$(code -X PATCH -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' \
+       -d '{"visibilite":"publique"}' "$API/fichiers/$SIENNE")"
 
-    # La preuve de traitement : déposée par la commune, lisible par LUI SEUL.
-    python3 -c "
+# La preuve de traitement : déposée par la commune, lisible par LUI SEUL.
+python3 -c "
 import json
 print(json.dumps({'nomFichier':'TEST-F-preuve.jpg','contenu':open('$T/gps.jpg.b64').read(),
-                  'usage':'preuve_traitement','destinataireCitoyenId':'$CIT_ID'}))" > "$T/corps.json"
-    chk "la commune dépose la preuve de traitement" 201 \
-        "$(code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
-           --data-binary "@$T/corps.json" "$API/fichiers?communeId=$COMMUNE_DIR")"
-    PREUVE=$(val "['id']")
-    chk "elle est bien adressée à ce citoyen" "citoyen" "$(val "['visibilite']")"
-    chk "le citoyen concerné la voit" 200 "$(code -H "Authorization: Bearer $T_CIT" "$API/fichiers/$PREUVE")"
+              'usage':'preuve_traitement','destinataireCitoyenId':'$CIT_ID'}))" > "$T/corps.json"
+chk "la commune dépose la preuve de traitement" 201 \
+    "$(code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+       --data-binary "@$T/corps.json" "$API/fichiers?communeId=$COMMUNE_DIR")"
+PREUVE=$(val "['id']")
+chk "elle est bien adressée à ce citoyen" "citoyen" "$(val "['visibilite']")"
+chk "le citoyen concerné la voit" 200 "$(code -H "Authorization: Bearer $T_CIT" "$API/fichiers/$PREUVE")"
 
-    # B5.1.3 de bout en bout. Le point vérifié ici est celui qui ne se voit
-    # nulle part à l'écran : une photo déposée sans destinataire est, par
-    # défaut, invisible du citoyen. C'est en CLÔTURANT la réclamation que
-    # l'API l'ouvre à son auteur — seul endroit où l'on sache à qui l'ouvrir.
-    # Si cette ouverture manquait, le citoyen recevrait une notification
-    # renvoyant vers une image qu'il n'a pas le droit de voir.
-    TICKET=$(sql "INSERT INTO tickets (ticket_number, commune_id, category, title, citizen_id, status)
-                  VALUES ('TEST-F-'||substr(md5(random()::text),1,8), '$COMMUNE_DIR', 'depot_sauvage',
-                          'TEST-F réclamation', '$CIT_ID', 'recu') RETURNING id")
-    if [ -n "$TICKET" ]; then
-      chk "une preuve déposée sans destinataire reste au service" 201 \
-          "$(depot gps.jpg 'TEST-F-preuve2.jpg' preuve_traitement)"
-      PREUVE2=$(val "['id']")
-      chk "et le citoyen ne la voit pas encore" 404 \
-          "$(code -H "Authorization: Bearer $T_CIT" "$API/fichiers/$PREUVE2")"
-      chk "la réclamation est close avec la preuve" 200 \
-          "$(code -X PATCH -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
-             -d "{\"status\":\"resolu\",\"resolvedPhotoUrl\":\"/fichiers/$PREUVE2\"}" \
-             "$API/tickets/$TICKET/treat")"
-      chk "la clôture a ouvert la photo à son auteur" "citoyen" \
-          "$(sql "SELECT visibilite FROM fichiers WHERE id='$PREUVE2'")"
-      chk "et à lui seul" "$CIT_ID" \
-          "$(sql "SELECT destinataire_citoyen_id FROM fichiers WHERE id='$PREUVE2'")"
-      chk "le citoyen la voit désormais" 200 \
-          "$(code -H "Authorization: Bearer $T_CIT" "$API/fichiers/$PREUVE2")"
-      $PSQL -c "DELETE FROM tickets WHERE id='$TICKET';" >/dev/null 2>&1
-    fi
-  fi
-fi
+# B5.1.3 de bout en bout. Le point vérifié ici est celui qui ne se voit
+# nulle part à l'écran : une photo déposée sans destinataire est, par
+# défaut, invisible du citoyen. C'est en CLÔTURANT la réclamation que
+# l'API l'ouvre à son auteur — seul endroit où l'on sache à qui l'ouvrir.
+# Si cette ouverture manquait, le citoyen recevrait une notification
+# renvoyant vers une image qu'il n'a pas le droit de voir.
+TICKET=$(sql "INSERT INTO tickets (ticket_number, commune_id, category, title, citizen_id, status)
+              VALUES ('TEST-F-'||substr(md5(random()::text),1,8), '$COMMUNE_DIR', 'point_noir',
+                      'TEST-F réclamation', '$CIT_ID', 'recu') RETURNING id")
+chk "la réclamation d'essai est ouverte" 1 "$([ -n "$TICKET" ] && echo 1 || echo 0)"
+  chk "une preuve déposée sans destinataire reste au service" 201 \
+      "$(depot gps.jpg 'TEST-F-preuve2.jpg' preuve_traitement)"
+  PREUVE2=$(val "['id']")
+  chk "et le citoyen ne la voit pas encore" 404 \
+      "$(code -H "Authorization: Bearer $T_CIT" "$API/fichiers/$PREUVE2")"
+  chk "la réclamation est close avec la preuve" 200 \
+      "$(code -X PATCH -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+         -d "{\"status\":\"resolu\",\"resolvedPhotoUrl\":\"/fichiers/$PREUVE2\"}" \
+         "$API/tickets/$TICKET/treat")"
+  chk "la clôture a ouvert la photo à son auteur" "citoyen" \
+      "$(sql "SELECT visibilite FROM fichiers WHERE id='$PREUVE2'")"
+  chk "et à lui seul" "$CIT_ID" \
+      "$(sql "SELECT destinataire_citoyen_id FROM fichiers WHERE id='$PREUVE2'")"
+  chk "le citoyen la voit désormais" 200 \
+      "$(code -H "Authorization: Bearer $T_CIT" "$API/fichiers/$PREUVE2")"
+  $PSQL -c "DELETE FROM tickets WHERE id='$TICKET';" >/dev/null 2>&1
 
 # -----------------------------------------------------------------------------
 echo
