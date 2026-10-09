@@ -60,6 +60,7 @@ services:
       JWT_EXPIRES_IN: 8h
       PORT: 4000
       SIIPI_FICHIERS_DIR: /var/siipi/fichiers
+      SIIPI_ARCHIVE_DIR: /var/siipi/archive
       CORS_ORIGIN: http://localhost:3000
       NODE_ENV: development
       # Notifications push (Jalon 2, lot 1) : paire de développement, comme un
@@ -75,6 +76,10 @@ services:
       # reconstruction du conteneur, et une sauvegarde du volume suffit à les
       # emporter — ils ne sont pas en base, volontairement.
       - siipi_fichiers:/var/siipi/fichiers
+      # L'archive froide des originaux de photos (D-FNCT-4) : un volume À PART,
+      # que la tâche de conservation refuse d'utiliser tant que
+      # « npm run medias:archive:initialiser » n'y a pas posé son témoin.
+      - siipi_archive_froide:/var/siipi/archive
     ports:
       - "4000:4000"
     depends_on:
@@ -117,5 +122,6 @@ services:
 volumes:
   siipi_postgres_data:
   siipi_fichiers:
+  siipi_archive_froide:
   api_node_modules:
   web_node_modules:

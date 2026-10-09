@@ -1488,9 +1488,9 @@ question technique.
 |---|---|---|
 | Zarzouna / El Hchachna (Bizerte) : la couche officielle et le référentiel listent des communes différentes | FNCT | ✅ **Tranchée** (D-FNCT-3, 9 octobre 2026 ; v0.15.22, migration 065) : Zarzouna est rattachée à la commune de Bizerte — retirée du référentiel, jamais effacée — et El Hchachna est une commune à part entière. La couche officielle était juste ; c'est la table des communes qui a été corrigée. 350 communes, chacune avec son contour. Source : Instance Prospective, arrêté conjoint en attente |
 | Les 5 districts FNCT : la base ne connaît que les 24 gouvernorats | FNCT | Aucune agrégation par district possible |
-| Homonymes dans la liste des communes (Ennour, Ezzouhour) | FNCT | ✅ **Tranchée** (D-FNCT-1, 9 octobre 2026 ; v0.15.21) : l'application citoyenne propose la commune qui contient la position du citoyen, qu'il confirme ; à défaut — refus, position hors de toute commune, ou « non » —, le gouvernorat puis la commune, affichée « Nom (Gouvernorat) ». Zarzouna n'a pas de contour dans le jeu de référence : on y passe au choix manuel |
+| Homonymes dans la liste des communes (Ennour, Ezzouhour) | FNCT | ✅ **Tranchée** (D-FNCT-1, 9 octobre 2026 ; v0.15.21) : l'application citoyenne propose la commune qui contient la position du citoyen, qu'il confirme ; à défaut — refus, position hors de toute commune, ou « non » —, le gouvernorat puis la commune, affichée « Nom (Gouvernorat) ». Depuis D-FNCT-3 (v0.15.22), chaque commune du référentiel a son contour |
 | Affectation réelle des équipes aux 13 tournées de Dar Chaabane | Commune | 13 lignes bloquantes au panneau de cohérence (base de référence, 9 octobre 2026 ; 14 étaient annoncées, voir JC-002) — préalable de R1, recompté par `recette:etat` |
-| Purge des fichiers retirés | FNCT | Le volume grossit ; rien n'est perdu |
+| Purge des fichiers retirés | FNCT | ✅ **Tranchée** (D-FNCT-4, 9 octobre 2026 ; v0.15.23, migration 066, campagne `purge-media`) : rien ne se purge. Textes, dates, statuts et localisations des réclamations sont conservés sans limite, comme toutes les métadonnées. À 36 mois, une photo est recompressée (JPEG qualité 70, 500 Ko au plus) : la version compressée reste en ligne — le citoyen la consulte toujours —, l'original part dans l'archive froide, où il est conservé sans limite. La FNCT en demande la restauration, servie sous 48 heures ; la compression, la demande et la restauration sont au journal d'audit. Tâche mensuelle dans l'API (`SIIPI_CONSERVATION_MEDIAS=active`), écran *Observatoire → Conservation des photos* |
 | Articles 4 et 13 du projet de décret, date de départ de sa période transitoire | FNCT / ministères | Le jalon 13 ne peut pas être spécifié en entier |
 | Date de la recette terrain (R1 chez Dar Chaâbane, R2 chez M'hamdia) | Communes / FNCT | Aucune version n'est *livrée* ; elles restent *développées* et éprouvées sur le jumeau |
 | Barème ANGeD en vigueur et sa date d'effet | ANGeD | Le coût complet garde une redevance « provisoire » |
@@ -1519,7 +1519,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **65 migrations** au 09/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **66 migrations** au 09/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

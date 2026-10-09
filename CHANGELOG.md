@@ -5,6 +5,84 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.23] — 2026-10-09 — D-FNCT-4 : conservation des photos — compressées à 36 mois, originaux en archive froide
+
+Décision de la FNCT du 9 octobre 2026. **Rien ne se purge.** Les textes, dates, statuts et
+localisations des réclamations sont conservés sans limite, comme toutes les métadonnées. Seule la
+forme des photos lourdes change : à 36 mois, la version compressée reste en ligne, indéfiniment, et
+l'original part dans l'archive froide — où il est conservé, lui aussi, sans limite (réponse de
+l'utilisateur du 9 octobre : la fenêtre de récupération « 37 à 48 mois » n'a plus de fin).
+
+### Ajouté
+- **Migration 066** :
+  - Paramètres (`app_parametres`, comme la conservation du journal en 014) : âge de compression
+    36 mois, qualité JPEG 70, 500 Ko au plus, restauration sous 48 heures.
+  - Une fiche de fichier **n'est jamais réécrite** : la compression *ajoute* des colonnes (date,
+    chemin et empreinte de la version compressée, chemin de l'original dans l'archive, date de
+    restauration). Nom, type, taille, empreinte, déposant, date et visibilité restent ceux du dépôt.
+    La base refuse une compression à moitié renseignée, et la compression d'un PDF.
+  - L'application ne peut plus modifier que la visibilité d'une fiche : « marquer compressée » une
+    photo entière lui est refusé par la base.
+  - Les fichiers entrent au **journal d'audit** (ils n'y étaient pas) ; la compression et la
+    restauration y figurent au nom de la tâche, la demande au nom de la FNCT.
+  - `passages_conservation_medias` (chaque passage : photos à l'âge, compressées, octets avant et
+    après, anomalies) et `demandes_restauration` (motif obligatoire, échéance), lisibles par la FNCT
+    seule ; une demande ne naît que par `app.demander_restauration()`, réservée à la FNCT.
+- **La tâche** (`src/services/conservationMedias.ts`), dans cet ordre pour chaque photo : relire
+  l'original et vérifier son empreinte ; le copier dans l'archive, relire la copie, la vérifier ;
+  écrire la version compressée (JPEG qualité 70, réduite par paliers jusqu'à 500 Ko) ; marquer la
+  fiche ; et seulement alors retirer l'original du volume courant. Un original qui ne correspond
+  plus à sa fiche n'est ni archivé ni restauré : l'écart est consigné (règle d'or 1.5).
+  - **Mensuelle** dans l'API, avec `SIIPI_CONSERVATION_MEDIAS=active` (activée dans
+    `docker-compose.prod.yml`) : vérification horaire ; les restaurations en attente sont servies, et
+    le passage national a lieu une fois par mois (heure de Tunis).
+  - **À la main** : `npm run medias:compresser`, `medias:restaurer`, `medias:archive:initialiser`
+    (variantes `:prod`) ; `-- --commune <id>` restreint un passage à une commune.
+  - **L'archive doit être montée, et le dire** : sans le fichier témoin posé par
+    `medias:archive:initialiser`, la tâche refuse le passage et ne touche à rien. Un dossier absent se
+    créerait tout seul dans le conteneur — et les originaux disparaîtraient à sa reconstruction.
+- **Routes** (FNCT) : `GET /fichiers/conservation`, `POST /fichiers/{id}/restauration`,
+  `GET /fichiers/{id}/original`. `GET /fichiers/{id}` sert la version compressée, à la même
+  adresse : le citoyen consulte toujours sa photo.
+- **Écran** *Observatoire → Outils de la FNCT → Conservation des photos* : la règle, les passages
+  (et leurs refus), les demandes avec leur échéance et leur retard, le formulaire de demande. Français
+  et arabe.
+- **Volume** `siipi_archive_froide` dans les deux fichiers Compose ; dépendance `sharp` (0.34.5).
+- **Campagne `purge-media`** : elle commence par ce qui est refusé, bâtit ses données (commune,
+  directeur, citoyen, images fabriquées par la bibliothèque de l'API) et ne lance la tâche que sur
+  sa commune.
+
+### Corrigé
+- **JC-008** : l'image de production ne préparait pas le dossier de ses volumes ; un volume neuf
+  naissait à root et l'utilisateur `node` n'y écrivait pas — aucun dépôt n'aurait abouti en
+  production. L'image prépare désormais `/var/siipi/fichiers` et `/var/siipi/archive`.
+
+### Mise à jour d'une installation existante
+`npm run migrate`. En production, monter le volume de l'archive froide, lancer une fois
+`npm run medias:archive:initialiser:prod`, et sauvegarder ce volume **à part** : c'est la seule
+copie des originaux. En développement, la tâche mensuelle reste inactive.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 66 migrations ; la 066 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat **302/302**, **45 bilans, 1 783 tests réussis, aucun
+  échec** (`purge-media` : 59 contrôles — refus d'abord ; sans archive, passage refusé et rien de
+  touché ; la photo de 37 mois compressée et servie en JPEG de 500 Ko au plus, celle de 30 mois
+  intacte, une image de rapport et un PDF intacts ; fiche et texte de la réclamation identiques
+  avant et après ; original identique dans l'archive et retiré du volume courant ; audit de la
+  compression, de la demande et de la restauration ; un original altéré jamais restauré).
+  Recomptage : 45 campagnes présentes, 45 enchaînées.
+- `audit-blocs.py` : 28 blocs sous condition, tous leurs contrôles ont tourné. `npm run lint`
+  backend et web (TypeScript 5.8.3) : code 0.
+- Planificateur réel (seconde API, `SIIPI_CONSERVATION_MEDIAS=active`) : sans archive, passage
+  refusé ; moins d'un jour après ce refus, aucune nouvelle tentative ; archive initialisée, passage
+  terminé ; le passage du mois fait, aucun autre.
+- Image de production reconstruite : `sharp` 0.34.5 chargé, tâche compilée présente, volumes neufs
+  `fichiers` et `archive` accessibles en écriture à `node` (JC-008).
+- Navigateur (pile d'essai, compte FNCT) : une photo de 37 mois compressée de 1 344 Ko à 451 Ko ;
+  le passage refusé faute d'archive affiché avec son motif ; la demande faite depuis le formulaire,
+  échéance à 48 heures, puis restaurée ; en arabe, de droite à gauche, noms des communes en arabe,
+  sans défilement horizontal à 375 px.
+
 ## [0.15.22] — 2026-10-09 — D-FNCT-3 : Zarzouna rattachée à Bizerte, El Hchachna commune à part entière
 
 Décision de la FNCT du 9 octobre 2026. La couche officielle des contours (350 communes) et le

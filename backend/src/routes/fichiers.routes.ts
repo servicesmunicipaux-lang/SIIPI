@@ -45,7 +45,8 @@ const USAGES = [
 const FICHE = `
   SELECT f.id, f.commune_id, f.nom_original, f.type_mime, f.taille_octets,
          f.sha256, f.visibilite, f.destinataire_citoyen_id, f.usage,
-         f.televerse_par, f.created_at
+         f.televerse_par, f.created_at, f.compressee_le, f.taille_compressee_octets,
+         f.original_restaure_le
     FROM fichiers f
 `;
 
@@ -179,14 +180,59 @@ fichiersRouter.get(
   })
 );
 
+// La conservation des photos (D-FNCT-4), vue de la FNCT : les passages de la
+// tâche mensuelle, les demandes de restauration et leur échéance. Déclarée
+// avant « /:id », comme « /occupation ».
+fichiersRouter.get(
+  '/conservation',
+  requireAuth,
+  requireRole('super_admin_fnct'),
+  asyncHandler(async (_req, res) => {
+    const [parametres, passages, demandes, compteurs] = await Promise.all([
+      query(`SELECT cle, valeur FROM app_parametres WHERE cle LIKE 'medias.%' ORDER BY cle`),
+      query(
+        `SELECT p.id::int AS id, p.debut, p.fin, p.declenche_par, p.perimetre, c.name AS perimetre_nom, c.name_ar AS perimetre_nom_ar,
+                p.statut, p.motif_refus, p.photos_eligibles, p.photos_compressees,
+                p.octets_avant::float8 AS octets_avant, p.octets_apres::float8 AS octets_apres, p.anomalies
+           FROM passages_conservation_medias p
+           LEFT JOIN communes c ON c.id = p.perimetre
+          ORDER BY p.debut DESC LIMIT 12`
+      ),
+      query(
+        `SELECT d.id, d.fichier_id, d.commune_id, c.name AS commune, c.name_ar AS commune_ar, f.nom_original, d.motif,
+                d.demandee_le, d.echeance, d.statut, d.restauree_le, d.tentatives,
+                d.derniere_tentative_le, d.derniere_erreur,
+                (d.statut = 'demandee' AND d.echeance < now()) AS en_retard
+           FROM demandes_restauration d
+           JOIN fichiers f ON f.id = d.fichier_id
+           JOIN communes c ON c.id = d.commune_id
+          ORDER BY (d.statut = 'demandee') DESC, d.demandee_le DESC
+          LIMIT 100`
+      ),
+      queryOne(
+        `SELECT count(*) FILTER (WHERE compressee_le IS NOT NULL)::int AS photos_compressees,
+                count(*) FILTER (WHERE compressee_le IS NULL
+                                   AND type_mime IN ('image/jpeg', 'image/png', 'image/webp')
+                                   AND coalesce(usage, 'autre') NOT IN ('rapport_etude', 'document_projet')
+                                   AND created_at < now() - (SELECT valeur::interval FROM app_parametres
+                                                               WHERE cle = 'medias.delai_compression')
+                               )::int AS photos_en_attente
+           FROM fichiers`
+      ),
+    ]);
+    res.json({ parametres, passages, demandes, ...compteurs });
+  })
+);
+
 fichiersRouter.get(
   '/:id',
   requireAuth,
   asyncHandler(async (req, res) => {
     const f = await queryOne<{
       chemin_relatif: string; type_mime: string; nom_original: string; sha256: string;
+      chemin_compresse: string | null; sha256_compresse: string | null;
     }>(
-      `SELECT chemin_relatif, type_mime, nom_original, sha256
+      `SELECT chemin_relatif, type_mime, nom_original, sha256, chemin_compresse, sha256_compresse
          FROM fichiers WHERE id = $1 AND deleted_at IS NULL`,
       [req.params.id]
     );
@@ -195,9 +241,16 @@ fichiersRouter.get(
     // son existence.
     if (!f) throw new ApiError(404, 'Fichier introuvable.');
 
+    // Une photo de plus de 36 mois est servie dans sa version compressée
+    // (D-FNCT-4) : le citoyen la consulte toujours, à la même adresse. La fiche,
+    // elle, garde le type et l'empreinte de l'original.
+    const servi = f.chemin_compresse && f.sha256_compresse
+      ? { chemin: f.chemin_compresse, type: 'image/jpeg', etag: f.sha256_compresse }
+      : { chemin: f.chemin_relatif, type: f.type_mime, etag: f.sha256 };
+
     let octets: Buffer;
     try {
-      octets = await lire(f.chemin_relatif);
+      octets = await lire(servi.chemin);
     } catch {
       // La fiche existe, les octets non. C'est un volume non monté ou une
       // sauvegarde restaurée à moitié — à dire franchement plutôt qu'à
@@ -208,7 +261,7 @@ fichiersRouter.get(
       );
     }
 
-    res.setHeader('Content-Type', f.type_mime);
+    res.setHeader('Content-Type', servi.type);
     // « inline » pour qu'une photo s'affiche, mais en interdisant au navigateur
     // de deviner un autre type que celui annoncé : un fichier servi depuis un
     // stockage d'utilisateurs ne doit jamais pouvoir être pris pour du HTML.
@@ -218,11 +271,86 @@ fichiersRouter.get(
     // doit en garder copie. Le contenu ne changeant jamais, l'empreinte sert
     // d'ETag et évite de le retransmettre à chaque affichage.
     res.setHeader('Cache-Control', 'private, max-age=3600');
-    res.setHeader('ETag', `"${f.sha256}"`);
-    if (req.headers['if-none-match'] === `"${f.sha256}"`) {
+    res.setHeader('ETag', `"${servi.etag}"`);
+    if (req.headers['if-none-match'] === `"${servi.etag}"`) {
       res.status(304).end();
       return;
     }
+    res.send(octets);
+  })
+);
+
+// Demander la restauration de l'original d'une photo compressée (D-FNCT-4).
+// La base porte les règles (app.demander_restauration, migration 066) ; la
+// restauration elle-même est faite par la tâche de conservation, dès que
+// l'archive froide est accessible — l'échéance est de 48 heures.
+const ERREURS_RESTAURATION: Record<string, number> = {
+  RESTAURATION_FICHIER_INTROUVABLE: 404,
+  RESTAURATION_NON_COMPRESSEE: 409,
+  RESTAURATION_DEJA_FAITE: 409,
+  RESTAURATION_DEJA_DEMANDEE: 409,
+  RESTAURATION_MOTIF: 400,
+};
+
+export const demandeRestaurationSchema = z.object({
+  motif: z.string().trim().min(10).max(1000),
+}).strict();
+
+fichiersRouter.post(
+  '/:id/restauration',
+  requireAuth,
+  requireRole('super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const d = demandeRestaurationSchema.parse(req.body);
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new ApiError(404, 'Fichier introuvable.');
+    try {
+      const demande = await queryOne('SELECT * FROM app.demander_restauration($1, $2)', [req.params.id, d.motif]);
+      res.status(201).json(demande);
+    } catch (err) {
+      const m = (err as { message?: string }).message ?? '';
+      const code = m.split(':')[0];
+      const statut = ERREURS_RESTAURATION[code];
+      if (statut) throw new ApiError(statut, m.slice(code.length + 2));
+      throw err;
+    }
+  })
+);
+
+// L'original restauré, pour la FNCT seule : la version compressée reste celle
+// que tout le monde voit.
+fichiersRouter.get(
+  '/:id/original',
+  requireAuth,
+  requireRole('super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new ApiError(404, 'Fichier introuvable.');
+    const f = await queryOne<{
+      chemin_relatif: string; type_mime: string; compressee_le: string | null; original_restaure_le: string | null;
+    }>(
+      `SELECT chemin_relatif, type_mime, compressee_le, original_restaure_le
+         FROM fichiers WHERE id = $1`,
+      [req.params.id]
+    );
+    if (!f) throw new ApiError(404, 'Fichier introuvable.');
+    if (!f.compressee_le) {
+      throw new ApiError(409, "Ce fichier n'a pas été compressé : son original est celui que sert GET /fichiers/{id}.");
+    }
+    if (!f.original_restaure_le) {
+      throw new ApiError(
+        409,
+        "L'original de cette photo est dans l'archive froide. Demander sa restauration (POST /fichiers/{id}/restauration) ; elle est faite sous 48 heures."
+      );
+    }
+    let octets: Buffer;
+    try {
+      octets = await lire(f.chemin_relatif);
+    } catch {
+      throw new ApiError(503, "L'original a été restauré mais ses octets sont introuvables sur le volume de stockage. Vérifier que le volume est bien monté.");
+    }
+    res.setHeader('Content-Type', f.type_mime);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Cache-Control', 'private, no-store');
     res.send(octets);
   })
 );

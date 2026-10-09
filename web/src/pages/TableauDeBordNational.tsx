@@ -9,6 +9,7 @@ import { DecoupageCommunal } from '../composants/national/DecoupageCommunal';
 import { PropositionsDecoupage } from '../composants/national/PropositionsDecoupage';
 import { KpiNational } from '../composants/national/KpiNational';
 import { ModeDemo } from '../composants/national/ModeDemo';
+import { ConservationPhotos } from '../composants/national/ConservationPhotos';
 import { ParametresNationaux } from '../composants/national/ParametresNationaux';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
@@ -78,7 +79,7 @@ function sansAccent(texte: string): string {
 // Concours, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
 // bas. Même défaut que les dix-sept onglets du portail communal — ce qu'on ne
 // voit pas, on ne sait pas que ça existe — et même remède : la barre latérale.
-type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'parametres' | 'demo';
+type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'parametres' | 'conservation' | 'demo';
 
 const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   { cle: 'synthese',    pole: 'cockpit' },
@@ -88,6 +89,8 @@ const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   // Le jumeau numérique (lot S1) : un outil de la FNCT, pas une donnée nationale.
   // Les paramètres nationaux datés (lot 17.3) : redevance ANGeD, en-têtes.
   { cle: 'parametres',  pole: 'administration' },
+  // La conservation des photos (D-FNCT-4) : passages de la tâche, restaurations.
+  { cle: 'conservation', pole: 'administration' },
   { cle: 'demo',        pole: 'administration' },
 ];
 
@@ -307,6 +310,7 @@ export function TableauDeBordNational() {
       {onglet === 'performance' && <KpiNational onOuvrirCommune={setCommuneKpi} />}
       {onglet === 'demo' && <ModeDemo />}
       {onglet === 'parametres' && <ParametresNationaux />}
+      {onglet === 'conservation' && <ConservationPhotos />}
 
       {onglet === 'deploiement' && (
       <>

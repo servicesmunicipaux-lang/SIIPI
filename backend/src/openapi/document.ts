@@ -73,7 +73,7 @@ import {
 import { valeurParametreSchema, retraitValeurSchema } from '../routes/parametresNationaux.routes.js';
 import { chargementEtudeSchema } from '../routes/coutComplet.routes.js';
 import { inscriptionActeurSchema, faitsActeurSchema, demarcheSchema } from '../routes/acteursInformels.routes.js';
-import { fichierDepotSchema } from '../routes/fichiers.routes.js';
+import { demandeRestaurationSchema, fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
 import {
@@ -5696,6 +5696,14 @@ const Fichier = registry.register(
     usage: z.enum(USAGES_FICHIER).nullable(),
     televerse_par: z.string().uuid().nullable(),
     created_at: z.string(),
+    compressee_le: z.string().nullable().openapi({
+      description:
+        "Date de la compression de conservation (D-FNCT-4) : à 36 mois, une photo est servie en JPEG qualité 70, 500 Ko au plus, et son original part dans l'archive froide. type_mime, taille_octets et sha256 restent ceux de l'ORIGINAL — la fiche du dépôt n'est jamais réécrite.",
+    }),
+    taille_compressee_octets: z.number().int().nullable().openapi({ description: 'Poids de la version compressée servie.' }),
+    original_restaure_le: z.string().nullable().openapi({
+      description: "Date de restauration de l'original depuis l'archive froide, sur demande de la FNCT.",
+    }),
   })
 );
 
@@ -5751,13 +5759,133 @@ registry.registerPath({
   },
 });
 
+const PassageConservation = registry.register(
+  'PassageConservation',
+  z.object({
+    id: z.number().int(),
+    debut: z.string(),
+    fin: z.string().nullable(),
+    declenche_par: z.enum(['planificateur', 'commande']),
+    perimetre: z.string().nullable().openapi({ description: 'NULL : le passage national du mois. Une commune : un passage restreint lancé à la main.' }),
+    perimetre_nom: z.string().nullable().optional().openapi({ description: 'Nom de la commune du périmètre, pour l’affichage.' }),
+    perimetre_nom_ar: z.string().nullable().optional(),
+    statut: z.enum(['en_cours', 'termine', 'refuse']).openapi({
+      description: '« refuse » : le passage n’a touché à rien — archive froide absente ou non initialisée, par exemple. Le motif le dit.',
+    }),
+    motif_refus: z.string().nullable(),
+    photos_eligibles: z.number().int().openapi({ description: 'Photos de plus de 36 mois encore entières au début du passage.' }),
+    photos_compressees: z.number().int(),
+    octets_avant: z.number(),
+    octets_apres: z.number(),
+    anomalies: z.array(z.object({ fichier: z.string(), raison: z.string() })).openapi({
+      description:
+        'Photos laissées entières, et pourquoi (original introuvable, empreinte différente de la fiche, image illisible…). Constatées, jamais « réparées » : elles seront reprises au passage suivant.',
+    }),
+  })
+);
+
+const DemandeRestauration = registry.register(
+  'DemandeRestauration',
+  z.object({
+    id: z.string().uuid(),
+    fichier_id: z.string().uuid(),
+    commune_id: z.string(),
+    motif: z.string(),
+    demandee_par: z.string().uuid().nullable(),
+    demandee_le: z.string(),
+    echeance: z.string().openapi({ description: 'Date de la demande plus le délai de restauration (48 heures).' }),
+    statut: z.enum(['demandee', 'restauree']),
+    restauree_le: z.string().nullable(),
+    tentatives: z.number().int(),
+    derniere_tentative_le: z.string().nullable(),
+    derniere_erreur: z.string().nullable().openapi({
+      description: 'archive_absente, original_introuvable ou empreinte_differente. Un original qui ne correspond plus à sa fiche n’est jamais restauré.',
+    }),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/fichiers/conservation',
+  tags: ['Fichiers'],
+  summary: 'Conservation des photos : passages et restaurations (FNCT)',
+  description:
+    "La tâche mensuelle de conservation (D-FNCT-4) vue de la FNCT : ses paramètres, ses douze derniers passages, les demandes de restauration — les ouvertes d'abord, avec leur échéance et leur retard éventuel — et deux compteurs nationaux.",
+  security: SECURISE,
+  responses: {
+    200: json(
+      z.object({
+        parametres: z.array(z.object({ cle: z.string(), valeur: z.string() })),
+        passages: z.array(PassageConservation),
+        demandes: z.array(
+          DemandeRestauration.omit({ demandee_par: true }).extend({
+            commune: z.string(),
+            commune_ar: z.string().nullable(),
+            nom_original: z.string(),
+            en_retard: z.boolean().openapi({ description: 'Encore ouverte alors que l’échéance est passée.' }),
+          })
+        ),
+        photos_compressees: z.number().int(),
+        photos_en_attente: z.number().int().openapi({
+          description: 'Photos qui ont l’âge et sont encore entières : ce que le prochain passage compressera.',
+        }),
+      }),
+      'État de la conservation.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/fichiers/{id}/restauration',
+  tags: ['Fichiers'],
+  summary: "Demander la restauration d'un original (FNCT)",
+  description:
+    "L'original d'une photo compressée est dans l'archive froide. La FNCT seule en demande la restauration, motif à l'appui ; la tâche de conservation la sert dès que l'archive est accessible, sous 48 heures. 409 si la photo n'est pas compressée, déjà restaurée, ou si une demande est déjà ouverte. La demande et la restauration sont au journal d'audit.",
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: demandeRestaurationSchema } } },
+  },
+  responses: {
+    201: json(DemandeRestauration, 'Demande ouverte.'),
+    409: { description: 'Rien à restaurer, déjà restauré, ou déjà demandé.' },
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/fichiers/{id}/original',
+  tags: ['Fichiers'],
+  summary: "Lire l'original restauré (FNCT)",
+  description:
+    "Les octets de l'original, une fois restauré depuis l'archive froide. Réservé à la FNCT : la version compressée reste celle que tout le monde voit. 409 tant que la photo n'est pas compressée, ou que son original n'est pas restauré.",
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: {
+      description: "Les octets de l'original.",
+      content: {
+        'image/jpeg': { schema: { type: 'string', format: 'binary' } as any },
+        'image/png': { schema: { type: 'string', format: 'binary' } as any },
+        'image/webp': { schema: { type: 'string', format: 'binary' } as any },
+      },
+    },
+    409: { description: 'Pas compressée, ou original pas encore restauré.' },
+    503: { description: "Restauré, mais les octets sont introuvables sur le volume." },
+    ...REPONSES_COMMUNES,
+  },
+});
+
 registry.registerPath({
   method: 'get',
   path: '/fichiers/{id}',
   tags: ['Fichiers'],
   summary: 'Lire les octets',
   description:
-    "Servi avec le type réel et « nosniff » : un fichier déposé par un utilisateur ne doit jamais pouvoir être pris pour du HTML par un navigateur. Un fichier hors du périmètre de l'appelant est INTROUVABLE (404) et non refusé — un refus renseignerait sur son existence.",
+    "Servi avec le type réel et « nosniff » : un fichier déposé par un utilisateur ne doit jamais pouvoir être pris pour du HTML par un navigateur. Un fichier hors du périmètre de l'appelant est INTROUVABLE (404) et non refusé — un refus renseignerait sur son existence. Une photo compressée (D-FNCT-4) est servie dans sa version compressée, en JPEG, à la même adresse : le citoyen la consulte toujours.",
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: {
@@ -5806,7 +5934,7 @@ registry.registerPath({
   tags: ['Fichiers'],
   summary: 'Retirer un fichier',
   description:
-    "Retrait LOGIQUE. Les octets restent sur le volume : les effacer relève d'une purge datée, pas du geste d'un utilisateur. Tant qu'elle n'existe pas, mieux vaut un disque qui grossit qu'une pièce justificative qui disparaît d'un clic.",
+    "Retrait LOGIQUE. Les octets restent sur le volume : aucun geste d'un utilisateur ne les efface. Seule la tâche de conservation (D-FNCT-4) change leur forme, à 36 mois : version compressée en ligne, original dans l'archive froide — jamais détruit.",
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: { 204: { description: 'Fichier retiré.' }, ...REPONSES_COMMUNES },
@@ -6630,7 +6758,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.22',
+      version: '0.15.23',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

@@ -206,6 +206,8 @@ export type ActeurInformel = RegistreActeursInformels['acteurs'][number];
 export type DemarcheFormalisation = Reponse<'/acteurs-informels/{id}/demarches', 'get'>[number];
 export type CadreSecteurInformel = Reponse<'/observatoire/cadre-secteur-informel', 'get'>;
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
+export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
+export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
 export type ControleTerrain = Reponse<'/circuits/controles', 'get'>[number];
 export type PerformancePrestataire = Reponse<'/circuits/performance', 'get'>[number];
 export type LigneConfrontation = Reponse<'/passages/confrontation', 'get'>[number];
@@ -1103,6 +1105,13 @@ export const api = {
   cadreSecteurInformel: () => requete<CadreSecteurInformel>('/observatoire/cadre-secteur-informel'),
   // D-FNCT-3 : les corrections du référentiel des communes, avec leur source.
   correctionsReferentiel: () => requete<CorrectionReferentiel[]>('/observatoire/corrections-referentiel'),
+  // Conservation des photos (D-FNCT-4) : réservé à la FNCT.
+  etatConservation: () => requete<EtatConservation>('/fichiers/conservation'),
+  demanderRestauration: (fichierId: string, motif: string) =>
+    requete<DemandeRestauration>(`/fichiers/${encodeURIComponent(fichierId)}/restauration`, {
+      method: 'POST',
+      body: JSON.stringify({ motif }),
+    }),
   changerCadreSecteurInformel: (saisie: Corps<'/observatoire/cadre-secteur-informel', 'put'>) =>
     requete<CadreSecteurInformel>('/observatoire/cadre-secteur-informel', { method: 'PUT', body: JSON.stringify(saisie) }),
   // --- Lot 17.3 : paramètres nationaux historisés (écriture : FNCT) ----------

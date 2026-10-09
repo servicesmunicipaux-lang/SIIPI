@@ -132,7 +132,8 @@
       "performance": "Concours & 5 axes",
       "deploiement": "Déploiement par gouvernorat",
       "parametres": "Paramètres nationaux",
-      "demo": "Mode démo"
+      "demo": "Mode démo",
+      "conservation": "Conservation des photos"
     },
     "demo": {
       "titre": "Mode démo — le jumeau numérique",
@@ -212,6 +213,52 @@
         "creee": "{{commune}} : commune à part entière.",
         "source": "Source : {{source}}."
       }
+    },
+    "conservation": {
+      "titre": "Conservation des photos",
+      "intro": "Décision D-FNCT-4 du 9 octobre 2026. Les textes, dates, statuts et localisations des réclamations sont conservés sans limite. Une photo est recompressée à son âge de conservation : la version compressée reste en ligne, et c'est elle que tout le monde voit ; l'original part dans l'archive froide, où il est gardé sans limite. Rien n'est effacé.",
+      "regle": "À {{mois}} mois, une photo est recompressée en JPEG qualité {{qualite}}, {{taille}} Ko au plus. Un original archivé est restauré sous {{heures}} heures après la demande.",
+      "compressees": "Photos compressées",
+      "enAttente": "Photos à l'âge, encore entières",
+      "passages": "Passages de la tâche",
+      "aucunPassage": "La tâche n'est encore jamais passée.",
+      "declencheur": {
+        "planificateur": "passage mensuel",
+        "commande": "lancé à la main"
+      },
+      "restreint": "restreint à {{commune}}",
+      "statutPassage": {
+        "en_cours": "en cours",
+        "termine": "terminé",
+        "refuse": "refusé — aucune photo touchée"
+      },
+      "bilan": "{{compressees}} photo(s) compressée(s) sur {{eligibles}} ; {{avant}} → {{apres}}.",
+      "ko": "Ko",
+      "anomalies": "Photos laissées entières : {{count}}",
+      "raisons": {
+        "archive_absente": "l'archive froide n'est pas accessible",
+        "original_introuvable": "l'original est introuvable",
+        "empreinte_differente": "l'original ne correspond plus à sa fiche",
+        "image_illisible": "l'image n'a pas pu être lue",
+        "archive_occupee": "l'archive porte déjà un autre fichier à cet emplacement",
+        "archive_illisible": "la copie archivée n'a pas pu être relue",
+        "deja_compressee": "déjà compressée par un autre passage",
+        "original_non_retire_du_volume": "archivée et compressée ; l'original n'a pas pu quitter le volume courant"
+      },
+      "demandes": "Demandes de restauration",
+      "aucuneDemande": "Aucune demande de restauration.",
+      "ouverte": "en attente",
+      "enRetard": "en retard",
+      "restauree": "restaurée le {{date}}",
+      "echeance": "Demandée le {{demandee}} — échéance le {{echeance}}",
+      "derniereTentative": "Dernière tentative : {{raison}} ({{tentatives}} tentative(s)).",
+      "demander": "Demander l'original d'une photo",
+      "demanderAide": "L'identifiant est celui du fichier (il figure dans l'adresse de la photo, après /fichiers/). La restauration est faite par la tâche de conservation dès que l'archive froide est branchée.",
+      "fichier": "Identifiant du fichier",
+      "motif": "Motif de la demande (dix caractères au moins)",
+      "envoyer": "Demander la restauration",
+      "envoi": "Envoi…",
+      "demandeOuverte": "Demande ouverte. Échéance : {{echeance}}."
     }
   },
   "commun": {
