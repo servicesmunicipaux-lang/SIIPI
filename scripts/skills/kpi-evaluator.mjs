@@ -56,8 +56,11 @@ console.log(`\nCommune : ${commune}   Exercice : ${annee}\n`);
 const auto = new Map(
   sql(`SELECT code, valeur::text FROM app.mesures_kpi_auto(${annee}) WHERE commune_id = '${commune}'`)
 );
+// Les valeurs déclarées par la commune (migration 068) : la déclaration en
+// vigueur de l'année entière, jamais une ligne retirée.
 const declare = new Map(
-  sql(`SELECT code, valeur::text FROM app.mesures_kpi(${annee}) WHERE commune_id = '${commune}'`)
+  sql(`SELECT indicateur_code, valeur::text FROM declarations_indicateurs
+        WHERE commune_id = '${commune}' AND annee = ${annee} AND mois IS NULL AND deleted_at IS NULL`)
 );
 
 const codes = [...new Set([...auto.keys(), ...declare.keys()])].sort();
@@ -114,8 +117,8 @@ console.log('\n  Garde-fous en base');
 console.log('  ' + '-'.repeat(68));
 const garde = sql(`
   SELECT count(*)::text FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid
-   WHERE c.relname = 'valeurs_kpi' AND NOT t.tgisinternal`);
-console.log(`  déclencheurs de contrôle sur valeurs_kpi : ${garde[0]?.[0] ?? 0}`);
+   WHERE c.relname = 'declarations_indicateurs' AND NOT t.tgisinternal`);
+console.log(`  déclencheurs de contrôle sur declarations_indicateurs : ${garde[0]?.[0] ?? 0}`);
 if ((garde[0]?.[0] ?? 0) === '0') {
   console.log(rouge('      ✗ aucun contrôle : une valeur hors bornes entrerait sans bruit'));
   alertes++;

@@ -176,7 +176,7 @@ chk "annuaire avec avecDemo=1 (sélecteur de la FNCT) : présente, et marquée" 
     "$(val "sum(1 for c in d if c['id']=='$DEMO')")|$(val "[c['est_demo'] for c in d if c['id']=='$DEMO'][0]")"
 appel GET /communes/stats "$T_FNCT" >/dev/null
 chk "statistiques nationales : elle n'est pas comptée" "$NB_REELLES" "$(val "d['total_communes']")"
-for chemin in /kpi/concours-national /kpi/national /kpi/dma /kpi/alertes; do
+for chemin in /kpi/national /kpi/dma /kpi/alertes; do
   CODE=$(appel GET "$chemin?annee=2026" "$T_FNCT")
   chk "$chemin : répond, sans la commune de démonstration" "200|0" "$CODE|$(grep -c "$DEMO" "$T/r.json")"
 done

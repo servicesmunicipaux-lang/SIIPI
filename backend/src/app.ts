@@ -216,7 +216,8 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/points', attributsPointsRouter],
   // Propositions de découpage, validation FNCT et versions (Jalon 7, C2.5/C2.6).
   ['/decoupage', decoupageRouter],
-  // Tableau de bord KPI 5 axes, Concours national, préparation DMA (Jalon 8).
+  // Tableau de bord des indicateurs (5 axes) et préparation DMA (Jalon 8 ;
+  // refonte, lot 1 : déclarations de la commune).
   // Même préfixe que les routes KPI d'origine : chemins distincts.
   ['/kpi', kpi5AxesRouter],
   // Les registres qui automatisent les sources des KPI (lot « sources KPI »).

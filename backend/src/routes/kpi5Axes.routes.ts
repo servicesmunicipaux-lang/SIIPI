@@ -1,13 +1,15 @@
-// Le tableau de bord KPI 5 axes, le Concours national de propreté et la
-// préparation au décret DMA — Jalon 8 (TDR §3.2.10, A2.3, A3.1, A3.3, B7.4).
+// Le tableau de bord des indicateurs (5 axes) et la préparation au décret
+// DMA — Jalon 8 (TDR §3.2.10, A2.3, A3.1, A3.3, B7.4), refondu au lot 1 de la
+// refonte : plus de barème, de note ni de classement, plus de validation des
+// valeurs déclarées (SPEC_refonte_indicateurs_saisie.md, D1 et D3).
 //
 // Les calculs sont dans services/kpi5Axes.ts ; ici, les droits, les
-// paramètres de requête, la fiche d'évaluation et ses étapes.
+// paramètres de requête et les déclarations.
 //
 // QUI VOIT QUOI.
-//   - La commune : ses propres indicateurs et sa fiche d'évaluation.
-//   - La FNCT : tout, les classements et les agrégations, les alertes, le
-//     barème, les districts, et la validation des fiches.
+//   - La commune : ses propres indicateurs, et les valeurs qu'elle déclare.
+//   - La FNCT : tout, les agrégations, les alertes, les seuils, les districts ;
+//     elle commente une déclaration, elle ne la saisit ni ne la bloque.
 //   - Le prestataire : ses propres indicateurs de service (B7.4), rien de la
 //     commune au-delà.
 
@@ -17,18 +19,7 @@ import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
-import { exportable } from '../services/export.js';
-import { JEU_CONCOURS } from '../services/jeuxExport.js';
-import {
-  agreger,
-  calculerCommune,
-  catalogue,
-  charger,
-  classement,
-  marquerOfficiel,
-  parametres,
-  type Niveau,
-} from '../services/kpi5Axes.js';
+import { agreger, calculerCommune, catalogue, charger, parametres, type Niveau } from '../services/kpi5Axes.js';
 
 export const kpi5AxesRouter = Router();
 
@@ -42,7 +33,6 @@ const qAnnee = z.object({ annee: anneeSchema.optional() });
 const qNiveau = z.object({
   annee: anneeSchema.optional(),
   niveau: z.enum(['commune', 'gouvernorat', 'district', 'national']).default('commune'),
-  officiel: z.enum(['true', 'false']).optional(),
 });
 
 /** Une commune que l'appelant peut lire comme commune ou comme FNCT — sinon 404. */
@@ -58,7 +48,7 @@ async function districts() {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Le catalogue, le barème, les paramètres nationaux
+// 1. Le catalogue et les seuils nationaux
 // ---------------------------------------------------------------------------
 
 kpi5AxesRouter.get(
@@ -70,54 +60,12 @@ kpi5AxesRouter.get(
   })
 );
 
-export const baremeSchema = z.object({
-  // Les points des 19 indicateurs du Concours, tous ; leur somme fait 100.
-  points: z.record(z.string(), z.number().min(0).max(100)),
-  // Vrai : la FNCT confirme que c'est le barème ministériel — l'écran
-  // cesse de le dire provisoire.
-  confirmer: z.boolean().optional(),
-});
-
-kpi5AxesRouter.put(
-  '/bareme',
-  requireAuth,
-  requireRole('super_admin_fnct'),
-  asyncHandler(async (req, res) => {
-    const d = baremeSchema.parse(req.body);
-    const codes = (await catalogue()).filter((i) => i.famille === 'concours').map((i) => i.code);
-    const manquants = codes.filter((c) => !(c in d.points));
-    const inconnus = Object.keys(d.points).filter((c) => !codes.includes(c));
-    if (manquants.length || inconnus.length) {
-      throw new ApiError(400, `Le barème porte sur les ${codes.length} indicateurs du Concours, et eux seuls.`);
-    }
-    const total = Object.values(d.points).reduce((s, x) => s + x, 0);
-    if (Math.abs(total - 100) > 0.01) throw new ApiError(400, `Le barème doit totaliser 100 points (il en fait ${total}).`);
-    await withTransaction(async (client) => {
-      for (const [code, points] of Object.entries(d.points)) {
-        await client.query('UPDATE indicateurs_kpi SET points = $2, updated_at = now(), updated_by = $3 WHERE code = $1', [
-          code,
-          points,
-          req.user!.sub,
-        ]);
-      }
-      if (d.confirmer) {
-        await client.query(
-          `UPDATE parametres_kpi SET valeur = 0, updated_at = now(), updated_by = $1 WHERE cle = 'bareme_provisoire'`,
-          [req.user!.sub]
-        );
-      }
-    });
-    res.json({ indicateurs: await catalogue(), parametres: await parametres() });
-  })
-);
-
 export const parametresKpiSchema = z
   .object({
     reclamation_delai_heures: z.number().int().min(1).max(2160),
     taux_resolution_min: z.number().min(0).max(100),
     bachage_min: z.number().min(0).max(100),
     maintenance_min: z.number().min(0).max(100),
-    couverture_classement_min: z.number().min(0).max(100),
     dma_en_vigueur: z.union([z.literal(0), z.literal(1)]),
   })
   .partial()
@@ -205,46 +153,57 @@ kpi5AxesRouter.put(
 );
 
 // ---------------------------------------------------------------------------
-// 3. La fiche d'évaluation annuelle
+// 3. Les déclarations de la commune (refonte, lot 1 ; D3)
+//
+// Une valeur déclarée vaut dès qu'elle est enregistrée : plus de brouillon, de
+// soumission ni de validation. Une correction remplace la précédente, que le
+// journal d'audit garde ; une case vidée retire la déclaration (retrait
+// logique) et l'indicateur redevient « non renseigné » — il ne devient pas
+// zéro. La base tient les mêmes règles (migration 068).
 // ---------------------------------------------------------------------------
 
-const paramsFiche = (req: Request) =>
+const paramsDeclarations = (req: Request) =>
   z.object({ communeId: z.string().min(1), annee: anneeSchema }).parse(req.params);
 
-async function fiche(communeId: string, annee: number) {
-  return queryOne<{ id: string; statut: string; commune_id: string }>(
-    'SELECT * FROM evaluations_kpi WHERE commune_id = $1 AND annee = $2',
-    [communeId, annee]
-  );
-}
+const ERREURS_DECLARATION: Record<string, number> = {
+  DECLARATION_INDICATEUR_CALCULE: 400,
+  DECLARATION_TAUX: 400,
+  DECLARATION_CIBLE: 400,
+};
 
 kpi5AxesRouter.get(
-  '/evaluations/:communeId/:annee',
+  '/declarations/:communeId/:annee',
   requireAuth,
   requireRole(...ROLES),
   asyncHandler(async (req, res) => {
-    const { communeId, annee } = paramsFiche(req);
+    const { communeId, annee } = paramsDeclarations(req);
     await communeVisible(communeId);
-    const f = await fiche(communeId, annee);
-    const valeurs = f
-      ? await query(
-          `SELECT v.indicateur_code AS code, v.valeur::float, v.cible::float, v.commentaire, v.updated_at, u.full_name AS saisi_par
-             FROM valeurs_kpi v LEFT JOIN users u ON u.id = v.saisi_par
-            WHERE v.evaluation_id = $1 ORDER BY v.indicateur_code`,
-          [f.id]
-        )
-      : [];
-    // De quoi pré-remplir une cible sans la deviner : ce que SIIPI sait déjà
-    // (effectif ouvrier déclaré, conteneurs et secteurs enregistrés).
-    const indications = await queryOne(
-      `SELECT (SELECT effectif_ouvriers FROM effectifs_service WHERE commune_id = $1 AND annee = $2 AND service = 'proprete' LIMIT 1) AS effectif_ouvriers,
-              (SELECT count(*)::int FROM conteneurs WHERE commune_id = $1 AND deleted_at IS NULL) AS conteneurs,
-              (SELECT count(*)::int FROM zones_collecte WHERE commune_id = $1 AND deleted_at IS NULL) AS secteurs,
-              (SELECT count(*)::int FROM actions_planifiees WHERE commune_id = $1 AND deleted_at IS NULL
-                  AND statut = 'terminee' AND extract(year FROM date_prevue) = $2) AS actions_terminees`,
-      [communeId, annee]
-    );
-    res.json({ fiche: f, valeurs, indications });
+    const [profil, declarations, indications] = await Promise.all([
+      queryOne('SELECT a_abattoir, decharge_controlee_anged FROM parametres_commune WHERE commune_id = $1', [communeId]),
+      query(
+        `SELECT d.id, d.indicateur_code AS code, d.valeur::float, d.cible::float, d.commentaire, d.saisi_le,
+                u.full_name AS saisi_par, d.commentaire_fnct, d.commente_le
+           FROM declarations_indicateurs d LEFT JOIN users u ON u.id = d.saisi_par
+          WHERE d.commune_id = $1 AND d.annee = $2 AND d.mois IS NULL AND d.deleted_at IS NULL
+          ORDER BY d.indicateur_code`,
+        [communeId, annee]
+      ),
+      // De quoi pré-remplir une cible sans la deviner : ce que SIIPI sait déjà
+      // (effectif ouvrier déclaré, conteneurs et secteurs enregistrés).
+      queryOne(
+        `SELECT (SELECT effectif_ouvriers FROM effectifs_service WHERE commune_id = $1 AND annee = $2 AND service = 'proprete' LIMIT 1) AS effectif_ouvriers,
+                (SELECT count(*)::int FROM conteneurs WHERE commune_id = $1 AND deleted_at IS NULL) AS conteneurs,
+                (SELECT count(*)::int FROM zones_collecte WHERE commune_id = $1 AND deleted_at IS NULL) AS secteurs,
+                (SELECT count(*)::int FROM actions_planifiees WHERE commune_id = $1 AND deleted_at IS NULL
+                    AND statut = 'terminee' AND extract(year FROM date_prevue) = $2) AS actions_terminees`,
+        [communeId, annee]
+      ),
+    ]);
+    res.json({
+      profil: profil ?? { a_abattoir: null, decharge_controlee_anged: null },
+      declarations,
+      indications,
+    });
   })
 );
 
@@ -256,31 +215,37 @@ const saisieSchema = z
   })
   .nullable();
 
-export const ficheSchema = z
+export const declarationsSchema = z
   .object({
-    a_abattoir: z.boolean().nullable(),
-    decharge_controlee_anged: z.boolean().nullable(),
-    experience_innovante: z.boolean().nullable(),
-    agent_reclamations: z.boolean().nullable(),
-    // null retire la valeur : l'indicateur redevient « non renseigné ».
-    valeurs: z.record(z.string(), saisieSchema),
+    // Ce que la commune dit d'elle-même : seul effet, rendre un indicateur
+    // « sans objet » (pas d'abattoir, décharge contrôlée par l'ANGeD).
+    profil: z
+      .object({ a_abattoir: z.boolean().nullable(), decharge_controlee_anged: z.boolean().nullable() })
+      .partial()
+      .strict()
+      .optional(),
+    // null retire la déclaration : l'indicateur redevient « non renseigné ».
+    valeurs: z.record(z.string(), saisieSchema).optional(),
   })
-  .partial()
   .strict();
 
 kpi5AxesRouter.put(
-  '/evaluations/:communeId/:annee',
+  '/declarations/:communeId/:annee',
   requireAuth,
-  requireRole(...ROLES),
+  // La commune déclare ; la FNCT commente, elle ne saisit pas à sa place
+  // (CLAUDE.md § 6). La base le refuse aussi (migration 068).
+  requireRole('admin_commune'),
   asyncHandler(async (req, res) => {
-    const { communeId, annee } = paramsFiche(req);
+    const { communeId, annee } = paramsDeclarations(req);
     await communeVisible(communeId);
-    const d = ficheSchema.parse(req.body);
+    const d = declarationsSchema.parse(req.body);
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
     const cat = new Map((await catalogue()).map((i) => [i.code, i]));
 
     for (const [code, v] of Object.entries(d.valeurs ?? {})) {
       const ind = cat.get(code);
-      if (!ind || ind.mode !== 'saisi') throw new ApiError(400, `« ${code} » ne se saisit pas : il est calculé par la plateforme, ou n'existe pas.`);
+      if (!ind || ind.mode !== 'saisi') throw new ApiError(400, `« ${code} » ne se déclare pas : il est calculé par la plateforme, ou n'existe pas.`);
       if (!v) continue;
       if (ind.saisie === 'taux' && v.valeur > 100) throw new ApiError(400, `« ${ind.libelle_fr} » est un taux : 100 % au plus.`);
       if (ind.saisie === 'ratio' && !v.cible) throw new ApiError(400, `« ${ind.libelle_fr} » se rapporte à une cible : ${ind.libelle_cible ?? 'cible'} requise.`);
@@ -289,116 +254,74 @@ kpi5AxesRouter.put(
       }
     }
 
-    const existante = await fiche(communeId, annee);
-    if (existante?.statut === 'validee') {
-      throw new ApiError(409, 'Cette fiche est validée par la FNCT : elle doit d’abord être rouverte.');
-    }
-
-    const id = await withTransaction(async (client) => {
-      const f = await client.query<{ id: string }>(
-        `INSERT INTO evaluations_kpi (commune_id, annee) VALUES ($1, $2)
-         ON CONFLICT (commune_id, annee) DO UPDATE SET updated_at = now()
-         RETURNING id`,
-        [communeId, annee]
-      );
-      const ficheId = f.rows[0].id;
-      const drapeaux = (['a_abattoir', 'decharge_controlee_anged', 'experience_innovante', 'agent_reclamations'] as const).filter(
-        (k) => k in d
-      );
-      if (drapeaux.length) {
-        await client.query(
-          `UPDATE evaluations_kpi SET ${drapeaux.map((k, i) => `${k} = $${i + 2}`).join(', ')} WHERE id = $1`,
-          [ficheId, ...drapeaux.map((k) => d[k])]
-        );
-      }
-      for (const [code, v] of Object.entries(d.valeurs ?? {})) {
-        if (!v) {
-          await client.query('DELETE FROM valeurs_kpi WHERE evaluation_id = $1 AND indicateur_code = $2', [ficheId, code]);
-        } else {
+    try {
+      await withTransaction(async (client) => {
+        const champs = (['a_abattoir', 'decharge_controlee_anged'] as const).filter((k) => d.profil && k in d.profil);
+        if (d.profil && champs.length) {
+          const profil = d.profil;
           await client.query(
-            `INSERT INTO valeurs_kpi (evaluation_id, commune_id, indicateur_code, valeur, cible, commentaire, saisi_par)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             ON CONFLICT (evaluation_id, indicateur_code) DO UPDATE SET
-               valeur = EXCLUDED.valeur, cible = EXCLUDED.cible, commentaire = EXCLUDED.commentaire,
-               saisi_par = EXCLUDED.saisi_par, updated_at = now()`,
-            [ficheId, communeId, code, v.valeur, v.cible ?? null, v.commentaire || null, req.user!.sub]
+            `INSERT INTO parametres_commune (commune_id, ${champs.join(', ')})
+             VALUES ($1, ${champs.map((_, i) => `$${i + 2}`).join(', ')})
+             ON CONFLICT (commune_id) DO UPDATE SET ${champs.map((k) => `${k} = EXCLUDED.${k}`).join(', ')}, updated_at = now()`,
+            [communeId, ...champs.map((k) => profil[k] ?? null)]
           );
         }
-      }
-      // Une fiche soumise que la COMMUNE retouche repasse en brouillon : la
-      // FNCT ne valide pas autre chose que ce qu'on lui a soumis. La FNCT,
-      // elle, peut corriger pendant l'instruction sans la renvoyer.
-      if (req.user!.role !== 'super_admin_fnct') {
-        await client.query(`UPDATE evaluations_kpi SET statut = 'brouillon' WHERE id = $1 AND statut = 'soumise'`, [ficheId]);
-      }
-      return ficheId;
-    });
-    res.json(await queryOne('SELECT * FROM evaluations_kpi WHERE id = $1', [id]));
+        for (const [code, v] of Object.entries(d.valeurs ?? {})) {
+          if (!v) {
+            await client.query('SELECT app.retirer_declaration($1, $2, $3)', [communeId, code, annee]);
+            continue;
+          }
+          // Une correction remplace la déclaration en vigueur ; le journal
+          // d'audit garde la précédente.
+          const maj = await client.query(
+            `UPDATE declarations_indicateurs
+                SET valeur = $4, cible = $5, commentaire = $6, saisi_par = $7, saisi_le = now()
+              WHERE commune_id = $1 AND indicateur_code = $2 AND annee = $3 AND mois IS NULL AND deleted_at IS NULL`,
+            [communeId, code, annee, v.valeur, v.cible ?? null, v.commentaire || null, qui.sub]
+          );
+          if (maj.rowCount === 0) {
+            await client.query(
+              `INSERT INTO declarations_indicateurs (commune_id, indicateur_code, annee, valeur, cible, commentaire, saisi_par)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+              [communeId, code, annee, v.valeur, v.cible ?? null, v.commentaire || null, qui.sub]
+            );
+          }
+        }
+      });
+    } catch (err) {
+      const m = (err as { message?: string }).message ?? '';
+      const code = m.split(':')[0];
+      const statut = ERREURS_DECLARATION[code];
+      if (statut) throw new ApiError(statut, m.slice(code.length + 2));
+      throw err;
+    }
+    res.json({ enregistrees: Object.keys(d.valeurs ?? {}).length });
   })
 );
 
-kpi5AxesRouter.post(
-  '/evaluations/:communeId/:annee/soumettre',
-  requireAuth,
-  requireRole(...ROLES),
-  asyncHandler(async (req, res) => {
-    const { communeId, annee } = paramsFiche(req);
-    await communeVisible(communeId);
-    const f = await fiche(communeId, annee);
-    if (!f) throw new ApiError(404, 'Aucune fiche pour cette année.');
-    if (f.statut !== 'brouillon') throw new ApiError(409, 'Seule une fiche en brouillon se soumet.');
-    res.json(
-      await queryOne(
-        `UPDATE evaluations_kpi SET statut = 'soumise', soumise_par = $2, soumise_le = now(), motif_renvoi = NULL
-          WHERE id = $1 RETURNING *`,
-        [f.id, req.user!.sub]
-      )
-    );
-  })
-);
+export const commentaireFnctSchema = z.object({ commentaire: z.string().trim().max(2000) }).strict();
 
+// Le commentaire de la FNCT sur une valeur déclarée (D3) : il se lit à côté de
+// la valeur, il ne la bloque pas. Une chaîne vide le retire.
 kpi5AxesRouter.post(
-  '/evaluations/:communeId/:annee/valider',
-  requireAuth,
-  requireRole('super_admin_fnct'),
-  asyncHandler(async (req, res) => {
-    const { communeId, annee } = paramsFiche(req);
-    const f = await fiche(communeId, annee);
-    if (!f) throw new ApiError(404, 'Aucune fiche pour cette année.');
-    if (f.statut !== 'soumise') throw new ApiError(409, 'Seule une fiche soumise se valide.');
-    res.json(
-      await queryOne(
-        `UPDATE evaluations_kpi SET statut = 'validee', validee_par = $2, validee_le = now() WHERE id = $1 RETURNING *`,
-        [f.id, req.user!.sub]
-      )
-    );
-  })
-);
-
-const rouvrirSchema = z.object({ motif: z.string().trim().min(5, 'Un renvoi se motive : la commune doit savoir quoi corriger.').max(2000) });
-
-kpi5AxesRouter.post(
-  '/evaluations/:communeId/:annee/rouvrir',
+  '/commentaires-fnct/:declarationId',
   requireAuth,
   requireRole('super_admin_fnct'),
   asyncHandler(async (req, res) => {
-    const { communeId, annee } = paramsFiche(req);
-    const { motif } = rouvrirSchema.parse(req.body);
-    const f = await fiche(communeId, annee);
-    if (!f) throw new ApiError(404, 'Aucune fiche pour cette année.');
-    if (f.statut === 'brouillon') throw new ApiError(409, 'Cette fiche est déjà en brouillon.');
-    res.json(
-      await queryOne(
-        `UPDATE evaluations_kpi SET statut = 'brouillon', motif_renvoi = $2, validee_par = NULL, validee_le = NULL
-          WHERE id = $1 RETURNING *`,
-        [f.id, motif]
-      )
-    );
+    const { commentaire } = commentaireFnctSchema.parse(req.body);
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.declarationId)) throw new ApiError(404, 'Déclaration introuvable.');
+    try {
+      res.json(await queryOne('SELECT * FROM app.commenter_declaration($1, $2)', [req.params.declarationId, commentaire]));
+    } catch (err) {
+      const m = (err as { message?: string }).message ?? '';
+      if (m.startsWith('DECLARATION_INTROUVABLE')) throw new ApiError(404, 'Déclaration introuvable.');
+      throw err;
+    }
   })
 );
 
 // ---------------------------------------------------------------------------
-// 4. Une commune : ses 5 axes, sa note, sa préparation DMA (A2.3 pour la FNCT)
+// 4. Une commune : ses 5 axes, sa couverture, sa préparation DMA (A2.3 pour la FNCT)
 // ---------------------------------------------------------------------------
 
 kpi5AxesRouter.get(
@@ -417,33 +340,13 @@ kpi5AxesRouter.get(
 );
 
 // ---------------------------------------------------------------------------
-// 5. Les vues nationales (FNCT) : Concours, 5 axes, DMA — par niveau
+// 5. Les vues nationales (FNCT) : 5 axes, DMA — par niveau
 // ---------------------------------------------------------------------------
 
 async function toutesLesCommunes(annee: number) {
   const ctx = await charger(annee);
   return { ctx, communes: ctx.communes.map((c) => calculerCommune(ctx, c.id)) };
 }
-
-kpi5AxesRouter.get(
-  '/concours-national',
-  requireAuth,
-  requireRole('super_admin_fnct'),
-  exportable(JEU_CONCOURS, (req) => String(req.query.annee ?? '')),
-  asyncHandler(async (req, res) => {
-    const q = qNiveau.parse(req.query);
-    const annee = q.annee ?? anneeCourante();
-    // Par défaut, le classement OFFICIEL : les seules fiches validées.
-    const officiel = q.officiel !== 'false';
-    const { communes } = await toutesLesCommunes(annee);
-    if (q.niveau === 'commune') {
-      // Une commune sans aucun indicateur renseigné n'a rien à faire dans un
-      // classement, même en queue : elle n'y figurerait qu'avec un « — ».
-      return res.json(classement(communes, officiel));
-    }
-    res.json(agreger(marquerOfficiel(communes, officiel), q.niveau as Exclude<Niveau, 'commune'>, await districts()));
-  })
-);
 
 kpi5AxesRouter.get(
   '/national',
@@ -465,7 +368,7 @@ kpi5AxesRouter.get(
             gouvernorat: c.gouvernorat,
             district: c.district,
             axes: c.axes,
-            concours: c.concours,
+            couverture: c.couverture,
             dma: c.dma,
           }))
       );
@@ -492,7 +395,9 @@ kpi5AxesRouter.get(
               nom: c.nom,
               gouvernorat: c.gouvernorat,
               dma: c.dma,
-              indicateurs: c.indicateurs.filter((i) => i.famille === 'dma').map((i) => ({ code: i.code, statut: i.statut, valeur: i.valeur, cible: i.cible, note: i.note })),
+              indicateurs: c.indicateurs
+                .filter((i) => i.famille === 'dma')
+                .map((i) => ({ code: i.code, statut: i.statut, valeur: i.valeur, cible: i.cible, taux_atteinte: i.taux_atteinte })),
             }))
         : agreger(communes, q.niveau as Exclude<Niveau, 'commune'>, await districts()).map((g) => ({
             cle: g.cle,
@@ -544,25 +449,14 @@ kpi5AxesRouter.get(
     const sous = (code: string, seuil: number, cle: string, texte: (v: number) => string) => {
       for (const c of communes) {
         const r = c.indicateurs.find((i) => i.code === code);
-        if (r?.statut !== 'renseigne' || r.note == null) continue;
-        const v = Math.round(100 * r.note);
+        if (r?.statut !== 'renseigne' || r.taux_atteinte == null) continue;
+        const v = Math.round(100 * r.taux_atteinte);
         if (v < seuil) alertes.push({ commune_id: c.commune_id, nom: c.nom, gouvernorat: c.gouvernorat, gravite: 'avertissement', code: cle, constat: texte(v) });
       }
     };
-    sous('M3-1', p.taux_resolution_min, 'resolution_faible', (v) => `Réclamations : note de traitement de ${v} % (seuil : ${p.taux_resolution_min} %).`);
+    sous('M3-1', p.taux_resolution_min, 'resolution_faible', (v) => `Réclamations : taux de traitement de ${v} % (seuil : ${p.taux_resolution_min} %).`);
     sous('M1-9', p.bachage_min, 'bachage_insuffisant', (v) => `Bâchage des bennes : ${v} % (seuil : ${p.bachage_min} %).`);
     sous('M1-7', p.maintenance_min, 'maintenance_en_retard', (v) => `Plans d'entretien à jour : ${v} % (seuil : ${p.maintenance_min} %).`);
-
-    for (const c of communes.filter((x) => x.fiche.statut === 'soumise')) {
-      alertes.push({
-        commune_id: c.commune_id,
-        nom: c.nom,
-        gouvernorat: c.gouvernorat,
-        gravite: 'information',
-        code: 'fiche_a_valider',
-        constat: `Fiche d'évaluation ${annee} soumise, en attente de validation.`,
-      });
-    }
 
     const rang: Record<string, number> = { bloquant: 0, avertissement: 1, information: 2 };
     res.json(alertes.sort((a, b) => rang[a.gravite] - rang[b.gravite] || a.nom.localeCompare(b.nom)));

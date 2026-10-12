@@ -45,7 +45,10 @@ froide (volume `siipi_archive_froide`, gardé sans limite) ; la FNCT en demande 
 v0.15.24 : D-FNCT-5 tranchée — la base retient sa nature (développement, formation, production ;
 `src/instance.ts`, migration 067) ; comptes de démonstration refusés en production ; un mot de passe
 provisoire n'ouvre que son remplacement. Une campagne ne démarre jamais une API de production ou de
-formation sur la base des tests : elle la rendrait définitivement telle (`tests/outils/instance_essai.sh`).**
+formation sur la base des tests : elle la rendrait définitivement telle (`tests/outils/instance_essai.sh`).
+v0.15.25 : refonte, lot 1 — barème, note, classement et fiche d'évaluation retirés (migration 068) ; la commune
+déclare (`declarations_indicateurs`), la valeur vaut dès son enregistrement, la FNCT la commente. Suite :
+lot 2 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md`.**
 
 ---
 
@@ -190,7 +193,7 @@ docker compose run --rm web npx openapi-typescript http://api:4000/openapi.json 
 
 | Couche | Choix | Note |
 |---|---|---|
-| Base | PostgreSQL 16 + PostGIS 3.4 | 67 migrations au 09/10/2026, rejouées sur base neuve à chaque livraison |
+| Base | PostgreSQL 16 + PostGIS 3.4 | 68 migrations au 12/10/2026, rejouées sur base neuve à chaque livraison |
 | API | Node 22 + Express + TypeScript (ESM) | zod pour la validation |
 | Contrat | OpenAPI 3.1 **généré depuis les schémas zod d'exécution** | la documentation ne peut pas décrire autre chose que ce qui est contrôlé |
 | Front | React 19 + Vite + Tailwind v4 + Leaflet | PWA (`manifest.webmanifest`, `sw.js`) |
@@ -429,7 +432,7 @@ ne génère rien. Voir `FEUILLE_DE_ROUTE.md` § 6bis.
 
 ```
 backend/
-  migrations/      067 fichiers numérotés au 09/10/2026 — l'ordre fait foi, l'empreinte aussi
+  migrations/      068 fichiers numérotés au 12/10/2026 — l'ordre fait foi, l'empreinte aussi
   src/routes/      une route par domaine ; les littéraux avant /:id
   src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF),
                    conservationMedias.ts (photos de 36 mois, archive froide)

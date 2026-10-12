@@ -1,6 +1,6 @@
-// Les indicateurs nationaux de la FNCT (Jalon 8) : le Concours national de
-// propreté, les 5 axes agrégés, la préparation au tri à la source, les
-// alertes (A3.3), et les réglages — barème, seuils, districts.
+// Les indicateurs nationaux de la FNCT (Jalon 8) : les 5 axes agrégés, la
+// préparation au tri à la source, les alertes (A3.3), et les réglages — seuils,
+// districts. Refonte, lot 1 : plus de barème, de note ni de classement.
 //
 // Quatre niveaux de lecture : commune, gouvernorat, district FNCT, national.
 // Une moyenne ne porte jamais sur les communes sans donnée : chaque case dit
@@ -11,10 +11,9 @@ import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type NiveauKpi } from '../../lib/api';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
-import { BoutonExport } from '../BoutonExport';
 
-type Vue = 'concours' | 'axes' | 'dma' | 'alertes' | 'reglages';
-const VUES: Vue[] = ['concours', 'axes', 'dma', 'alertes', 'reglages'];
+type Vue = 'axes' | 'dma' | 'alertes' | 'reglages';
+const VUES: Vue[] = ['axes', 'dma', 'alertes', 'reglages'];
 const NIVEAUX: NiveauKpi[] = ['commune', 'gouvernorat', 'district', 'national'];
 const ANNEE = new Date().getFullYear();
 
@@ -38,10 +37,9 @@ function N({ v, d = 1, suffixe = '' }: { v: number | null | undefined; d?: numbe
 
 export function KpiNational({ onOuvrirCommune }: { onOuvrirCommune: (communeId: string) => void }) {
   const { t } = useTranslation();
-  const [vue, setVue] = useState<Vue>('concours');
+  const [vue, setVue] = useState<Vue>('axes');
   const [annee, setAnnee] = useState(ANNEE);
   const [niveau, setNiveau] = useState<NiveauKpi>('commune');
-  const [officiel, setOfficiel] = useState(true);
 
   return (
     <section className="mb-10 space-y-4">
@@ -81,9 +79,6 @@ export function KpiNational({ onOuvrirCommune }: { onOuvrirCommune: (communeId: 
         ))}
       </div>
 
-      {vue === 'concours' && (
-        <Concours annee={annee} niveau={niveau} officiel={officiel} setOfficiel={setOfficiel} onOuvrirCommune={onOuvrirCommune} />
-      )}
       {vue === 'axes' && <Axes annee={annee} niveau={niveau} onOuvrirCommune={onOuvrirCommune} />}
       {vue === 'dma' && <Dma annee={annee} niveau={niveau} onOuvrirCommune={onOuvrirCommune} />}
       {vue === 'alertes' && <Alertes annee={annee} onOuvrirCommune={onOuvrirCommune} />}
@@ -125,108 +120,6 @@ function NomLigne({ l, niveau, onOuvrirCommune }: { l: any; niveau: NiveauKpi; o
 
 // ---------------------------------------------------------------------------
 
-function Concours({
-  annee,
-  niveau,
-  officiel,
-  setOfficiel,
-  onOuvrirCommune,
-}: {
-  annee: number;
-  niveau: NiveauKpi;
-  officiel: boolean;
-  setOfficiel: (x: boolean) => void;
-  onOuvrirCommune: (id: string) => void;
-}) {
-  const { t } = useTranslation();
-  const { d, erreur, relancer } = useDonnees(() => api.kpiConcours(annee, niveau, officiel), [annee, niveau, officiel]);
-  if (erreur) return <Erreur message={erreur} onReessayer={relancer} />;
-  if (!d) return <Chargement />;
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <label className="flex items-center gap-2 text-sm text-ardoise-700">
-          <input type="checkbox" checked={officiel} onChange={(e) => setOfficiel(e.target.checked)} className="size-4" />
-          {t('kpi.national.officiel')}
-        </label>
-        {niveau === 'commune' && (
-          <BoutonExport chemin={`/kpi/concours-national?annee=${annee}&niveau=commune&officiel=${officiel}`} desactive={d.length === 0} />
-        )}
-      </div>
-      <p className="text-xs text-ardoise-500">{t('kpi.national.aideConcours')}</p>
-      {d.length === 0 ? (
-        <p className="rounded-xl border border-ardoise-200 bg-white p-6 text-sm text-ardoise-500">{t('kpi.national.aucuneCommune')}</p>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-ardoise-200 bg-white">
-          <table className="w-full min-w-[44rem] text-sm">
-            <thead className="border-b border-ardoise-200 bg-ardoise-50">
-              {niveau === 'commune' ? (
-                <tr>
-                  <th className={th}>{t('kpi.national.colonnes.rang')}</th>
-                  <th className={th}>{t('kpi.national.colonnes.commune')}</th>
-                  <th className={th}>{t('kpi.national.colonnes.gouvernorat')}</th>
-                  <th className={`${th} text-end`}>{t('kpi.national.colonnes.note')}</th>
-                  <th className={`${th} text-end`}>{t('kpi.national.colonnes.renseignes')}</th>
-                  <th className={`${th} text-end`}>{t('kpi.national.colonnes.couverture')}</th>
-                  <th className={th}>{t('kpi.national.colonnes.fiche')}</th>
-                </tr>
-              ) : (
-                <tr>
-                  <th className={th}>{t(`kpi.national.niveaux.${niveau}`)}</th>
-                  <th className={`${th} text-end`}>{t('kpi.national.colonnes.communes')}</th>
-                  <th className={`${th} text-end`}>{t('kpi.national.colonnes.classees')}</th>
-                  <th className={`${th} text-end`}>{t('kpi.national.colonnes.noteMoyenne')}</th>
-                  <th className={`${th} text-end`}>{t('kpi.national.colonnes.couvertureMoyenne')}</th>
-                </tr>
-              )}
-            </thead>
-            <tbody>
-              {d.map((l: any) =>
-                niveau === 'commune' ? (
-                  <tr key={l.commune_id} className={`border-b border-ardoise-100 last:border-0 ${l.classe ? '' : 'text-ardoise-500'}`}>
-                    <td className={`${td} chiffres font-semibold`}>{l.rang ?? '—'}</td>
-                    <td className={td}>
-                      <NomLigne l={l} niveau={niveau} onOuvrirCommune={onOuvrirCommune} />
-                      {!l.classe && <span className="block text-xs">{t(`kpi.concours.motifs.${l.motif_non_classe}`)}</span>}
-                    </td>
-                    <td className={td}>{l.gouvernorat}</td>
-                    <td className={`${td} text-end`}>
-                      <N v={l.score} />
-                    </td>
-                    <td className={`${td} chiffres text-end`}>
-                      {l.indicateurs_renseignes}/{l.indicateurs_applicables}
-                    </td>
-                    <td className={`${td} text-end`}>
-                      <N v={l.couverture} d={0} suffixe=" %" />
-                    </td>
-                    <td className={td}>{t(`kpi.fiche.statuts.${l.fiche ?? 'aucune'}`)}</td>
-                  </tr>
-                ) : (
-                  <tr key={l.cle} className="border-b border-ardoise-100 last:border-0">
-                    <td className={td}>
-                      <NomLigne l={l} niveau={niveau} onOuvrirCommune={onOuvrirCommune} />
-                    </td>
-                    <td className={`${td} chiffres text-end`}>{l.communes}</td>
-                    <td className={`${td} chiffres text-end`}>{l.concours.communes_classees}</td>
-                    <td className={`${td} text-end`}>
-                      <N v={l.concours.score_moyen} />
-                    </td>
-                    <td className={`${td} text-end`}>
-                      <N v={l.concours.couverture_moyenne} d={0} suffixe=" %" />
-                    </td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-
 function Axes({ annee, niveau, onOuvrirCommune }: { annee: number; niveau: NiveauKpi; onOuvrirCommune: (id: string) => void }) {
   const { t } = useTranslation();
   const { d, erreur, relancer } = useDonnees(() => api.kpiNational(annee, niveau), [annee, niveau]);
@@ -244,6 +137,7 @@ function Axes({ annee, niveau, onOuvrirCommune }: { annee: number; niveau: Nivea
           <thead className="border-b border-ardoise-200 bg-ardoise-50">
             <tr>
               <th className={th}>{t(`kpi.national.niveaux.${niveau}`)}</th>
+              {niveau === 'commune' && <th className={`${th} text-end`}>{t('kpi.national.colonnes.couverture')}</th>}
               {[1, 2, 3, 4, 5].map((a) => (
                 <th key={a} className={`${th} text-end`} title={t(`kpi.axes.${a}`)}>
                   {t('kpi.axe', { n: a })}
@@ -259,6 +153,12 @@ function Axes({ annee, niveau, onOuvrirCommune }: { annee: number; niveau: Nivea
                 <td className={td}>
                   <NomLigne l={l} niveau={niveau} onOuvrirCommune={onOuvrirCommune} />
                 </td>
+                {/* « 14 / 19 » : ce sur quoi les indices de la commune reposent. */}
+                {niveau === 'commune' && (
+                  <td className={`${td} chiffres text-end`}>
+                    {l.couverture.calculables} / {l.couverture.total}
+                  </td>
+                )}
                 {[1, 2, 3, 4, 5].map((a) => (
                   <td key={a} className={`${td} text-end`}>
                     <N v={indice(l, a)} />
@@ -357,14 +257,13 @@ function Alertes({ annee, onOuvrirCommune }: { annee: number; onOuvrirCommune: (
 }
 
 // ---------------------------------------------------------------------------
-// Les réglages de la FNCT : le barème des 19 indicateurs, les seuils, les
-// districts. Rien de tout cela n'est supposé par la plateforme.
+// Les réglages de la FNCT : les seuils d'alerte, les districts. Rien de tout
+// cela n'est supposé par la plateforme.
 // ---------------------------------------------------------------------------
 
 function Reglages() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [cat, setCat] = useState<{ indicateurs: Record<string, any>[]; parametres: Record<string, number> } | null>(null);
-  const [points, setPoints] = useState<Record<string, string>>({});
   const [seuils, setSeuils] = useState<Record<string, string>>({});
   const [districts, setDistricts] = useState<{ code: string; nom: string }[]>([]);
   const [rattachements, setRattachements] = useState<Record<string, string>>({});
@@ -375,7 +274,6 @@ function Reglages() {
   const charger = async () => {
     const [c, dist] = await Promise.all([api.kpiCatalogue(), api.kpiDistricts()]);
     setCat(c);
-    setPoints(Object.fromEntries(c.indicateurs.filter((i) => i.famille === 'concours').map((i) => [i.code, String(i.points)])));
     setSeuils(Object.fromEntries(Object.entries(c.parametres).map(([k, v]) => [k, String(v)])));
     setDistricts(dist.districts.map((x) => ({ code: x.code, nom: x.nom })));
     setRattachements(Object.fromEntries(dist.rattachements.map((r) => [r.gouvernorat, r.district_code])));
@@ -400,9 +298,7 @@ function Reglages() {
   };
 
   if (!cat) return <Chargement />;
-  const total = Object.values(points).reduce((s, v) => s + (Number(v.replace(',', '.')) || 0), 0);
-  const concours = cat.indicateurs.filter((i) => i.famille === 'concours');
-  const SEUILS = ['reclamation_delai_heures', 'taux_resolution_min', 'bachage_min', 'maintenance_min', 'couverture_classement_min'];
+  const SEUILS = ['reclamation_delai_heures', 'taux_resolution_min', 'bachage_min', 'maintenance_min'];
 
   return (
     <div className="space-y-4">
@@ -411,47 +307,6 @@ function Reglages() {
           {etat.texte}
         </p>
       )}
-
-      <div className="space-y-2 rounded-xl border border-ardoise-200 bg-white p-4">
-        <h3 className="font-semibold text-ardoise-900">{t('kpi.reglages.bareme')}</h3>
-        <p className="text-sm text-ardoise-600">{cat.parametres.bareme_provisoire === 1 ? t('kpi.baremeProvisoire') : t('kpi.reglages.baremeConfirme')}</p>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {concours.map((i) => (
-            <label key={i.code} className="flex items-center justify-between gap-2 rounded-lg border border-ardoise-200 px-2 py-1 text-sm">
-              <span>
-                <span className="me-1 font-mono text-xs text-ardoise-500">{i.code}</span>
-                {i18n.language.startsWith('ar') ? i.libelle_ar : i.libelle_fr}
-              </span>
-              <input
-                inputMode="decimal"
-                value={points[i.code] ?? ''}
-                onChange={(e) => setPoints((p) => ({ ...p, [i.code]: e.target.value }))}
-                className={`${champ} w-16 text-end`}
-                aria-label={`${i.code} — ${t('kpi.colonnes.points')}`}
-              />
-            </label>
-          ))}
-        </div>
-        <p className={`chiffres text-sm ${Math.abs(total - 100) < 0.01 ? 'text-siipi-700' : 'text-red-700'}`}>{t('kpi.reglages.total', { n: formaterNombre(total, 1) })}</p>
-        <div className="flex flex-wrap gap-2">
-          {[false, true].map((confirmer) => (
-            <button
-              key={String(confirmer)}
-              type="button"
-              disabled={enCours || Math.abs(total - 100) > 0.01}
-              className={confirmer ? boutonPrincipal : bouton}
-              onClick={() =>
-                void executer(
-                  () => api.kpiBareme(Object.fromEntries(Object.entries(points).map(([k, v]) => [k, Number(v.replace(',', '.'))])), confirmer),
-                  t('kpi.reglages.baremeEnregistre')
-                )
-              }
-            >
-              {confirmer ? t('kpi.reglages.confirmerBareme') : t('kpi.reglages.enregistrer')}
-            </button>
-          ))}
-        </div>
-      </div>
 
       <div className="space-y-2 rounded-xl border border-ardoise-200 bg-white p-4">
         <h3 className="font-semibold text-ardoise-900">{t('kpi.reglages.seuils')}</h3>

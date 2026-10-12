@@ -5,6 +5,73 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.25] — 2026-10-12 — Refonte, lot 1 : barème, note et classement retirés ; la commune déclare
+
+Lot 1 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 1), décisions D1 et D3 du
+9 octobre 2026. SIIPI se concentre sur les **indicateurs** : le barème, les points, la note sur 100,
+la reventilation des points, le classement et la fiche d'évaluation à valider disparaissent. Les
+19 indicateurs restent, avec leurs calculs et leurs identifiants internes, qui ne s'affichent plus.
+
+### Retiré (migration 068)
+- `evaluations_kpi` et `valeurs_kpi`, après recopie de chaque valeur, avec son auteur et sa date ; la
+  colonne `points` et la famille « concours » d'`indicateurs_kpi` (devenue « indicateur ») ; les
+  paramètres `couverture_classement_min` et `bareme_provisoire`. Avant d'écrire la migration, la base
+  principale a été vérifiée : aucune fiche, aucune valeur — rien de réel n'était à recopier.
+- Routes `PUT /kpi/bareme`, `GET /kpi/concours-national` (et son export CSV),
+  `/kpi/evaluations/{commune}/{annee}` et ses étapes soumettre, valider, rouvrir.
+- Les questions « expérience innovante » et « agent dédié aux réclamations » : elles ne servaient qu'à
+  la redistribution des points ou à une information sans effet.
+
+### Ajouté
+- **`declarations_indicateurs`** : une valeur déclarée par la commune vaut **dès qu'elle est
+  enregistrée** (D3) — badge « déclaré », qui l'a saisie et quand. Une correction remplace la
+  précédente, que le journal d'audit garde ; un retrait est logique. La base refuse un taux au-delà de
+  100 %, un ratio sans cible, la déclaration d'un indicateur calculé, et **la déclaration par la FNCT
+  à la place de la commune**.
+- **Le commentaire de la FNCT** (`POST /kpi/commentaires-fnct/{id}`) : il se lit à côté de la
+  valeur, il ne la bloque pas ; seule la FNCT l'écrit, la base le tient.
+- **Le profil de la commune** (abattoir municipal, décharge contrôlée par l'ANGeD) passe dans
+  `parametres_commune` ; son seul effet : rendre un indicateur « sans objet ».
+- **La couverture**, en clair : « 14 indicateurs calculables sur 19 » ; les sans-objet sortent du
+  total.
+- `GET` et `PUT /kpi/declarations/{commune}/{annee}`.
+
+### Conservé, par décision de l'utilisateur (12 octobre 2026)
+- Les **indices des 5 axes** et l'**indice de préparation DMA** : ils sont le tableau de bord 5 axes
+  du cahier des charges (TDR §3.2.10), pas le concours. Ils reposent sur le **taux d'atteinte** de
+  chaque indicateur (la valeur sur la cible, ou le pourcentage), qui n'est plus appelé « note » et
+  qu'aucun barème ne pondère. Les alertes nationales gardent leurs seuils.
+
+### Écrans
+- *Indicateurs* de la commune : la couverture à la place de la note, les indicateurs **par axe** (plus
+  par modules, plus de colonne de points ni d'identifiant), l'onglet **Déclarations** à la place de la
+  fiche d'évaluation. La FNCT y lit et commente ; elle ne saisit pas.
+- *Observatoire → Indicateurs & 5 axes* : plus d'onglet de classement ; la couverture de chaque
+  commune ; les réglages gardent les seuils et les districts. Français et arabe.
+
+### Corrigé en passant
+- `scripts/skills/kpi-evaluator.mjs` lisait comme « déclarées » les valeurs **calculées** par
+  `app.mesures_kpi` ; il lit désormais les déclarations de la commune.
+- La campagne `kpi-5-axes` écrivait dans une commune réelle avec un compte de démonstration ; elle a
+  sa commune de test et son directeur temporaire (règle de JC-001).
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 68 migrations ; la 068 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat **299/299** (sept routes retirées, trois ajoutées),
+  **45 bilans, 1 827 tests réussis, aucun échec**. `kpi-5-axes` : 74 contrôles — refus d'abord (plus
+  de classement, de barème ni de fiche ; la FNCT ne déclare pas, même en SQL direct) ; les **mêmes
+  valeurs qu'avant le retrait** sur le jeu maîtrisé (62,5 %, 75 % et 0,708, 66,7 %, 30 t et 20 %,
+  coût à la tonne) ; une déclaration affichée tout de suite, avec son auteur ; « sans objet » pour
+  l'abattoir et la décharge ANGeD ; 17 indicateurs applicables sur 19 ; correction et retrait
+  logique ; commentaire de la FNCT ; aucun « concours » dans le code de l'API, ses campagnes et son
+  contrat. `kpi-sources` : 40. Recomptage : 45 campagnes présentes, 45 enchaînées.
+- `audit-blocs.py` : 28 blocs sous condition, tous leurs contrôles ont tourné. `npm run lint`
+  backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur (pile d'essai) : la commune déclare un taux, il s'affiche aussitôt « déclaré », avec son
+  auteur, et la couverture passe de 2 à 3 sur 19 ; la FNCT ne peut que lire et commenter, et son
+  commentaire s'affiche à côté de la valeur ; l'observatoire n'a plus d'onglet de classement et donne
+  la couverture de chaque commune ; en arabe, de droite à gauche, sans défilement horizontal à 375 px.
+
 ## [0.15.24] — 2026-10-09 — D-FNCT-5 : production, formation, mot de passe provisoire
 
 Décision de la FNCT du 9 octobre 2026. Contrainte : « aucun compte de démonstration ne doit être
