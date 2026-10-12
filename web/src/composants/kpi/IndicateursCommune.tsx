@@ -1,11 +1,12 @@
-// Les indicateurs d'une commune : ses 5 axes, sa note au Concours national de
-// propreté, sa préparation au tri à la source — et sa fiche d'évaluation
-// (Jalon 8, TDR §3.2.10). Le même écran sert la commune et, en lecture et en
-// validation, la FNCT (A2.3 « Visualiser »).
+// Les indicateurs d'une commune : ses 5 axes, la couverture de ses
+// indicateurs, sa préparation au tri à la source — et les valeurs qu'elle
+// déclare (Jalon 8, TDR §3.2.10 ; refonte, lot 1 : plus de barème, de note ni
+// de classement). Le même écran sert la commune et, en lecture et en
+// commentaire, la FNCT (A2.3 « Visualiser »).
 //
 // LA RÈGLE D'OR : UNE DONNÉE MANQUANTE N'EST PAS UN ZÉRO. Un indicateur sans
-// source s'affiche « non renseigné », avec la raison au survol ; une note se
-// montre toujours avec ce sur quoi elle porte (« 14/19 indicateurs »).
+// source s'affiche « non renseigné », avec la raison au survol ; un indice se
+// montre toujours avec ce sur quoi il porte (« 14 indicateurs calculables sur 19 »).
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,7 +15,7 @@ import { useFormats } from '../../lib/formats';
 import { imprimer } from '../../lib/impression';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
-import { FicheEvaluation } from './FicheEvaluation';
+import { DeclarationsIndicateurs } from './DeclarationsIndicateurs';
 
 const ANNEE = new Date().getFullYear();
 const bouton = 'min-h-10 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-50';
@@ -23,7 +24,6 @@ const CLASSES_STATUT: Record<string, string> = {
   renseigne: 'bg-siipi-100 text-siipi-800',
   non_renseigne: 'bg-ardoise-100 text-ardoise-600',
   sans_objet: 'bg-ardoise-100 text-ardoise-500',
-  reventile: 'bg-blue-100 text-blue-800',
 };
 
 /** Une valeur, ou « non renseigné » avec la raison au survol — jamais un 0 inventé. */
@@ -62,31 +62,33 @@ function Indice({ valeur, renseignes, total }: { valeur: number | null; renseign
 
 function LigneIndicateur({ r, langue }: { r: ResultatIndicateur; langue: string }) {
   const { t } = useTranslation();
+  const f = useFormats();
   return (
     <tr className="border-b border-ardoise-100 last:border-0 align-top">
       <td className="px-3 py-2">
-        <span className="me-2 font-mono text-xs text-ardoise-500">{r.famille === 'donnee' ? '' : r.code}</span>
+        {/* L'identifiant interne (M1-1…) ne s'affiche pas : le libellé suffit. */}
         <span className="text-ardoise-900">{langue.startsWith('ar') ? r.libelle_ar : r.libelle_fr}</span>
-        {r.reventile_vers && <span className="block text-xs text-blue-700">{t('kpi.reventileVers', { code: r.reventile_vers })}</span>}
-        {r.recoit_de.length > 0 && <span className="block text-xs text-blue-700">{t('kpi.recoitDe', { codes: r.recoit_de.join(', ') })}</span>}
         {r.commentaire && <span className="block text-xs text-ardoise-500">{r.commentaire}</span>}
+        {r.declaration && (
+          <span className="block text-xs text-blue-800">
+            {t('kpi.declaration.par', { qui: r.declaration.saisi_par ?? '—', date: f.date(r.declaration.saisi_le, { heure: true }) })}
+          </span>
+        )}
+        {r.declaration?.commentaire_fnct && (
+          <span className="mt-0.5 block rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-900">
+            {t('kpi.declaration.commentaireFnct', { texte: r.declaration.commentaire_fnct })}
+          </span>
+        )}
       </td>
       <td className="px-3 py-2 text-end">
         <ValeurKpi r={r} />
       </td>
-      <td className="chiffres px-3 py-2 text-end text-ardoise-700">{r.note != null ? `${formaterNombre(100 * r.note, 0)} %` : '—'}</td>
-      <td className="chiffres px-3 py-2 text-end text-ardoise-700">
-        {r.famille === 'concours' && r.points_effectifs != null
-          ? r.points_obtenus != null
-            ? `${formaterNombre(r.points_obtenus, 1)} / ${formaterNombre(r.points_effectifs, 0)}`
-            : `— / ${formaterNombre(r.points_effectifs, 0)}`
-          : ''}
-      </td>
+      <td className="chiffres px-3 py-2 text-end text-ardoise-700">{r.taux_atteinte != null ? `${formaterNombre(100 * r.taux_atteinte, 0)} %` : '—'}</td>
       <td className="px-3 py-2">
         <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs ${CLASSES_STATUT[r.statut]}`} title={t(`kpi.statuts.aide.${r.statut}`)}>
           {t(`kpi.statuts.${r.statut}`)}
         </span>
-        {/* Mesuré par un registre, sinon déclaré dans la fiche, sinon rien :
+        {/* Mesuré par un registre, sinon déclaré par la commune, sinon rien :
             le badge dit laquelle des trois sources a été retenue. */}
         {r.statut === 'renseigne' && r.source && (
           <span
@@ -105,13 +107,12 @@ function TableIndicateurs({ liste }: { liste: ResultatIndicateur[] }) {
   const { t, i18n } = useTranslation();
   return (
     <div className="overflow-x-auto rounded-lg border border-ardoise-200">
-      <table className="w-full min-w-[40rem] text-sm">
+      <table className="w-full min-w-[36rem] text-sm">
         <thead className="border-b border-ardoise-200 bg-ardoise-50 text-xs uppercase text-ardoise-500">
           <tr>
             <th className="px-3 py-2 text-start">{t('kpi.colonnes.indicateur')}</th>
             <th className="px-3 py-2 text-end">{t('kpi.colonnes.valeur')}</th>
             <th className="px-3 py-2 text-end">{t('kpi.colonnes.atteinte')}</th>
-            <th className="px-3 py-2 text-end">{t('kpi.colonnes.points')}</th>
             <th className="px-3 py-2 text-start">{t('kpi.colonnes.statut')}</th>
           </tr>
         </thead>
@@ -129,7 +130,7 @@ export function IndicateursCommune({ communeId, fnct = false }: { communeId: str
   const { t } = useTranslation();
   const f = useFormats();
   const [annee, setAnnee] = useState(ANNEE);
-  const [vue, setVue] = useState<'tableau' | 'fiche'>('tableau');
+  const [vue, setVue] = useState<'tableau' | 'declarations'>('tableau');
   const [kpi, setKpi] = useState<KpiCommune | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [axeOuvert, setAxeOuvert] = useState<number | null>(null);
@@ -153,7 +154,7 @@ export function IndicateursCommune({ communeId, fnct = false }: { communeId: str
   if (erreur && !kpi) return <Erreur message={erreur} onReessayer={() => void charger()} />;
   if (!kpi) return <Chargement />;
 
-  const concours = kpi.indicateurs.filter((r) => r.famille === 'concours');
+  const indicateurs = kpi.indicateurs.filter((r) => r.famille === 'indicateur');
   const dma = kpi.indicateurs.filter((r) => r.famille === 'dma');
 
   return (
@@ -174,7 +175,7 @@ export function IndicateursCommune({ communeId, fnct = false }: { communeId: str
               ))}
             </select>
           </label>
-          {(['tableau', 'fiche'] as const).map((v) => (
+          {(['tableau', 'declarations'] as const).map((v) => (
             <button
               key={v}
               type="button"
@@ -188,12 +189,8 @@ export function IndicateursCommune({ communeId, fnct = false }: { communeId: str
         </div>
       </header>
 
-      {kpi.parametres.bareme_provisoire === 1 && (
-        <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{t('kpi.baremeProvisoire')}</p>
-      )}
-
-      {vue === 'fiche' ? (
-        <FicheEvaluation
+      {vue === 'declarations' ? (
+        <DeclarationsIndicateurs
           communeId={communeId}
           annee={annee}
           fnct={fnct}
@@ -202,31 +199,14 @@ export function IndicateursCommune({ communeId, fnct = false }: { communeId: str
         />
       ) : (
         <div ref={bloc} className="space-y-4">
-          {/* --- Le Concours ------------------------------------------------ */}
+          {/* --- La couverture et la préparation DMA --------------------------- */}
           <section className="grid gap-4 lg:grid-cols-3">
             <div className="rounded-xl border border-ardoise-200 bg-white p-4 lg:col-span-2">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h2 className="font-semibold text-ardoise-900">{t('kpi.concours.titre')}</h2>
-                  <p className="text-xs text-ardoise-500">{t('kpi.concours.aide')}</p>
-                </div>
-                <span className="rounded-full bg-ardoise-100 px-2.5 py-0.5 text-xs text-ardoise-700">
-                  {t(`kpi.fiche.statuts.${kpi.fiche.statut ?? 'aucune'}`)}
-                </span>
-              </div>
-              <div className="mt-3 flex flex-wrap items-end gap-6">
-                <Indice valeur={kpi.concours.score} renseignes={kpi.concours.indicateurs_renseignes} total={kpi.concours.indicateurs_applicables} />
-                <p className="chiffres text-sm text-ardoise-600">
-                  {t('kpi.concours.couverture', {
-                    renseignes: formaterNombre(kpi.concours.points_renseignes, 0),
-                    applicables: formaterNombre(kpi.concours.points_applicables, 0),
-                    pct: kpi.concours.couverture == null ? '—' : formaterNombre(kpi.concours.couverture, 0),
-                  })}
-                </p>
-              </div>
-              <p className="mt-2 text-sm text-ardoise-700">
-                {kpi.concours.classe ? t('kpi.concours.classable') : t(`kpi.concours.motifs.${kpi.concours.motif_non_classe}`)}
+              <h2 className="font-semibold text-ardoise-900">{t('kpi.couverture.titre')}</h2>
+              <p className="chiffres mt-3 text-3xl font-bold text-ardoise-900">
+                {t('kpi.couverture.texte', { calculables: kpi.couverture.calculables, total: kpi.couverture.total })}
               </p>
+              <p className="mt-1 text-xs text-ardoise-500">{t('kpi.couverture.aide')}</p>
             </div>
             <div className="rounded-xl border border-ardoise-200 bg-white p-4">
               <h2 className="font-semibold text-ardoise-900">{t('kpi.dma.titre')}</h2>
@@ -265,10 +245,10 @@ export function IndicateursCommune({ communeId, fnct = false }: { communeId: str
             </section>
           )}
 
-          {/* --- La grille du Concours, entière --------------------------------- */}
+          {/* --- Les indicateurs, par axe ---------------------------------------- */}
           <section className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-semibold text-ardoise-900">{t('kpi.concours.grille')}</h2>
+              <h2 className="font-semibold text-ardoise-900">{t('kpi.parAxe')}</h2>
               <button
                 type="button"
                 className={bouton}
@@ -277,12 +257,7 @@ export function IndicateursCommune({ communeId, fnct = false }: { communeId: str
                   imprimer(bloc.current, {
                     titre: t('kpi.impression.titre', { commune: kpi.nom, annee }),
                     details: [
-                      t('kpi.impression.note', {
-                        score: kpi.concours.score == null ? '—' : formaterNombre(kpi.concours.score, 1),
-                        n: kpi.concours.indicateurs_renseignes,
-                        total: kpi.concours.indicateurs_applicables,
-                      }),
-                      t(`kpi.fiche.statuts.${kpi.fiche.statut ?? 'aucune'}`),
+                      t('kpi.couverture.texte', { calculables: kpi.couverture.calculables, total: kpi.couverture.total }),
                       f.date(new Date(), { heure: true }),
                     ],
                     paysage: true,
@@ -292,12 +267,16 @@ export function IndicateursCommune({ communeId, fnct = false }: { communeId: str
                 {t('kpi.impression.bouton')}
               </button>
             </div>
-            {(['M1', 'M2', 'M3'] as const).map((m) => (
-              <div key={m} className="space-y-1">
-                <h3 className="text-sm font-medium text-ardoise-700">{t(`kpi.modules.${m}`)}</h3>
-                <TableIndicateurs liste={concours.filter((r) => r.module === m)} />
-              </div>
-            ))}
+            {[1, 2, 3, 4, 5].map((axe) => {
+              const liste = indicateurs.filter((r) => r.axe === axe);
+              if (liste.length === 0) return null;
+              return (
+                <div key={axe} className="space-y-1">
+                  <h3 className="text-sm font-medium text-ardoise-700">{t('kpi.axeNomme', { n: axe, nom: t(`kpi.axes.${axe}`) })}</h3>
+                  <TableIndicateurs liste={liste} />
+                </div>
+              );
+            })}
             <h3 className="text-sm font-medium text-ardoise-700">{t('kpi.dma.titre')}</h3>
             <TableIndicateurs liste={dma} />
           </section>

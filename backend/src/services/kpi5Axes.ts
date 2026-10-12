@@ -1,25 +1,30 @@
-// Le tableau de bord KPI 5 axes, la note du Concours national de propreté et
-// la maturité de préparation au décret DMA — Jalon 8 (TDR §3.2.10).
+// Le tableau de bord des indicateurs : les 5 axes et la préparation au décret
+// DMA — Jalon 8 (TDR §3.2.10), refondu au lot 1 de la refonte (retrait du
+// barème, de la note et du classement ; SPEC_refonte_indicateurs_saisie.md).
 //
 // LA RÈGLE D'OR : UNE DONNÉE MANQUANTE N'EST PAS UN ZÉRO. Ce module ne remplace
 // jamais une absence par 0 :
-//   - un indicateur sans source est « non renseigné », et sort du calcul ;
-//   - la note du Concours se calcule sur les seuls points renseignés, et la
-//     couverture (« 14/19 indicateurs, 72 % des points ») s'affiche à côté ;
-//   - une commune dont la couverture est trop faible n'est pas classée : une
-//     note calculée sur trois indicateurs ne se compare pas à une note
-//     calculée sur dix-neuf.
+//   - un indicateur sans source est « non renseigné », et sort des moyennes ;
+//   - la couverture se dit en clair : « 14 indicateurs calculables sur 19 » ;
+//   - un indice d'axe ne porte que sur ses indicateurs renseignés, et dit sur
+//     combien il porte.
 //
-// Les mesures viennent de la base (app.mesures_kpi, migration 050, et
-// app.mesures_kpi_auto, migration 051 — la mesure prime sur la déclaration) ; les
-// saisies de la fiche d'évaluation (valeurs_kpi). Tout le reste — notes,
-// reventilation, moyennes — se fait ici, là où il se relit et se teste.
+// TROIS SOURCES, DANS CET ORDRE. La mesure d'un registre de la plateforme
+// (app.mesures_kpi, migration 050/063, et app.mesures_kpi_auto, migration 051) ;
+// sinon la valeur déclarée par la commune (declarations_indicateurs, migration
+// 068), qui vaut dès qu'elle est enregistrée (D3) ; sinon rien.
+//
+// LE TAUX D'ATTEINTE. Pour un indicateur qui se rapporte à un objectif — un
+// pourcentage, un ratio à une cible — c'est sa lecture entre 0 et 1 : la valeur
+// divisée par la cible, ou le pourcentage lui-même. Il nourrit les indices des
+// axes, l'indice de préparation DMA et les alertes nationales. Ce n'est pas une
+// note : aucun barème ne le pondère, aucun classement ne l'utilise.
 
 import { query } from '../db.js';
 
 export interface Indicateur {
   code: string;
-  famille: 'concours' | 'dma' | 'donnee';
+  famille: 'indicateur' | 'dma' | 'donnee';
   module: string | null;
   axe: number;
   libelle_fr: string;
@@ -30,39 +35,38 @@ export interface Indicateur {
   libelle_valeur: string | null;
   libelle_cible: string | null;
   unite: string | null;
-  points: number | null;
   ordre: number;
 }
 
-export interface Fiche {
-  id: string;
-  commune_id: string;
-  annee: number;
-  statut: 'brouillon' | 'soumise' | 'validee';
+/** Ce que la commune a dit d'elle-même, et qui rend un indicateur « sans objet ». */
+export interface Profil {
   a_abattoir: boolean | null;
   decharge_controlee_anged: boolean | null;
-  experience_innovante: boolean | null;
-  agent_reclamations: boolean | null;
 }
 
-interface Saisie {
+interface Declaration {
+  id: string;
   valeur: number;
   cible: number | null;
   commentaire: string | null;
+  saisi_par: string | null;
+  saisi_le: string;
+  commentaire_fnct: string | null;
+  commente_le: string | null;
 }
 
 interface Mesure {
   valeur: number | null;
+  /** Taux d'atteinte rendu par la base (colonne « note » des fonctions de mesure). */
   note: number | null;
   detail: Record<string, unknown>;
 }
 
-export type Statut = 'renseigne' | 'non_renseigne' | 'sans_objet' | 'reventile';
+export type Statut = 'renseigne' | 'non_renseigne' | 'sans_objet';
 
 export interface Resultat {
   code: string;
   famille: Indicateur['famille'];
-  module: string | null;
   axe: number;
   libelle_fr: string;
   libelle_ar: string;
@@ -71,22 +75,17 @@ export interface Resultat {
   statut: Statut;
   /**
    * D'où vient la valeur retenue : mesurée par un registre de la plateforme,
-   * déclarée dans la fiche d'évaluation, ou rien (non renseigné). La mesure
-   * prime ; la déclaration ne sert qu'en son absence (lot « sources KPI »).
+   * déclarée par la commune, ou rien (non renseigné). La mesure prime.
    */
   source: 'mesure' | 'declare' | null;
   valeur: number | null;
   cible: number | null;
-  /** Taux d'atteinte, entre 0 et 1 ; null si l'indicateur n'est pas noté ou pas renseigné. */
-  note: number | null;
-  points_base: number | null;
-  points_effectifs: number | null;
-  points_obtenus: number | null;
-  /** Vers quel indicateur les points ont été reportés, ou d'où ils viennent. */
-  reventile_vers: string | null;
-  recoit_de: string[];
+  /** Lecture entre 0 et 1 d'un indicateur rapporté à un objectif ; null sinon, ou non renseigné. */
+  taux_atteinte: number | null;
   detail: Record<string, unknown>;
   commentaire: string | null;
+  /** La déclaration retenue : qui l'a saisie, quand, et le commentaire de la FNCT (D3). */
+  declaration: Omit<Declaration, 'valeur' | 'cible' | 'commentaire'> | null;
 }
 
 export interface Parametres {
@@ -94,8 +93,6 @@ export interface Parametres {
   taux_resolution_min: number;
   bachage_min: number;
   maintenance_min: number;
-  couverture_classement_min: number;
-  bareme_provisoire: number;
   dma_en_vigueur: number;
 }
 
@@ -106,18 +103,10 @@ export interface CommuneKpi {
   gouvernorat: string;
   district: string | null;
   population: number | null;
-  fiche: { statut: Fiche['statut'] | null; id: string | null };
+  profil: Profil;
   indicateurs: Resultat[];
-  concours: {
-    score: number | null;
-    indicateurs_renseignes: number;
-    indicateurs_applicables: number;
-    points_renseignes: number;
-    points_applicables: number;
-    couverture: number | null;
-    classe: boolean;
-    motif_non_classe: string | null;
-  };
+  /** « 14 indicateurs calculables sur 19 » : les sans-objet sortent du total. */
+  couverture: { calculables: number; total: number };
   axes: { axe: number; indice: number | null; renseignes: number; notes: number }[];
   dma: { indice: number | null; niveau: 'non_evalue' | 'initial' | 'en_preparation' | 'avance' | 'pret'; renseignes: number; total: number };
 }
@@ -129,8 +118,7 @@ const arrondi = (n: number, d = 1) => Math.round(n * 10 ** d) / 10 ** d;
 // ---------------------------------------------------------------------------
 
 export async function catalogue(): Promise<Indicateur[]> {
-  const lignes = await query<Indicateur & { points: string | null }>('SELECT * FROM indicateurs_kpi ORDER BY ordre, code');
-  return lignes.map((l) => ({ ...l, points: l.points == null ? null : Number(l.points) }));
+  return query<Indicateur>('SELECT * FROM indicateurs_kpi ORDER BY ordre, code');
 }
 
 export async function parametres(): Promise<Parametres> {
@@ -143,8 +131,8 @@ interface Contexte {
   catalogue: Indicateur[];
   parametres: Parametres;
   communes: { id: string; name: string; name_ar: string | null; gouvernorat: string; population: number | null; district: string | null }[];
-  fiches: Map<string, Fiche>;
-  saisies: Map<string, Map<string, Saisie>>;
+  profils: Map<string, Profil>;
+  declarations: Map<string, Map<string, Declaration>>;
   mesures: Map<string, Map<string, Mesure>>;
   /** Les mesures automatiques des indicateurs jusqu'ici déclarés (migration 051). */
   auto: Map<string, Map<string, Mesure>>;
@@ -156,25 +144,31 @@ interface Contexte {
  */
 export async function charger(annee: number, communeIds?: string[]): Promise<Contexte> {
   const filtre = communeIds?.length ? communeIds : null;
-  const [cat, params, communes, fiches, saisies, mesures, automatiques] = await Promise.all([
+  const [cat, params, communes, profils, declarations, mesures, automatiques] = await Promise.all([
     catalogue(),
     parametres(),
     query<Contexte['communes'][number]>(
       `SELECT c.id, c.name, c.name_ar, c.gouvernorat, c.population, gd.district_code AS district
          FROM communes c LEFT JOIN gouvernorats_district gd ON gd.gouvernorat = c.gouvernorat
         WHERE app.can_write_commune(c.id)
-          -- Le concours, la vue nationale, la DMA et les alertes portent sur
-          -- toutes les communes : la commune de démonstration n'en est pas.
-          -- Demandée nommément (son propre portail), elle se calcule.
+          -- La vue nationale, la DMA et les alertes portent sur toutes les
+          -- communes : la commune de démonstration n'en est pas. Demandée
+          -- nommément (son propre portail), elle se calcule.
           AND ($1::text[] IS NULL AND NOT c.est_demo OR c.id = ANY($1))
         ORDER BY c.name`,
       [filtre]
     ),
-    query<Fiche>('SELECT * FROM evaluations_kpi WHERE annee = $1 AND ($2::text[] IS NULL OR commune_id = ANY($2))', [annee, filtre]),
-    query<{ commune_id: string; indicateur_code: string; valeur: string; cible: string | null; commentaire: string | null }>(
-      `SELECT v.commune_id, v.indicateur_code, v.valeur, v.cible, v.commentaire
-         FROM valeurs_kpi v JOIN evaluations_kpi e ON e.id = v.evaluation_id
-        WHERE e.annee = $1 AND ($2::text[] IS NULL OR v.commune_id = ANY($2))`,
+    query<Profil & { commune_id: string }>(
+      `SELECT commune_id, a_abattoir, decharge_controlee_anged FROM parametres_commune
+        WHERE ($1::text[] IS NULL OR commune_id = ANY($1))`,
+      [filtre]
+    ),
+    query<Declaration & { commune_id: string; indicateur_code: string; valeur: string; cible: string | null }>(
+      `SELECT d.id, d.commune_id, d.indicateur_code, d.valeur, d.cible, d.commentaire, d.saisi_le,
+              u.full_name AS saisi_par, d.commentaire_fnct, d.commente_le
+         FROM declarations_indicateurs d LEFT JOIN users u ON u.id = d.saisi_par
+        WHERE d.annee = $1 AND d.mois IS NULL AND d.deleted_at IS NULL
+          AND ($2::text[] IS NULL OR d.commune_id = ANY($2))`,
       [annee, filtre]
     ),
     query<{ commune_id: string; code: string; valeur: string | null; note: string | null; detail: Record<string, unknown> }>(
@@ -188,15 +182,24 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
   ]);
 
   const parCommune = <T>(m: Map<string, Map<string, T>>, commune: string) => {
-    if (!m.has(commune)) m.set(commune, new Map());
-    return m.get(commune)!;
+    let ligne = m.get(commune);
+    if (!ligne) {
+      ligne = new Map<string, T>();
+      m.set(commune, ligne);
+    }
+    return ligne;
   };
-  const s = new Map<string, Map<string, Saisie>>();
-  for (const v of saisies) {
-    parCommune(s, v.commune_id).set(v.indicateur_code, {
-      valeur: Number(v.valeur),
-      cible: v.cible == null ? null : Number(v.cible),
-      commentaire: v.commentaire,
+  const decl = new Map<string, Map<string, Declaration>>();
+  for (const d of declarations) {
+    parCommune(decl, d.commune_id).set(d.indicateur_code, {
+      id: d.id,
+      valeur: Number(d.valeur),
+      cible: d.cible == null ? null : Number(d.cible),
+      commentaire: d.commentaire,
+      saisi_par: d.saisi_par,
+      saisi_le: d.saisi_le,
+      commentaire_fnct: d.commentaire_fnct,
+      commente_le: d.commente_le,
     });
   }
   const ranger = (lignes: typeof mesures) => {
@@ -215,8 +218,8 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
     catalogue: cat,
     parametres: params,
     communes: communes.map((c) => ({ ...c, population: c.population == null ? null : Number(c.population) })),
-    fiches: new Map(fiches.map((f) => [f.commune_id, f])),
-    saisies: s,
+    profils: new Map(profils.map((p) => [p.commune_id, { a_abattoir: p.a_abattoir, decharge_controlee_anged: p.decharge_controlee_anged }])),
+    declarations: decl,
     mesures: ranger(mesures),
     auto: ranger(automatiques),
   };
@@ -226,10 +229,10 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
 // Une commune
 // ---------------------------------------------------------------------------
 
-/** La note d'une saisie : un ratio plafonné à 1, un taux ramené entre 0 et 1. */
-function noteSaisie(ind: Indicateur, s: Saisie): number | null {
-  if (ind.saisie === 'ratio') return s.cible && s.cible > 0 ? Math.min(1, s.valeur / s.cible) : null;
-  if (ind.saisie === 'taux') return Math.max(0, Math.min(1, s.valeur / 100));
+/** Le taux d'atteinte d'une déclaration : un ratio plafonné à 1, un taux ramené entre 0 et 1. */
+function tauxDeclaration(ind: Indicateur, d: Declaration): number | null {
+  if (ind.saisie === 'ratio') return d.cible && d.cible > 0 ? Math.min(1, d.valeur / d.cible) : null;
+  if (ind.saisie === 'taux') return Math.max(0, Math.min(1, d.valeur / 100));
   return null;
 }
 
@@ -241,183 +244,155 @@ function noteSaisie(ind: Indicateur, s: Saisie): number | null {
  */
 function coutTonne(
   mesures: Map<string, Mesure>,
-  saisies: Map<string, Saisie>,
+  declarations: Map<string, Declaration>,
   auto: Map<string, Mesure>,
   annee: number
 ): Mesure {
   const masse = mesures.get('MASSE_SALARIALE')?.valeur ?? null;
   const maintenance = mesures.get('COUT_MAINTENANCE')?.valeur ?? null;
   // Le carburant mesuré (pleins enregistrés) prime sur le carburant déclaré.
-  const carburant = auto.get('ECO-CARBURANT')?.valeur ?? saisies.get('ECO-CARBURANT')?.valeur ?? null;
-  const decharge = saisies.get('ECO-DECHARGE')?.valeur ?? null;
+  const carburant = auto.get('ECO-CARBURANT')?.valeur ?? declarations.get('ECO-CARBURANT')?.valeur ?? null;
+  const decharge = declarations.get('ECO-DECHARGE')?.valeur ?? null;
   const tonnage = mesures.get('TONNAGE_T')?.valeur ?? null;
   const jours = Number(mesures.get('KG_HAB_J')?.detail?.jours_couverts ?? 0) || null;
-  const manquent = [
-    masse == null && 'masse salariale',
-    carburant == null && 'carburant',
-    maintenance == null && 'maintenance',
-    decharge == null && 'redevances',
-    (tonnage == null || !jours) && 'pesées',
-  ].filter(Boolean);
-  if (manquent.length) return { valeur: null, note: null, detail: { manquent } };
+  if (masse == null || carburant == null || maintenance == null || decharge == null || tonnage == null || !jours) {
+    const manquent = [
+      masse == null && 'masse salariale',
+      carburant == null && 'carburant',
+      maintenance == null && 'maintenance',
+      decharge == null && 'redevances',
+      (tonnage == null || !jours) && 'pesées',
+    ].filter(Boolean);
+    return { valeur: null, note: null, detail: { manquent } };
+  }
   const debut = Date.UTC(annee, 0, 1);
   const fin = Math.min(Date.UTC(annee, 11, 31), Date.now());
   const joursPeriode = Math.floor((fin - debut) / 86_400_000) + 1;
-  const prorata = Math.min(1, jours! / joursPeriode);
-  const total = (masse! + carburant! + maintenance! + decharge!) * prorata;
+  const prorata = Math.min(1, jours / joursPeriode);
+  const total = (masse + carburant + maintenance + decharge) * prorata;
   return {
-    valeur: arrondi(total / tonnage!, 3),
+    valeur: arrondi(total / tonnage, 3),
     note: null,
     detail: { prorata: arrondi(prorata, 3), cout_rapporte_tnd: arrondi(total, 3), tonnage_t: tonnage },
   };
 }
 
+/** Ce que le profil de la commune rend « sans objet » — rien d'autre ne change. */
+function sansObjet(code: string, profil: Profil): boolean {
+  if (code === 'M1-8') return profil.decharge_controlee_anged === true;
+  if (code === 'M2-5') return profil.a_abattoir === false;
+  return false;
+}
+
 export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
-  const c = ctx.communes.find((x) => x.id === communeId)!;
-  const fiche = ctx.fiches.get(communeId) ?? null;
-  const saisies = ctx.saisies.get(communeId) ?? new Map<string, Saisie>();
+  const c = ctx.communes.find((x) => x.id === communeId);
+  if (!c) throw new Error(`Commune hors du contexte de calcul : ${communeId}`);
+  const profil = ctx.profils.get(communeId) ?? { a_abattoir: null, decharge_controlee_anged: null };
+  const declarations = ctx.declarations.get(communeId) ?? new Map<string, Declaration>();
   const mesures = new Map(ctx.mesures.get(communeId) ?? new Map<string, Mesure>());
   const auto = ctx.auto.get(communeId) ?? new Map<string, Mesure>();
-  mesures.set('COUT_TONNE', coutTonne(mesures, saisies, auto, ctx.annee));
+  mesures.set('COUT_TONNE', coutTonne(mesures, declarations, auto, ctx.annee));
 
   const resultats: Resultat[] = ctx.catalogue.map((ind) => {
     const base = {
       code: ind.code,
       famille: ind.famille,
-      module: ind.module,
       axe: ind.axe,
       libelle_fr: ind.libelle_fr,
       libelle_ar: ind.libelle_ar,
       unite: ind.unite,
       mode: ind.mode,
-      points_base: ind.points,
-      points_effectifs: ind.points,
-      points_obtenus: null,
-      reventile_vers: null,
-      recoit_de: [] as string[],
       commentaire: null as string | null,
+      declaration: null as Resultat['declaration'],
     };
+    if (sansObjet(ind.code, profil)) {
+      return { ...base, statut: 'sans_objet', source: null, valeur: null, cible: null, taux_atteinte: null, detail: {} } as Resultat;
+    }
     if (ind.mode === 'calcule') {
       const m = mesures.get(ind.code);
-      const renseigne = m != null && m.valeur != null;
-      return {
-        ...base,
-        statut: renseigne ? 'renseigne' : 'non_renseigne',
-        source: renseigne ? 'mesure' : null,
-        valeur: renseigne ? m!.valeur : null,
-        cible: null,
-        note: renseigne ? m!.note : null,
-        detail: m?.detail ?? {},
-      } as Resultat;
+      if (m != null && m.valeur != null) {
+        return { ...base, statut: 'renseigne', source: 'mesure', valeur: m.valeur, cible: null, taux_atteinte: m.note, detail: m.detail } as Resultat;
+      }
+      return { ...base, statut: 'non_renseigne', source: null, valeur: null, cible: null, taux_atteinte: null, detail: m?.detail ?? {} } as Resultat;
     }
-    const s = saisies.get(ind.code);
+    const d = declarations.get(ind.code);
 
     // 1. LA MESURE D'ABORD. Un registre tenu (nettoyages, fins de poste,
     //    dotations EPI, conventions, pleins, journal des incidents) donne la
     //    valeur. Un ratio mesuré sans cible connue de la plateforme reprend la
-    //    cible déclarée ; sans cible du tout, il ne se note pas et cède la
-    //    place à la déclaration.
+    //    cible déclarée ; sans cible du tout, il cède la place à la déclaration.
     const a = auto.get(ind.code);
     if (a && a.valeur != null) {
       const cibleAuto = typeof a.detail.cible === 'number' ? a.detail.cible : a.detail.cible != null ? Number(a.detail.cible) : null;
-      const cible = cibleAuto ?? s?.cible ?? null;
-      const noteAuto =
+      const cible = cibleAuto ?? d?.cible ?? null;
+      const taux =
         ind.saisie === 'ratio'
           ? a.note ?? (cible && cible > 0 ? Math.min(1, a.valeur / cible) : null)
           : ind.saisie === 'taux'
             ? a.note
             : null;
-      const utilisable = ind.saisie === 'nombre' || ind.saisie === 'montant' || noteAuto != null;
-      if (utilisable) {
+      if (ind.saisie === 'nombre' || ind.saisie === 'montant' || taux != null) {
         return {
           ...base,
           statut: 'renseigne',
           source: 'mesure',
           valeur: a.valeur,
           cible: ind.saisie === 'ratio' ? cible : null,
-          note: noteAuto,
+          taux_atteinte: taux,
           detail: a.detail,
         } as Resultat;
       }
     }
 
-    // 2. SINON, LA DÉCLARATION. 3. Sinon, non renseigné.
-    const note = s ? noteSaisie(ind, s) : null;
-    // Un ratio sans cible ne se note pas : il reste « non renseigné » pour
-    // le Concours, mais sa valeur saisie s'affiche.
-    const renseigne = s != null && (ind.saisie === 'nombre' || ind.saisie === 'montant' || note != null);
+    // 2. SINON, LA DÉCLARATION — elle vaut dès qu'elle est enregistrée (D3).
+    // 3. Sinon, non renseigné.
+    if (!d) {
+      return { ...base, statut: 'non_renseigne', source: null, valeur: null, cible: null, taux_atteinte: null, detail: {} } as Resultat;
+    }
+    const taux = tauxDeclaration(ind, d);
+    // Un ratio sans cible ne se lit pas : sa valeur s'affiche, il reste « non
+    // renseigné » pour les indices.
+    const renseigne = ind.saisie === 'nombre' || ind.saisie === 'montant' || taux != null;
     return {
       ...base,
       statut: renseigne ? 'renseigne' : 'non_renseigne',
       source: renseigne ? 'declare' : null,
-      valeur: s ? s.valeur : null,
-      cible: s ? s.cible : null,
-      note: renseigne ? note : null,
+      valeur: d.valeur,
+      cible: d.cible,
+      taux_atteinte: renseigne ? taux : null,
       detail: {},
-      commentaire: s?.commentaire ?? null,
+      commentaire: d.commentaire,
+      declaration: {
+        id: d.id,
+        saisi_par: d.saisi_par,
+        saisi_le: d.saisi_le,
+        commentaire_fnct: d.commentaire_fnct,
+        commente_le: d.commente_le,
+      },
     } as Resultat;
   });
-  const parCode = new Map(resultats.map((r) => [r.code, r]));
 
-  // --- Reventilation du Concours (méthodologie ministérielle) --------------
-  const reporter = (de: string, vers: string) => {
-    const a = parCode.get(de);
-    const b = parCode.get(vers);
-    if (!a || !b) return;
-    b.points_effectifs = (b.points_effectifs ?? 0) + (a.points_effectifs ?? 0);
-    b.recoit_de.push(de);
-    a.statut = 'reventile';
-    a.source = null;
-    a.reventile_vers = vers;
-    a.points_effectifs = 0;
-    a.note = null;
-  };
-  // Décharge contrôlée par l'ANGeD : M1-8 ne dépend plus de la commune.
-  if (fiche?.decharge_controlee_anged === true) reporter('M1-8', 'M1-9');
-  // Aucune expérience innovante : M1-10 revient à la propreté générale.
-  if (fiche?.experience_innovante === false) reporter('M1-10', 'M1-3');
-  // Pas d'abattoir municipal : sans objet, hors du dénominateur.
-  if (fiche?.a_abattoir === false) {
-    const a = parCode.get('M2-5');
-    if (a) {
-      a.statut = 'sans_objet';
-      a.source = null;
-      a.points_effectifs = 0;
-      a.note = null;
-    }
-  }
-
-  // --- La note du Concours, sur les seuls points renseignés -----------------
-  const concours = resultats.filter((r) => r.famille === 'concours');
-  const applicables = concours.filter((r) => r.statut === 'renseigne' || r.statut === 'non_renseigne');
-  const renseignes = applicables.filter((r) => r.statut === 'renseigne' && r.note != null);
-  for (const r of renseignes) r.points_obtenus = arrondi((r.note ?? 0) * (r.points_effectifs ?? 0), 2);
-  const pointsApplicables = applicables.reduce((s, r) => s + (r.points_effectifs ?? 0), 0);
-  const pointsRenseignes = renseignes.reduce((s, r) => s + (r.points_effectifs ?? 0), 0);
-  const obtenus = renseignes.reduce((s, r) => s + (r.points_obtenus ?? 0), 0);
-  const score = pointsRenseignes > 0 ? arrondi((100 * obtenus) / pointsRenseignes) : null;
-  const couverture = pointsApplicables > 0 ? arrondi((100 * pointsRenseignes) / pointsApplicables) : null;
-  const seuil = ctx.parametres.couverture_classement_min ?? 60;
-  // Le classement OFFICIEL exige en plus une fiche validée par la FNCT :
-  // c'est classement() qui l'ajoute, selon la vue demandée.
-  const motif = score == null ? 'aucun_indicateur' : (couverture ?? 0) < seuil ? 'couverture_insuffisante' : null;
+  // --- La couverture : « 14 indicateurs calculables sur 19 » ---------------
+  const indicateurs = resultats.filter((r) => r.famille === 'indicateur');
+  const applicables = indicateurs.filter((r) => r.statut !== 'sans_objet');
+  const couverture = { calculables: applicables.filter((r) => r.statut === 'renseigne').length, total: applicables.length };
 
   // --- Les axes : moyenne des taux d'atteinte renseignés --------------------
   const axes = [1, 2, 3, 4, 5].map((axe) => {
-    const notes = resultats.filter((r) => r.axe === axe && r.famille !== 'donnee' && (r.statut === 'renseigne' || r.statut === 'non_renseigne'));
-    const avecNote = notes.filter((r) => r.note != null);
+    const lus = resultats.filter((r) => r.axe === axe && r.famille !== 'donnee' && r.statut !== 'sans_objet');
+    const avecTaux = lus.filter((r): r is Resultat & { taux_atteinte: number } => r.taux_atteinte != null);
     return {
       axe,
-      indice: avecNote.length ? arrondi((100 * avecNote.reduce((s, r) => s + r.note!, 0)) / avecNote.length) : null,
-      renseignes: avecNote.length,
-      notes: notes.length,
+      indice: avecTaux.length ? arrondi((100 * avecTaux.reduce((s, r) => s + r.taux_atteinte, 0)) / avecTaux.length) : null,
+      renseignes: avecTaux.length,
+      notes: lus.length,
     };
   });
 
   // --- Préparation au tri à la source (dispositif d'anticipation) -----------
   const dma = resultats.filter((r) => r.famille === 'dma');
-  const dmaNotes = dma.filter((r) => r.note != null);
-  const indiceDma = dmaNotes.length ? arrondi((100 * dmaNotes.reduce((s, r) => s + r.note!, 0)) / dmaNotes.length) : null;
+  const dmaLus = dma.filter((r): r is Resultat & { taux_atteinte: number } => r.taux_atteinte != null);
+  const indiceDma = dmaLus.length ? arrondi((100 * dmaLus.reduce((s, r) => s + r.taux_atteinte, 0)) / dmaLus.length) : null;
   const niveau =
     indiceDma == null ? 'non_evalue' : indiceDma < 25 ? 'initial' : indiceDma < 50 ? 'en_preparation' : indiceDma < 75 ? 'avance' : 'pret';
 
@@ -428,20 +403,11 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
     gouvernorat: c.gouvernorat,
     district: c.district,
     population: c.population,
-    fiche: { statut: fiche?.statut ?? null, id: fiche?.id ?? null },
+    profil,
     indicateurs: resultats,
-    concours: {
-      score,
-      indicateurs_renseignes: renseignes.length,
-      indicateurs_applicables: applicables.length,
-      points_renseignes: arrondi(pointsRenseignes, 2),
-      points_applicables: arrondi(pointsApplicables, 2),
-      couverture,
-      classe: motif === null,
-      motif_non_classe: motif,
-    },
+    couverture,
     axes,
-    dma: { indice: indiceDma, niveau, renseignes: dmaNotes.length, total: dma.length },
+    dma: { indice: indiceDma, niveau, renseignes: dmaLus.length, total: dma.length },
   };
 }
 
@@ -461,18 +427,18 @@ export function agreger(communes: CommuneKpi[], niveau: Exclude<Niveau, 'commune
   const groupes = new Map<string, CommuneKpi[]>();
   for (const c of communes) {
     const cle = niveau === 'national' ? 'national' : niveau === 'gouvernorat' ? c.gouvernorat : (c.district ?? 'non_rattache');
-    if (!groupes.has(cle)) groupes.set(cle, []);
-    groupes.get(cle)!.push(c);
+    const groupe = groupes.get(cle);
+    if (groupe) groupe.push(c);
+    else groupes.set(cle, [c]);
   }
   return [...groupes.entries()]
     .map(([cle, liste]) => {
-      const classees = liste.filter((c) => c.concours.classe);
-      const somme = (code: string, champ: 'valeur') =>
-        liste.reduce((s, c) => {
-          const r = c.indicateurs.find((i) => i.code === code);
-          return r?.[champ] != null ? s + r[champ]! : s;
-        }, 0);
       const renseigneDans = (code: string) => liste.filter((c) => c.indicateurs.find((i) => i.code === code)?.statut === 'renseigne').length;
+      const somme = (code: string) =>
+        liste.reduce((s, c) => {
+          const v = c.indicateurs.find((i) => i.code === code)?.valeur;
+          return v != null ? s + v : s;
+        }, 0);
       // Le taux de résolution agrégé se recompose depuis les comptes, pas
       // comme une moyenne de taux : une commune de dix réclamations ne pèse
       // pas autant qu'une commune de mille.
@@ -487,11 +453,6 @@ export function agreger(communes: CommuneKpi[], niveau: Exclude<Niveau, 'commune
         cle,
         nom: niveau === 'district' ? (districts.get(cle) ?? null) : cle,
         communes: liste.length,
-        concours: {
-          communes_classees: classees.length,
-          score_moyen: moyenne(classees.map((c) => c.concours.score)),
-          couverture_moyenne: moyenne(liste.map((c) => c.concours.couverture)),
-        },
         axes: [1, 2, 3, 4, 5].map((axe) => {
           const indices = liste.map((c) => c.axes.find((a) => a.axe === axe)?.indice ?? null);
           return { axe, indice_moyen: moyenne(indices), communes_renseignees: indices.filter((x) => x != null).length };
@@ -501,59 +462,11 @@ export function agreger(communes: CommuneKpi[], niveau: Exclude<Niveau, 'commune
           communes_evaluees: liste.filter((c) => c.dma.indice != null).length,
         },
         // A3.1 — les tonnages et le taux de résolution, joints à l'agrégation.
-        tonnage_t: renseigneDans('TONNAGE_T') ? arrondi(somme('TONNAGE_T', 'valeur'), 3) : null,
+        tonnage_t: renseigneDans('TONNAGE_T') ? arrondi(somme('TONNAGE_T'), 3) : null,
         communes_pesees: renseigneDans('TONNAGE_T'),
         reclamations: rec.n || null,
         taux_resolution: rec.n ? arrondi((100 * rec.r) / rec.n) : null,
       };
     })
     .sort((a, b) => (a.cle === 'non_rattache' ? 1 : b.cle === 'non_rattache' ? -1 : (a.nom ?? a.cle).localeCompare(b.nom ?? b.cle)));
-}
-
-/**
- * Le classement du Concours : les communes classées d'abord, par score.
- * Officiel : seules les fiches validées par la FNCT concourent — une note
- * déclarée par la commune elle-même n'est pas une note de concours.
- */
-export function marquerOfficiel(liste: CommuneKpi[], officiel: boolean): CommuneKpi[] {
-  return liste.map((c) =>
-    officiel && c.concours.classe && c.fiche.statut !== 'validee'
-      ? { ...c, concours: { ...c.concours, classe: false, motif_non_classe: 'fiche_non_validee' } }
-      : c
-  );
-}
-
-export function classement(liste: CommuneKpi[], officiel: boolean) {
-  const communes = marquerOfficiel(liste, officiel);
-  const classees = communes.filter((c) => c.concours.classe).sort((a, b) => (b.concours.score ?? 0) - (a.concours.score ?? 0));
-  let rang = 0;
-  let precedent: number | null = null;
-  const avecRang = classees.map((c, i) => {
-    if (c.concours.score !== precedent) rang = i + 1;
-    precedent = c.concours.score;
-    return { ...ligneClassement(c), rang };
-  });
-  const autres = communes
-    .filter((c) => !c.concours.classe && c.concours.score != null)
-    .sort((a, b) => (b.concours.couverture ?? 0) - (a.concours.couverture ?? 0))
-    .map((c) => ({ ...ligneClassement(c), rang: null }));
-  return [...avecRang, ...autres];
-}
-
-function ligneClassement(c: CommuneKpi) {
-  return {
-    commune_id: c.commune_id,
-    nom: c.nom,
-    nom_ar: c.nom_ar,
-    gouvernorat: c.gouvernorat,
-    district: c.district,
-    score: c.concours.score,
-    indicateurs_renseignes: c.concours.indicateurs_renseignes,
-    indicateurs_applicables: c.concours.indicateurs_applicables,
-    couverture: c.concours.couverture,
-    fiche: c.fiche.statut,
-    classe: c.concours.classe,
-    motif_non_classe: c.concours.motif_non_classe,
-    dma_indice: c.dma.indice,
-  };
 }

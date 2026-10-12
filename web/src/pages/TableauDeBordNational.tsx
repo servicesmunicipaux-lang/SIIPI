@@ -76,7 +76,7 @@ function sansAccent(texte: string): string {
 }
 
 // L'observatoire tenait sur une seule page défilante : chapeau, indicateurs,
-// Concours, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
+// performance, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
 // bas. Même défaut que les dix-sept onglets du portail communal — ce qu'on ne
 // voit pas, on ne sait pas que ça existe — et même remède : la barre latérale.
 type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'parametres' | 'conservation' | 'demo';
@@ -304,9 +304,9 @@ export function TableauDeBordNational() {
       </>
       )}
 
-      {/* Jalon 8 : le Concours national, les 5 axes, la préparation au tri à
-          la source et les alertes — avant le tableau par gouvernorat, qui
-          montre le déploiement ; ceci montre la performance. */}
+      {/* Jalon 8 : les 5 axes, la préparation au tri à la source et les
+          alertes — avant le tableau par gouvernorat, qui montre le
+          déploiement ; ceci montre la performance. */}
       {onglet === 'performance' && <KpiNational onOuvrirCommune={setCommuneKpi} />}
       {onglet === 'demo' && <ModeDemo />}
       {onglet === 'parametres' && <ParametresNationaux />}

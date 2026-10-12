@@ -39,9 +39,10 @@ req() {
 }
 AN=2022
 axes() { req GET "/kpi/5-axes?communeId=$COMMUNE&annee=$AN" >/dev/null; }
-# etat <code> → statut|source|valeur|note arrondie
-etat() { axes; val "(lambda i: f\"{i['statut']}|{i['source']}|{i['valeur']}|{None if i['note'] is None else round(i['note'],3)}\")(next(i for i in d['indicateurs'] if i['code']=='$1'))"; }
-declarer() { req PUT "/kpi/evaluations/$COMMUNE/$AN" "{\"valeurs\":$1}" >/dev/null; }
+# etat <code> → statut|source|valeur|taux d'atteinte arrondi
+etat() { axes; val "(lambda i: f\"{i['statut']}|{i['source']}|{i['valeur']}|{None if i['taux_atteinte'] is None else round(i['taux_atteinte'],3)}\")(next(i for i in d['indicateurs'] if i['code']=='$1'))"; }
+# Les déclarations de la commune (refonte, lot 1 : elles remplacent la fiche d'évaluation).
+declarer() { req PUT "/kpi/declarations/$COMMUNE/$AN" "{\"valeurs\":$1}" >/dev/null; }
 
 DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
 T_DIR=$(tok "$DIR_EMAIL")
@@ -50,7 +51,7 @@ T_FNCT=$(tok admin.national@siipi.tn)
 COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
 
 nettoyer() {
-  $PSQL -c "DELETE FROM evaluations_kpi WHERE annee = $AN AND commune_id = '$COMMUNE';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM declarations_indicateurs WHERE annee = $AN AND commune_id = '$COMMUNE';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM actions_planifiees WHERE titre LIKE 'TEST-SRC%';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM poi WHERE nom LIKE 'TEST-SRC%';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM fins_de_poste WHERE observation = 'TEST-SRC';" >/dev/null 2>&1

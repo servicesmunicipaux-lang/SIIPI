@@ -2701,7 +2701,7 @@ export interface paths {
         };
         /**
          * Les 5 axes agrégés par commune, gouvernorat, district ou national (FNCT, A3.1)
-         * @description Les agrégats joignent tonnages pesés et taux de résolution recomposé depuis les comptes.
+         * @description Les agrégats joignent tonnages pesés et taux de résolution recomposé depuis les comptes. Aucun classement.
          */
         get: {
             parameters: {
@@ -3903,7 +3903,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Le catalogue des indicateurs, le barème du Concours et les paramètres nationaux */
+        /** Le catalogue des indicateurs et les seuils nationaux */
         get: {
             parameters: {
                 query?: never;
@@ -3948,92 +3948,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/kpi/bareme": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /**
-         * Fixer le barème des 19 indicateurs du Concours (FNCT)
-         * @description Les 19 indicateurs, et eux seuls ; total de 100 points. `confirmer` : la FNCT atteste que c’est le barème ministériel.
-         */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        points: {
-                            [key: string]: number;
-                        };
-                        confirmer?: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description Barème enregistré. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-                /** @description Requête invalide — le détail indique les champs en cause. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Authentification requise, ou jeton expiré. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/kpi/parametres": {
         parameters: {
             query?: never;
@@ -4057,7 +3971,6 @@ export interface paths {
                         taux_resolution_min?: number;
                         bachage_min?: number;
                         maintenance_min?: number;
-                        couverture_classement_min?: number;
                         dma_en_vigueur?: 0 | 1;
                     };
                 };
@@ -4241,7 +4154,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/kpi/evaluations/{communeId}/{annee}": {
+    "/kpi/declarations/{communeId}/{annee}": {
         parameters: {
             query?: never;
             header?: never;
@@ -4249,8 +4162,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * La fiche d’évaluation d’une commune pour une année
-         * @description Les valeurs saisies (une valeur absente est non renseignée) et des indications pour les cibles (effectif, conteneurs, secteurs).
+         * Les valeurs déclarées par une commune pour une année, et son profil
+         * @description Les déclarations en vigueur (une valeur absente est non renseignée), qui les a saisies et quand, le commentaire de la FNCT, et des indications pour les cibles (effectif, conteneurs, secteurs).
          */
         get: {
             parameters: {
@@ -4264,23 +4177,21 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Fiche. */
+                /** @description Déclarations. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            /** @description La fiche d’évaluation (evaluations_kpi). */
-                            fiche: {
-                                [key: string]: unknown;
-                            } | null;
-                            valeurs: {
-                                [key: string]: unknown;
-                            }[];
+                            profil: {
+                                a_abattoir: boolean | null;
+                                decharge_controlee_anged: boolean | null;
+                            };
+                            declarations: components["schemas"]["DeclarationIndicateur"][];
                             indications: {
                                 [key: string]: unknown;
-                            };
+                            } | null;
                         };
                     };
                 };
@@ -4323,8 +4234,8 @@ export interface paths {
             };
         };
         /**
-         * Saisir la fiche d’évaluation
-         * @description Crée la fiche en brouillon au besoin. `null` retire une valeur. Une fiche validée se rouvre d’abord (409) ; une fiche soumise retouchée par la commune repasse en brouillon.
+         * Déclarer des valeurs (la commune)
+         * @description Une valeur déclarée vaut dès qu’elle est enregistrée, sans validation (D3). Une correction remplace la précédente, que le journal d’audit garde ; `null` retire la déclaration (retrait logique). Réservé à la commune : la FNCT commente, elle ne déclare pas à sa place (403).
          */
         put: {
             parameters: {
@@ -4339,10 +4250,10 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        a_abattoir?: boolean | null;
-                        decharge_controlee_anged?: boolean | null;
-                        experience_innovante?: boolean | null;
-                        agent_reclamations?: boolean | null;
+                        profil?: {
+                            a_abattoir?: boolean | null;
+                            decharge_controlee_anged?: boolean | null;
+                        };
                         valeurs?: {
                             [key: string]: {
                                 valeur: number;
@@ -4354,14 +4265,14 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Fiche enregistrée. */
+                /** @description Déclarations enregistrées. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            [key: string]: unknown;
+                            enregistrees: number;
                         };
                     };
                 };
@@ -4400,13 +4311,6 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["Erreur"];
                     };
-                };
-                /** @description Fiche validée. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
                 };
             };
         };
@@ -4417,7 +4321,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/kpi/evaluations/{communeId}/{annee}/soumettre": {
+    "/kpi/commentaires-fnct/{declarationId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -4427,202 +4331,27 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Soumettre la fiche à la FNCT
-         * @description Réservé : commune ou FNCT.
+         * Commenter une valeur déclarée (FNCT)
+         * @description Le commentaire se lit à côté de la valeur ; il ne la bloque pas et ne la modifie pas (D3). Une chaîne vide le retire.
          */
         post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    communeId: string;
-                    annee: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Fiche. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-                /** @description Requête invalide — le détail indique les champs en cause. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Authentification requise, ou jeton expiré. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Étape impossible depuis le statut actuel. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/kpi/evaluations/{communeId}/{annee}/valider": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Valider la fiche (FNCT) : elle entre au classement officiel
-         * @description Réservé : FNCT.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    communeId: string;
-                    annee: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Fiche. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-                /** @description Requête invalide — le détail indique les champs en cause. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Authentification requise, ou jeton expiré. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Étape impossible depuis le statut actuel. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/kpi/evaluations/{communeId}/{annee}/rouvrir": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Rouvrir une fiche soumise ou validée (FNCT), motif à l’appui
-         * @description Réservé : FNCT.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    communeId: string;
-                    annee: number;
+                    declarationId: string;
                 };
                 cookie?: never;
             };
             requestBody?: {
                 content: {
                     "application/json": {
-                        motif: string;
+                        commentaire: string;
                     };
                 };
             };
             responses: {
-                /** @description Fiche. */
+                /** @description Déclaration commentée. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -4668,13 +4397,6 @@ export interface paths {
                     content: {
                         "application/json": components["schemas"]["Erreur"];
                     };
-                };
-                /** @description Étape impossible depuis le statut actuel. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
                 };
             };
         };
@@ -4692,8 +4414,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Les 5 axes, la note du Concours et la préparation DMA d’une commune
-         * @description Chaque indicateur porte son statut ; un indicateur sans source reste non renseigné et sort des moyennes.
+         * Les indicateurs d’une commune : 5 axes, couverture et préparation DMA
+         * @description Chaque indicateur porte son statut et sa source ; un indicateur sans source reste non renseigné et sort des moyennes. La couverture se dit en clair (« 14 indicateurs calculables sur 19 »).
          */
         get: {
             parameters: {
@@ -4714,89 +4436,6 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["KpiCommune"];
-                    };
-                };
-                /** @description Requête invalide — le détail indique les champs en cause. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Authentification requise, ou jeton expiré. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/kpi/concours-national": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Le Concours national de propreté : classement ou agrégation (FNCT)
-         * @description Niveau commune : le classement (communes classées d’abord ; non classées : couverture insuffisante ou fiche non validée). `officiel=false` : classement provisoire, fiches non validées comprises. Autres niveaux : moyennes des communes classées.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    annee?: number;
-                    niveau?: "commune" | "gouvernorat" | "district" | "national";
-                    officiel?: "true" | "false";
-                    format?: "csv" | "xlsx";
-                    langue?: "fr" | "ar";
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Classement ou agrégats. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["LigneClassement"][] | components["schemas"]["AgregatKpi"][];
-                        "text/csv": string;
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                     };
                 };
                 /** @description Requête invalide — le détail indique les champs en cause. */
@@ -23018,11 +22657,13 @@ export interface components {
             avertissements: string[];
         };
         ResultatIndicateur: {
-            /** @example M1-2 */
+            /**
+             * @description Identifiant interne, jamais affiché.
+             * @example M1-2
+             */
             code: string;
             /** @enum {string} */
-            famille: "concours" | "dma" | "donnee";
-            module: string | null;
+            famille: "indicateur" | "dma" | "donnee";
             axe: number;
             libelle_fr: string;
             libelle_ar: string;
@@ -23030,29 +22671,32 @@ export interface components {
             /** @enum {string} */
             mode: "calcule" | "saisi";
             /**
-             * @description Une donnée manquante est « non_renseigne », jamais un zéro.
+             * @description Une donnée manquante est « non_renseigne », jamais un zéro. « sans_objet » : le profil de la commune le dit (pas d’abattoir, décharge contrôlée par l’ANGeD).
              * @enum {string}
              */
-            statut: "renseigne" | "non_renseigne" | "sans_objet" | "reventile";
+            statut: "renseigne" | "non_renseigne" | "sans_objet";
             /**
-             * @description Mesuré par un registre de la plateforme, sinon déclaré dans la fiche d’évaluation, sinon null (non renseigné). La mesure prime.
+             * @description Mesuré par un registre de la plateforme, sinon déclaré par la commune (badge « déclaré »), sinon null. La mesure prime.
              * @enum {string|null}
              */
             source: "mesure" | "declare" | null;
             valeur: number | null;
             cible: number | null;
-            /** @description Taux d’atteinte entre 0 et 1 ; null si non noté ou non renseigné. */
-            note: number | null;
-            points_base: number | null;
-            /** @description Après reventilation (règles ANGeD, Innovation, Abattoirs). */
-            points_effectifs: number | null;
-            points_obtenus: number | null;
-            reventile_vers: string | null;
-            recoit_de: string[];
+            /** @description Lecture entre 0 et 1 d’un indicateur rapporté à un objectif (la valeur sur la cible, ou le pourcentage). Nourrit les indices des axes, la préparation DMA et les alertes ; ce n’est pas une note. */
+            taux_atteinte: number | null;
             detail: {
                 [key: string]: unknown;
             };
             commentaire: string | null;
+            /** @description La déclaration retenue : qui l’a saisie, quand, et le commentaire éventuel de la FNCT (D3). */
+            declaration: {
+                /** Format: uuid */
+                id: string;
+                saisi_par: string | null;
+                saisi_le: string;
+                commentaire_fnct: string | null;
+                commente_le: string | null;
+            } | null;
         };
         KpiCommune: {
             annee: number;
@@ -23065,23 +22709,15 @@ export interface components {
             gouvernorat: string;
             district: string | null;
             population: number | null;
-            fiche: {
-                /** @enum {string|null} */
-                statut: "brouillon" | "soumise" | "validee" | null;
-                /** Format: uuid */
-                id: string | null;
+            profil: {
+                a_abattoir: boolean | null;
+                decharge_controlee_anged: boolean | null;
             };
             indicateurs: components["schemas"]["ResultatIndicateur"][];
-            concours: {
-                /** @description Sur 100, calculé sur les seuls points renseignés. */
-                score: number | null;
-                indicateurs_renseignes: number;
-                indicateurs_applicables: number;
-                points_renseignes: number;
-                points_applicables: number;
-                couverture: number | null;
-                classe: boolean;
-                motif_non_classe: string | null;
+            /** @description « 14 indicateurs calculables sur 19 » : les indicateurs sans objet sortent du total. */
+            couverture: {
+                calculables: number;
+                total: number;
             };
             axes: {
                 axe: number;
@@ -23097,44 +22733,17 @@ export interface components {
                 total: number;
             };
         };
-        AgregatKpi: {
-            cle: string;
-            nom: string | null;
-            communes: number;
-            concours: {
-                communes_classees: number;
-                score_moyen: number | null;
-                couverture_moyenne: number | null;
-            };
-            axes: {
-                axe: number;
-                indice_moyen: number | null;
-                communes_renseignees: number;
-            }[];
-            dma: {
-                indice_moyen: number | null;
-                communes_evaluees: number;
-            };
-            tonnage_t: number | null;
-            communes_pesees: number;
-            reclamations: number | null;
-            taux_resolution: number | null;
-        };
-        LigneClassement: {
-            rang: number | null;
-            commune_id: string;
-            nom: string;
-            nom_ar: string | null;
-            gouvernorat: string;
-            district: string | null;
-            score: number | null;
-            indicateurs_renseignes: number;
-            indicateurs_applicables: number;
-            couverture: number | null;
-            fiche: string | null;
-            classe: boolean;
-            motif_non_classe: string | null;
-            dma_indice: number | null;
+        DeclarationIndicateur: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            valeur: number;
+            cible: number | null;
+            commentaire: string | null;
+            saisi_le: string;
+            saisi_par: string | null;
+            commentaire_fnct: string | null;
+            commente_le: string | null;
         };
         Lieu: {
             /** Format: uuid */

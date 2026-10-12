@@ -3,7 +3,7 @@
 
 **Fédération Nationale des Communes Tunisiennes**
 Version au 30 septembre 2026 (nuit) · établie à partir du cahier des charges SIIPI (MVP, phase 1)
-Mise à jour du 9 octobre 2026 : **deux chantiers spécifiés** — la refonte des indicateurs et de la saisie (retrait du Concours, entrée unique « Ajouter », caractérisation des déchets, indicateurs en graphiques : `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md`) puis la couche de planification WaPla (`docs/specs_metier/SPEC_wapla_couche_planification.md`). Rien n'est codé ; voir les lignes **I** et **W** du § 0.
+Mise à jour du 9 octobre 2026 : **deux chantiers spécifiés** — la refonte des indicateurs et de la saisie (suppression du mot « Concours » et des scores, entrée unique « Ajouter », caractérisation des déchets, indicateurs en graphiques : `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md`) puis la couche de planification WaPla (`docs/specs_metier/SPEC_wapla_couche_planification.md`). Rien n'est codé ; voir les lignes **I** et **W** du § 0.
 Mise à jour du 30 septembre 2026 (nuit) : **changement de stratégie validé avec la FNCT** — la recette terrain n'étant pas possible pour l'instant, les jalons ne s'arrêtent pas : le jalon 12 avance en parallèle de R1 (lots 17.1, 17.3, 17.5) et la plateforme est éprouvée sur un **jumeau numérique** de trois mois d'activité (§ 6bis) en attendant les communes. Décision d'inscription citoyenne tranchée (§ 7.2). Version 0.15.1, documentaire.
 Mise à jour du 30 septembre 2026 (soir) : **cap fixé de v0.16 à v0.19** — ordre des jalons arrêté (§ 0) ; communes de recette **Dar Chaâbane** puis **M'hamdia** ; référentiel de gestion du dépôt municipal, projet de décret sur le tri à la source (articles 13.1 et 14) et `SPEC_v0.16.md` versés à `docs/specs_metier/` ; protocole de validation réel inscrit dans `CLAUDE.md` ; barre latérale étendue à l'observatoire national. Le développement reprend dans Claude Code.
 Mise à jour du 22 septembre 2026 : clôture du **Jalon 1** (§ 4) — huit lignes passées à Fait.
@@ -42,7 +42,7 @@ de l'observatoire national (contrôlée au typage, non commitée).
 | **R2** | Recette **M'hamdia** (puis Djerba pour le GPS) — *différée* | Circuits importés, séries de tonnage, coût rejoué | Son PCGD 2026 est le seul jeu où circuits, tonnage et coût existent ensemble | Dès que la commune est disponible ; le rejeu 17.5 se prépare sur le fichier reçu |
 | **13** | v0.18 — Secteur informel | Registre communal des acteurs, carte de pré-collecteur, suivi de la période transitoire | Dépend de 16.1 (données nominatives) et du scellement de 16.2. Le **texte des articles 13.1 et 14 est reçu — en projet, non en vigueur** : le lot est livré derrière un paramètre national, inactif par défaut | **18.1 fait** (v0.15.13, cadre inactif par défaut). Restent à lever : articles 4 et 13, date de départ de la période transitoire (18.2, 18.3) |
 | **14** | v0.19 — Mutualisation | Points limitrophes, prêts d'engins | Première exception au cloisonnement : pas avant que 11 à 13 aient tourné en production | **Spécifié le 09/10/2026** (`docs/specs_metier/SPEC_v0.19_mutualisation.md`, à valider : D-1 à D-7) ; ouverture après 11 à 13 en production |
-| **I** | Refonte indicateurs et saisie | **Lot 1** retrait du Concours (barème, note, classement ; les 19 indicateurs restent) · **lot 2** entrée unique « + Ajouter », porteur de projet, PCGD, caractérisation des déchets · **lot 3** indicateurs en graphiques interactifs et « ce qui manque » · **lot 4** tableau de bord national · **lot 5** complétude de la commune | Le Concours se retire avant de bâtir les graphiques ; la caractérisation est lue par W | **Spécifié le 09/10/2026** (`docs/specs_metier/SPEC_refonte_indicateurs_saisie.md`) ; décisions D1 à D6 actées, points ouverts au § 6 de la spécification ; ordre relatif aux jalons 11 à 14 à confirmer |
+| **I** | Refonte indicateurs et saisie | **Lot 1** suppression du mot « Concours » et des scores (points, note, classement) — **les 19 indicateurs sont conservés avec leurs calculs** · **lot 2** entrée unique « + Ajouter », porteur de projet, PCGD, caractérisation des déchets · **lot 3** indicateurs en graphiques interactifs et « ce qui manque » · **lot 4** tableau de bord national · **lot 5** complétude de la commune | Le Concours se retire avant de bâtir les graphiques ; la caractérisation est lue par W | **Lot 1 fait** (v0.15.25, 12/10/2026, migration 068) : barème, note, reventilation, classement et fiche d'évaluation retirés ; une valeur déclarée vaut dès son enregistrement, la FNCT la commente. Lots 2 à 5 spécifiés (`docs/specs_metier/SPEC_refonte_indicateurs_saisie.md`), points ouverts au § 6 ; ordre relatif aux jalons 11 à 14 à confirmer |
 | **W** | Couche WaPla (bilan de flux, GES, uPOPs, scénarios PCGD) | Moteur réimplémenté en couche à part (schéma `wapla`, lecture seule vers SIIPI) ; lots W0 à W5 | Dépend de la caractérisation (I, lot 2), de 17.1, 17.3 et 17.5 | **Cadré le 09/10/2026** (`docs/specs_metier/SPEC_wapla_couche_planification.md`) ; après I ; W0 (vérification des vecteurs dans l'outil UNIDO) peut commencer sans code |
 | **15** | Ensuite | Anomalies de tournée, projection du décret DMA, observatoire comparatif (axe 10), suivi de la sous-traitance (axe 12), régulation saisonnière (axe 3) | Chacun suppose des données **mesurées** de plusieurs communes | À instruire |
 
@@ -164,7 +164,7 @@ les tonnes et la masse salariale.
 | **3.2.7 Contacts** | 4 |  |  |  | Complète : liste, ajout, modification, retrait (Jalon 3), export et import CSV (Jalon 4). |
 | **3.2.8 Découpage communal** | 5 | 1 |  |  | Proposé par la commune, validé par la FNCT, versionné et restaurable (Jalon 7) ; reste l'import Shapefile. |
 | **3.2.9 Rapports et études** | 7 |  |  |  | Complète : versionnement et lecteur PDF intégré ajoutés au Jalon 3. |
-| **3.2.10 KPI 5 axes** | 5 |  |  |  | Complète : 5 axes calculés et déclarés, Concours national (19 indicateurs), préparation DMA (Jalon 8). Le barème ministériel reste à confirmer par la FNCT. |
+| **3.2.10 KPI 5 axes** | 5 |  |  |  | Complète : 5 axes calculés et déclarés, 19 indicateurs, préparation DMA (Jalon 8). Barème, note et classement retirés au lot 1 de la refonte (v0.15.25) : la couverture se dit « 14 indicateurs calculables sur 19 ». |
 | **3.2.11 Prestataires privés** | 4 |  |  |  | Complète : tableau de bord restreint du prestataire (Jalon 8). |
 | **3.3 Application citoyenne** | 9 | 1 |  |  | Les fonctions y sont — mais en web, pas en application Android (§ 7). Seul `M1` (téléphone + OTP) reste partiel. |
 
@@ -195,7 +195,7 @@ les tonnes et la masse salariale.
 
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
-| `A3.1` | Agrégation des indicateurs | ✅ Fait | `GET /kpi/national` : 5 axes, Concours, DMA, tonnages pesés et taux de résolution (recomposé des comptes) par commune, gouvernorat, district FNCT et national · campagne kpi-5-axes |
+| `A3.1` | Agrégation des indicateurs | ✅ Fait | `GET /kpi/national` : 5 axes, couverture des indicateurs, DMA, tonnages pesés et taux de résolution (recomposé des comptes) par commune, gouvernorat, district FNCT et national · campagne kpi-5-axes |
 | `A3.2` | Cartographie nationale Leaflet | ✅ Fait | DecoupageCommunal.tsx · migration 025 |
 | `A3.3` | Alertes et seuils configurables | ✅ Fait | `GET /kpi/alertes` : réclamations en attente (48 h par défaut), traitement, bâchage, entretien sous seuil, fiches à valider ; seuils réglés par la FNCT (`parametres_kpi`, migration 050) ; la commune reçoit les siennes dans « À vérifier » · campagne kpi-5-axes |
 | `A3.4` | Export PDF / Excel / CSV | ✅ Fait | Excel et CSV : tableau par gouvernorat et annuaire des 350 communes (services/export.ts · campagne exports) ; PDF : impression du tableau, A4 à l'italienne (lib/impression.ts) |
@@ -756,6 +756,15 @@ Concours se calcule sur les seuls points renseignés, et s'affiche avec sa base
 (« 14/19 indicateurs, 72 % des points ») ; une commune dont la couverture est
 sous le seuil (60 % des points par défaut) n'est pas classée. Le coût global à
 la tonne n'existe que si ses quatre composantes sont connues.
+
+**Retiré le 12 octobre 2026 (refonte, lot 1, v0.15.25, migration 068).** La
+grille notée, la note sur 100, la reventilation, le classement et la fiche
+d'évaluation à valider ont disparu (décisions D1 et D3,
+`docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` § 1). Les 19 indicateurs
+restent, avec leurs calculs ; ce que la commune déclare vaut dès qu'elle
+l'enregistre (`declarations_indicateurs`), et la FNCT le commente. Le profil de
+la commune (abattoir, décharge contrôlée par l'ANGeD) ne rend plus qu'un
+indicateur « sans objet ».
 
 **Choix retenus, et ce qui reste à la FNCT.**
 - **Le barème est une donnée** : la répartition des 100 points entre les 19
@@ -1522,7 +1531,7 @@ question technique.
 
 | | |
 |---|---|
-| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **67 migrations** au 09/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
+| **Base de données** | PostgreSQL 16 + PostGIS 3.4 — **68 migrations** au 12/10/2026, rejouées sur base neuve à chaque livraison ; le migrateur en garde l'empreinte |
 | **API** | Node.js 22 + Express + TypeScript, contrat OpenAPI 3.1 **généré depuis le code** |
 | **Portail web** | React 19 + Vite + Tailwind + Leaflet, bilingue FR/AR avec RTL |
 | **Cloisonnement** | Row-Level Security PostgreSQL — la commune, le prestataire et le citoyen ne voient que leur périmètre, y compris si une route oubliait de filtrer |

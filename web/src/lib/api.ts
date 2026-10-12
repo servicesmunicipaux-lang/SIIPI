@@ -138,11 +138,11 @@ export type ChangementPreferences = Corps<'/comptes/moi/preferences', 'put'>;
 export type VersionDecoupage = Reponse<'/decoupage/versions', 'get'>[number];
 export type VersionDecoupageDetail = Reponse<'/decoupage/versions/{id}', 'get'>;
 export type PropositionDecoupage = Corps<'/decoupage/propositions', 'post'>;
-// --- Tableau de bord KPI 5 axes, Concours, DMA (Jalon 8) ---------------------
+// --- Indicateurs (5 axes), déclarations, DMA (Jalon 8 ; refonte, lot 1) ------
 export type KpiCommune = Reponse<'/kpi/5-axes', 'get'>;
 export type ResultatIndicateur = KpiCommune['indicateurs'][number];
-export type LigneClassement = Reponse<'/kpi/concours-national', 'get'> extends (infer U)[] ? U : never;
-export type SaisieFiche = Corps<'/kpi/evaluations/{communeId}/{annee}', 'put'>;
+export type SaisieDeclarations = Corps<'/kpi/declarations/{communeId}/{annee}', 'put'>;
+export type DeclarationsKpi = Reponse<'/kpi/declarations/{communeId}/{annee}', 'get'>;
 export type NiveauKpi = 'commune' | 'gouvernorat' | 'district' | 'national';
 // --- Registres et lieux : les sources automatisées des KPI -------------------
 export type Lieu = Reponse<'/poi', 'get'>[number];
@@ -1169,27 +1169,25 @@ export const api = {
       body: JSON.stringify(note ? { note } : {}),
     }),
 
-  // --- KPI 5 axes, Concours national, préparation DMA (Jalon 8) -------------
+  // --- Indicateurs (5 axes) et préparation DMA (Jalon 8 ; refonte, lot 1) ---
   kpiCatalogue: () =>
     requete<{ indicateurs: Record<string, any>[]; parametres: Record<string, number> }>('/kpi/indicateurs'),
   kpiCommune: (communeId: string, annee: number) =>
     requete<KpiCommune>(`/kpi/5-axes?communeId=${encodeURIComponent(communeId)}&annee=${annee}`),
-  ficheEvaluation: (communeId: string, annee: number) =>
-    requete<{ fiche: Record<string, any> | null; valeurs: Record<string, any>[]; indications: Record<string, any> }>(
-      `/kpi/evaluations/${encodeURIComponent(communeId)}/${annee}`
-    ),
-  enregistrerFiche: (communeId: string, annee: number, saisie: SaisieFiche) =>
-    requete<Record<string, any>>(`/kpi/evaluations/${encodeURIComponent(communeId)}/${annee}`, {
+  // Les valeurs que la commune déclare : elles valent dès qu'elles sont enregistrées (D3).
+  declarationsKpi: (communeId: string, annee: number) =>
+    requete<DeclarationsKpi>(`/kpi/declarations/${encodeURIComponent(communeId)}/${annee}`),
+  enregistrerDeclarations: (communeId: string, annee: number, saisie: SaisieDeclarations) =>
+    requete<{ enregistrees: number }>(`/kpi/declarations/${encodeURIComponent(communeId)}/${annee}`, {
       method: 'PUT',
       body: JSON.stringify(saisie),
     }),
-  etapeFiche: (communeId: string, annee: number, etape: 'soumettre' | 'valider' | 'rouvrir', motif?: string) =>
-    requete<Record<string, any>>(`/kpi/evaluations/${encodeURIComponent(communeId)}/${annee}/${etape}`, {
+  // La FNCT commente une déclaration ; une chaîne vide retire le commentaire.
+  commenterDeclaration: (declarationId: string, commentaire: string) =>
+    requete<Record<string, unknown>>(`/kpi/commentaires-fnct/${encodeURIComponent(declarationId)}`, {
       method: 'POST',
-      ...(motif ? { body: JSON.stringify({ motif }) } : {}),
+      body: JSON.stringify({ commentaire }),
     }),
-  kpiConcours: (annee: number, niveau: NiveauKpi, officiel: boolean) =>
-    requete<any[]>(`/kpi/concours-national?annee=${annee}&niveau=${niveau}&officiel=${officiel}`),
   kpiNational: (annee: number, niveau: NiveauKpi) => requete<any[]>(`/kpi/national?annee=${annee}&niveau=${niveau}`),
   kpiDma: (annee: number, niveau: NiveauKpi) =>
     requete<{ en_vigueur: boolean; lignes: any[] }>(`/kpi/dma?annee=${annee}&niveau=${niveau}`),
@@ -1197,8 +1195,6 @@ export const api = {
     requete<{ commune_id: string; nom: string; gouvernorat: string; gravite: string; code: string; constat: string }[]>(
       `/kpi/alertes?annee=${annee}`
     ),
-  kpiBareme: (points: Record<string, number>, confirmer: boolean) =>
-    requete<unknown>('/kpi/bareme', { method: 'PUT', body: JSON.stringify({ points, confirmer }) }),
   kpiParametres: (valeurs: Record<string, number>) =>
     requete<Record<string, number>>('/kpi/parametres', { method: 'PUT', body: JSON.stringify(valeurs) }),
   kpiDistricts: () =>
