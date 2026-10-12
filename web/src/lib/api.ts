@@ -217,6 +217,10 @@ export type PointSuggere = Reponse<'/points-suggeres', 'get'>[number];
 export type PublicationDocument = Reponse<'/communication/{id}/documents', 'get'>[number];
 export type RapportEtude = Reponse<'/rapports-etudes', 'get'>[number];
 export type VersionRapport = Reponse<'/rapports-etudes/{id}/versions', 'get'>[number];
+export type FractionReference = Reponse<'/references/fractions', 'get'>[number];
+export type Pcgd = Reponse<'/references/pcgd', 'get'>[number];
+export type Caracterisation = Reponse<'/references/caracterisations', 'get'>[number];
+export type CaracterisationRetenue = Reponse<'/references/caracterisation-retenue', 'get'>;
 export type Contact = Reponse<'/contacts', 'get'>[number];
 export type ApercuImportCsv = Reponse<'/contacts/import', 'post'>;
 export type EcheanceEntretien = Reponse<'/maintenance/echeances', 'get'>[number];
@@ -1285,6 +1289,27 @@ export const api = {
     }),
   retirerRapportEtude: (id: string) =>
     requete<void>(`/rapports-etudes/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  fractionsReference: () => requete<FractionReference[]>('/references/fractions'),
+  pcgd: (communeId: string) => requete<Pcgd[]>(`/references/pcgd?communeId=${encodeURIComponent(communeId)}`),
+  enregistrerPcgd: (communeId: string, saisie: Corps<'/references/pcgd', 'post'>) =>
+    requete<{ id: string }>(`/references/pcgd?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  modifierPcgd: (id: string, saisie: Corps<'/references/pcgd/{id}', 'patch'>) =>
+    requete<{ id: string }>(`/references/pcgd/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
+  /** Sans commune : les moyennes nationales seules (la FNCT). */
+  caracterisations: (communeId?: string | null) =>
+    requete<Caracterisation[]>(`/references/caracterisations${communeId ? `?communeId=${encodeURIComponent(communeId)}` : ''}`),
+  enregistrerCaracterisation: (communeId: string | null, saisie: Corps<'/references/caracterisations', 'post'>) =>
+    requete<{ id: string }>(`/references/caracterisations${communeId ? `?communeId=${encodeURIComponent(communeId)}` : ''}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  caracterisationRetenue: (communeId: string) =>
+    requete<CaracterisationRetenue>(`/references/caracterisation-retenue?communeId=${encodeURIComponent(communeId)}`),
+  retirerReference: (table: 'pcgd' | 'caracterisations', id: string) =>
+    requete<void>(`/references/${table}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   versionsRapport: (id: string) =>
     requete<VersionRapport[]>(`/rapports-etudes/${encodeURIComponent(id)}/versions`),
   deposerVersionRapport: (id: string, saisie: Corps<'/rapports-etudes/{id}/versions', 'post'>) =>

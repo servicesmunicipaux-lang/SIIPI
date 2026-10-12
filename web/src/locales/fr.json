@@ -214,6 +214,12 @@
         "source": "Source : {{source}}."
       }
     },
+    "moyenneNationale": {
+      "titre": "Composition nationale des déchets (ANGeD)",
+      "intro": "La composition que reçoit une commune sans étude propre, étiquetée comme telle. Tant qu'aucune n'est saisie, ces communes lisent « non renseignée ».",
+      "ajouter": "Saisir une moyenne nationale",
+      "aucune": "Aucune moyenne nationale saisie : les communes sans étude n'ont pas de composition retenue."
+    },
     "conservation": {
       "titre": "Conservation des photos",
       "intro": "Décision D-FNCT-4 du 9 octobre 2026. Les textes, dates, statuts et localisations des réclamations sont conservés sans limite. Une photo est recompressée à son âge de conservation : la version compressée reste en ligne, et c'est elle que tout le monde voit ; l'original part dans l'archive froide, où il est gardé sans limite. Rien n'est effacé.",
@@ -555,6 +561,7 @@
       "personnel": "Personnel",
       "communication": "Communication",
       "rapports": "Rapports et études",
+      "references": "Mes références",
       "coutComplet": "Coût complet",
       "pesees": "Pesées",
       "contacts": "Contacts",
@@ -1253,7 +1260,14 @@
       "aucunDocument": "Aucun document joint à ce projet.",
       "joindreDocument": "Joindre un document",
       "depotEnCours": "Envoi…",
-      "resultatsDe": "Résultats du sondage"
+      "resultatsDe": "Résultats du sondage",
+      "porteur": "Porteur du projet",
+      "porteurNom": "Nom du porteur",
+      "porteurs": {
+        "commune": "La commune",
+        "association": "Une association",
+        "autre": "Autre porteur"
+      }
     },
     "rapportsEtudes": {
       "titre": "Rapports et études",
@@ -1286,6 +1300,24 @@
       "nbVersions": "{{n}} versions",
       "deposeLe": "déposée le {{date}}",
       "confirmerRetrait": "Ce document compte {{n}} versions : toutes seront retirées. Continuer ?"
+    },
+    "references": {
+      "titre": "Mes références",
+      "chapeau": "Le plan communal de gestion des déchets (PCGD) et la caractérisation des déchets de la commune. La composition retenue est celle de la source la plus précise, puis la plus récente — toujours avec son origine.",
+      "pcgd": "Plan communal de gestion des déchets (PCGD)",
+      "ajouterPcgd": "Ajouter le PCGD",
+      "aucunPcgd": "Aucun PCGD déclaré.",
+      "horizon": "horizon {{annee}}",
+      "retirer": "Retirer",
+      "confirmerRetrait": "Retirer cette fiche ? Elle reste lisible dans l'historique.",
+      "caracterisations": "Caractérisation des déchets",
+      "ajouterCaracterisation": "Ajouter une caractérisation",
+      "aucuneCaracterisation": "Aucune caractérisation : ni étude de la commune, ni moyenne nationale saisie.",
+      "retenue": "retenue",
+      "compositionNonRenseignee": "Composition des déchets : non renseignée",
+      "compositionNonRenseigneeAide": "Ni étude propre à la commune, ni moyenne nationale de l'ANGeD saisie par la FNCT. Aucune composition n'est supposée à leur place.",
+      "compositionNationale": "Moyenne nationale ANGeD {{annee}} — aucune étude propre à la commune",
+      "compositionRetenue": "Composition retenue : {{source}} {{annee}}"
     },
     "contacts": {
       "titre": "Contacts",
@@ -1936,6 +1968,57 @@
         "tricycle_electrique": "Tricycle électrique",
         "triporteur_moteur": "Triporteur à moteur"
       }
+    }
+  },
+  "ajout": {
+    "enregistrer": "Enregistrer",
+    "observation": "Observation",
+    "nonPrecise": "Non précisé",
+    "pcgd": {
+      "titre": "Le PCGD de la commune",
+      "aide": "Son état, ses dates et le rapport qui le contient. Le document lui-même reste dans « Rapports et études ».",
+      "statut": "Statut",
+      "statuts": {
+        "en_preparation": "PCGD en préparation",
+        "adopte": "PCGD adopté",
+        "en_revision": "PCGD en révision"
+      },
+      "bureauEtudes": "Bureau d'études",
+      "anneeAdoption": "Année d'adoption",
+      "horizon": "Horizon du plan",
+      "manqueAnnee": "Un PCGD adopté l'a été une année : indiquez-la.",
+      "horizonAvant": "L'horizon ne peut pas précéder l'adoption.",
+      "rapport": "Document dans « Rapports et études »",
+      "aucunRapport": "Aucun document lié",
+      "rapportAide": "Déposez d'abord le rapport dans « Rapports et études » pour le lier ici."
+    },
+    "caracterisation": {
+      "titre": "Caractérisation des déchets",
+      "titreNationale": "Moyenne nationale de l'ANGeD",
+      "aide": "La part de chaque fraction, en %. Le total doit faire 100 % à 1 près ; une fraction non mesurée se laisse vide.",
+      "niveau": "Source",
+      "niveaux": {
+        "moyenne_nationale_anged": "Moyenne nationale ANGeD",
+        "etude_anged_commune": "Étude ANGeD de la commune",
+        "pcgd": "PCGD",
+        "autre_etude": "Autre étude"
+      },
+      "annee": "Année des mesures",
+      "saison": "Saison",
+      "saisons": {
+        "annuelle": "Annuelle",
+        "ete": "Été",
+        "hiver": "Hiver",
+        "autre": "Autre"
+      },
+      "pcgd": "PCGD concerné",
+      "rapport": "Document source",
+      "methode": "Méthode (si connue)",
+      "fractions": "Fractions",
+      "nomenclatureProvisoire": "Nomenclature provisoire, à aligner sur celle des études de l'ANGeD.",
+      "total": "Total : {{total}} %",
+      "horsTolerance": "il doit faire 100 % à 1 près",
+      "negative": "une fraction ne peut pas être négative"
     }
   },
   "prestataire": {

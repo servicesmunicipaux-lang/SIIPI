@@ -98,6 +98,7 @@ import {
 import { parametresCommuneSchema, localisationSchema } from '../routes/communes.routes.js';
 import { propositionDecoupageSchema } from '../routes/decoupage.routes.js';
 import { commentaireFnctSchema, declarationsSchema, districtsSchema, parametresKpiSchema } from '../routes/kpi5Axes.routes.js';
+import { caracterisationSchema, pcgdSchema } from '../routes/references.routes.js';
 import {
   poiSchema,
   pleinSchema,
@@ -1632,6 +1633,125 @@ registry.registerPath({
   security: SECURISE,
   request: { query: z.object({ annee: z.number().int().optional() }) },
   responses: { 200: json(z.object({ annee: z.number().int(), lignes: z.array(z.record(z.string(), z.any())) }), 'Ses indicateurs de service.'), ...REPONSES_COMMUNES },
+});
+
+// --- Données de référence : PCGD et caractérisation des déchets (refonte, lot 2a)
+
+const TAG_REF = 'Données de référence';
+const pCommuneRef = z.object({ communeId: paramCommuneId.optional() });
+const Fraction = z.object({ fraction: z.string(), pourcentage: z.number() });
+const Caracterisation = registry.register(
+  'Caracterisation',
+  z
+    .object({
+      id: z.string().uuid(),
+      commune_id: z.string().nullable().openapi({ description: 'NULL : la moyenne nationale de l’ANGeD.' }),
+      niveau_source: z.enum(['moyenne_nationale_anged', 'etude_anged_commune', 'pcgd', 'autre_etude']),
+      annee: z.number().int(),
+      methode: z.string().nullable(),
+      saison: z.string().nullable(),
+      rapport_id: z.string().uuid().nullable(),
+      pcgd_id: z.string().uuid().nullable(),
+      saisi_le: z.string(),
+      saisi_par: z.string().nullable(),
+      fractions: z.array(Fraction).nullable(),
+    })
+    .openapi('Caracterisation')
+);
+const CaracterisationRetenue = registry.register(
+  'CaracterisationRetenue',
+  z
+    .object({
+      caracterisation_id: z.string().uuid(),
+      niveau_source: z.enum(['moyenne_nationale_anged', 'etude_anged_commune', 'pcgd', 'autre_etude']),
+      annee: z.number().int(),
+      commune_id: z.string().nullable(),
+      methode: z.string().nullable(),
+      saison: z.string().nullable(),
+      fractions: z.array(Fraction).nullable(),
+    })
+    .openapi('CaracterisationRetenue')
+);
+const Pcgd = registry.register(
+  'Pcgd',
+  z
+    .object({
+      id: z.string().uuid(),
+      commune_id: z.string(),
+      statut: z.enum(['en_preparation', 'adopte', 'en_revision']),
+      annee_adoption: z.number().int().nullable(),
+      horizon: z.number().int().nullable(),
+      bureau_etudes: z.string().nullable(),
+      rapport_id: z.string().uuid().nullable(),
+      rapport_titre: z.string().nullable(),
+      observation: z.string().nullable(),
+      saisi_le: z.string(),
+      saisi_par: z.string().nullable(),
+    })
+    .openapi('Pcgd')
+);
+
+registry.registerPath({
+  method: 'get', path: '/references/fractions', tags: [TAG_REF],
+  summary: 'La nomenclature des fractions de la caractérisation',
+  description: 'Provisoire : à aligner sur celle des études ANGeD, fournie par la FNCT.',
+  security: SECURISE,
+  responses: { 200: json(z.array(z.object({ code: z.string(), libelle_fr: z.string(), libelle_ar: z.string() })), 'Fractions.'), 401: REPONSES_COMMUNES[401] },
+});
+registry.registerPath({
+  method: 'get', path: '/references/pcgd', tags: [TAG_REF],
+  summary: 'Les PCGD d’une commune',
+  security: SECURISE,
+  request: { query: pCommuneRef },
+  responses: { 200: json(z.array(Pcgd), 'PCGD.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/references/pcgd', tags: [TAG_REF],
+  summary: 'Enregistrer le PCGD de la commune',
+  description: 'Réservé à la commune. Un PCGD adopté a une année d’adoption ; son horizon ne la précède pas (400 sinon, et la base le refuse aussi).',
+  security: SECURISE,
+  request: { query: pCommuneRef, body: { content: { 'application/json': { schema: pcgdSchema } } } },
+  responses: { 201: json(z.object({ id: z.string().uuid() }), 'PCGD enregistré.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'patch', path: '/references/pcgd/{id}', tags: [TAG_REF],
+  summary: 'Modifier un PCGD (statut, adoption, horizon…)',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }), body: { content: { 'application/json': { schema: pcgdSchema.partial() } } } },
+  responses: { 200: json(z.object({ id: z.string().uuid() }), 'PCGD modifié.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/references/caracterisations', tags: [TAG_REF],
+  summary: 'Les caractérisations d’une commune, et les moyennes nationales',
+  description: 'Sans communeId (FNCT) : les moyennes nationales de l’ANGeD seules.',
+  security: SECURISE,
+  request: { query: pCommuneRef },
+  responses: { 200: json(z.array(Caracterisation), 'Caractérisations.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/references/caracterisations', tags: [TAG_REF],
+  summary: 'Enregistrer une caractérisation des déchets',
+  description:
+    'Une étude de la commune (étude ANGeD, PCGD, autre étude) par la commune ; la moyenne nationale de l’ANGeD par la FNCT seule (403 sinon). Les fractions totalisent 100 % à 1 près, aucune n’est négative : refusé sinon (400), par la base aussi.',
+  security: SECURISE,
+  request: { query: pCommuneRef, body: { content: { 'application/json': { schema: caracterisationSchema } } } },
+  responses: { 201: json(z.object({ id: z.string().uuid() }), 'Caractérisation enregistrée.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/references/caracterisation-retenue', tags: [TAG_REF],
+  summary: 'La composition des déchets retenue pour une commune',
+  description:
+    'La source la plus précise, puis la plus récente : étude ANGeD de la commune, PCGD, autre étude, moyenne nationale ANGeD — avec son niveau et son année. `null` : rien n’existe, la composition est non renseignée (jamais supposée).',
+  security: SECURISE,
+  request: { query: pCommuneRef.extend({ date: z.string().optional().openapi({ example: '2026-10-12' }) }) },
+  responses: { 200: json(z.union([CaracterisationRetenue, z.null()]), 'Composition retenue, ou null.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'delete', path: '/references/{table}/{id}', tags: [TAG_REF],
+  summary: 'Retirer un PCGD ou une caractérisation (retrait logique)',
+  security: SECURISE,
+  request: { params: z.object({ table: z.enum(['pcgd', 'caracterisations']), id: z.string().uuid() }) },
+  responses: { 204: { description: 'Retiré.' }, ...REPONSES_COMMUNES },
 });
 
 // --- Les registres qui automatisent les sources des KPI (lot « sources KPI ») -
@@ -3660,7 +3780,10 @@ const Publication = registry.register(
     date_debut: z.string().nullable(),
     date_fin: z.string().nullable(),
     publiee_le: z.string().nullable(),
-    projet_nature: z.enum(['communal', 'associatif']).nullable(),
+    projet_porteur: z.enum(['commune', 'association', 'autre']).nullable().openapi({
+      description: 'Qui porte le projet (D5) : un projet associatif est un projet dont le porteur est une association.',
+    }),
+    projet_porteur_nom: z.string().nullable(),
     projet_etat: z.enum(['en_preparation', 'actif', 'termine']).nullable(),
     visible_citoyen: z.boolean(),
     est_exemple: z.boolean().openapi({
@@ -3690,7 +3813,8 @@ const publicationSchemaDoc = z.object({
   cibleTypes: z.array(z.enum(TYPES_FOYER_DOC)).nullable().optional(),
   dateDebut: z.string().nullable().optional(),
   dateFin: z.string().nullable().optional(),
-  projetNature: z.enum(['communal', 'associatif']).nullable().optional(),
+  projetPorteur: z.enum(['commune', 'association', 'autre']).nullable().optional(),
+  projetPorteurNom: z.string().nullable().optional().openapi({ description: 'Obligatoire quand le porteur n’est pas la commune (400 sinon).' }),
   projetEtat: z.enum(['en_preparation', 'actif', 'termine']).nullable().optional(),
   visibleCitoyen: z.boolean().optional(),
   estExemple: z.boolean().optional(),
@@ -6751,7 +6875,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.25',
+      version: '0.15.26',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

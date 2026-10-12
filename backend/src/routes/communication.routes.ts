@@ -162,7 +162,10 @@ const publicationSchema = z.object({
   cibleTypes: z.array(z.enum(TYPES_FOYER)).nullable().optional(),
   dateDebut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   dateFin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
-  projetNature: z.enum(['communal', 'associatif']).nullable().optional(),
+  // Le porteur du projet (D5, migration 069) ; son nom est exigé par la base
+  // quand ce n'est pas la commune.
+  projetPorteur: z.enum(['commune', 'association', 'autre']).nullable().optional(),
+  projetPorteurNom: z.string().trim().max(200).nullable().optional(),
   projetEtat: z.enum(['en_preparation', 'actif', 'termine']).nullable().optional(),
   visibleCitoyen: z.boolean().optional(),
   estExemple: z.boolean().optional(),
@@ -181,7 +184,8 @@ const COLONNES: Record<string, string> = {
   cibleTypes: 'cible_types',
   dateDebut: 'date_debut',
   dateFin: 'date_fin',
-  projetNature: 'projet_nature',
+  projetPorteur: 'projet_porteur',
+  projetPorteurNom: 'projet_porteur_nom',
   projetEtat: 'projet_etat',
   visibleCitoyen: 'visible_citoyen',
   estExemple: 'est_exemple',

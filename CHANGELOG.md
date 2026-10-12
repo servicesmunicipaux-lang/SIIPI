@@ -5,6 +5,54 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.26] — 2026-10-12 — Refonte, lot 2a : porteur d'un projet, PCGD, caractérisation des déchets
+
+Première moitié du lot 2 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 2.3), décisions
+D5 et D6 : les données d'abord. Le catalogue « + Ajouter » et le passage des formulaires existants dans
+le registre suivent au lot 2b.
+
+### Ajouté (migration 069)
+- **Le porteur d'un projet (D5)** : `publications.projet_porteur` (commune, association, autre) et
+  `projet_porteur_nom`, obligatoire sauf pour la commune — la base le refuse sinon. L'ancienne
+  « nature » (communal, associatif) est recopiée puis retirée : un seul champ dit qui porte le projet.
+- **Le PCGD comme donnée** (`pcgd`) : statut (en préparation, adopté, en révision), année d'adoption,
+  horizon, bureau d'études, rapport lié dans « Rapports et études ». Un PCGD adopté sans année, ou un
+  horizon antérieur à l'adoption, est refusé en base.
+- **La caractérisation des déchets (D6)** : `caracterisations` et `fractions_caracterisation`, sur une
+  nomenclature **provisoire** (`fractions_reference` : organiques, papier-carton, plastiques, verre,
+  métaux, textiles, fines et autres), à aligner sur celle des études de l'ANGeD. La somme des
+  fractions est gardée **en base** à 100 % ± 1 (contrainte différée, vérifiée à la validation) ; une
+  fraction négative est refusée. La moyenne nationale de l'ANGeD ne se saisit que par la FNCT, une
+  étude de la commune que par la commune — la base le tient.
+- **`app.caracterisation_retenue(commune, date)`** : la source la plus précise, puis la plus récente
+  (étude ANGeD de la commune, PCGD, autre étude, moyenne nationale), toujours avec son niveau et son
+  année. Sans étude ni moyenne nationale saisie, **rien** : la composition est non renseignée, jamais
+  supposée (règle d'or 1.1).
+- **Le retrait** d'un PCGD ou d'une caractérisation est logique (`app.retirer_reference`) ; la
+  commune ne retire pas la moyenne nationale.
+- Routes `/references/fractions`, `/references/pcgd`, `/references/caracterisations`,
+  `/references/caracterisation-retenue`, `DELETE /references/{table}/{id}`.
+
+### Écrans
+- **Mes références** (pôle Pilotage) : la composition retenue en tête — « Composition retenue : PCGD
+  2026 », « Moyenne nationale ANGeD 2022 — aucune étude propre à la commune », ou « non renseignée » —,
+  le PCGD, les caractérisations. La FNCT y lit, elle n'y ajoute rien.
+- **Le registre des formulaires** (`web/src/composants/ajout/`) : PCGD et caractérisation, un
+  composant par type d'objet. Le formulaire de caractérisation affiche le total pendant la saisie ;
+  une case laissée vide ne part pas comme un zéro.
+- *Paramètres nationaux* : la carte de la **moyenne nationale ANGeD**, saisie avec le même formulaire.
+- *Communication → Projets* : le porteur et son nom. Français et arabe.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 69 migrations ; la 069 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat **307/307**, **46 bilans, 1 862 tests réussis,
+  aucun échec** ; la nouvelle campagne `references` : 35 réussis, aucun échec. Recomptage 46 / 46.
+- `audit-blocs.py` : 28 blocs sous condition, tous leurs contrôles ont tourné. Lint backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur : PCGD et caractérisation saisis par un directeur, refus affichés avant l'envoi (année
+  manquante, horizon, total à 97 %) ; composition retenue « PCGD 2026 » ; projet associatif nommé ;
+  la FNCT saisit la moyenne nationale et lit la commune sans bouton d'ajout ; arabe RTL à 375 px sans
+  défilement horizontal.
+
 ## [0.15.25] — 2026-10-12 — Refonte, lot 1 : barème, note et classement retirés ; la commune déclare
 
 Lot 1 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 1), décisions D1 et D3 du

@@ -10,6 +10,7 @@ import rateLimit from 'express-rate-limit';
 import { config } from './config.js';
 import { etatDeLaBase } from './etatBase.js';
 import { natureDemandee, natureInstance } from './instance.js';
+import { referencesRouter } from './routes/references.routes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { attachRequestContext } from './middleware/requestContext.js';
 
@@ -220,6 +221,8 @@ export const ROUTEURS: Array<[string, Router]> = [
   // refonte, lot 1 : déclarations de la commune).
   // Même préfixe que les routes KPI d'origine : chemins distincts.
   ['/kpi', kpi5AxesRouter],
+  // Les données de référence : PCGD, caractérisation des déchets (refonte, lot 2a).
+  ['/references', referencesRouter],
   // Les registres qui automatisent les sources des KPI (lot « sources KPI »).
   ['/poi', poiRouter],
   ['/registres', registresRouter],
