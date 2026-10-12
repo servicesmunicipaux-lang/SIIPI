@@ -31,6 +31,8 @@ import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
 
 type TypePublication = 'notification' | 'sondage' | 'projet';
+const PORTEURS = ['commune', 'association', 'autre'] as const;
+type Porteur = (typeof PORTEURS)[number];
 
 type Vue = TypePublication | 'envois';
 const VUES: Vue[] = ['notification', 'sondage', 'projet', 'envois'];
@@ -189,6 +191,13 @@ export function Communication({ communeId }: { communeId: string }) {
                       )}
                     </div>
                     <p className="mt-1 text-xs text-ardoise-500">
+                      {p.type === 'projet' && p.projet_porteur && (
+                        <>
+                          {t(`communal.communication.porteurs.${p.projet_porteur}`)}
+                          {p.projet_porteur_nom ? ` — ${p.projet_porteur_nom}` : ''}
+                          {' · '}
+                        </>
+                      )}
                       {t(`communal.communication.perimetres.${p.perimetre_type}`)}
                       {' · '}
                       {t('communal.communication.joignables', { n: nombre(p.joignables) })}
@@ -345,6 +354,11 @@ function Redaction({
   const [circuitIds, setCircuitIds] = useState<string[]>([]);
   const [apercu, setApercu] = useState<Destinataires | null>(null);
   const [enCours, setEnCours] = useState(false);
+  // Le porteur d'un projet (D5) : un projet associatif n'est qu'un projet
+  // porté par une association, et il se nomme — la base refuse sinon.
+  const [porteur, setPorteur] = useState<Porteur>('commune');
+  const [porteurNom, setPorteurNom] = useState('');
+  const manqueNomPorteur = type === 'projet' && porteur !== 'commune' && porteurNom.trim() === '';
 
   // L'aperçu se recalcule à chaque changement de périmètre, avant d'écrire
   // quoi que ce soit. C'est tout l'intérêt : savoir AVANT de rédiger.
@@ -378,7 +392,9 @@ function Redaction({
         perimetreType: perimetre,
         zoneIds: perimetre === 'zones' ? zoneIds : null,
         circuitIds: perimetre === 'circuits' ? circuitIds : null,
-        ...(type === 'projet' ? { projetNature: 'communal', projetEtat: 'en_preparation' } : {}),
+        ...(type === 'projet'
+          ? { projetPorteur: porteur, projetPorteurNom: porteur === 'commune' ? '' : porteurNom.trim(), projetEtat: 'en_preparation' }
+          : {}),
       });
       await onFait();
     } catch (err) {
@@ -479,6 +495,37 @@ function Redaction({
         )}
       </div>
 
+      {type === 'projet' && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm" htmlFor="projet-porteur">
+            {t('communal.communication.porteur')}
+            <select
+              id="projet-porteur"
+              value={porteur}
+              onChange={(e) => setPorteur(e.target.value as Porteur)}
+              className="mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-3"
+            >
+              {PORTEURS.map((x) => (
+                <option key={x} value={x}>{t(`communal.communication.porteurs.${x}`)}</option>
+              ))}
+            </select>
+          </label>
+          {porteur !== 'commune' && (
+            <label className="text-sm" htmlFor="projet-porteur-nom">
+              {t('communal.communication.porteurNom')}
+              <input
+                id="projet-porteur-nom"
+                value={porteurNom}
+                onChange={(e) => setPorteurNom(e.target.value)}
+                maxLength={200}
+                aria-invalid={manqueNomPorteur}
+                className="mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 px-3"
+              />
+            </label>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-sm">
           {t('communal.communication.titreFr')}
@@ -519,7 +566,7 @@ function Redaction({
       <button
         type="button"
         onClick={() => void enregistrer()}
-        disabled={enCours || titreFr.trim().length < 2}
+        disabled={enCours || titreFr.trim().length < 2 || manqueNomPorteur}
         className="min-h-11 rounded-lg bg-siipi-600 px-4 text-sm font-medium text-white disabled:opacity-40"
       >
         {t('communal.communication.enregistrerBrouillon')}

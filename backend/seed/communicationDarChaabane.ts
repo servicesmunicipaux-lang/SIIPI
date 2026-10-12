@@ -42,7 +42,7 @@ interface Exemple {
   contenuFr: string;
   contenuAr: string;
   perimetre: 'commune' | 'secteurs';
-  projetNature?: 'communal' | 'associatif';
+  projetPorteur?: 'commune' | 'association' | 'autre';
   projetEtat?: 'en_preparation' | 'actif' | 'termine';
   questions?: Array<{
     libelleFr: string;
@@ -119,7 +119,7 @@ const EXEMPLES: Exemple[] = [
     contenuAr:
       'نموذج بطاقة مشروع: العنوان، النطاق، الفترة، الوثائق المرفقة. يبيّن كيف يظهر المشروع للمواطن بعد إتاحته.',
     perimetre: 'secteurs',
-    projetNature: 'communal',
+    projetPorteur: 'commune',
     projetEtat: 'en_preparation',
   },
 ];
@@ -166,11 +166,11 @@ async function charger(): Promise<void> {
         `UPDATE publications
             SET titre_ar = $1, contenu_fr = $2, contenu_ar = $3,
                 perimetre_type = $4, zone_ids = $5::uuid[],
-                projet_nature = $6, projet_etat = $7,
+                projet_porteur = $6, projet_etat = $7,
                 statut = 'brouillon', est_exemple = true
           WHERE id = $8`,
         [e.titreAr, e.contenuFr, e.contenuAr, cible, zoneIds,
-         e.projetNature ?? null, e.projetEtat ?? null, existant.id]
+         e.projetPorteur ?? null, e.projetEtat ?? null, existant.id]
       );
       id = existant.id;
       maj += 1;
@@ -178,11 +178,11 @@ async function charger(): Promise<void> {
       const cree = await queryOne<{ id: string }>(
         `INSERT INTO publications
            (commune_id, type, titre_fr, titre_ar, contenu_fr, contenu_ar,
-            perimetre_type, zone_ids, projet_nature, projet_etat, statut, est_exemple)
+            perimetre_type, zone_ids, projet_porteur, projet_etat, statut, est_exemple)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8::uuid[], $9, $10, 'brouillon', true)
          RETURNING id`,
         [COMMUNE, e.type, e.titreFr, e.titreAr, e.contenuFr, e.contenuAr,
-         cible, zoneIds, e.projetNature ?? null, e.projetEtat ?? null]
+         cible, zoneIds, e.projetPorteur ?? null, e.projetEtat ?? null]
       );
       id = cree!.id;
       crees += 1;

@@ -22,6 +22,7 @@ import {
 import { useFormats } from '../../lib/formats';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
+import { MoyenneNationaleCaracterisation } from './MoyenneNationaleCaracterisation';
 
 const champ = 'mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-3 text-base';
 const bouton = 'min-h-11 rounded-lg bg-siipi-600 px-4 text-sm font-medium text-white disabled:opacity-40';
@@ -69,6 +70,7 @@ export function ParametresNationaux() {
       )}
       <CorrectionsReferentiel />
       <CadreSecteurInformel onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
+      <MoyenneNationaleCaracterisation />
       {parametres.map((p) => (
         <FicheParametre key={p.code} p={p} onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
       ))}

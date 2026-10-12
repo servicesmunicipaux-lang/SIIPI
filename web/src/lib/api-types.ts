@@ -4724,6 +4724,609 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/references/fractions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La nomenclature des fractions de la caractérisation
+         * @description Provisoire : à aligner sur celle des études ANGeD, fournie par la FNCT.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Fractions. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            libelle_fr: string;
+                            libelle_ar: string;
+                        }[];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/references/pcgd": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les PCGD d’une commune */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description PCGD. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Pcgd"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Enregistrer le PCGD de la commune
+         * @description Réservé à la commune. Un PCGD adopté a une année d’adoption ; son horizon ne la précède pas (400 sinon, et la base le refuse aussi).
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        statut: "en_preparation" | "adopte" | "en_revision";
+                        anneeAdoption?: number | null;
+                        horizon?: number | null;
+                        bureauEtudes?: string | null;
+                        /** Format: uuid */
+                        rapportId?: string | null;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description PCGD enregistré. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/references/pcgd/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Modifier un PCGD (statut, adoption, horizon…) */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        statut?: "en_preparation" | "adopte" | "en_revision";
+                        anneeAdoption?: number | null;
+                        horizon?: number | null;
+                        bureauEtudes?: string | null;
+                        /** Format: uuid */
+                        rapportId?: string | null;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description PCGD modifié. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/references/caracterisations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les caractérisations d’une commune, et les moyennes nationales
+         * @description Sans communeId (FNCT) : les moyennes nationales de l’ANGeD seules.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Caractérisations. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Caracterisation"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Enregistrer une caractérisation des déchets
+         * @description Une étude de la commune (étude ANGeD, PCGD, autre étude) par la commune ; la moyenne nationale de l’ANGeD par la FNCT seule (403 sinon). Les fractions totalisent 100 % à 1 près, aucune n’est négative : refusé sinon (400), par la base aussi.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        niveauSource: "moyenne_nationale_anged" | "etude_anged_commune" | "pcgd" | "autre_etude";
+                        annee: number;
+                        methode?: string | null;
+                        /** @enum {string|null} */
+                        saison?: "annuelle" | "ete" | "hiver" | "autre" | null;
+                        /** Format: uuid */
+                        rapportId?: string | null;
+                        /** Format: uuid */
+                        pcgdId?: string | null;
+                        fractions: {
+                            [key: string]: number;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Caractérisation enregistrée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/references/caracterisation-retenue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La composition des déchets retenue pour une commune
+         * @description La source la plus précise, puis la plus récente : étude ANGeD de la commune, PCGD, autre étude, moyenne nationale ANGeD — avec son niveau et son année. `null` : rien n’existe, la composition est non renseignée (jamais supposée).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    date?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Composition retenue, ou null. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CaracterisationRetenue"] | null;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/references/{table}/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retirer un PCGD ou une caractérisation (retrait logique) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    table: "pcgd" | "caracterisations";
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Retiré. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/poi": {
         parameters: {
             query?: never;
@@ -12352,7 +12955,9 @@ export interface paths {
                         dateDebut?: string | null;
                         dateFin?: string | null;
                         /** @enum {string|null} */
-                        projetNature?: "communal" | "associatif" | null;
+                        projetPorteur?: "commune" | "association" | "autre" | null;
+                        /** @description Obligatoire quand le porteur n’est pas la commune (400 sinon). */
+                        projetPorteurNom?: string | null;
                         /** @enum {string|null} */
                         projetEtat?: "en_preparation" | "actif" | "termine" | null;
                         visibleCitoyen?: boolean;
@@ -12749,7 +13354,9 @@ export interface paths {
                         dateDebut?: string | null;
                         dateFin?: string | null;
                         /** @enum {string|null} */
-                        projetNature?: "communal" | "associatif" | null;
+                        projetPorteur?: "commune" | "association" | "autre" | null;
+                        /** @description Obligatoire quand le porteur n’est pas la commune (400 sinon). */
+                        projetPorteurNom?: string | null;
                         /** @enum {string|null} */
                         projetEtat?: "en_preparation" | "actif" | "termine" | null;
                         visibleCitoyen?: boolean;
@@ -22745,6 +23352,57 @@ export interface components {
             commentaire_fnct: string | null;
             commente_le: string | null;
         };
+        Caracterisation: {
+            /** Format: uuid */
+            id: string;
+            /** @description NULL : la moyenne nationale de l’ANGeD. */
+            commune_id: string | null;
+            /** @enum {string} */
+            niveau_source: "moyenne_nationale_anged" | "etude_anged_commune" | "pcgd" | "autre_etude";
+            annee: number;
+            methode: string | null;
+            saison: string | null;
+            /** Format: uuid */
+            rapport_id: string | null;
+            /** Format: uuid */
+            pcgd_id: string | null;
+            saisi_le: string;
+            saisi_par: string | null;
+            fractions: {
+                fraction: string;
+                pourcentage: number;
+            }[] | null;
+        };
+        CaracterisationRetenue: {
+            /** Format: uuid */
+            caracterisation_id: string;
+            /** @enum {string} */
+            niveau_source: "moyenne_nationale_anged" | "etude_anged_commune" | "pcgd" | "autre_etude";
+            annee: number;
+            commune_id: string | null;
+            methode: string | null;
+            saison: string | null;
+            fractions: {
+                fraction: string;
+                pourcentage: number;
+            }[] | null;
+        };
+        Pcgd: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            /** @enum {string} */
+            statut: "en_preparation" | "adopte" | "en_revision";
+            annee_adoption: number | null;
+            horizon: number | null;
+            bureau_etudes: string | null;
+            /** Format: uuid */
+            rapport_id: string | null;
+            rapport_titre: string | null;
+            observation: string | null;
+            saisi_le: string;
+            saisi_par: string | null;
+        };
         Lieu: {
             /** Format: uuid */
             id: string;
@@ -23477,8 +24135,12 @@ export interface components {
             date_debut: string | null;
             date_fin: string | null;
             publiee_le: string | null;
-            /** @enum {string|null} */
-            projet_nature: "communal" | "associatif" | null;
+            /**
+             * @description Qui porte le projet (D5) : un projet associatif est un projet dont le porteur est une association.
+             * @enum {string|null}
+             */
+            projet_porteur: "commune" | "association" | "autre" | null;
+            projet_porteur_nom: string | null;
             /** @enum {string|null} */
             projet_etat: "en_preparation" | "actif" | "termine" | null;
             visible_citoyen: boolean;

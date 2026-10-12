@@ -30,6 +30,7 @@ import { Communication } from '../composants/communal/Communication';
 import { Pesees } from '../composants/communal/Pesees';
 import { PointsSuggeres } from '../composants/communal/PointsSuggeres';
 import { RapportsEtudes } from '../composants/communal/RapportsEtudes';
+import { MesReferences } from '../composants/communal/MesReferences';
 import { CoutComplet } from '../composants/communal/CoutComplet';
 import { ActeursInformels } from '../composants/communal/ActeursInformels';
 import { Contacts } from '../composants/communal/Contacts';
@@ -39,7 +40,7 @@ import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { Registres } from '../composants/registres/Registres';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 
-type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'coutComplet' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'contacts' | 'comptes';
+type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'coutComplet' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -76,6 +77,7 @@ const ENTREES: EntreeNavigation<Onglet>[] = [
 
   { cle: 'indicateurs',   pole: 'pilotage' },
   { cle: 'rapports',      pole: 'pilotage' },
+  { cle: 'references',    pole: 'pilotage' },
   { cle: 'coutComplet',   pole: 'pilotage' },
 
   { cle: 'contacts',      pole: 'administration' },
@@ -247,6 +249,7 @@ export function EspaceCommunal({
         {onglet === 'pesees' && <Pesees communeId={communeId} />}
         {onglet === 'communication' && <Communication communeId={communeId} />}
         {onglet === 'rapports' && <RapportsEtudes communeId={communeId} />}
+        {onglet === 'references' && <MesReferences communeId={communeId} fnct={estFnct} />}
         {onglet === 'coutComplet' && <CoutComplet communeId={communeId} />}
         {onglet === 'acteursInformels' && cadreInformelActif && <ActeursInformels communeId={communeId} />}
         {onglet === 'contacts' && <Contacts communeId={communeId} />}
