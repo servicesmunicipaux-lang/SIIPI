@@ -11,9 +11,12 @@ import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type NiveauKpi } from '../../lib/api';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
+import { RepartitionIndicateur } from './RepartitionIndicateur';
 
-type Vue = 'axes' | 'dma' | 'alertes' | 'reglages';
-const VUES: Vue[] = ['axes', 'dma', 'alertes', 'reglages'];
+// La répartition d'un indicateur d'abord (refonte, lot 4b) : la carte et le
+// graphique se lisent avant les tableaux d'indices.
+type Vue = 'repartition' | 'axes' | 'dma' | 'alertes' | 'reglages';
+const VUES: Vue[] = ['repartition', 'axes', 'dma', 'alertes', 'reglages'];
 const NIVEAUX: NiveauKpi[] = ['commune', 'gouvernorat', 'district', 'national'];
 const ANNEE = new Date().getFullYear();
 
@@ -37,7 +40,7 @@ function N({ v, d = 1, suffixe = '' }: { v: number | null | undefined; d?: numbe
 
 export function KpiNational({ onOuvrirCommune }: { onOuvrirCommune: (communeId: string) => void }) {
   const { t } = useTranslation();
-  const [vue, setVue] = useState<Vue>('axes');
+  const [vue, setVue] = useState<Vue>('repartition');
   const [annee, setAnnee] = useState(ANNEE);
   const [niveau, setNiveau] = useState<NiveauKpi>('commune');
 
@@ -53,7 +56,7 @@ export function KpiNational({ onOuvrirCommune }: { onOuvrirCommune: (communeId: 
               </option>
             ))}
           </select>
-          {vue !== 'alertes' && vue !== 'reglages' && (
+          {vue !== 'alertes' && vue !== 'reglages' && vue !== 'repartition' && (
             <select aria-label={t('kpi.national.niveau')} value={niveau} onChange={(e) => setNiveau(e.target.value as NiveauKpi)} className={champ}>
               {NIVEAUX.map((n) => (
                 <option key={n} value={n}>
@@ -79,6 +82,7 @@ export function KpiNational({ onOuvrirCommune }: { onOuvrirCommune: (communeId: 
         ))}
       </div>
 
+      {vue === 'repartition' && <RepartitionIndicateur annee={annee} onOuvrirCommune={onOuvrirCommune} />}
       {vue === 'axes' && <Axes annee={annee} niveau={niveau} onOuvrirCommune={onOuvrirCommune} />}
       {vue === 'dma' && <Dma annee={annee} niveau={niveau} onOuvrirCommune={onOuvrirCommune} />}
       {vue === 'alertes' && <Alertes annee={annee} onOuvrirCommune={onOuvrirCommune} />}

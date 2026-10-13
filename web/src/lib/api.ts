@@ -157,6 +157,11 @@ export type SaisieLieu = Corps<'/poi', 'post'>;
 export type LieuPublic = Reponse<'/citoyen/lieux', 'get'>[number];
 export type NomRegistre = 'carburant' | 'fins-de-poste' | 'epi' | 'incidents' | 'commerces' | 'conventions';
 export type LigneGouvernorat = Reponse<'/observatoire/gouvernorats', 'get'>[number];
+// Refonte, lot 4 : le déploiement mois par mois, la répartition d'un indicateur, la carte.
+export type LigneActivite = Reponse<'/observatoire/activite', 'get'>[number];
+export type LigneRepartition = Reponse<'/kpi/repartition', 'get'>[number];
+export type ContoursGouvernorats = Reponse<'/observatoire/contours-gouvernorats', 'get'>;
+export type NiveauActivite = 'national' | 'gouvernorat' | 'district';
 export type StatutCommune = Reponse<'/observatoire/deploiement', 'get'>[number];
 
 // --- Espace citoyen --------------------------------------------------------
@@ -1227,6 +1232,11 @@ export const api = {
     ),
   kpiParametres: (valeurs: Record<string, number>) =>
     requete<Record<string, number>>('/kpi/parametres', { method: 'PUT', body: JSON.stringify(valeurs) }),
+  activiteCommunes: (debut: string, fin: string, niveau: NiveauActivite) =>
+    requete<LigneActivite[]>(`/observatoire/activite?${new URLSearchParams({ debut, fin, niveau }).toString()}`),
+  repartitionIndicateur: (annee: number, code: string, niveau: NiveauKpi) =>
+    requete<LigneRepartition[]>(`/kpi/repartition?${new URLSearchParams({ annee: String(annee), code, niveau }).toString()}`),
+  contoursGouvernorats: () => requete<ContoursGouvernorats>('/observatoire/contours-gouvernorats'),
   kpiDistricts: () =>
     requete<{ districts: { code: string; nom: string; nom_ar: string | null }[]; rattachements: { gouvernorat: string; district_code: string }[]; gouvernorats: string[] }>(
       '/kpi/districts'
