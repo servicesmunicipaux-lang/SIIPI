@@ -40,9 +40,10 @@ import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { Registres } from '../composants/registres/Registres';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 import { Catalogue } from '../composants/ajout/Catalogue';
+import { MaCommune } from '../composants/communal/MaCommune';
 import type { EcranAjout } from '../composants/ajout/registre';
 
-type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'coutComplet' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
+type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -77,6 +78,7 @@ const ENTREES: EntreeNavigation<Onglet>[] = [
   { cle: 'registres',     pole: 'flotte' },
   { cle: 'personnel',     pole: 'flotte' },
 
+  { cle: 'maCommune',     pole: 'pilotage' },
   { cle: 'indicateurs',   pole: 'pilotage' },
   { cle: 'rapports',      pole: 'pilotage' },
   { cle: 'references',    pole: 'pilotage' },
@@ -282,6 +284,16 @@ export function EspaceCommunal({
             fnct={estFnct}
             // « Ce qui manque » peut conduire à un écran (pesées, parc…) : seule
             // une entrée du menu est acceptée.
+            onOuvrirEcran={(ecran) => {
+              const cible = entrees.find((e) => e.cle === ecran);
+              if (cible) setOnglet(cible.cle);
+            }}
+          />
+        )}
+        {onglet === 'maCommune' && (
+          <MaCommune
+            communeId={communeId}
+            fnct={estFnct}
             onOuvrirEcran={(ecran) => {
               const cible = entrees.find((e) => e.cle === ecran);
               if (cible) setOnglet(cible.cle);

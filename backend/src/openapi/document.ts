@@ -102,6 +102,7 @@ import {
   declarationsSchema,
   districtsSchema,
   parametresKpiSchema,
+  qCompletudeSchema,
   qManquesSchema,
   qRepartitionSchema,
   qSerieSchema,
@@ -1719,6 +1720,47 @@ registry.registerPath({
   responses: {
     200: json(z.array(ManqueIndicateur.extend({ indicateur_code: z.string() })), 'Les dépendances.'),
     401: REPONSES_COMMUNES[401],
+  },
+});
+const ElementCompletude = registry.register(
+  'ElementCompletude',
+  z.object({
+    code: z.string(),
+    rubrique: z.enum(['reference', 'registre_mois']).openapi({
+      description: '« reference » : une donnée qui se pose une fois et se tient à jour ; « registre_mois » : un registre tenu chaque mois.',
+    }),
+    ordre: z.number().int(),
+    libelle_fr: z.string(),
+    libelle_ar: z.string(),
+    aide_fr: z.string(),
+    aide_ar: z.string(),
+    nature: z.enum(['formulaire', 'ecran', 'parametre']),
+    cible: z.string().openapi({ description: 'Le type du formulaire d’ajout, l’écran du portail ou le paramètre qui le complète.' }),
+    present: z.boolean(),
+    nombre: z.number().nullable().openapi({
+      description: 'Ce qu’il y a derrière un élément présent (circuits, habitants, pleins du mois…). Vide quand l’élément est à ajouter : jamais « 0 ».',
+    }),
+    annee: z.number().int().nullable().openapi({ description: 'L’année de la donnée ou l’année concernée (PCGD, caractérisation, effectif).' }),
+    indicateurs: z.array(z.string()).openapi({ description: 'Les indicateurs qu’il débloque, lus dans les dépendances du catalogue.' }),
+  })
+);
+registry.registerPath({
+  method: 'get', path: '/kpi/completude', tags: [TAG_KPI],
+  summary: '« Ma commune dans SIIPI » : ce qui est présent, ce qui est à ajouter',
+  description:
+    'Les données de référence de la commune et les registres du mois, chacun présent ou à ajouter, avec ce qui le complète et les indicateurs qu’il débloque. Une commune à la fois, sans total, sans pourcentage, sans rang : une liste de choses à faire, pas une note. Le jour ne peut pas être dans le futur.',
+  security: SECURISE,
+  request: {
+    query: qCompletudeSchema.extend({
+      communeId: paramCommuneId.optional(),
+      jour: qCompletudeSchema.shape.jour.openapi({
+        description: 'Le jour de référence (par défaut, aujourd’hui à Tunis) : les registres portent sur son mois, jusqu’à lui.',
+      }),
+    }),
+  },
+  responses: {
+    200: json(z.object({ jour: z.string(), elements: z.array(ElementCompletude) }), 'La liste, élément par élément.'),
+    ...REPONSES_COMMUNES,
   },
 });
 const GroupeRepartitionDoc = registry.register(
@@ -7083,7 +7125,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.31',
+      version: '0.15.32',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

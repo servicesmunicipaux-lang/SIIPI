@@ -34,19 +34,11 @@ import {
 import { formaterNombre } from '../../i18n';
 import { BoutonExport } from '../BoutonExport';
 import { Chargement } from '../Elements';
-import { FormulaireDeclaration } from '../ajout/FormulaireDeclaration';
-import { FormulairePopulation, FormulaireSeuilsCommune } from '../ajout/FormulairesParametres';
-import { CATALOGUE, type EntreeFormulaire } from '../ajout/registre';
 import { BadgeSource, ValeurKpi } from './CarteIndicateur';
+import { boutonCompleter as bouton, LigneACompleter } from './LigneACompleter';
 import { bornesFenetre, decalerMois, finDeMois, libelleMois, type Fenetre } from './temps';
 
-const bouton = 'min-h-10 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-50';
-
 type Ligne = { cle: string; libelle: string; valeur: number | null; source: PointSerie['source'] | null; n1: number | null; reference: number | null };
-
-/** Le formulaire du registre d'ajout dont le type est `cible`, s'il existe. */
-const formulaireDuRegistre = (cible: string | null) =>
-  CATALOGUE.find((e): e is EntreeFormulaire => 'Formulaire' in e && e.type === cible) ?? null;
 
 export function PanneauIndicateur({
   communeId,
@@ -82,7 +74,6 @@ export function PanneauIndicateur({
   const [serieN1, setSerieN1] = useState<PointSerie[]>([]);
   const [reference, setReference] = useState<PointReference[]>([]);
   const [manques, setManques] = useState<ManqueIndicateur[] | null>(null);
-  const [ouvert, setOuvert] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
 
   // Un indicateur d'une autre granularité ne propose pas les fenêtres en mois.
@@ -172,54 +163,6 @@ export function PanneauIndicateur({
   const sources = dependances.filter((d) => d.indicateur_code === r.code);
   const groupes = (liste: { groupe: number }[]) => [...new Set(liste.map((d) => d.groupe))];
 
-  const apresEnregistrement = async () => {
-    setOuvert(null);
-    await onModifie();
-  };
-
-  /** Ce qui complète un élément manquant, sur place quand c'est possible. */
-  const action = (m: ManqueIndicateur) => {
-    const cle = `${m.groupe}-${m.ordre}`;
-    if (fnct) return null;
-    if (m.nature === 'ecran') {
-      return onOuvrirEcran && m.cible ? (
-        <button type="button" className={bouton} onClick={() => onOuvrirEcran(m.cible as string)}>
-          {t('kpi.panneau.ouvrirEcran', { ecran: t(`communal.onglets.${m.cible}`) })}
-        </button>
-      ) : null;
-    }
-    if (m.nature === 'citoyen' || m.nature === 'fnct') return null;
-    const disponible =
-      (m.nature === 'formulaire' && formulaireDuRegistre(m.cible)) ||
-      (m.nature === 'declaration' && catalogue.some((c) => c.code === m.cible)) ||
-      (m.nature === 'parametre' && (m.cible === 'population' || m.cible === 'objectif_balayage'));
-    if (!disponible) return null;
-    return (
-      <button type="button" className={bouton} aria-expanded={ouvert === cle} onClick={() => setOuvert((o) => (o === cle ? null : cle))}>
-        {ouvert === cle ? t('commun.annuler') : t('kpi.panneau.completer')}
-      </button>
-    );
-  };
-
-  const formulaire = (m: ManqueIndicateur) => {
-    if (ouvert !== `${m.groupe}-${m.ordre}`) return null;
-    if (m.nature === 'formulaire') {
-      const entree = formulaireDuRegistre(m.cible);
-      if (!entree) return null;
-      const { Formulaire } = entree;
-      return <Formulaire communeId={communeId} onAnnuler={() => setOuvert(null)} onFait={apresEnregistrement} />;
-    }
-    if (m.nature === 'declaration') {
-      const ind = catalogue.find((c) => c.code === m.cible);
-      return ind ? (
-        <FormulaireDeclaration communeId={communeId} annee={annee} indicateur={ind} onAnnuler={() => setOuvert(null)} onFait={apresEnregistrement} />
-      ) : null;
-    }
-    if (m.cible === 'population') return <FormulairePopulation communeId={communeId} onFait={apresEnregistrement} />;
-    if (m.cible === 'objectif_balayage') return <FormulaireSeuilsCommune communeId={communeId} onFait={apresEnregistrement} />;
-    return null;
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -260,16 +203,23 @@ export function PanneauIndicateur({
                     .map((m, i) => (
                       <div key={`${m.groupe}-${m.ordre}`} className="space-y-2">
                         {i > 0 && <p className="text-xs font-semibold uppercase text-ardoise-500">{t('kpi.panneau.ou')}</p>}
-                        <div className="flex flex-wrap items-center justify-between gap-2">
+                        <LigneACompleter
+                          nature={m.nature}
+                          cible={m.cible}
+                          communeId={communeId}
+                          annee={annee}
+                          catalogue={catalogue}
+                          lectureSeule={fnct}
+                          onOuvrirEcran={onOuvrirEcran}
+                          onFait={onModifie}
+                        >
                           <span className="text-sm text-ardoise-900">
                             {ar ? m.libelle_ar : m.libelle_fr}
                             {(m.nature === 'citoyen' || m.nature === 'fnct') && (
                               <span className="block text-xs text-ardoise-500">{t(`kpi.panneau.nature.${m.nature}`)}</span>
                             )}
                           </span>
-                          {action(m)}
-                        </div>
-                        {formulaire(m)}
+                        </LigneACompleter>
                       </div>
                     ))}
                 </li>

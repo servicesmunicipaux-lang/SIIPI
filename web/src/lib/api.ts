@@ -147,6 +147,9 @@ export type PointSerie = Reponse<'/kpi/serie', 'get'>[number];
 export type PointSeriesCommune = Reponse<'/kpi/series', 'get'>[number];
 export type PointReference = Reponse<'/kpi/reference-gouvernorat', 'get'>[number];
 export type ManqueIndicateur = Reponse<'/kpi/manques', 'get'>[number];
+// Refonte, lot 5 : « Ma commune dans SIIPI ».
+export type CompletudeCommune = Reponse<'/kpi/completude', 'get'>;
+export type ElementCompletude = CompletudeCommune['elements'][number];
 export type DependanceIndicateur = Reponse<'/kpi/dependances', 'get'>[number];
 export type SaisieDeclarations = Corps<'/kpi/declarations/{communeId}/{annee}', 'put'>;
 export type DeclarationsKpi = Reponse<'/kpi/declarations/{communeId}/{annee}', 'get'>;
@@ -1209,6 +1212,8 @@ export const api = {
       `/kpi/manques?communeId=${encodeURIComponent(communeId)}&code=${encodeURIComponent(code)}&annee=${annee}`
     ),
   dependancesIndicateurs: () => requete<DependanceIndicateur[]>('/kpi/dependances'),
+  completudeCommune: (communeId: string) =>
+    requete<CompletudeCommune>(`/kpi/completude?${new URLSearchParams({ communeId }).toString()}`),
   // Les valeurs que la commune déclare : elles valent dès qu'elles sont enregistrées (D3).
   declarationsKpi: (communeId: string, annee: number) =>
     requete<DeclarationsKpi>(`/kpi/declarations/${encodeURIComponent(communeId)}/${annee}`),
