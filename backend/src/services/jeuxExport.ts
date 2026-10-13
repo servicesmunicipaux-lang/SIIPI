@@ -82,8 +82,13 @@ export const JEU_GOUVERNORATS: JeuExport = {
     { cle: 'communes_incompletes', fr: 'Communes incomplètes', ar: 'البلديات غير المكتملة', type: 'nombre' },
     { cle: 'communes_desactivees', fr: 'Communes désactivées', ar: 'البلديات المعطّلة', type: 'nombre' },
     { cle: 'population', fr: 'Population', ar: 'السكان', type: 'nombre' },
-    { cle: 'tonnage_jour', fr: 'Tonnage (t/jour)', ar: 'الكمية (طن/يوم)', type: 'nombre' },
-    { cle: 'production_kg_hab_jour', fr: 'Production (kg/hab/jour)', ar: 'الإنتاج (كغ/ساكن/يوم)', type: 'nombre' },
+    // Chaque provenance dans sa colonne : un tonnage estimé ne s'additionne
+    // jamais à un tonnage pesé (refonte, lot 4a).
+    { cle: 'tonnage_jour_estime', fr: 'Tonnage estimé (t/jour)', ar: 'الكمية التقديرية (طن/يوم)', type: 'nombre' },
+    { cle: 'tonnage_jour_declare', fr: 'Tonnage déclaré (t/jour)', ar: 'الكمية المصرّح بها (طن/يوم)', type: 'nombre' },
+    { cle: 'tonnage_jour_mesure', fr: 'Tonnage mesuré (t/jour)', ar: 'الكمية المقيسة (طن/يوم)', type: 'nombre' },
+    { cle: 'tonnage_pese_12m_t', fr: 'Tonnage pesé, 12 mois (t)', ar: 'الكمية الموزونة، 12 شهرًا (طن)', type: 'nombre' },
+    { cle: 'communes_pesees', fr: 'Communes pesées', ar: 'البلديات الموزونة', type: 'nombre' },
     { cle: 'taux_collecte', fr: 'Taux de collecte', ar: 'نسبة الجمع', type: 'nombre' },
     { cle: 'indice_proprete', fr: 'Indice de propreté', ar: 'مؤشر النظافة', type: 'nombre' },
     { cle: 'pcgd_valides', fr: 'PCGD validés', ar: 'المخططات البلدية المصادق عليها', type: 'nombre' },
@@ -91,6 +96,7 @@ export const JEU_GOUVERNORATS: JeuExport = {
     { cle: 'reclamations_30j', fr: 'Réclamations (30 j)', ar: 'التشكيات (30 يوما)', type: 'nombre' },
     { cle: 'delai_traitement_jours', fr: 'Délai de traitement (j)', ar: 'أجل المعالجة (يوم)', type: 'nombre' },
     { cle: 'communes_donnees_mesurees', fr: 'Communes à données mesurées', ar: 'بلديات ببيانات مقيسة', type: 'nombre' },
+    { cle: 'communes_donnees_declarees', fr: 'Communes à données déclarées', ar: 'بلديات ببيانات مصرّح بها', type: 'nombre' },
     { cle: 'communes_donnees_estimees', fr: 'Communes à données estimées', ar: 'بلديات ببيانات تقديرية', type: 'nombre' },
     { cle: 'derniere_activite', fr: 'Dernière activité', ar: 'آخر نشاط', type: 'horodatage' },
   ],
@@ -304,6 +310,40 @@ export const JEU_SERIE_INDICATEUR: JeuExport = {
   colonnes: [
     { cle: 'periode_debut', fr: 'Début de la période', ar: 'بداية الفترة', type: 'date' },
     { cle: 'periode_fin', fr: 'Fin de la période', ar: 'نهاية الفترة', type: 'date' },
+    { cle: 'valeur', fr: 'Valeur', ar: 'القيمة', type: 'nombre' },
+    { cle: 'taux_atteinte', fr: "Taux d'atteinte (0 à 1)", ar: 'نسبة البلوغ (من 0 إلى 1)', type: 'nombre' },
+    {
+      cle: 'source',
+      fr: 'Source',
+      ar: 'المصدر',
+      libelles: { mesure: { fr: 'Mesuré', ar: 'مقيس' }, declare: { fr: 'Déclaré', ar: 'مصرّح به' } },
+    },
+  ],
+};
+
+/** Le déploiement mois par mois (refonte, lot 4a). */
+export const JEU_ACTIVITE: JeuExport = {
+  nom: 'deploiement-mensuel',
+  titre: { fr: 'Déploiement mois par mois', ar: 'الانتشار شهرًا بشهر' },
+  colonnes: [
+    { cle: 'mois', fr: 'Mois', ar: 'الشهر', type: 'date' },
+    { cle: 'nom', fr: 'Groupe', ar: 'المجموعة' },
+    { cle: 'communes', fr: 'Communes', ar: 'البلديات', type: 'nombre' },
+    { cle: 'saisissent', fr: 'Saisissent', ar: 'تُدخل معطيات', type: 'nombre' },
+    { cle: 'inactives', fr: 'Inactives ce mois', ar: 'غير نشطة هذا الشهر', type: 'nombre' },
+    { cle: 'pas_demarrees', fr: 'Pas encore démarrées', ar: 'لم تنطلق بعد', type: 'nombre' },
+    { cle: 'desactivees', fr: 'Désactivées', ar: 'معطّلة', type: 'nombre' },
+  ],
+};
+
+/** La valeur d'un indicateur, commune par commune (refonte, lot 4a) — par ordre alphabétique, sans rang. */
+export const JEU_REPARTITION_COMMUNES: JeuExport = {
+  nom: 'repartition-indicateur',
+  titre: { fr: "Répartition d'un indicateur", ar: 'توزيع مؤشر' },
+  colonnes: [
+    { cle: 'nom', fr: 'Commune', ar: 'البلدية' },
+    { cle: 'gouvernorat', fr: 'Gouvernorat', ar: 'الولاية' },
+    { cle: 'district', fr: 'District', ar: 'الإقليم' },
     { cle: 'valeur', fr: 'Valeur', ar: 'القيمة', type: 'nombre' },
     { cle: 'taux_atteinte', fr: "Taux d'atteinte (0 à 1)", ar: 'نسبة البلوغ (من 0 إلى 1)', type: 'nombre' },
     {

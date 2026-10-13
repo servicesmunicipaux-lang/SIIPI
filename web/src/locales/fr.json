@@ -41,10 +41,11 @@
       "adoptionDetail": "communes actives",
       "population": "Population couverte",
       "populationDetail": "habitants des communes actives",
-      "tonnage": "Tonnage déclaré",
-      "tonnageDetail": "tonnes par jour, national",
       "reclamations": "Réclamations",
-      "reclamationsDetail": "déposées sur 30 jours"
+      "reclamationsDetail": "déposées sur 30 jours",
+      "tonnagePese": "Tonnage pesé (12 mois)",
+      "tonnagePeseDetail": "tonnes, sur {{n}} communes pesées sur {{total}} — sans aucune estimation",
+      "tonnagePeseAucun": "Aucune pesée réelle enregistrée sur les douze derniers mois."
     },
     "tableau": {
       "titre": "Par gouvernorat",
@@ -53,8 +54,6 @@
       "communes": "Communes",
       "adoption": "Adoption",
       "population": "Population",
-      "tonnage": "t/jour",
-      "production": "kg/hab/j",
       "collecte": "Collecte",
       "proprete": "Propreté",
       "pcgd": "PCGD",
@@ -62,7 +61,10 @@
       "delai": "Délai",
       "delaiJours": "{{n}} j",
       "aucuneDonnee": "—",
-      "trierPar": "Trier par {{colonne}}"
+      "trierPar": "Trier par {{colonne}}",
+      "tonnageEstime": "t/jour estimées",
+      "tonnagePese": "t pesées (12 mois)",
+      "surCommunes": "{{n}}/{{total}}"
     },
     "communes": {
       "titre": "Les 350 communes",

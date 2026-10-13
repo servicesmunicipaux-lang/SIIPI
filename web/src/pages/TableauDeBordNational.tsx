@@ -37,8 +37,10 @@ const COLONNES: Array<{ cle: Cle; libelle: string; numerique: boolean; decimales
   { cle: 'gouvernorat', libelle: 'gouvernorat', numerique: false },
   { cle: 'communes_actives', libelle: 'adoption', numerique: true },
   { cle: 'population', libelle: 'population', numerique: true },
-  { cle: 'tonnage_jour', libelle: 'tonnage', numerique: true, decimales: 0 },
-  { cle: 'production_kg_hab_jour', libelle: 'production', numerique: true, decimales: 2 },
+  // Deux colonnes, jamais additionnées : le tonnage de référence ESTIMÉ et le
+  // tonnage PESÉ (refonte, lot 4a).
+  { cle: 'tonnage_jour_estime', libelle: 'tonnageEstime', numerique: true, decimales: 0 },
+  { cle: 'tonnage_pese_12m_t', libelle: 'tonnagePese', numerique: true, decimales: 1 },
   { cle: 'taux_collecte', libelle: 'collecte', numerique: true, decimales: 1 },
   { cle: 'indice_proprete', libelle: 'proprete', numerique: true, decimales: 1 },
   { cle: 'pcgd_valides', libelle: 'pcgd', numerique: true },
@@ -139,7 +141,10 @@ export function TableauDeBordNational() {
       actives: somme((g) => g.communes_actives),
       population: somme((g) => g.population),
       populationActive: 0, // renseigné plus bas, à partir du détail par commune
-      tonnage: somme((g) => g.tonnage_jour),
+      // Le tonnage PESÉ seul : additionner des pesées entre elles a un sens,
+      // y ajouter des estimations n'en a pas.
+      tonnagePese: somme((g) => g.tonnage_pese_12m_t),
+      communesPesees: somme((g) => g.communes_pesees),
       reclamations: somme((g) => g.reclamations_30j),
     };
   }, [gouvernorats]);
@@ -290,9 +295,13 @@ export function TableauDeBordNational() {
           detail={t('national.cartes.populationDetail')}
         />
         <CarteIndicateur
-          libelle={t('national.cartes.tonnage')}
-          valeur={formaterNombre(totaux.tonnage, 0)}
-          detail={t('national.cartes.tonnageDetail')}
+          libelle={t('national.cartes.tonnagePese')}
+          valeur={totaux.communesPesees === 0 ? t('kpi.statuts.non_renseigne') : formaterNombre(totaux.tonnagePese, 0)}
+          detail={
+            totaux.communesPesees === 0
+              ? t('national.cartes.tonnagePeseAucun')
+              : t('national.cartes.tonnagePeseDetail', { n: totaux.communesPesees, total: totaux.communes })
+          }
         />
         <CarteIndicateur
           libelle={t('national.cartes.reclamations')}
@@ -392,10 +401,13 @@ export function TableauDeBordNational() {
                     {formaterNombre(g.population)}
                   </td>
                   <td className="chiffres px-3 py-2.5 text-end text-ardoise-700">
-                    {formaterNombre(g.tonnage_jour, 0)}
+                    {formaterNombre(g.tonnage_jour_estime, 0)}
                   </td>
                   <td className="chiffres px-3 py-2.5 text-end text-ardoise-700">
-                    {formaterNombre(g.production_kg_hab_jour, 2)}
+                    {formaterNombre(g.tonnage_pese_12m_t, 1)}
+                    {g.communes_pesees > 0 && (
+                      <span className="ms-1 text-xs text-ardoise-400">{t('national.tableau.surCommunes', { n: g.communes_pesees, total: g.communes })}</span>
+                    )}
                   </td>
                   <td className="chiffres px-3 py-2.5 text-end text-ardoise-700">
                     {g.taux_collecte === null ? '—' : `${formaterNombre(g.taux_collecte, 1)} %`}

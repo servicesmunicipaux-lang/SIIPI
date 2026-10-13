@@ -5,6 +5,64 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.30] — 2026-10-13 — Refonte, lot 4a : le tableau national, sans classement ni tonnage mêlé
+
+Première moitié du lot 4 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 4) : les
+données et les routes. Les écrans (suivi du déploiement en tête, carte et graphique de répartition)
+suivent au lot 4b.
+
+### Ce qu'est une saisie de la commune (migration 072)
+- **`app._saisies_communales`** : une écriture de la commune elle-même (son directeur ou le
+  prestataire qui travaille pour elle), une pesée réelle qu'elle enregistre, un pointage de ses
+  agents. **Pas une écriture de la FNCT** sur la fiche de la commune, pas une réclamation d'un
+  citoyen, pas un script. Jusqu'ici, « active » comptait toute écriture au journal — FNCT comprise —
+  et ignorait les pesées du module 6, que le journal ne voit pas. `app.statut_communes` repose
+  désormais sur cette définition.
+
+### Le déploiement, mois par mois
+- **`app.activite_communes`** et **`GET /observatoire/activite`** (FNCT, au plus 24 mois,
+  exportable) : pour chaque mois, les communes qui **saisissent**, les **inactives** (elles ont
+  commencé, rien ce mois-là), celles **pas encore démarrées**, et les **désactivées** — pour le pays,
+  par gouvernorat ou par district. L'activation est celle d'aujourd'hui : la base n'en garde pas
+  l'historique comme une donnée.
+
+### Un tonnage estimé ne s'additionne jamais à un tonnage pesé
+- **`app.tableau_gouvernorats`** additionnait les tonnages de référence de toutes les communes,
+  estimés, déclarés et mesurés confondus — et l'écran national l'affichait sous le titre « Tonnage
+  déclaré ». Il les donne désormais **chacun dans sa colonne** (`tonnage_jour_estime`, `_declare`,
+  `_mesure`), et le **tonnage pesé** à part (pesées réelles des douze derniers mois, avec le nombre de
+  communes pesées). La production par habitant, calculée sur le total mêlé, disparaît.
+- L'écran national, en attendant le lot 4b : la carte « Tonnage pesé (12 mois) », avec le nombre de
+  communes derrière ; deux colonnes séparées dans le tableau par gouvernorat.
+
+### La répartition d'un indicateur, sans classement
+- **`GET /kpi/repartition`** (FNCT, exportable) : par gouvernorat, par district ou pour le pays, la
+  moyenne — et **sur combien de communes elle porte** (« 4 communes sur 5 »), mesurées et déclarées à
+  part. Au niveau commune, la valeur de chacune, **par ordre alphabétique**. Aucun rang, aucun ordre
+  par valeur.
+- **`/kpi/dma`** au niveau commune ne range plus les communes de la mieux à la moins bien préparée :
+  par nom.
+
+### La carte
+- **`app.contours_gouvernorats`** et **`GET /observatoire/contours-gouvernorats`** : les 24
+  gouvernorats, dissous à partir des communes réelles (quelques secondes de calcul, gardés en mémoire
+  tant que le découpage ne change pas).
+
+### La commune de démonstration, absente partout
+- Elle n'entre ni dans le déploiement, ni dans les tonnages, ni dans les répartitions, ni dans les
+  contours ; son gouvernorat n'est plus proposé au rattachement à un district (`/kpi/districts`).
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 72 migrations ; la 072 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat **315/315**, **48 bilans, 1 947 tests réussis,
+  aucun échec** ; la nouvelle campagne `tableau-national` : 35 réussis, aucun échec. Recomptage 48 / 48.
+- `audit-blocs.py` : 28 blocs sous condition, tous leurs contrôles ont tourné. Lint backend et web (TypeScript 5.8.3) : code 0.
+- `tableau-national` bâtit un gouvernorat de cinq communes et deux communes de démonstration, et
+  recalcule ses attentes des seules données insérées : la FNCT qui qualifie une commune ne la rend pas
+  active, une pesée du module 6 si ; janvier, février et mars 2021 donnent 2, 1 et 1 commune qui
+  saisissent ; estimé 16, déclaré 20, mesuré 30 t/j, pesé 19 t sur 4 communes, jamais additionnés ;
+  « 4 communes sur 5 », moyenne 4,75 t ; aucune des réponses nationales ne porte un rang.
+
 ## [0.15.29] — 2026-10-13 — Refonte, lot 3b : les indicateurs en graphiques, et « compléter sur place »
 
 Seconde moitié du lot 3 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 3.3) : ce que

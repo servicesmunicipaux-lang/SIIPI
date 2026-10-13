@@ -4867,6 +4867,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/kpi/repartition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La répartition d’un indicateur par gouvernorat, district ou commune (FNCT)
+         * @description Par groupe : la moyenne, et sur combien de communes elle porte (« 12 communes sur 31 »), mesurées et déclarées à part. Au niveau commune : la valeur de chacune, par ordre alphabétique. Aucun rang, aucun ordre par valeur. Sans la commune de démonstration.
+         */
+        get: {
+            parameters: {
+                query: {
+                    annee?: number;
+                    code: string;
+                    niveau?: "commune" | "gouvernorat" | "district" | "national";
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La répartition. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": (components["schemas"]["GroupeRepartition"] | components["schemas"]["ValeurIndicateurCommune"])[];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/kpi/dma": {
         parameters: {
             query?: never;
@@ -7501,6 +7584,151 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/observatoire/activite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le déploiement mois par mois (FNCT)
+         * @description Pour chaque mois : les communes qui saisissent, les inactives, celles qui n’ont pas encore démarré, les désactivées — pour le pays, par gouvernorat ou par district. Une saisie est le fait de la commune elle-même : ni la FNCT, ni les citoyens. La commune de démonstration n’y est pas. Au plus 24 mois.
+         */
+        get: {
+            parameters: {
+                query: {
+                    debut: string;
+                    fin: string;
+                    niveau?: "national" | "gouvernorat" | "district";
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Le déploiement, mois par mois. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LigneActivite"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/observatoire/contours-gouvernorats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les contours des 24 gouvernorats
+         * @description Dissous à partir des communes réelles, simplifiés pour une carte nationale (GeoJSON). Sans la commune de démonstration.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les contours. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            type: "FeatureCollection";
+                            features: {
+                                /** @enum {string} */
+                                type: "Feature";
+                                properties: {
+                                    gouvernorat: string;
+                                    communes: number;
+                                };
+                                geometry: {
+                                    [key: string]: unknown;
+                                };
+                            }[];
+                        };
                     };
                 };
                 /** @description Authentification requise, ou jeton expiré. */
@@ -23797,6 +24025,32 @@ export interface components {
             libelle_fr: string;
             libelle_ar: string;
         };
+        GroupeRepartition: {
+            cle: string;
+            nom: string | null;
+            /** @description Les communes du groupe (« sur 31 »). */
+            communes: number;
+            /** @description Celles qui ont une valeur (« 12 communes »). */
+            communes_renseignees: number;
+            communes_mesurees: number;
+            communes_declarees: number;
+            valeur_moyenne: number | null;
+            /** @description Moyenne des taux d’atteinte (0 à 1). */
+            taux_moyen: number | null;
+        };
+        ValeurIndicateurCommune: {
+            commune_id: string;
+            nom: string;
+            nom_ar: string | null;
+            gouvernorat: string;
+            district: string | null;
+            /** @enum {string} */
+            statut: "renseigne" | "non_renseigne" | "sans_objet";
+            /** @enum {string|null} */
+            source: "mesure" | "declare" | null;
+            valeur: number | null;
+            taux_atteinte: number | null;
+        };
         Caracterisation: {
             /** Format: uuid */
             id: string;
@@ -23878,9 +24132,16 @@ export interface components {
             communes_incompletes: number;
             communes_desactivees: number;
             population: number;
-            tonnage_jour: number | null;
-            /** @description Production spécifique, pondérée par la population. */
-            production_kg_hab_jour: number | null;
+            /** @description Tonnage de référence des communes à données estimées. Jamais additionné aux autres. */
+            tonnage_jour_estime: number | null;
+            /** @description Tonnage de référence des communes à données déclarées. */
+            tonnage_jour_declare: number | null;
+            /** @description Tonnage de référence des communes à données mesurées. */
+            tonnage_jour_mesure: number | null;
+            /** @description Pesées réelles des douze derniers mois, en tonnes. */
+            tonnage_pese_12m_t: number | null;
+            /** @description Communes qui ont au moins une pesée réelle sur ces douze mois. */
+            communes_pesees: number;
             /** @description Moyenne pondérée par la population, non arithmétique. */
             taux_collecte: number | null;
             indice_proprete: number | null;
@@ -23889,6 +24150,7 @@ export interface components {
             reclamations_30j: number;
             delai_traitement_jours: number | null;
             communes_donnees_mesurees: number;
+            communes_donnees_declarees: number;
             communes_donnees_estimees: number;
             derniere_activite: string | null;
         };
@@ -23907,6 +24169,20 @@ export interface components {
             derniere_activite: string | null;
             ecritures_30j: number;
             a_des_pesees: boolean;
+        };
+        LigneActivite: {
+            /** Format: date */
+            mois: string;
+            cle: string;
+            nom: string | null;
+            communes: number;
+            /** @description Communes qui ont saisi au moins une donnée dans le mois. */
+            saisissent: number;
+            /** @description Communes qui ont déjà saisi, mais rien ce mois-là. */
+            inactives: number;
+            /** @description Communes activées qui n’ont encore rien saisi. */
+            pas_demarrees: number;
+            desactivees: number;
         };
         HebergementIdentites: {
             accredite: boolean;
