@@ -4727,6 +4727,146 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/kpi/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les séries mensuelles de tous les indicateurs d’une commune
+         * @description Les petites courbes des cartes : chaque mois calculé une seule fois pour tous les indicateurs de granularité mensuelle. Mêmes règles que `/kpi/serie` — un mois sans donnée n’a pas de ligne. Au plus 24 mois.
+         */
+        get: {
+            parameters: {
+                query: {
+                    debut: string;
+                    fin: string;
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les points, indicateur par indicateur. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: date */
+                            periode_debut: string;
+                            /** Format: date */
+                            periode_fin: string;
+                            valeur: number;
+                            /** @description Entre 0 et 1 pour un indicateur rapporté à un objectif ; null sinon. */
+                            taux_atteinte: number | null;
+                            /** @enum {string} */
+                            source: "mesure" | "declare";
+                            code: string;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kpi/dependances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les sources de chaque indicateur
+         * @description Les dépendances du catalogue (groupes : il faut chacun, une source par groupe suffit), avec ce qui complète chaque source.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les dépendances. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": (components["schemas"]["ManqueIndicateur"] & {
+                            indicateur_code: string;
+                        })[];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/kpi/dma": {
         parameters: {
             query?: never;

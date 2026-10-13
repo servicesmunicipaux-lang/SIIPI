@@ -2122,6 +2122,15 @@
     },
     "carnet": {
       "titre": "Une sortie au carnet de bord"
+    },
+    "declaration": {
+      "titre": "Déclarer « {{indicateur}} » pour {{annee}}",
+      "aide": "La valeur déclarée vaut dès son enregistrement, avec le badge « déclaré ». Si un registre de la plateforme la mesure un jour, la mesure primera.",
+      "valeur": "Valeur",
+      "taux": "En pourcentage, de 0 à 100.",
+      "cible": "Cible",
+      "cibleAide": "Ce à quoi la valeur se rapporte : sans cible, un ratio ne se lit pas.",
+      "commentaire": "Commentaire (facultatif)"
     }
   },
   "prestataire": {
@@ -2561,6 +2570,57 @@
       "commentaireFnctChamp": "Commentaire de la FNCT",
       "commenter": "Enregistrer le commentaire",
       "commentaireEnregistre": "Commentaire enregistré."
+    },
+    "carte": {
+      "aide": "Chaque carte s'ouvre sur son graphique ; une carte « non renseigné » s'ouvre sur ce qui manque pour la calculer, avec de quoi le compléter sur place.",
+      "atteinte": "{{pct}} % de l'objectif",
+      "completer": "Voir ce qui manque",
+      "moisRenseignes": "{{n}} mois renseignés sur {{total}}",
+      "granularite": {
+        "annuelle": "Valeur annuelle : pas de courbe mensuelle",
+        "actuelle": "État d'aujourd'hui : pas de courbe",
+        "mensuelle": ""
+      }
+    },
+    "donnees": {
+      "titre": "Données de la commune",
+      "aide": "Les chiffres qui servent aux indicateurs : tonnages, coûts, effectifs. Le coût à la tonne s'ouvre lui aussi sur ce qui lui manque."
+    },
+    "panneau": {
+      "titre": "Détail de l'indicateur",
+      "fermer": "Fermer",
+      "ilManque": "Pour calculer cet indicateur, il manque :",
+      "ou": "ou",
+      "completer": "Compléter",
+      "ouvrirEcran": "Ouvrir « {{ecran}} »",
+      "nature": {
+        "citoyen": "Ces données viennent des citoyens : elles apparaîtront avec leurs demandes.",
+        "fnct": "Cela relève de la FNCT."
+      },
+      "fnctLecture": "La commune complète ces données ; la FNCT les lit.",
+      "evolution": "Évolution",
+      "periode": "Période affichée",
+      "fenetres": {
+        "3m": "3 mois",
+        "6m": "6 mois",
+        "12m": "12 mois",
+        "annees": "5 ans"
+      },
+      "comparer": "Comparer avec l'année précédente",
+      "aucunPoint": "Aucune valeur sur cette période : rien à tracer. Un mois sans donnée n'est pas un zéro.",
+      "serie": {
+        "valeur": "Valeur",
+        "n1": "Année précédente",
+        "reference": "Moyenne du gouvernorat"
+      },
+      "referenceAbsente": "Pas de repère du gouvernorat : moins de cinq communes y ont une valeur sur cette période.",
+      "donnees": "Les données du graphique",
+      "colonnes": {
+        "periode": "Période",
+        "source": "Source"
+      },
+      "formule": "Formule",
+      "sources": "Sources"
     }
   },
   "registres": {

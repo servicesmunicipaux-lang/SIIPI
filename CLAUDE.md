@@ -55,7 +55,10 @@ formulaires du registre `web/src/composants/ajout/`. v0.15.27 : refonte, lot 2b 
 un par type, et chaque écran ouvre le même (`npm run lint` le vérifie). v0.15.28 : refonte, lot 3a — les
 indicateurs dans le temps (migration 070) : un seul calcul pour toute période (`app.mesures_kpi` devient une
 enveloppe), `app.serie_indicateur` (un mois sans donnée est un trou), `app.manques_indicateur` (les dépendances
-sont une donnée du catalogue), repère du gouvernorat dès 5 communes. Suite : lot 3b (graphiques, panneau).**
+sont une donnée du catalogue), repère du gouvernorat dès 5 communes. v0.15.29 : refonte, lot 3b — l'écran
+Indicateurs en cartes (petite courbe de 12 mois, migration 071 : `app.series_commune`) et panneau (graphique
+Recharts, tableau exportable, formule FR/AR, repère) ; « il manque » ouvre sur place le formulaire du registre,
+la déclaration ou le paramètre de la commune. Suite : lot 4 (tableau de bord national).**
 
 ---
 
@@ -200,10 +203,10 @@ docker compose run --rm web npx openapi-typescript http://api:4000/openapi.json 
 
 | Couche | Choix | Note |
 |---|---|---|
-| Base | PostgreSQL 16 + PostGIS 3.4 | 70 migrations au 13/10/2026, rejouées sur base neuve à chaque livraison |
+| Base | PostgreSQL 16 + PostGIS 3.4 | 71 migrations au 13/10/2026, rejouées sur base neuve à chaque livraison |
 | API | Node 22 + Express + TypeScript (ESM) | zod pour la validation |
 | Contrat | OpenAPI 3.1 **généré depuis les schémas zod d'exécution** | la documentation ne peut pas décrire autre chose que ce qui est contrôlé |
-| Front | React 19 + Vite + Tailwind v4 + Leaflet | PWA (`manifest.webmanifest`, `sw.js`) |
+| Front | React 19 + Vite + Tailwind v4 + Leaflet + Recharts | PWA (`manifest.webmanifest`, `sw.js`) |
 | Langues | i18next — FR / AR avec RTL | |
 | Déploiement | Docker Compose | volume `siipi_fichiers` pour les octets déposés |
 
@@ -443,7 +446,7 @@ ne génère rien. Voir `FEUILLE_DE_ROUTE.md` § 6bis.
 
 ```
 backend/
-  migrations/      070 fichiers numérotés au 13/10/2026 — l'ordre fait foi, l'empreinte aussi
+  migrations/      071 fichiers numérotés au 13/10/2026 — l'ordre fait foi, l'empreinte aussi
   src/routes/      une route par domaine ; les littéraux avant /:id
   src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF),
                    conservationMedias.ts (photos de 36 mois, archive froide)

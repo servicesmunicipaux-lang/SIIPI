@@ -4,46 +4,50 @@
 // de classement). Le même écran sert la commune et, en lecture et en
 // commentaire, la FNCT (A2.3 « Visualiser »).
 //
+// REFONTE, LOT 3b : chaque indicateur est une CARTE — sa valeur, une petite
+// courbe de douze mois, sa source en toutes lettres — et s'ouvre sur un
+// PANNEAU à côté de la vue : le graphique interactif s'il est renseigné, « ce
+// qui manque » s'il ne l'est pas, avec de quoi le compléter sur place.
+//
 // LA RÈGLE D'OR : UNE DONNÉE MANQUANTE N'EST PAS UN ZÉRO. Un indicateur sans
-// source s'affiche « non renseigné », avec la raison au survol ; un indice se
-// montre toujours avec ce sur quoi il porte (« 14 indicateurs calculables sur 19 »).
+// source s'affiche « non renseigné » ; un mois sans valeur est un trou dans la
+// courbe ; un indice se montre toujours avec ce sur quoi il porte.
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type KpiCommune, type ResultatIndicateur } from '../../lib/api';
+import {
+  api,
+  ErreurApi,
+  type DependanceIndicateur,
+  type IndicateurCatalogue,
+  type KpiCommune,
+  type PointSeriesCommune,
+  type ResultatIndicateur,
+} from '../../lib/api';
 import { useFormats } from '../../lib/formats';
 import { imprimer } from '../../lib/impression';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
 import { DeclarationsIndicateurs } from './DeclarationsIndicateurs';
+import { CarteIndicateur } from './CarteIndicateur';
+import { PanneauIndicateur } from './PanneauIndicateur';
+import { bornesFenetre } from './temps';
 
 const ANNEE = new Date().getFullYear();
 const bouton = 'min-h-10 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-50';
 
-const CLASSES_STATUT: Record<string, string> = {
-  renseigne: 'bg-siipi-100 text-siipi-800',
-  non_renseigne: 'bg-ardoise-100 text-ardoise-600',
-  sans_objet: 'bg-ardoise-100 text-ardoise-500',
-};
-
-/** Une valeur, ou « non renseigné » avec la raison au survol — jamais un 0 inventé. */
-export function ValeurKpi({ r }: { r: ResultatIndicateur }) {
-  const { t } = useTranslation();
-  if (r.statut !== 'renseigne' || r.valeur == null) {
-    return (
-      <span className="text-ardoise-400" title={t(`kpi.statuts.aide.${r.statut}`)}>
-        {r.statut === 'renseigne' ? '—' : t(`kpi.statuts.${r.statut}`)}
-      </span>
-    );
-  }
-  const decimales = Number.isInteger(r.valeur) ? 0 : r.valeur < 10 ? 3 : 1;
-  return (
-    <span className="chiffres font-medium text-ardoise-900">
-      {formaterNombre(r.valeur, decimales)}
-      {r.cible != null && <span className="text-ardoise-500"> / {formaterNombre(r.cible, 0)}</span>}
-      {r.unite && <span className="ms-1 text-xs text-ardoise-500">{r.unite}</span>}
-    </span>
-  );
+/** Vrai sur grand écran (lg, 64rem) : le panneau se pose à côté des cartes. */
+function useGrandEcran() {
+  const requete = '(min-width: 64rem)';
+  const [grand, setGrand] = useState(() => window.matchMedia(requete).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(requete);
+    const changer = () => setGrand(mq.matches);
+    mq.addEventListener('change', changer);
+    return () => mq.removeEventListener('change', changer);
+  }, []);
+  return grand;
 }
 
 /** Un indice sur 100, ou « non renseigné » — et ce sur quoi il porte. */
@@ -60,102 +64,102 @@ function Indice({ valeur, renseignes, total }: { valeur: number | null; renseign
   );
 }
 
-function LigneIndicateur({ r, langue }: { r: ResultatIndicateur; langue: string }) {
-  const { t } = useTranslation();
-  const f = useFormats();
-  return (
-    <tr className="border-b border-ardoise-100 last:border-0 align-top">
-      <td className="px-3 py-2">
-        {/* L'identifiant interne (M1-1…) ne s'affiche pas : le libellé suffit. */}
-        <span className="text-ardoise-900">{langue.startsWith('ar') ? r.libelle_ar : r.libelle_fr}</span>
-        {r.commentaire && <span className="block text-xs text-ardoise-500">{r.commentaire}</span>}
-        {r.declaration && (
-          <span className="block text-xs text-blue-800">
-            {t('kpi.declaration.par', { qui: r.declaration.saisi_par ?? '—', date: f.date(r.declaration.saisi_le, { heure: true }) })}
-          </span>
-        )}
-        {r.declaration?.commentaire_fnct && (
-          <span className="mt-0.5 block rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-900">
-            {t('kpi.declaration.commentaireFnct', { texte: r.declaration.commentaire_fnct })}
-          </span>
-        )}
-      </td>
-      <td className="px-3 py-2 text-end">
-        <ValeurKpi r={r} />
-      </td>
-      <td className="chiffres px-3 py-2 text-end text-ardoise-700">{r.taux_atteinte != null ? `${formaterNombre(100 * r.taux_atteinte, 0)} %` : '—'}</td>
-      <td className="px-3 py-2">
-        <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs ${CLASSES_STATUT[r.statut]}`} title={t(`kpi.statuts.aide.${r.statut}`)}>
-          {t(`kpi.statuts.${r.statut}`)}
-        </span>
-        {/* Mesuré par un registre, sinon déclaré par la commune, sinon rien :
-            le badge dit laquelle des trois sources a été retenue. */}
-        {r.statut === 'renseigne' && r.source && (
-          <span
-            className={`ms-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs ${r.source === 'mesure' ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200' : 'bg-blue-50 text-blue-800 ring-1 ring-blue-200'}`}
-            title={t(`kpi.sources.aide.${r.source}`)}
-          >
-            {t(`kpi.sources.${r.source}`)}
-          </span>
-        )}
-      </td>
-    </tr>
-  );
-}
-
-function TableIndicateurs({ liste }: { liste: ResultatIndicateur[] }) {
-  const { t, i18n } = useTranslation();
-  return (
-    <div className="overflow-x-auto rounded-lg border border-ardoise-200">
-      <table className="w-full min-w-[36rem] text-sm">
-        <thead className="border-b border-ardoise-200 bg-ardoise-50 text-xs uppercase text-ardoise-500">
-          <tr>
-            <th className="px-3 py-2 text-start">{t('kpi.colonnes.indicateur')}</th>
-            <th className="px-3 py-2 text-end">{t('kpi.colonnes.valeur')}</th>
-            <th className="px-3 py-2 text-end">{t('kpi.colonnes.atteinte')}</th>
-            <th className="px-3 py-2 text-start">{t('kpi.colonnes.statut')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {liste.map((r) => (
-            <LigneIndicateur key={r.code} r={r} langue={i18n.language} />
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-export function IndicateursCommune({ communeId, fnct = false }: { communeId: string; fnct?: boolean }) {
+export function IndicateursCommune({
+  communeId,
+  fnct = false,
+  onOuvrirEcran,
+}: {
+  communeId: string;
+  fnct?: boolean;
+  /** Ouvrir un écran du portail depuis « ce qui manque » (portail communal seulement). */
+  onOuvrirEcran?: (ecran: string) => void;
+}) {
   const { t } = useTranslation();
   const f = useFormats();
   const [annee, setAnnee] = useState(ANNEE);
   const [vue, setVue] = useState<'tableau' | 'declarations'>('tableau');
   const [kpi, setKpi] = useState<KpiCommune | null>(null);
+  const [catalogue, setCatalogue] = useState<IndicateurCatalogue[]>([]);
+  const [dependances, setDependances] = useState<DependanceIndicateur[]>([]);
+  const [series, setSeries] = useState<PointSeriesCommune[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [axeOuvert, setAxeOuvert] = useState<number | null>(null);
+  const [choisi, setChoisi] = useState<string | null>(null);
   const bloc = useRef<HTMLDivElement>(null);
+  const grandEcran = useGrandEcran();
+  const douzeMois = bornesFenetre(annee, '12m');
 
-  const charger = async () => {
+  const charger = useCallback(async () => {
     try {
-      setKpi(await api.kpiCommune(communeId, annee));
+      const [k, s] = await Promise.all([
+        api.kpiCommune(communeId, annee),
+        // Les petites courbes : un seul appel pour toutes les séries mensuelles.
+        api.seriesCommune(communeId, douzeMois.debut, douzeMois.fin).catch(() => [] as PointSeriesCommune[]),
+      ]);
+      setKpi(k);
+      setSeries(s);
       setErreur(null);
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
     }
-  };
+  }, [communeId, annee, douzeMois.debut, douzeMois.fin, t]);
 
   useEffect(() => {
     setKpi(null);
     void charger();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [communeId, annee]);
+  }, [charger]);
+
+  useEffect(() => {
+    void api.catalogueIndicateurs().then((c) => setCatalogue(c.indicateurs)).catch(() => setCatalogue([]));
+    void api.dependancesIndicateurs().then(setDependances).catch(() => setDependances([]));
+  }, []);
 
   if (erreur && !kpi) return <Erreur message={erreur} onReessayer={() => void charger()} />;
   if (!kpi) return <Chargement />;
 
   const indicateurs = kpi.indicateurs.filter((r) => r.famille === 'indicateur');
   const dma = kpi.indicateurs.filter((r) => r.famille === 'dma');
+  const donnees = kpi.indicateurs.filter((r) => r.famille === 'donnee');
+  const choisiR = kpi.indicateurs.find((r) => r.code === choisi) ?? null;
+  const parCode = new Map(catalogue.map((c) => [c.code, c]));
+
+  /** Les douze mois d'un indicateur mensuel, `null` pour un mois sans valeur. */
+  const courbe = (code: string): (number | null)[] | null => {
+    if (parCode.get(code)?.granularite !== 'mensuelle') return null;
+    const points = new Map(series.filter((p) => p.code === code).map((p) => [p.periode_debut.slice(0, 7), p.valeur]));
+    return douzeMois.mois.map((m) => points.get(m) ?? null);
+  };
+
+  const grille = (liste: ResultatIndicateur[]) => (
+    <ul className={`grid gap-3 ${choisiR ? 'sm:grid-cols-2' : 'sm:grid-cols-2 xl:grid-cols-3'}`}>
+      {liste.map((r) => (
+        <li key={r.code}>
+          <CarteIndicateur
+            r={r}
+            indicateur={parCode.get(r.code)}
+            courbe={courbe(r.code)}
+            choisie={choisi === r.code}
+            onChoisir={() => setChoisi((c) => (c === r.code ? null : r.code))}
+          />
+        </li>
+      ))}
+    </ul>
+  );
+
+  const panneau = choisiR && (
+    <PanneauIndicateur
+      key={choisiR.code}
+      communeId={communeId}
+      annee={annee}
+      r={choisiR}
+      indicateur={parCode.get(choisiR.code)}
+      catalogue={catalogue}
+      dependances={dependances}
+      fnct={fnct}
+      onFermer={() => setChoisi(null)}
+      onModifie={charger}
+      onOuvrirEcran={onOuvrirEcran}
+    />
+  );
 
   return (
     <div className="space-y-4">
@@ -198,88 +202,106 @@ export function IndicateursCommune({ communeId, fnct = false }: { communeId: str
           onModifiee={() => void charger()}
         />
       ) : (
-        <div ref={bloc} className="space-y-4">
-          {/* --- La couverture et la préparation DMA --------------------------- */}
-          <section className="grid gap-4 lg:grid-cols-3">
-            <div className="rounded-xl border border-ardoise-200 bg-white p-4 lg:col-span-2">
-              <h2 className="font-semibold text-ardoise-900">{t('kpi.couverture.titre')}</h2>
-              <p className="chiffres mt-3 text-3xl font-bold text-ardoise-900">
-                {t('kpi.couverture.texte', { calculables: kpi.couverture.calculables, total: kpi.couverture.total })}
-              </p>
-              <p className="mt-1 text-xs text-ardoise-500">{t('kpi.couverture.aide')}</p>
-            </div>
-            <div className="rounded-xl border border-ardoise-200 bg-white p-4">
-              <h2 className="font-semibold text-ardoise-900">{t('kpi.dma.titre')}</h2>
-              <p className="mt-1 rounded bg-blue-50 p-2 text-xs text-blue-900">
-                {kpi.parametres.dma_en_vigueur === 1 ? t('kpi.dma.enVigueur') : t('kpi.dma.anticipation')}
-              </p>
-              <div className="mt-3">
-                <Indice valeur={kpi.dma.indice} renseignes={kpi.dma.renseignes} total={kpi.dma.total} />
-                <p className="mt-1 text-sm font-medium text-ardoise-800">{t(`kpi.dma.niveaux.${kpi.dma.niveau}`)}</p>
+        <div className="lg:flex lg:items-start lg:gap-4">
+          <div ref={bloc} className="min-w-0 flex-1 space-y-4">
+            {/* --- La couverture et la préparation DMA --------------------------- */}
+            <section className="grid gap-4 lg:grid-cols-3">
+              <div className="rounded-xl border border-ardoise-200 bg-white p-4 lg:col-span-2">
+                <h2 className="font-semibold text-ardoise-900">{t('kpi.couverture.titre')}</h2>
+                <p className="chiffres mt-3 text-3xl font-bold text-ardoise-900">
+                  {t('kpi.couverture.texte', { calculables: kpi.couverture.calculables, total: kpi.couverture.total })}
+                </p>
+                <p className="mt-1 text-xs text-ardoise-500">{t('kpi.couverture.aide')}</p>
               </div>
-            </div>
-          </section>
-
-          {/* --- Les 5 axes ---------------------------------------------------- */}
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            {kpi.axes.map((a) => (
-              <button
-                key={a.axe}
-                type="button"
-                aria-expanded={axeOuvert === a.axe}
-                onClick={() => setAxeOuvert((x) => (x === a.axe ? null : a.axe))}
-                className={`rounded-xl border bg-white p-4 text-start hover:border-siipi-300 ${axeOuvert === a.axe ? 'border-siipi-500' : 'border-ardoise-200'}`}
-              >
-                <p className="text-xs font-semibold uppercase text-siipi-700">{t('kpi.axe', { n: a.axe })}</p>
-                <p className="mb-2 text-sm font-medium text-ardoise-900">{t(`kpi.axes.${a.axe}`)}</p>
-                <Indice valeur={a.indice} renseignes={a.renseignes} total={a.notes} />
-              </button>
-            ))}
-          </section>
-          {axeOuvert != null && (
-            <section className="space-y-2">
-              <h2 className="font-semibold text-ardoise-900">
-                {t('kpi.axe', { n: axeOuvert })} — {t(`kpi.axes.${axeOuvert}`)}
-              </h2>
-              <TableIndicateurs liste={kpi.indicateurs.filter((r) => r.axe === axeOuvert)} />
-            </section>
-          )}
-
-          {/* --- Les indicateurs, par axe ---------------------------------------- */}
-          <section className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-semibold text-ardoise-900">{t('kpi.parAxe')}</h2>
-              <button
-                type="button"
-                className={bouton}
-                onClick={() =>
-                  bloc.current &&
-                  imprimer(bloc.current, {
-                    titre: t('kpi.impression.titre', { commune: kpi.nom, annee }),
-                    details: [
-                      t('kpi.couverture.texte', { calculables: kpi.couverture.calculables, total: kpi.couverture.total }),
-                      f.date(new Date(), { heure: true }),
-                    ],
-                    paysage: true,
-                  })
-                }
-              >
-                {t('kpi.impression.bouton')}
-              </button>
-            </div>
-            {[1, 2, 3, 4, 5].map((axe) => {
-              const liste = indicateurs.filter((r) => r.axe === axe);
-              if (liste.length === 0) return null;
-              return (
-                <div key={axe} className="space-y-1">
-                  <h3 className="text-sm font-medium text-ardoise-700">{t('kpi.axeNomme', { n: axe, nom: t(`kpi.axes.${axe}`) })}</h3>
-                  <TableIndicateurs liste={liste} />
+              <div className="rounded-xl border border-ardoise-200 bg-white p-4">
+                <h2 className="font-semibold text-ardoise-900">{t('kpi.dma.titre')}</h2>
+                <p className="mt-1 rounded bg-blue-50 p-2 text-xs text-blue-900">
+                  {kpi.parametres.dma_en_vigueur === 1 ? t('kpi.dma.enVigueur') : t('kpi.dma.anticipation')}
+                </p>
+                <div className="mt-3">
+                  <Indice valeur={kpi.dma.indice} renseignes={kpi.dma.renseignes} total={kpi.dma.total} />
+                  <p className="mt-1 text-sm font-medium text-ardoise-800">{t(`kpi.dma.niveaux.${kpi.dma.niveau}`)}</p>
                 </div>
-              );
-            })}
-            <h3 className="text-sm font-medium text-ardoise-700">{t('kpi.dma.titre')}</h3>
-            <TableIndicateurs liste={dma} />
-          </section>
+              </div>
+            </section>
+
+            {/* --- Les 5 axes ---------------------------------------------------- */}
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {kpi.axes.map((a) => (
+                <a key={a.axe} href={`#axe-${a.axe}`} className="rounded-xl border border-ardoise-200 bg-white p-4 hover:border-siipi-300">
+                  <p className="text-xs font-semibold uppercase text-siipi-700">{t('kpi.axe', { n: a.axe })}</p>
+                  <p className="mb-2 text-sm font-medium text-ardoise-900">{t(`kpi.axes.${a.axe}`)}</p>
+                  <Indice valeur={a.indice} renseignes={a.renseignes} total={a.notes} />
+                </a>
+              ))}
+            </section>
+
+            {/* --- Les indicateurs, par axe : une carte chacun ---------------------- */}
+            <section className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-semibold text-ardoise-900">{t('kpi.parAxe')}</h2>
+                <button
+                  type="button"
+                  className={bouton}
+                  onClick={() =>
+                    bloc.current &&
+                    imprimer(bloc.current, {
+                      titre: t('kpi.impression.titre', { commune: kpi.nom, annee }),
+                      details: [
+                        t('kpi.couverture.texte', { calculables: kpi.couverture.calculables, total: kpi.couverture.total }),
+                        f.date(new Date(), { heure: true }),
+                      ],
+                      paysage: true,
+                    })
+                  }
+                >
+                  {t('kpi.impression.bouton')}
+                </button>
+              </div>
+              <p className="text-sm text-ardoise-500">{t('kpi.carte.aide')}</p>
+              {[1, 2, 3, 4, 5].map((axe) => {
+                const liste = indicateurs.filter((r) => r.axe === axe);
+                if (liste.length === 0) return null;
+                return (
+                  <div key={axe} id={`axe-${axe}`} className="scroll-mt-4 space-y-2">
+                    <h3 className="text-sm font-medium text-ardoise-700">{t('kpi.axeNomme', { n: axe, nom: t(`kpi.axes.${axe}`) })}</h3>
+                    {grille(liste)}
+                  </div>
+                );
+              })}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-ardoise-700">{t('kpi.dma.titre')}</h3>
+                {grille(dma)}
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-ardoise-700">{t('kpi.donnees.titre')}</h3>
+                <p className="text-xs text-ardoise-500">{t('kpi.donnees.aide')}</p>
+                {grille(donnees)}
+              </div>
+            </section>
+          </div>
+
+          {/* Le panneau : à côté de la vue sur grand écran ; par-dessus, en plein
+              écran, sur téléphone — à côté, il écraserait les cartes. En plein
+              écran, il est posé à la racine du document : la colonne du contenu
+              est « isolate » (pour contenir les cartes Leaflet), et le bouton
+              flottant « + Ajouter » passerait sinon par-dessus. */}
+          {panneau &&
+            (grandEcran ? (
+              <aside
+                aria-label={t('kpi.panneau.titre')}
+                className="sticky top-4 max-h-[calc(100dvh-2rem)] w-[28rem] shrink-0 overflow-y-auto rounded-xl border border-ardoise-200 bg-ardoise-50 p-4"
+              >
+                {panneau}
+              </aside>
+            ) : (
+              createPortal(
+                <aside aria-label={t('kpi.panneau.titre')} className="fixed inset-0 z-[70] overflow-y-auto bg-ardoise-50 p-4">
+                  {panneau}
+                </aside>,
+                document.body
+              )
+            ))}
         </div>
       )}
     </div>

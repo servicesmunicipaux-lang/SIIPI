@@ -104,6 +104,7 @@ import {
   parametresKpiSchema,
   qManquesSchema,
   qSerieSchema,
+  qSeriesCommuneSchema,
 } from '../routes/kpi5Axes.routes.js';
 import { caracterisationSchema, pcgdSchema } from '../routes/references.routes.js';
 import {
@@ -1696,6 +1697,28 @@ registry.registerPath({
   security: SECURISE,
   request: { query: qManquesSchema.extend({ communeId: paramCommuneId.optional() }) },
   responses: { 200: json(z.array(ManqueIndicateur), 'Ce qui manque.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/series', tags: [TAG_KPI],
+  summary: 'Les séries mensuelles de tous les indicateurs d’une commune',
+  description:
+    'Les petites courbes des cartes : chaque mois calculé une seule fois pour tous les indicateurs de granularité mensuelle. Mêmes règles que `/kpi/serie` — un mois sans donnée n’a pas de ligne. Au plus 24 mois.',
+  security: SECURISE,
+  request: { query: qSeriesCommuneSchema.extend({ communeId: paramCommuneId.optional() }) },
+  responses: {
+    200: json(z.array(PointSerie.omit({ detail: true }).extend({ code: z.string() })), 'Les points, indicateur par indicateur.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/dependances', tags: [TAG_KPI],
+  summary: 'Les sources de chaque indicateur',
+  description: 'Les dépendances du catalogue (groupes : il faut chacun, une source par groupe suffit), avec ce qui complète chaque source.',
+  security: SECURISE,
+  responses: {
+    200: json(z.array(ManqueIndicateur.extend({ indicateur_code: z.string() })), 'Les dépendances.'),
+    401: REPONSES_COMMUNES[401],
+  },
 });
 registry.registerPath({
   method: 'get', path: '/kpi/national', tags: [TAG_KPI],
@@ -6970,7 +6993,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.28',
+      version: '0.15.29',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

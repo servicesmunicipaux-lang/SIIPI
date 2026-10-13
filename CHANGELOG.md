@@ -5,6 +5,57 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.29] — 2026-10-13 — Refonte, lot 3b : les indicateurs en graphiques, et « compléter sur place »
+
+Seconde moitié du lot 3 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 3.3) : ce que
+voit le directeur. Décision D2 : les indicateurs se lisent sur des graphiques interactifs, et un
+indicateur qui ne se calcule pas s'ouvre sur ce qui lui manque, avec de quoi le compléter sur place.
+
+### L'écran Indicateurs
+- **Une carte par indicateur**, rangée par axe, puis la préparation DMA, puis les **données de la
+  commune** (tonnage, coût à la tonne, effectifs…) : la valeur et son unité, la source écrite en
+  toutes lettres (« mesuré », « déclaré », « non renseigné », « sans objet »), l'atteinte de
+  l'objectif quand il y en a un, et une **petite courbe de douze mois** qui ne relie pas deux mois à
+  travers un mois vide. Un indicateur annuel le dit, au lieu d'une courbe.
+- Les petites courbes viennent d'un seul appel : **`app.series_commune`** et **`GET /kpi/series`**
+  (migration 071) calculent chaque mois une seule fois pour tous les indicateurs mensuels, avec les
+  règles de `app.serie_indicateur`.
+- **Au clic, un panneau à côté de la vue** (en plein écran sur téléphone) :
+  - un **graphique interactif** (Recharts) : valeur exacte au survol, 3, 6, 12 mois ou 5 ans,
+    comparaison avec l'année précédente, **repère du gouvernorat** quand au moins cinq communes y ont
+    une valeur — et sinon une phrase qui le dit ;
+  - **les données sous le graphique**, en tableau, un mois vide écrit « non renseigné », exportables
+    en CSV ou Excel ;
+  - **la formule et les sources**, en français et en arabe (`GET /kpi/dependances`).
+- **« Pour calculer cet indicateur, il manque : »** — chaque élément s'ouvre sur place : le formulaire
+  du registre d'ajout (plein de carburant, fin de poste, dotation EPI…), la **déclaration** de
+  l'indicateur (`FormulaireDeclaration` : valeur, cible d'un ratio, commentaire), ou le **paramètre**
+  de la commune (population, objectif de balayage) ; un écran du portail quand la donnée en demande
+  le contexte. Une fois la donnée enregistrée, l'écran se relit, la carte change, et **le graphique
+  apparaît dans le même panneau**, sans rechargement. La FNCT lit la liste, sans bouton.
+- En arabe, les libellés sont arabes et le **temps reste orienté de gauche à droite** (SPEC § 6, à
+  confirmer en recette).
+
+### Le registre des formulaires
+- La population et les seuils de la commune (dont l'objectif de balayage) quittent la page Paramètres
+  pour `ajout/FormulairesParametres.tsx` : la page et le panneau montrent le même composant.
+
+### Dépendance nouvelle
+- **Recharts 3.10.1** (publiée le 25 juillet 2026) et **react-is 19.3.0**, au niveau de React.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 71 migrations ; la 071 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat **312/312**, **47 bilans, 1 912 tests réussis,
+  aucun échec** ; `series-indicateurs` : 50 réussis, aucun échec (dont les séries de la commune en un passage :
+  mêmes points que la série seule, février toujours absent, aucun indicateur annuel découpé en mois).
+- `audit-blocs.py` : 28 blocs sous condition, tous leurs contrôles ont tourné. Lint backend et web (TypeScript 5.8.3) : code 0.
+- Navigateur, en directeur : tonnage d'août et d'octobre avec septembre vide, sans trait à travers le
+  trou ni zéro dans le tableau ; « Désherbage » non renseigné → « Compléter » → 140 % refusé avant
+  l'envoi → 72 % : la carte passe à « déclaré », la couverture de 2 à 3 sur 19, le graphique apparaît
+  dans le panneau ; l'objectif de balayage s'ouvre sur place ; « Ouvrir « Registres » » conduit à
+  l'écran. En FNCT : la liste de ce qui manque, sans bouton. En arabe à 375 px : panneau plein écran
+  au-dessus du bouton flottant, temps de gauche à droite, mois en arabe, sans défilement horizontal.
+
 ## [0.15.28] — 2026-10-13 — Refonte, lot 3a : les indicateurs dans le temps, et ce qui leur manque
 
 Première moitié du lot 3 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 3.1, § 3.2, et

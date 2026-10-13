@@ -497,6 +497,60 @@ kpi5AxesRouter.get(
   })
 );
 
+export const qSeriesCommuneSchema = z.object({ debut: dateIso, fin: dateIso });
+
+// Les petites courbes des cartes (lot 3b) : toutes les séries mensuelles d'une
+// commune en un passage (migration 071), chaque mois calculé une seule fois.
+kpi5AxesRouter.get(
+  '/series',
+  requireAuth,
+  requireRole(...ROLES),
+  asyncHandler(async (req, res) => {
+    const q = qSeriesCommuneSchema.parse(req.query);
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise.');
+    await communeVisible(communeId);
+    if (q.debut > q.fin) throw new ApiError(400, 'Le début doit précéder la fin.');
+    const lignes = await avecErreursSerie(() =>
+      query<{ code: string; periode_debut: string; periode_fin: string; valeur: string; note: string | null; source: PointSerie['source'] }>(
+        'SELECT code, periode_debut, periode_fin, valeur, note, source FROM app.series_commune($1, $2::date, $3::date)',
+        [communeId, q.debut, q.fin]
+      )
+    );
+    res.json(
+      lignes.map((l) => ({
+        code: l.code,
+        periode_debut: l.periode_debut,
+        periode_fin: l.periode_fin,
+        valeur: Number(l.valeur),
+        taux_atteinte: l.note == null ? null : Number(l.note),
+        source: l.source,
+      }))
+    );
+  })
+);
+
+// Les sources de chaque indicateur, pour la partie « formule et sources » du
+// panneau (lot 3b) : la même donnée que « ce qui manque », sans le filtre.
+kpi5AxesRouter.get(
+  '/dependances',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    res.json(
+      await query(
+        `SELECT d.indicateur_code, d.groupe, d.ordre, s.code AS source, s.nature,
+                CASE WHEN s.nature = 'declaration' THEN d.declare_code ELSE s.cible END AS cible, d.declare_code,
+                CASE WHEN s.nature = 'declaration' THEN s.libelle_fr || ' : ' || k.libelle_fr ELSE s.libelle_fr END AS libelle_fr,
+                CASE WHEN s.nature = 'declaration' THEN s.libelle_ar || ': ' || k.libelle_ar ELSE s.libelle_ar END AS libelle_ar
+           FROM dependances_indicateurs d
+           JOIN sources_indicateurs s ON s.code = d.source
+           LEFT JOIN indicateurs_kpi k ON k.code = d.declare_code
+          ORDER BY d.indicateur_code, d.groupe, d.ordre`
+      )
+    );
+  })
+);
+
 // ---------------------------------------------------------------------------
 // 5. Les vues nationales (FNCT) : 5 axes, DMA — par niveau
 // ---------------------------------------------------------------------------
