@@ -36,6 +36,10 @@ export interface Indicateur {
   libelle_cible: string | null;
   unite: string | null;
   ordre: number;
+  /** Le pas le plus fin auquel la valeur a un sens (migration 070). */
+  granularite: 'mensuelle' | 'annuelle' | 'actuelle';
+  /** La formule et les sources en arabe ; `description` les donne en français. */
+  description_ar: string | null;
 }
 
 /** Ce que la commune a dit d'elle-même, et qui rend un indicateur « sans objet ». */
@@ -172,12 +176,18 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
       [annee, filtre]
     ),
     query<{ commune_id: string; code: string; valeur: string | null; note: string | null; detail: Record<string, unknown> }>(
-      'SELECT * FROM app.mesures_kpi($1) WHERE ($2::text[] IS NULL OR commune_id = ANY($2))',
-      [annee, filtre]
+      // Des communes nommées : le calcul ne porte que sur elles (migration 070).
+      filtre
+        ? 'SELECT * FROM app.mesures_kpi_communes($1, $2)'
+        : 'SELECT * FROM app.mesures_kpi($1)',
+      filtre ? [annee, filtre] : [annee]
     ),
     query<{ commune_id: string; code: string; valeur: string | null; note: string | null; detail: Record<string, unknown> }>(
-      'SELECT * FROM app.mesures_kpi_auto($1) WHERE ($2::text[] IS NULL OR commune_id = ANY($2))',
-      [annee, filtre]
+      // Des communes nommées : le calcul ne porte que sur elles (migration 070).
+      filtre
+        ? 'SELECT * FROM app.mesures_kpi_auto_communes($1, $2)'
+        : 'SELECT * FROM app.mesures_kpi_auto($1)',
+      filtre ? [annee, filtre] : [annee]
     ),
   ]);
 
@@ -254,7 +264,11 @@ function coutTonne(
   const carburant = auto.get('ECO-CARBURANT')?.valeur ?? declarations.get('ECO-CARBURANT')?.valeur ?? null;
   const decharge = declarations.get('ECO-DECHARGE')?.valeur ?? null;
   const tonnage = mesures.get('TONNAGE_T')?.valeur ?? null;
-  const jours = Number(mesures.get('KG_HAB_J')?.detail?.jours_couverts ?? 0) || null;
+  // Les jours couverts par les pesées viennent du tonnage (migration 070) : le
+  // coût à la tonne n'a pas besoin de la population. Il les lisait dans le
+  // kilo par habitant, et une commune sans population déclarée voyait son coût
+  // « non renseigné » faute de… pesées.
+  const jours = Number(mesures.get('TONNAGE_T')?.detail?.jours_couverts ?? 0) || null;
   if (masse == null || carburant == null || maintenance == null || decharge == null || tonnage == null || !jours) {
     const manquent = [
       masse == null && 'masse salariale',

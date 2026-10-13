@@ -3920,9 +3920,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            indicateurs: {
-                                [key: string]: unknown;
-                            }[];
+                            indicateurs: components["schemas"]["IndicateurCatalogue"][];
                             parametres: {
                                 [key: string]: number;
                             };
@@ -4436,6 +4434,251 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["KpiCommune"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kpi/serie": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La série d’un indicateur : par mois ou par année
+         * @description Une ligne par période qui a une valeur, aucune pour une période sans donnée : un mois sans pesée est un trou dans la courbe, jamais un zéro (règle d’or 1.1). Le point annuel est celui de la carte de l’indicateur. Chaque point porte sa source (mesuré ou déclaré). Au plus 36 mois ou 10 ans.
+         */
+        get: {
+            parameters: {
+                query: {
+                    code: string;
+                    debut: string;
+                    fin: string;
+                    pas: "mois" | "annee";
+                    communeId?: string;
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La série. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PointSerie"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kpi/reference-gouvernorat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le repère du gouvernorat sur le graphique d’un indicateur
+         * @description Par période, la moyenne des communes du gouvernorat qui ont une valeur, seulement quand elles sont au moins cinq (seuil de la FNCT). Aucune commune n’est nommée.
+         */
+        get: {
+            parameters: {
+                query: {
+                    code: string;
+                    debut: string;
+                    fin: string;
+                    pas: "mois" | "annee";
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Le repère, période par période. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PointReferenceGouvernorat"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/kpi/manques": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ce qui manque à un indicateur pour se calculer
+         * @description Les dépendances non tenues de l’indicateur pour l’année, avec ce qui les complète. Un indicateur calculé se complète par ses données sources, jamais en saisissant le résultat. Vide pour un indicateur calculable ou sans objet.
+         */
+        get: {
+            parameters: {
+                query: {
+                    code: string;
+                    annee?: number;
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Ce qui manque. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManqueIndicateur"][];
                     };
                 };
                 /** @description Requête invalide — le détail indique les champs en cause. */
@@ -23351,6 +23594,68 @@ export interface components {
             saisi_par: string | null;
             commentaire_fnct: string | null;
             commente_le: string | null;
+        };
+        IndicateurCatalogue: {
+            code: string;
+            /** @enum {string} */
+            famille: "indicateur" | "dma" | "donnee";
+            module: string | null;
+            axe: number;
+            libelle_fr: string;
+            libelle_ar: string;
+            /** @description La formule et les sources, en français. */
+            description: string | null;
+            /** @description La formule et les sources, en arabe. */
+            description_ar: string | null;
+            /** @enum {string} */
+            mode: "calcule" | "saisi";
+            /** @enum {string|null} */
+            saisie: "ratio" | "taux" | "nombre" | "montant" | null;
+            libelle_valeur: string | null;
+            libelle_cible: string | null;
+            unite: string | null;
+            ordre: number;
+            /**
+             * @description Le pas le plus fin auquel la valeur a un sens : mensuelle (registres datés), annuelle, actuelle (un état d’aujourd’hui).
+             * @enum {string}
+             */
+            granularite: "mensuelle" | "annuelle" | "actuelle";
+        };
+        PointSerie: {
+            /** Format: date */
+            periode_debut: string;
+            /** Format: date */
+            periode_fin: string;
+            valeur: number;
+            /** @description Entre 0 et 1 pour un indicateur rapporté à un objectif ; null sinon. */
+            taux_atteinte: number | null;
+            /** @enum {string} */
+            source: "mesure" | "declare";
+            detail: {
+                [key: string]: unknown;
+            };
+        };
+        PointReferenceGouvernorat: {
+            /** Format: date */
+            periode_debut: string;
+            /** Format: date */
+            periode_fin: string;
+            moyenne: number;
+            /** @description Le nombre de communes du gouvernorat qui ont une valeur — jamais lesquelles. */
+            communes: number;
+        };
+        ManqueIndicateur: {
+            /** @description Il faut chaque groupe ; dans un groupe, une source suffit. */
+            groupe: number;
+            ordre: number;
+            source: string;
+            /** @enum {string} */
+            nature: "formulaire" | "ecran" | "parametre" | "declaration" | "citoyen" | "fnct";
+            /** @description Ce qui la complète : le type du formulaire d’ajout, l’écran du portail, le paramètre, ou l’indicateur à déclarer. */
+            cible: string | null;
+            declare_code: string | null;
+            libelle_fr: string;
+            libelle_ar: string;
         };
         Caracterisation: {
             /** Format: uuid */

@@ -5,6 +5,67 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.28] — 2026-10-13 — Refonte, lot 3a : les indicateurs dans le temps, et ce qui leur manque
+
+Première moitié du lot 3 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 3.1, § 3.2, et
+le repère du § 3.3) : les données d'abord. Les graphiques, le panneau et « compléter sur place »
+suivent au lot 3b.
+
+### Un seul calcul, pour toute période (migration 070)
+- Les corps de `app.mesures_kpi` (063) et `app.mesures_kpi_auto` (051) deviennent des fonctions
+  internes qui prennent une période et une liste de communes ; les fonctions annuelles d'origine les
+  appellent. La valeur d'une année et la série de ses mois sortent du **même code** ; les valeurs
+  annuelles ne bougent pas (`kpi-5-axes`, `kpi-sources` et `simulation-3mois` inchangées).
+- Les effectifs, annuels, ne se lisent que sur une année entière : un mois ne porte pas la masse
+  salariale d'une année.
+- `app.mesures_kpi_communes` et `app.mesures_kpi_auto_communes` : l'écran d'une commune ne calcule
+  plus les 350 communes que la FNCT peut lire pour n'en garder qu'une (même droit d'accès).
+
+### La série d'un indicateur
+- **`app.serie_indicateur`** et **`GET /kpi/serie`** (mois ou année, 36 mois ou 10 ans au plus) :
+  une ligne par période qui a une valeur, **aucune** pour une période sans donnée — un mois sans
+  pesée est un trou, jamais un zéro (règle d'or 1.1). Chaque point porte sa source, mesuré ou
+  déclaré ; une déclaration mensuelle fait un point mensuel.
+- Le point annuel est calculé par le service de la carte de l'indicateur : la courbe et la carte ne
+  peuvent pas dire deux chiffres pour la même année.
+- La **granularité** devient une donnée du catalogue : mensuelle (registres datés), annuelle
+  (effectifs, déclarations), actuelle (plans d'entretien, circuits enregistrés : un état d'aujourd'hui
+  ne se reporte pas sur le passé).
+- La série s'exporte en CSV ou XLSX (service d'export existant).
+
+### Ce qui manque à un indicateur
+- **Les dépendances sont une donnée** : `sources_indicateurs` (28 sources, avec ce qui les complète :
+  un formulaire du registre d'ajout, un écran, un paramètre, la déclaration elle-même — ou rien, quand
+  la donnée vient des citoyens ou de la FNCT) et `dependances_indicateurs` (des groupes : il faut
+  chacun ; dans un groupe, une source suffit — le registre carburant, OU la déclaration de la dépense).
+- **`app.manques_indicateur`** et **`GET /kpi/manques`** : ce qui manque pour l'année, groupe par
+  groupe, avec le formulaire à ouvrir. Un indicateur calculé se complète par ses données sources,
+  jamais en tapant le résultat ; un indicateur sans objet ne manque de rien.
+- La formule de chaque indicateur, **en arabe** (`description_ar`), à côté de la description
+  française.
+
+### Le repère du gouvernorat
+- **`app.reference_gouvernorat`** et **`GET /kpi/reference-gouvernorat`** : par période, la moyenne
+  des communes réelles du gouvernorat qui ont une valeur, **seulement à partir de cinq**
+  (`parametres_kpi.seuil_reference_gouvernorat`, décision de la FNCT), et le nombre de communes —
+  jamais lesquelles.
+
+### Corrigé en passant
+- Le **coût global à la tonne** lisait ses jours de pesée dans le kilo par habitant : une commune
+  sans population déclarée le voyait « non renseigné » faute de… pesées. Les jours couverts viennent
+  désormais du tonnage.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 70 migrations ; la 070 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat **310/310**, **47 bilans, 1 905 tests réussis,
+  aucun échec** ; la nouvelle campagne `series-indicateurs` : 43 réussis, aucun échec. Recomptage 47 / 47.
+- `audit-blocs.py` : 28 blocs sous condition, tous leurs contrôles ont tourné. Lint backend et web (TypeScript 5.8.3) : code 0.
+- `series-indicateurs` éprouve les quatre tests de sortie du § 3.4 sur des données qu'elle bâtit, avec
+  des valeurs attendues recalculées des seules données insérées : février sans pesée n'a pas de ligne ;
+  au coût à la tonne il ne manque que le carburant, puis plus rien après un plein ; pas de repère à
+  quatre communes, un repère à cinq (moyenne 4,1 t) qui ne nomme personne ; et pour chaque indicateur,
+  « non renseigné » si et seulement si quelque chose manque.
+
 ## [0.15.27] — 2026-10-13 — Refonte, lot 2b : le catalogue « + Ajouter », un formulaire par type
 
 Seconde moitié du lot 2 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 2.2) : une seule

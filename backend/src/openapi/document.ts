@@ -97,7 +97,14 @@ import {
 } from '../preferences.js';
 import { parametresCommuneSchema, localisationSchema } from '../routes/communes.routes.js';
 import { propositionDecoupageSchema } from '../routes/decoupage.routes.js';
-import { commentaireFnctSchema, declarationsSchema, districtsSchema, parametresKpiSchema } from '../routes/kpi5Axes.routes.js';
+import {
+  commentaireFnctSchema,
+  declarationsSchema,
+  districtsSchema,
+  parametresKpiSchema,
+  qManquesSchema,
+  qSerieSchema,
+} from '../routes/kpi5Axes.routes.js';
 import { caracterisationSchema, pcgdSchema } from '../routes/references.routes.js';
 import {
   poiSchema,
@@ -1534,11 +1541,35 @@ const Declaration = registry.register(
 );
 const pDeclarations = z.object({ communeId: z.string(), annee: z.number().int() });
 
+// Le catalogue (lot 3a : granularité et formule en arabe).
+const IndicateurCatalogue = registry.register(
+  'IndicateurCatalogue',
+  z.object({
+    code: z.string(),
+    famille: z.enum(['indicateur', 'dma', 'donnee']),
+    module: z.string().nullable(),
+    axe: z.number().int(),
+    libelle_fr: z.string(),
+    libelle_ar: z.string(),
+    description: z.string().nullable().openapi({ description: 'La formule et les sources, en français.' }),
+    description_ar: z.string().nullable().openapi({ description: 'La formule et les sources, en arabe.' }),
+    mode: z.enum(['calcule', 'saisi']),
+    saisie: z.enum(['ratio', 'taux', 'nombre', 'montant']).nullable(),
+    libelle_valeur: z.string().nullable(),
+    libelle_cible: z.string().nullable(),
+    unite: z.string().nullable(),
+    ordre: z.number().int(),
+    granularite: z.enum(['mensuelle', 'annuelle', 'actuelle']).openapi({
+      description: 'Le pas le plus fin auquel la valeur a un sens : mensuelle (registres datés), annuelle, actuelle (un état d’aujourd’hui).',
+    }),
+  }).passthrough()
+);
+
 registry.registerPath({
   method: 'get', path: '/kpi/indicateurs', tags: [TAG_KPI],
   summary: 'Le catalogue des indicateurs et les seuils nationaux',
   security: SECURISE,
-  responses: { 200: json(z.object({ indicateurs: z.array(z.record(z.string(), z.any())), parametres: z.record(z.string(), z.number()) }), 'Catalogue.'), 401: REPONSES_COMMUNES[401] },
+  responses: { 200: json(z.object({ indicateurs: z.array(IndicateurCatalogue), parametres: z.record(z.string(), z.number()) }), 'Catalogue.'), 401: REPONSES_COMMUNES[401] },
 });
 registry.registerPath({
   method: 'put', path: '/kpi/parametres', tags: [TAG_KPI],
@@ -1601,6 +1632,70 @@ registry.registerPath({
   security: SECURISE,
   request: { query: z.object({ communeId: paramCommuneId.optional(), annee: z.number().int().optional() }) },
   responses: { 200: json(KpiCommune, 'Indicateurs de la commune.'), ...REPONSES_COMMUNES },
+});
+// Les séries, ce qui manque, le repère du gouvernorat (refonte, lot 3a).
+const PointSerie = registry.register(
+  'PointSerie',
+  z.object({
+    periode_debut: z.string().openapi({ format: 'date' }),
+    periode_fin: z.string().openapi({ format: 'date' }),
+    valeur: z.number(),
+    taux_atteinte: z.number().nullable().openapi({ description: 'Entre 0 et 1 pour un indicateur rapporté à un objectif ; null sinon.' }),
+    source: z.enum(['mesure', 'declare']),
+    detail: z.record(z.string(), z.any()),
+  })
+);
+const PointReference = registry.register(
+  'PointReferenceGouvernorat',
+  z.object({
+    periode_debut: z.string().openapi({ format: 'date' }),
+    periode_fin: z.string().openapi({ format: 'date' }),
+    moyenne: z.number(),
+    communes: z.number().int().openapi({ description: 'Le nombre de communes du gouvernorat qui ont une valeur — jamais lesquelles.' }),
+  })
+);
+const ManqueIndicateur = registry.register(
+  'ManqueIndicateur',
+  z.object({
+    groupe: z.number().int().openapi({ description: 'Il faut chaque groupe ; dans un groupe, une source suffit.' }),
+    ordre: z.number().int(),
+    source: z.string(),
+    nature: z.enum(['formulaire', 'ecran', 'parametre', 'declaration', 'citoyen', 'fnct']),
+    cible: z.string().nullable().openapi({
+      description: 'Ce qui la complète : le type du formulaire d’ajout, l’écran du portail, le paramètre, ou l’indicateur à déclarer.',
+    }),
+    declare_code: z.string().nullable(),
+    libelle_fr: z.string(),
+    libelle_ar: z.string(),
+  })
+);
+const qSerieDoc = qSerieSchema.extend({ communeId: paramCommuneId.optional() });
+registry.registerPath({
+  method: 'get', path: '/kpi/serie', tags: [TAG_KPI],
+  summary: 'La série d’un indicateur : par mois ou par année',
+  description:
+    'Une ligne par période qui a une valeur, aucune pour une période sans donnée : un mois sans pesée est un trou dans la courbe, jamais un zéro (règle d’or 1.1). Le point annuel est celui de la carte de l’indicateur. Chaque point porte sa source (mesuré ou déclaré). Au plus 36 mois ou 10 ans.',
+  security: SECURISE,
+  request: { query: qSerieDoc.extend(paramsExport) },
+  responses: { 200: jsonOuExport(z.array(PointSerie), 'La série.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/reference-gouvernorat', tags: [TAG_KPI],
+  summary: 'Le repère du gouvernorat sur le graphique d’un indicateur',
+  description:
+    'Par période, la moyenne des communes du gouvernorat qui ont une valeur, seulement quand elles sont au moins cinq (seuil de la FNCT). Aucune commune n’est nommée.',
+  security: SECURISE,
+  request: { query: qSerieDoc },
+  responses: { 200: json(z.array(PointReference), 'Le repère, période par période.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/kpi/manques', tags: [TAG_KPI],
+  summary: 'Ce qui manque à un indicateur pour se calculer',
+  description:
+    'Les dépendances non tenues de l’indicateur pour l’année, avec ce qui les complète. Un indicateur calculé se complète par ses données sources, jamais en saisissant le résultat. Vide pour un indicateur calculable ou sans objet.',
+  security: SECURISE,
+  request: { query: qManquesSchema.extend({ communeId: paramCommuneId.optional() }) },
+  responses: { 200: json(z.array(ManqueIndicateur), 'Ce qui manque.'), ...REPONSES_COMMUNES },
 });
 registry.registerPath({
   method: 'get', path: '/kpi/national', tags: [TAG_KPI],
@@ -6875,7 +6970,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.27',
+      version: '0.15.28',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

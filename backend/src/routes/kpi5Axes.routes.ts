@@ -20,6 +20,8 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
 import { agreger, calculerCommune, catalogue, charger, parametres, type Niveau } from '../services/kpi5Axes.js';
+import { exportable } from '../services/export.js';
+import { JEU_SERIE_INDICATEUR } from '../services/jeuxExport.js';
 
 export const kpi5AxesRouter = Router();
 
@@ -336,6 +338,162 @@ kpi5AxesRouter.get(
     const annee = q.annee ?? anneeCourante();
     const ctx = await charger(annee, [communeId]);
     res.json({ annee, parametres: ctx.parametres, ...calculerCommune(ctx, communeId) });
+  })
+);
+
+// ---------------------------------------------------------------------------
+// 4 bis. Les séries, ce qui manque, le repère du gouvernorat (refonte, lot 3a)
+// ---------------------------------------------------------------------------
+//
+// UNE VALEUR, PAS DEUX. Le point annuel d'une série est calculé par le même
+// service que la carte de l'indicateur (charger + calculerCommune) : la courbe
+// et la carte ne peuvent pas dire deux chiffres différents pour la même année.
+// Le pas mensuel vient de app.serie_indicateur (migration 070), qui rejoue le
+// même calcul sur chaque mois.
+
+const dateIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.');
+export const qSerieSchema = z.object({
+  code: z.string().trim().min(1).max(40),
+  debut: dateIso,
+  fin: dateIso,
+  pas: z.enum(['mois', 'annee']),
+});
+export const qManquesSchema = z.object({
+  code: z.string().trim().min(1).max(40),
+  annee: anneeSchema.optional(),
+});
+
+const ERREURS_SERIE = new Set(['SERIE_INDICATEUR', 'SERIE_PAS', 'SERIE_BORNES', 'SERIE_ETENDUE']);
+
+/** Une erreur codée de la base (« SERIE_PAS: … ») devient un 400 au message lisible. */
+async function avecErreursSerie<T>(f: () => Promise<T>): Promise<T> {
+  try {
+    return await f();
+  } catch (err) {
+    const m = (err as { message?: string }).message ?? '';
+    const code = m.split(':')[0];
+    if (ERREURS_SERIE.has(code)) throw new ApiError(400, m.slice(code.length + 2));
+    throw err;
+  }
+}
+
+/** Le jour à Tunis, au format AAAA-MM-JJ. */
+const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
+
+async function indicateurConnu(code: string) {
+  const ind = (await catalogue()).find((i) => i.code === code);
+  if (!ind) throw new ApiError(400, `Indicateur inconnu : ${code}.`);
+  return ind;
+}
+
+export interface PointSerie {
+  periode_debut: string;
+  periode_fin: string;
+  valeur: number;
+  taux_atteinte: number | null;
+  source: 'mesure' | 'declare';
+  detail: Record<string, unknown>;
+}
+
+kpi5AxesRouter.get(
+  '/serie',
+  requireAuth,
+  requireRole(...ROLES),
+  exportable(JEU_SERIE_INDICATEUR, (req) => {
+    const code = typeof req.query.code === 'string' ? req.query.code : undefined;
+    return [communeDemandee(req), code].filter(Boolean).join('-') || undefined;
+  }),
+  asyncHandler(async (req, res) => {
+    const q = qSerieSchema.parse(req.query);
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise.');
+    await communeVisible(communeId);
+    const ind = await indicateurConnu(q.code);
+    if (q.debut > q.fin) throw new ApiError(400, 'Le début doit précéder la fin.');
+
+    if (q.pas === 'mois') {
+      const lignes = await avecErreursSerie(() =>
+        query<{ periode_debut: string; periode_fin: string; valeur: string; note: string | null; source: PointSerie['source']; detail: Record<string, unknown> }>(
+          'SELECT periode_debut, periode_fin, valeur, note, source, detail FROM app.serie_indicateur($1, $2, $3::date, $4::date, $5)',
+          [communeId, q.code, q.debut, q.fin, q.pas]
+        )
+      );
+      const points: PointSerie[] = lignes.map((l) => ({
+        periode_debut: l.periode_debut,
+        periode_fin: l.periode_fin,
+        valeur: Number(l.valeur),
+        taux_atteinte: l.note == null ? null : Number(l.note),
+        source: l.source,
+        detail: l.detail ?? {},
+      }));
+      res.json(points);
+      return;
+    }
+
+    const premiere = Number(q.debut.slice(0, 4));
+    const derniere = Math.min(Number(q.fin.slice(0, 4)), anneeCourante());
+    if (derniere - premiere > 10) throw new ApiError(400, 'Une série couvre au plus 10 ans.');
+    const points: PointSerie[] = [];
+    for (let annee = premiere; annee <= derniere; annee++) {
+      // Un état d'aujourd'hui (plans d'entretien, circuits enregistrés) ne se
+      // reporte pas sur les années passées.
+      if (ind.granularite === 'actuelle' && annee !== anneeCourante()) continue;
+      const ctx = await charger(annee, [communeId]);
+      const r = calculerCommune(ctx, communeId).indicateurs.find((x) => x.code === q.code);
+      // Une année sans valeur n'a pas de point (règle d'or 1.1).
+      if (!r || r.valeur == null || r.statut === 'sans_objet' || r.source == null) continue;
+      points.push({
+        periode_debut: `${annee}-01-01`,
+        periode_fin: annee === anneeCourante() ? aujourdhui() : `${annee}-12-31`,
+        valeur: r.valeur,
+        taux_atteinte: r.taux_atteinte,
+        source: r.source,
+        detail: r.detail,
+      });
+    }
+    res.json(points);
+  })
+);
+
+kpi5AxesRouter.get(
+  '/reference-gouvernorat',
+  requireAuth,
+  requireRole(...ROLES),
+  asyncHandler(async (req, res) => {
+    const q = qSerieSchema.parse(req.query);
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise.');
+    await communeVisible(communeId);
+    await indicateurConnu(q.code);
+    const lignes = await avecErreursSerie(() =>
+      query<{ periode_debut: string; periode_fin: string; moyenne: string; communes: number }>(
+        'SELECT periode_debut, periode_fin, moyenne, communes FROM app.reference_gouvernorat($1, $2, $3::date, $4::date, $5)',
+        [communeId, q.code, q.debut, q.fin, q.pas]
+      )
+    );
+    res.json(lignes.map((l) => ({ ...l, moyenne: Number(l.moyenne) })));
+  })
+);
+
+kpi5AxesRouter.get(
+  '/manques',
+  requireAuth,
+  requireRole(...ROLES),
+  asyncHandler(async (req, res) => {
+    const q = qManquesSchema.parse(req.query);
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise.');
+    await communeVisible(communeId);
+    await indicateurConnu(q.code);
+    const annee = q.annee ?? anneeCourante();
+    const fin = annee === anneeCourante() ? aujourdhui() : `${annee}-12-31`;
+    res.json(
+      await query(
+        `SELECT groupe, ordre, source, nature, cible, declare_code, libelle_fr, libelle_ar
+           FROM app.manques_indicateur($1, $2, $3::date, $4::date)`,
+        [communeId, q.code, `${annee}-01-01`, fin]
+      )
+    );
   })
 );
 
