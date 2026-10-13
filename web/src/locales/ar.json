@@ -41,10 +41,11 @@
       "adoptionDetail": "بلدية نشطة",
       "population": "السكان المشمولون",
       "populationDetail": "ساكن بالبلديات النشطة",
-      "tonnage": "الكمية المصرّح بها",
-      "tonnageDetail": "طن في اليوم، وطنيا",
       "reclamations": "التشكيات",
-      "reclamationsDetail": "خلال 30 يوما"
+      "reclamationsDetail": "خلال 30 يوما",
+      "tonnagePese": "الكمية الموزونة (12 شهرًا)",
+      "tonnagePeseDetail": "طن، في {{n}} بلدية موزونة من أصل {{total}} — دون أي تقدير",
+      "tonnagePeseAucun": "لا وزن فعلي مسجّل خلال الاثني عشر شهرًا الأخيرة."
     },
     "tableau": {
       "titre": "حسب الولاية",
@@ -53,8 +54,6 @@
       "communes": "البلديات",
       "adoption": "الاعتماد",
       "population": "السكان",
-      "tonnage": "طن/يوم",
-      "production": "كغ/ساكن/يوم",
       "collecte": "الجمع",
       "proprete": "النظافة",
       "pcgd": "المخطط البلدي",
@@ -62,7 +61,10 @@
       "delai": "الأجل",
       "delaiJours": "{{n}} ي",
       "aucuneDonnee": "—",
-      "trierPar": "ترتيب حسب {{colonne}}"
+      "trierPar": "ترتيب حسب {{colonne}}",
+      "tonnageEstime": "طن/يوم تقديرية",
+      "tonnagePese": "طن موزونة (12 شهرًا)",
+      "surCommunes": "{{n}}/{{total}}"
     },
     "communes": {
       "titre": "البلديات الـ350",

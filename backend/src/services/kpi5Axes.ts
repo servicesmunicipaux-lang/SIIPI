@@ -484,3 +484,65 @@ export function agreger(communes: CommuneKpi[], niveau: Exclude<Niveau, 'commune
     })
     .sort((a, b) => (a.cle === 'non_rattache' ? 1 : b.cle === 'non_rattache' ? -1 : (a.nom ?? a.cle).localeCompare(b.nom ?? b.cle)));
 }
+
+// ---------------------------------------------------------------------------
+// La répartition d'un indicateur (refonte, lot 4a ; SPEC_refonte § 4)
+// ---------------------------------------------------------------------------
+//
+// AUCUN CLASSEMENT. Les groupes sortent dans l'ordre alphabétique, les
+// communes aussi : la FNCT trie le tableau à l'écran si elle le veut, mais
+// aucune réponse ne porte de rang ni n'est rangée par valeur.
+//
+// CHAQUE MOYENNE DIT SUR COMBIEN DE COMMUNES ELLE PORTE (« 12 communes sur
+// 31 »), et combien de ces valeurs sont mesurées ou déclarées : une moyenne
+// ne cache pas de quoi elle est faite.
+
+export interface GroupeRepartition {
+  cle: string;
+  nom: string | null;
+  communes: number;
+  communes_renseignees: number;
+  communes_mesurees: number;
+  communes_declarees: number;
+  valeur_moyenne: number | null;
+  /** Moyenne des taux d'atteinte (0 à 1), pour les indicateurs rapportés à un objectif. */
+  taux_moyen: number | null;
+}
+
+export function repartition(
+  communes: CommuneKpi[],
+  code: string,
+  niveau: Exclude<Niveau, 'commune'>,
+  districts: Map<string, string>
+): GroupeRepartition[] {
+  const groupes = new Map<string, CommuneKpi[]>();
+  for (const c of communes) {
+    const cle = niveau === 'national' ? 'national' : niveau === 'gouvernorat' ? c.gouvernorat : (c.district ?? 'non_rattache');
+    const groupe = groupes.get(cle);
+    if (groupe) groupe.push(c);
+    else groupes.set(cle, [c]);
+  }
+  return [...groupes.entries()]
+    .map(([cle, liste]) => {
+      const valeurs = liste
+        .map((c) => c.indicateurs.find((i) => i.code === code))
+        .filter((r): r is Resultat => !!r && r.statut === 'renseigne' && r.valeur != null);
+      return {
+        cle,
+        nom: niveau === 'district' ? (districts.get(cle) ?? null) : niveau === 'national' ? null : cle,
+        communes: liste.length,
+        communes_renseignees: valeurs.length,
+        communes_mesurees: valeurs.filter((r) => r.source === 'mesure').length,
+        communes_declarees: valeurs.filter((r) => r.source === 'declare').length,
+        valeur_moyenne: moyenneDecimale(valeurs.map((r) => r.valeur)),
+        taux_moyen: moyenneDecimale(valeurs.map((r) => r.taux_atteinte), 3),
+      };
+    })
+    .sort((a, b) => (a.cle === 'non_rattache' ? 1 : b.cle === 'non_rattache' ? -1 : (a.nom ?? a.cle).localeCompare(b.nom ?? b.cle)));
+}
+
+/** Une moyenne arrondie, ou null quand aucune valeur n'existe (règle d'or 1.1). */
+function moyenneDecimale(valeurs: (number | null)[], decimales = 3): number | null {
+  const v = valeurs.filter((x): x is number => x != null);
+  return v.length ? arrondi(v.reduce((s, x) => s + x, 0) / v.length, decimales) : null;
+}

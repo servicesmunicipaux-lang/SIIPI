@@ -19,9 +19,9 @@ import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
-import { agreger, calculerCommune, catalogue, charger, parametres, type Niveau } from '../services/kpi5Axes.js';
+import { agreger, calculerCommune, catalogue, charger, parametres, repartition, type Niveau } from '../services/kpi5Axes.js';
 import { exportable } from '../services/export.js';
-import { JEU_SERIE_INDICATEUR } from '../services/jeuxExport.js';
+import { JEU_REPARTITION_COMMUNES, JEU_SERIE_INDICATEUR } from '../services/jeuxExport.js';
 
 export const kpi5AxesRouter = Router();
 
@@ -101,7 +101,9 @@ kpi5AxesRouter.get(
     const [liste, rattachements, gouvernorats] = await Promise.all([
       query('SELECT code, nom, nom_ar, ordre FROM districts_fnct ORDER BY ordre, nom'),
       query('SELECT gouvernorat, district_code FROM gouvernorats_district ORDER BY gouvernorat'),
-      query<{ gouvernorat: string }>('SELECT DISTINCT gouvernorat FROM communes ORDER BY gouvernorat'),
+      query<{ gouvernorat: string }>(
+        'SELECT DISTINCT gouvernorat FROM communes WHERE NOT est_demo AND deleted_at IS NULL ORDER BY gouvernorat'
+      ),
     ]);
     res.json({ districts: liste, rattachements, gouvernorats: gouvernorats.map((g) => g.gouvernorat) });
   })
@@ -130,7 +132,9 @@ kpi5AxesRouter.put(
     const codes = new Set(d.districts.map((x) => x.code));
     if (codes.size !== d.districts.length) throw new ApiError(400, 'Deux districts portent le même code.');
     const gouvernorats = new Set(
-      (await query<{ gouvernorat: string }>('SELECT DISTINCT gouvernorat FROM communes')).map((g) => g.gouvernorat)
+      (await query<{ gouvernorat: string }>('SELECT DISTINCT gouvernorat FROM communes WHERE NOT est_demo AND deleted_at IS NULL')).map(
+        (g) => g.gouvernorat
+      )
     );
     for (const [g, code] of Object.entries(d.rattachements)) {
       if (!gouvernorats.has(g)) throw new ApiError(400, `Gouvernorat inconnu : ${g}.`);
@@ -601,7 +605,9 @@ kpi5AxesRouter.get(
       q.niveau === 'commune'
         ? communes
             .filter((c) => c.dma.indice != null)
-            .sort((a, b) => (b.dma.indice ?? 0) - (a.dma.indice ?? 0))
+            // Par nom, jamais par indice : une liste rangée du meilleur au
+            // moins bon serait un palmarès (SPEC refonte, D1 et § 4).
+            .sort((a, b) => a.nom.localeCompare(b.nom))
             .map((c) => ({
               commune_id: c.commune_id,
               nom: c.nom,
@@ -618,6 +624,57 @@ kpi5AxesRouter.get(
             dma: g.dma,
           }));
     res.json({ en_vigueur: ctx.parametres.dma_en_vigueur === 1, lignes });
+  })
+);
+
+// ---------------------------------------------------------------------------
+// 5 bis. La répartition d'un indicateur (refonte, lot 4a ; SPEC_refonte § 4)
+// ---------------------------------------------------------------------------
+//
+// Par gouvernorat, par district ou pour tout le pays : la moyenne, et sur
+// combien de communes elle porte. Au niveau commune (la FNCT a un accès
+// complet) : la valeur de chacune, par ordre alphabétique — aucun rang.
+
+export const qRepartitionSchema = z.object({
+  annee: anneeSchema.optional(),
+  code: z.string().trim().min(1).max(40),
+  niveau: z.enum(['commune', 'gouvernorat', 'district', 'national']).default('gouvernorat'),
+});
+
+kpi5AxesRouter.get(
+  '/repartition',
+  requireAuth,
+  requireRole('super_admin_fnct'),
+  exportable(JEU_REPARTITION_COMMUNES, (req) => (typeof req.query.code === 'string' ? req.query.code : undefined)),
+  asyncHandler(async (req, res) => {
+    const q = qRepartitionSchema.parse(req.query);
+    const ind = (await catalogue()).find((i) => i.code === q.code);
+    if (!ind) throw new ApiError(400, `Indicateur inconnu : ${q.code}.`);
+    const annee = q.annee ?? anneeCourante();
+    const { communes } = await toutesLesCommunes(annee);
+    if (q.niveau !== 'commune') {
+      res.json(repartition(communes, q.code, q.niveau, await districts()));
+      return;
+    }
+    const noms = await districts();
+    res.json(
+      communes
+        .map((c) => {
+          const r = c.indicateurs.find((i) => i.code === q.code);
+          return {
+            commune_id: c.commune_id,
+            nom: c.nom,
+            nom_ar: c.nom_ar,
+            gouvernorat: c.gouvernorat,
+            district: c.district ? (noms.get(c.district) ?? c.district) : null,
+            statut: r?.statut ?? 'non_renseigne',
+            source: r?.source ?? null,
+            valeur: r?.valeur ?? null,
+            taux_atteinte: r?.taux_atteinte ?? null,
+          };
+        })
+        .sort((a, b) => a.nom.localeCompare(b.nom))
+    );
   })
 );
 

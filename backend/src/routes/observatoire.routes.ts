@@ -11,7 +11,7 @@ import { query } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { exportable } from '../services/export.js';
-import { JEU_COMMUNES, JEU_GOUVERNORATS } from '../services/jeuxExport.js';
+import { JEU_ACTIVITE, JEU_COMMUNES, JEU_GOUVERNORATS } from '../services/jeuxExport.js';
 
 export const observatoireRouter = Router();
 
@@ -42,6 +42,125 @@ observatoireRouter.get(
        ORDER BY c.gouvernorat, c.name
     `);
     res.json(lignes);
+  })
+);
+
+// GET /observatoire/activite — le déploiement mois par mois (refonte, lot 4a).
+//
+// Pour chaque mois : les communes qui saisissent, celles qui ont commencé mais
+// n'ont rien saisi ce mois-là (inactives), celles qui n'ont pas encore commencé,
+// et les désactivées — pour tout le pays, par gouvernorat ou par district.
+// Une « saisie » est le fait de la commune elle-même (app._saisies_communales,
+// migration 072) : ni la FNCT, ni les citoyens. La commune de démonstration
+// n'y est pas.
+export const qActiviteSchema = z.object({
+  debut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.'),
+  fin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.'),
+  niveau: z.enum(['national', 'gouvernorat', 'district']).default('national'),
+});
+
+export interface LigneActivite {
+  mois: string;
+  cle: string;
+  nom: string | null;
+  communes: number;
+  saisissent: number;
+  inactives: number;
+  pas_demarrees: number;
+  desactivees: number;
+}
+
+observatoireRouter.get(
+  '/activite',
+  requireAuth,
+  requireRole('super_admin_fnct'),
+  exportable(JEU_ACTIVITE),
+  asyncHandler(async (req, res) => {
+    const q = qActiviteSchema.parse(req.query);
+    if (q.debut > q.fin) throw new ApiError(400, 'Le début doit précéder la fin.');
+    let lignes: { mois: string; commune_id: string; gouvernorat: string; district: string | null; activee: boolean; premiere_saisie: string | null; saisies: string }[];
+    try {
+      lignes = await query(
+        'SELECT mois, commune_id, gouvernorat, district, activee, premiere_saisie, saisies FROM app.activite_communes($1::date, $2::date)',
+        [q.debut, q.fin]
+      );
+    } catch (err) {
+      const m = (err as { message?: string }).message ?? '';
+      const code = m.split(':')[0];
+      if (code === 'ACTIVITE_BORNES' || code === 'ACTIVITE_ETENDUE') throw new ApiError(400, m.slice(code.length + 2));
+      throw err;
+    }
+    const noms = new Map(
+      (await query<{ code: string; nom: string }>('SELECT code, nom FROM districts_fnct')).map((d) => [d.code, d.nom])
+    );
+    const groupes = new Map<string, LigneActivite>();
+    for (const l of lignes) {
+      const cle = q.niveau === 'national' ? 'national' : q.niveau === 'gouvernorat' ? l.gouvernorat : (l.district ?? 'non_rattache');
+      const id = `${l.mois}|${cle}`;
+      let g = groupes.get(id);
+      if (!g) {
+        g = {
+          mois: l.mois,
+          cle,
+          nom: q.niveau === 'national' ? null : q.niveau === 'gouvernorat' ? cle : (noms.get(cle) ?? null),
+          communes: 0,
+          saisissent: 0,
+          inactives: 0,
+          pas_demarrees: 0,
+          desactivees: 0,
+        };
+        groupes.set(id, g);
+      }
+      g.communes++;
+      // Le dernier jour du mois : une commune a « commencé » ce mois-là si sa
+      // première saisie est antérieure ou égale à cette date.
+      const [a, m] = l.mois.split('-').map(Number);
+      const finDuMois = new Date(Date.UTC(a, m, 0)).toISOString().slice(0, 10);
+      if (!l.activee) g.desactivees++;
+      else if (!l.premiere_saisie || l.premiere_saisie > finDuMois) g.pas_demarrees++;
+      else if (Number(l.saisies) > 0) g.saisissent++;
+      else g.inactives++;
+    }
+    res.json(
+      [...groupes.values()].sort(
+        (x, y) => x.mois.localeCompare(y.mois) || (x.cle === 'non_rattache' ? 1 : y.cle === 'non_rattache' ? -1 : (x.nom ?? x.cle).localeCompare(y.nom ?? y.cle))
+      )
+    );
+  })
+);
+
+// GET /observatoire/contours-gouvernorats — la carte nationale (lot 4a).
+//
+// Dissoudre 350 communes en 24 gouvernorats prend quelques secondes : le
+// résultat est gardé en mémoire, et recalculé seulement quand le découpage a
+// changé (une commune modifiée ou retirée change la signature).
+let contoursEnCache: { signature: string; geojson: unknown } | null = null;
+
+observatoireRouter.get(
+  '/contours-gouvernorats',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    const [sig] = await query<{ signature: string }>(
+      `SELECT count(*) || '|' || COALESCE(max(updated_at)::text, '') || '|' || count(*) FILTER (WHERE deleted_at IS NOT NULL) AS signature
+         FROM communes WHERE boundary_geom IS NOT NULL AND NOT est_demo`
+    );
+    if (!contoursEnCache || contoursEnCache.signature !== sig.signature) {
+      const lignes = await query<{ gouvernorat: string; communes: string; geojson: string }>(
+        'SELECT gouvernorat, communes, geojson FROM app.contours_gouvernorats(0.005)'
+      );
+      contoursEnCache = {
+        signature: sig.signature,
+        geojson: {
+          type: 'FeatureCollection',
+          features: lignes.map((l) => ({
+            type: 'Feature',
+            properties: { gouvernorat: l.gouvernorat, communes: Number(l.communes) },
+            geometry: JSON.parse(l.geojson),
+          })),
+        },
+      };
+    }
+    res.json(contoursEnCache.geojson);
   })
 );
 

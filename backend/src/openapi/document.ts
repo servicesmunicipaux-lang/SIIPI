@@ -37,7 +37,7 @@ import { citizenRegisterSchema } from '../routes/citizens.routes.js';
 import { barbechaDeliverySchema, barbechaRevenusSchema, identiteSchema } from '../routes/barbechas.routes.js';
 import { nationalKpiSchema, fiveAxisSchema } from '../routes/kpi.routes.js';
 import { zoneCreateSchema, zoneUpdateSchema } from '../routes/zones.routes.js';
-import { provenanceSchema, hebergementSchema, cadreInformelSchema } from '../routes/observatoire.routes.js';
+import { provenanceSchema, hebergementSchema, cadreInformelSchema, qActiviteSchema } from '../routes/observatoire.routes.js';
 import {
   circuitCreateSchema,
   circuitUpdateSchema,
@@ -103,6 +103,7 @@ import {
   districtsSchema,
   parametresKpiSchema,
   qManquesSchema,
+  qRepartitionSchema,
   qSerieSchema,
   qSeriesCommuneSchema,
 } from '../routes/kpi5Axes.routes.js';
@@ -1720,6 +1721,42 @@ registry.registerPath({
     401: REPONSES_COMMUNES[401],
   },
 });
+const GroupeRepartitionDoc = registry.register(
+  'GroupeRepartition',
+  z.object({
+    cle: z.string(),
+    nom: z.string().nullable(),
+    communes: z.number().int().openapi({ description: 'Les communes du groupe (« sur 31 »).' }),
+    communes_renseignees: z.number().int().openapi({ description: 'Celles qui ont une valeur (« 12 communes »).' }),
+    communes_mesurees: z.number().int(),
+    communes_declarees: z.number().int(),
+    valeur_moyenne: z.number().nullable(),
+    taux_moyen: z.number().nullable().openapi({ description: 'Moyenne des taux d’atteinte (0 à 1).' }),
+  })
+);
+const ValeurCommuneDoc = registry.register(
+  'ValeurIndicateurCommune',
+  z.object({
+    commune_id: z.string(),
+    nom: z.string(),
+    nom_ar: z.string().nullable(),
+    gouvernorat: z.string(),
+    district: z.string().nullable(),
+    statut: z.enum(['renseigne', 'non_renseigne', 'sans_objet']),
+    source: z.enum(['mesure', 'declare']).nullable(),
+    valeur: z.number().nullable(),
+    taux_atteinte: z.number().nullable(),
+  })
+);
+registry.registerPath({
+  method: 'get', path: '/kpi/repartition', tags: [TAG_KPI],
+  summary: 'La répartition d’un indicateur par gouvernorat, district ou commune (FNCT)',
+  description:
+    'Par groupe : la moyenne, et sur combien de communes elle porte (« 12 communes sur 31 »), mesurées et déclarées à part. Au niveau commune : la valeur de chacune, par ordre alphabétique. Aucun rang, aucun ordre par valeur. Sans la commune de démonstration.',
+  security: SECURISE,
+  request: { query: qRepartitionSchema.extend(paramsExport) },
+  responses: { 200: jsonOuExport(z.array(z.union([GroupeRepartitionDoc, ValeurCommuneDoc])), 'La répartition.'), ...REPONSES_COMMUNES },
+});
 registry.registerPath({
   method: 'get', path: '/kpi/national', tags: [TAG_KPI],
   summary: 'Les 5 axes agrégés par commune, gouvernorat, district ou national (FNCT, A3.1)',
@@ -1977,8 +2014,11 @@ const LigneGouvernorat = registry.register(
       communes_incompletes: z.number().int().openapi({ description: 'Aucune saisie ni pesée importée (badge orange, TDR §3.1.2).' }),
       communes_desactivees: z.number().int(),
       population: z.number().int(),
-      tonnage_jour: z.number().nullable(),
-      production_kg_hab_jour: z.number().nullable().openapi({ description: 'Production spécifique, pondérée par la population.' }),
+      tonnage_jour_estime: z.number().nullable().openapi({ description: 'Tonnage de référence des communes à données estimées. Jamais additionné aux autres.' }),
+      tonnage_jour_declare: z.number().nullable().openapi({ description: 'Tonnage de référence des communes à données déclarées.' }),
+      tonnage_jour_mesure: z.number().nullable().openapi({ description: 'Tonnage de référence des communes à données mesurées.' }),
+      tonnage_pese_12m_t: z.number().nullable().openapi({ description: 'Pesées réelles des douze derniers mois, en tonnes.' }),
+      communes_pesees: z.number().int().openapi({ description: 'Communes qui ont au moins une pesée réelle sur ces douze mois.' }),
       taux_collecte: z.number().nullable().openapi({ description: 'Moyenne pondérée par la population, non arithmétique.' }),
       indice_proprete: z.number().nullable(),
       pcgd_valides: z.number().int(),
@@ -1986,6 +2026,7 @@ const LigneGouvernorat = registry.register(
       reclamations_30j: z.number().int(),
       delai_traitement_jours: z.number().nullable(),
       communes_donnees_mesurees: z.number().int(),
+      communes_donnees_declarees: z.number().int(),
       communes_donnees_estimees: z.number().int(),
       derniere_activite: z.string().nullable(),
     })
@@ -2022,6 +2063,55 @@ registry.registerPath({
   security: SECURISE,
   request: { query: z.object(paramsExport) },
   responses: { 200: jsonOuExport(z.array(LigneGouvernorat), 'Les 24 gouvernorats.'), 400: REPONSES_COMMUNES[400], 401: REPONSES_COMMUNES[401] },
+});
+
+const LigneActiviteDoc = registry.register(
+  'LigneActivite',
+  z.object({
+    mois: z.string().openapi({ format: 'date' }),
+    cle: z.string(),
+    nom: z.string().nullable(),
+    communes: z.number().int(),
+    saisissent: z.number().int().openapi({ description: 'Communes qui ont saisi au moins une donnée dans le mois.' }),
+    inactives: z.number().int().openapi({ description: 'Communes qui ont déjà saisi, mais rien ce mois-là.' }),
+    pas_demarrees: z.number().int().openapi({ description: 'Communes activées qui n’ont encore rien saisi.' }),
+    desactivees: z.number().int(),
+  })
+);
+registry.registerPath({
+  method: 'get',
+  path: '/observatoire/activite',
+  tags: ['Observatoire national'],
+  summary: 'Le déploiement mois par mois (FNCT)',
+  description:
+    'Pour chaque mois : les communes qui saisissent, les inactives, celles qui n’ont pas encore démarré, les désactivées — pour le pays, par gouvernorat ou par district. Une saisie est le fait de la commune elle-même : ni la FNCT, ni les citoyens. La commune de démonstration n’y est pas. Au plus 24 mois.',
+  security: SECURISE,
+  request: { query: qActiviteSchema.extend(paramsExport) },
+  responses: { 200: jsonOuExport(z.array(LigneActiviteDoc), 'Le déploiement, mois par mois.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get',
+  path: '/observatoire/contours-gouvernorats',
+  tags: ['Observatoire national'],
+  summary: 'Les contours des 24 gouvernorats',
+  description: 'Dissous à partir des communes réelles, simplifiés pour une carte nationale (GeoJSON). Sans la commune de démonstration.',
+  security: SECURISE,
+  responses: {
+    200: json(
+      z.object({
+        type: z.literal('FeatureCollection'),
+        features: z.array(
+          z.object({
+            type: z.literal('Feature'),
+            properties: z.object({ gouvernorat: z.string(), communes: z.number().int() }),
+            geometry: z.record(z.string(), z.any()),
+          })
+        ),
+      }),
+      'Les contours.'
+    ),
+    401: REPONSES_COMMUNES[401],
+  },
 });
 
 registry.registerPath({
@@ -6993,7 +7083,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.29',
+      version: '0.15.30',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
