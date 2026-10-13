@@ -50,7 +50,9 @@ v0.15.25 : refonte, lot 1 — barème, note, classement et fiche d'évaluation r
 déclare (`declarations_indicateurs`), la valeur vaut dès son enregistrement, la FNCT la commente.
 v0.15.26 : refonte, lot 2a — porteur d'un projet, PCGD et caractérisation des déchets (migration 069) ;
 `app.caracterisation_retenue()` rend la source la plus précise, avec son origine, ou rien ; premiers
-formulaires du registre `web/src/composants/ajout/`. Suite : lot 2b (catalogue « + Ajouter »).**
+formulaires du registre `web/src/composants/ajout/`. v0.15.27 : refonte, lot 2b — catalogue « + Ajouter »
+(en-tête du portail, bouton flottant sur téléphone) ; les formulaires de création vivent dans le registre,
+un par type, et chaque écran ouvre le même (`npm run lint` le vérifie). Suite : lot 3 (graphiques, « ce qui manque »).**
 
 ---
 
@@ -385,6 +387,10 @@ rejouabilité des migrations. Ces deux contrôles restent des **préconditions**
    Vite : il se transpile sans vérifier, et c'est ainsi qu'un composant a planté
    au rendu sur une propriété jamais déclarée. Typage de référence : TypeScript
    **5.8.x** (la 5.9 signale à tort une erreur dans `AbonnementPush.tsx`).
+   Côté web, `npm run lint` enchaîne `scripts/verifier-ajout.mjs` : l'appel d'API qui
+   crée un objet (liste : `src/composants/ajout/appels-creation.json`) ne vit que dans
+   UN formulaire du registre `src/composants/ajout/`. Un écran qui veut ajouter un
+   objet ouvre ce formulaire (`useAjoutEnLigne`), il n'en écrit pas un second.
 
 ### Après le critère
 
@@ -443,6 +449,7 @@ backend/
   tests/           46 campagnes au 12/10/2026, lancées par tests/executer.sh
 web/
   src/composants/  communal/ · national/ · prestataire/ · kpi/ · registres/
+                   ajout/ — le registre des formulaires de création et le catalogue « + Ajouter »
   src/lib/api.ts   client HTTP ; api-types.ts est GÉNÉRÉ, ne pas l'écrire à la main
   src/locales/     fr.json · ar.json — les deux, toujours
 scripts/skills/    outils de vérification interne (voir scripts/skills/README.md)

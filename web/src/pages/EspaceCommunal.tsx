@@ -39,6 +39,8 @@ import { DecoupageCommune } from '../composants/communal/DecoupageCommune';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { Registres } from '../composants/registres/Registres';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
+import { Catalogue } from '../composants/ajout/Catalogue';
+import type { EcranAjout } from '../composants/ajout/registre';
 
 type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'coutComplet' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
 
@@ -96,6 +98,19 @@ export function EspaceCommunal({
   const { t } = useTranslation();
   const { utilisateur } = useAuth();
   const [onglet, setOnglet] = useState<Onglet>('constat');
+  // Le catalogue « + Ajouter » (refonte, lot 2b). Après un enregistrement,
+  // l'écran ouvert se remonte (`version`) : sa liste montre la ligne ajoutée
+  // sans qu'on ait à le recharger.
+  const [catalogue, setCatalogue] = useState(false);
+  const [version, setVersion] = useState(0);
+  const [annonce, setAnnonce] = useState<string | null>(null);
+  const ouvrirEcran = (ecran: EcranAjout) => {
+    // Chaque écran vers lequel le catalogue conduit est un onglet du portail.
+    const cible: Onglet = ecran;
+    setCatalogue(false);
+    setAnnonce(null);
+    setOnglet(cible);
+  };
 
   const estFnct = utilisateur?.role === 'super_admin_fnct';
 
@@ -222,16 +237,39 @@ export function EspaceCommunal({
         <BarreLaterale
           entrees={entrees}
           actif={onglet}
-          onChoisir={setOnglet}
+          onChoisir={(o) => {
+            setAnnonce(null);
+            setOnglet(o);
+          }}
           libelle={t('communal.navigation')}
           etiquette={(cle) => t(`communal.onglets.${cle}`)}
         />
-        <div className="min-w-0 flex-1">
+        {/* « isolate » : les cartes Leaflet (calques jusqu'à z-1000) restent
+            sous le bouton flottant, le tiroir et le catalogue. */}
+        <div className="isolate min-w-0 flex-1 pb-20 sm:pb-0">
+
+      {/* « + Ajouter », toujours au même endroit : en tête du contenu, et, sur
+          téléphone, en bouton flottant (à droite en français, à gauche en
+          arabe — « end »). */}
+      <div className="mb-3 flex flex-wrap items-center justify-end gap-3">
+        {annonce && (
+          <p role="status" className="me-auto rounded-lg border border-siipi-300 bg-siipi-50 px-3 py-2 text-sm text-siipi-900">
+            {annonce}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => setCatalogue(true)}
+          className="hidden min-h-11 items-center gap-1 rounded-lg bg-siipi-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-siipi-700 sm:inline-flex"
+        >
+          <span aria-hidden="true">+</span> {t('ajout.catalogue.bouton')}
+        </button>
+      </div>
 
       {/* La clé force le remontage à chaque changement de commune : sans elle,
           un écran garderait les données de la commune précédente le temps de
           son rechargement, et on lirait Sfax sous le nom de Nabeul. */}
-      <div key={communeId}>
+      <div key={`${communeId}-${version}`}>
         {onglet === 'constat' && <ConstatDuJour communeId={communeId} />}
         {onglet === 'carte' && <CarteCommunale communeId={communeId} />}
         {onglet === 'decoupage' && <DecoupageCommune communeId={communeId} />}
@@ -257,6 +295,29 @@ export function EspaceCommunal({
         </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setCatalogue(true)}
+        aria-label={t('ajout.catalogue.bouton')}
+        className="fixed bottom-4 end-4 z-30 flex size-14 items-center justify-center rounded-full bg-siipi-600 text-3xl font-light text-white shadow-lg hover:bg-siipi-700 sm:hidden"
+      >
+        <span aria-hidden="true">+</span>
+      </button>
+
+      {catalogue && (
+        <Catalogue
+          communeId={communeId}
+          role={utilisateur?.role}
+          onFermer={() => setCatalogue(false)}
+          onOuvrirEcran={ouvrirEcran}
+          onEnregistre={(type, fermer) => {
+            setVersion((v) => v + 1);
+            setAnnonce(t('ajout.catalogue.enregistre', { objet: t(`ajout.types.${type}`) }));
+            if (fermer) setCatalogue(false);
+          }}
+        />
+      )}
     </div>
   );
 }

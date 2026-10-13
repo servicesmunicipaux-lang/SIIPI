@@ -5,6 +5,56 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.27] — 2026-10-13 — Refonte, lot 2b : le catalogue « + Ajouter », un formulaire par type
+
+Seconde moitié du lot 2 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 2.2) : une seule
+porte pour ajouter une donnée, et le même formulaire partout. Aucune migration, aucune route nouvelle :
+le lot est entièrement dans le front.
+
+### Le catalogue « + Ajouter »
+- Toujours au même endroit : en tête du portail communal ; sur téléphone, un **bouton flottant**, à
+  droite en français et à gauche en arabe.
+- Rangé par ce que pense le directeur — mon équipe, mes moyens, mon territoire, mes références, mes
+  actions, registres du jour, mes partenaires, import en masse —, et **filtré par rôle** : la FNCT n'y
+  voit ni le PCGD ni la caractérisation, qu'elle lit sans les saisir.
+- 19 entrées ouvrent un formulaire ; 6 conduisent à l'écran qui donne leur contexte et le disent
+  (« S'ouvre sur l'écran Pesées ») : une pesée se rattache à un voyage attendu, une action planifiée
+  à une sélection de points, une campagne de nettoyage à un lieu, un secteur à une proposition de
+  découpage, un prestataire à un compte, des fichiers géographiques à un circuit.
+- Après un enregistrement, l'écran ouvert se relit et l'annonce le dit ; un import reste ouvert sur
+  son bilan.
+
+### Le registre des formulaires (`web/src/composants/ajout/`)
+- **Nouveaux**, sur des routes qui existaient sans écran : **agent** (ni CIN, ni salaire, ni
+  adresse), **engin** (un doublon d'immatriculation est refusé par l'API, message tel quel), **point
+  de collecte** (dans un circuit, posé sur une carte cadrée sur la commune).
+- **Déplacés** depuis leurs écrans, sans changement de règle : circuit, lieu (avec sa propre petite
+  carte), contact, projet (rédaction d'une publication), étude ou rapport, sortie au carnet de bord,
+  plein de carburant, fin de poste, incident, dotation EPI, commerce, convention, imports CSV
+  (contacts, parc). Chaque écran ouvre désormais **le même** composant : Parc (« Ajouter un engin »),
+  Personnel (« Ajouter un agent »), Circuits, Contacts, Communication, Rapports, Registres, Carnet.
+- **Un composant par type, vérifié** : `web/scripts/verifier-ajout.mjs`, lancé par `npm run lint`,
+  refuse qu'un appel d'API de création (`appels-creation.json`, la liste que lit aussi le registre)
+  vive ailleurs que dans un seul fichier du registre. Éprouvé à l'envers : un second appel à
+  `api.creerEngin` hors du registre le fait échouer.
+
+### Pas encore
+- Le **conteneur** n'est pas au catalogue : l'API ne sait pas l'écrire.
+- Le **catalogue du prestataire** (son signalement d'incident sur un circuit) reste dans son espace.
+- « Ce que la donnée débloque », lu dans le catalogue des indicateurs : lot 3.
+
+### Vérifié (lu dans les sorties)
+- Base neuve, ordre de référence : 69 migrations ; la 069 rejouée : « Base déjà à jour ».
+- `npm test` : code de sortie 0 — contrat **307/307**, **46 bilans, 1 862 tests réussis,
+  aucun échec**. Recomptage 46 / 46.
+- `audit-blocs.py` : 28 blocs sous condition, tous leurs contrôles ont tourné. Lint backend et web (TypeScript 5.8.3) : code 0, dont « 19 types,
+  14 appels de création : chacun dans un seul fichier du registre ».
+- Navigateur : agent, engin, circuit, point (posé sur la carte) et fin de poste ajoutés par le
+  catalogue ; le même formulaire d'engin depuis le Parc ; doublon d'immatriculation refusé ; fin de
+  poste refusée tant que la benne n'est pas dite bâchée ou non ; « Une action planifiée » ouvre les
+  Points ; la FNCT ne voit pas le PCGD ; arabe RTL à 375 px, bouton flottant à gauche, sans
+  défilement horizontal.
+
 ## [0.15.26] — 2026-10-12 — Refonte, lot 2a : porteur d'un projet, PCGD, caractérisation des déchets
 
 Première moitié du lot 2 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 2.3), décisions

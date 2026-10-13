@@ -28,6 +28,7 @@ import {
   type LignePresence,
 } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
+import { useAjoutEnLigne } from '../ajout/useAjoutEnLigne';
 
 const MOTIFS = [
   'conge', 'repos', 'formation', 'absence_justifiee',
@@ -81,6 +82,9 @@ export function Personnel({ communeId }: { communeId: string }) {
     void charger();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [communeId, jour]);
+
+  // Le formulaire du registre d'ajout : le même que celui du catalogue « + Ajouter ».
+  const ajoutAgent = useAjoutEnLigne('agent', communeId, t('ajout.agent.ajouter'), charger);
 
   const compteurs = useMemo(() => {
     const l = presences ?? [];
@@ -177,10 +181,15 @@ export function Personnel({ communeId }: { communeId: string }) {
 
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-xl font-semibold text-ardoise-900">{t('communal.personnel.titre')}</h1>
-        <p className="mt-1 text-sm text-ardoise-600">{t('communal.personnel.chapeau')}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-ardoise-900">{t('communal.personnel.titre')}</h1>
+          <p className="mt-1 text-sm text-ardoise-600">{t('communal.personnel.chapeau')}</p>
+        </div>
+        {ajoutAgent.bouton}
       </header>
+
+      {ajoutAgent.formulaire}
 
       {erreur && (
         <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900">

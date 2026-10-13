@@ -49,13 +49,6 @@ export function Registres({ communeId }: { communeId: string }) {
         <RegistreSimple
           communeId={communeId}
           nom="fins-de-poste"
-          champs={[
-            { cle: 'vehiculeId', type: 'engin', requis: true },
-            { cle: 'jour', type: 'date', requis: true },
-            { cle: 'benneBachee', type: 'ouiNon', requis: true },
-            { cle: 'chauffeurId', type: 'agent' },
-            { cle: 'observation', type: 'texte' },
-          ]}
           colonnes={[{ cle: 'jour', type: 'date' }, { cle: 'registration' }, { cle: 'chauffeur' }, { cle: 'benne_bachee', type: 'ouiNon' }, { cle: 'observation' }]}
         />
       )}
@@ -63,13 +56,6 @@ export function Registres({ communeId }: { communeId: string }) {
         <RegistreSimple
           communeId={communeId}
           nom="carburant"
-          champs={[
-            { cle: 'vehiculeId', type: 'engin', requis: true },
-            { cle: 'datePlein', type: 'date', requis: true },
-            { cle: 'litres', type: 'nombre', requis: true },
-            { cle: 'montantTnd', type: 'nombre', requis: true },
-            { cle: 'kilometrage', type: 'nombre' },
-          ]}
           colonnes={[{ cle: 'date_plein', type: 'date' }, { cle: 'registration' }, { cle: 'litres', type: 'nombre' }, { cle: 'montant_tnd', type: 'montant' }, { cle: 'kilometrage', type: 'nombre' }]}
         />
       )}
@@ -77,12 +63,6 @@ export function Registres({ communeId }: { communeId: string }) {
         <RegistreSimple
           communeId={communeId}
           nom="epi"
-          champs={[
-            { cle: 'personnelId', type: 'agent', requis: true },
-            { cle: 'typeEpi', type: 'choix', requis: true, options: ['kit_complet', 'gants', 'chaussures', 'gilet', 'tenue', 'masque', 'casque', 'lunettes', 'autre'] },
-            { cle: 'dateRemise', type: 'date', requis: true },
-            { cle: 'dateRenouvellement', type: 'date' },
-          ]}
           colonnes={[
             { cle: 'nom_complet' },
             { cle: 'type_epi', type: 'choix', prefixe: 'epi.options.typeEpi' },
@@ -96,14 +76,6 @@ export function Registres({ communeId }: { communeId: string }) {
         <RegistreSimple
           communeId={communeId}
           nom="incidents"
-          champs={[
-            { cle: 'dateIncident', type: 'date', requis: true },
-            { cle: 'type', type: 'choix', requis: true, options: ['accident', 'presque_accident', 'agression', 'maladie_professionnelle', 'autre'] },
-            { cle: 'gravite', type: 'choix', requis: true, options: ['benin', 'avec_arret', 'grave'] },
-            { cle: 'personnelId', type: 'agent' },
-            { cle: 'joursArret', type: 'nombre' },
-            { cle: 'description', type: 'texte' },
-          ]}
           colonnes={[
             { cle: 'date_incident', type: 'date' },
             { cle: 'type', type: 'choix', prefixe: 'incidents.options.type' },
@@ -119,25 +91,12 @@ export function Registres({ communeId }: { communeId: string }) {
             communeId={communeId}
             nom="commerces"
             onModifie={() => setVersionCommerces((v) => v + 1)}
-            champs={[
-              { cle: 'nom', type: 'texte', requis: true },
-              { cle: 'categorie', type: 'choix', options: ['commerce', 'institution'] },
-              { cle: 'activite', type: 'texte' },
-              { cle: 'adresse', type: 'texte' },
-            ]}
             colonnes={[{ cle: 'nom' }, { cle: 'categorie', type: 'choix', prefixe: 'commerces.options.categorie' }, { cle: 'activite' }, { cle: 'sous_convention', type: 'ouiNon' }]}
           />
           <RegistreSimple
             key={versionCommerces}
             communeId={communeId}
             nom="conventions"
-            champs={[
-              { cle: 'commerceId', type: 'commerce', requis: true },
-              { cle: 'type', type: 'choix', requis: true, options: ['collecte', 'nettoyage', 'tri', 'autre'] },
-              { cle: 'dateDebut', type: 'date', requis: true },
-              { cle: 'dateFin', type: 'date' },
-              { cle: 'tonnageEstime', type: 'nombre' },
-            ]}
             colonnes={[
               { cle: 'commerce' },
               { cle: 'type', type: 'choix', prefixe: 'conventions.options.type' },
