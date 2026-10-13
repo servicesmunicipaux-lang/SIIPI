@@ -296,3 +296,21 @@ export const JEU_ECHEANCES: JeuExport = {
     { cle: 'km_restants', fr: 'Km restants', ar: 'الكيلومترات المتبقية', type: 'nombre' },
   ],
 };
+
+/** La série d'un indicateur (refonte, lot 3) : les données sous le graphique. */
+export const JEU_SERIE_INDICATEUR: JeuExport = {
+  nom: 'serie-indicateur',
+  titre: { fr: "Série d'un indicateur", ar: 'سلسلة مؤشر' },
+  colonnes: [
+    { cle: 'periode_debut', fr: 'Début de la période', ar: 'بداية الفترة', type: 'date' },
+    { cle: 'periode_fin', fr: 'Fin de la période', ar: 'نهاية الفترة', type: 'date' },
+    { cle: 'valeur', fr: 'Valeur', ar: 'القيمة', type: 'nombre' },
+    { cle: 'taux_atteinte', fr: "Taux d'atteinte (0 à 1)", ar: 'نسبة البلوغ (من 0 إلى 1)', type: 'nombre' },
+    {
+      cle: 'source',
+      fr: 'Source',
+      ar: 'المصدر',
+      libelles: { mesure: { fr: 'Mesuré', ar: 'مقيس' }, declare: { fr: 'Déclaré', ar: 'مصرّح به' } },
+    },
+  ],
+};
