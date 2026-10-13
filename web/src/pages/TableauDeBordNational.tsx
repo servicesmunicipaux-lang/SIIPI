@@ -7,6 +7,7 @@ import { formaterNombre } from '../i18n';
 import { BoutonExport } from '../composants/BoutonExport';
 import { DecoupageCommunal } from '../composants/national/DecoupageCommunal';
 import { PropositionsDecoupage } from '../composants/national/PropositionsDecoupage';
+import { SuiviDeploiement } from '../composants/national/SuiviDeploiement';
 import { KpiNational } from '../composants/national/KpiNational';
 import { ModeDemo } from '../composants/national/ModeDemo';
 import { ConservationPhotos } from '../composants/national/ConservationPhotos';
@@ -279,6 +280,9 @@ export function TableauDeBordNational() {
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-ardoise-500">{t('national.chapeauDetail')}</p>
       </section>
+
+      {/* Le suivi du déploiement, en tête (refonte, lot 4b ; SPEC § 4). */}
+      <SuiviDeploiement />
 
       <PropositionsDecoupage />
 

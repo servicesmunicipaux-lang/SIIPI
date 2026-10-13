@@ -61,7 +61,7 @@ Recharts, tableau exportable, formule FR/AR, repère) ; « il manque » ouvre su
 la déclaration ou le paramètre de la commune. v0.15.30 : refonte, lot 4a — le tableau national (migration 072) :
 une saisie est le fait de la commune elle-même (`app._saisies_communales`, jamais la FNCT), déploiement mois par
 mois (`/observatoire/activite`), tonnages estimé / déclaré / mesuré / pesé jamais additionnés, répartition d'un
-indicateur avec « N communes sur M » et sans rang, contours des gouvernorats. Suite : lot 4b (les écrans).**
+indicateur avec « N communes sur M » et sans rang, contours des gouvernorats. v0.15.31 : lot 4b — la synthèse nationale s'ouvre sur le suivi du déploiement ; « Répartition » donne la carte des gouvernorats, le graphique alphabétique et le détail par commune, triable. Suite : lot 5 (complétude de la commune).**
 
 ---
 

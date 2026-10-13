@@ -5,6 +5,37 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.31] — 2026-10-13 — Refonte, lot 4b : le déploiement en tête, la répartition sur une carte
+
+Seconde moitié du lot 4 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 4) : les écrans
+de la FNCT, sur les routes du lot 4a. Aucune migration, aucune route nouvelle.
+
+### Le suivi du déploiement, en tête de la synthèse nationale
+- **`SuiviDeploiement`**, première section après le titre : les douze derniers mois en barres
+  empilées — communes qui **saisissent**, **inactives ce mois**, **pas encore démarrées**,
+  **désactivées** — et la phrase du mois (« En oct. 26, sur 350 communes — saisissent : 5 · … »).
+- Les chiffres du graphique sont aussi dans un tableau, dépliable ; le mois en cours se lit par
+  gouvernorat ou par district, **dans l'ordre alphabétique**. Les deux s'exportent.
+
+### La répartition d'un indicateur, sans classement
+- **« Répartition »**, première vue (et vue par défaut) d'« Indicateurs & 5 axes » : un indicateur
+  des 5 axes, de la préparation au tri ou des données des communes, par gouvernorat ou par district.
+- **La carte des gouvernorats** : cinq teintes du plus clair au plus foncé entre la plus petite et la
+  plus grande moyenne, **gris pour « non renseigné »** ; la bulle de chaque gouvernorat dit
+  « N sur M communes ». Une seule valeur donne une seule case de légende. En district, un gouvernorat
+  **non rattaché** reste gris : ce n'est pas un territoire, sa moyenne ne le colore pas.
+- **Le graphique** suit l'ordre alphabétique des groupes ; le tableau des groupes donne la moyenne,
+  sur combien de communes elle porte, mesurées et déclarées à part.
+- **Le détail par commune** (FNCT) : tri par nom, gouvernorat ou valeur — le taux d'atteinte quand
+  l'indicateur se lit en taux, les communes sans valeur toujours en bas —, recherche sans accents,
+  export. La source de chaque valeur s'écrit en toutes lettres.
+
+### Vérifié dans le navigateur (banc d'essai, FNCT)
+- Synthèse : la section du déploiement en tête, 12 mois, aucune erreur dans la console.
+- Répartition : 24 gouvernorats sur la carte, 24 groupes, 350 communes ; « Circuits enregistrés » colore
+  Nabeul seul (« 1 sur 28 communes »), le tri par valeur met Dar Chaâbane El Fehri en tête et les
+  communes sans valeur en bas. En arabe, à 375 px : sens de droite à gauche, aucun débordement.
+
 ## [0.15.30] — 2026-10-13 — Refonte, lot 4a : le tableau national, sans classement ni tonnage mêlé
 
 Première moitié du lot 4 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 4) : les

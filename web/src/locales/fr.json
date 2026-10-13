@@ -267,6 +267,51 @@
       "envoyer": "Demander la restauration",
       "envoi": "Envoi…",
       "demandeOuverte": "Demande ouverte. Échéance : {{echeance}}."
+    },
+    "deploiement": {
+      "titre": "Suivi du déploiement",
+      "aide": "Une commune « saisit » quand elle-même — son directeur, ou le prestataire qui travaille pour elle — enregistre une donnée dans le mois. Une écriture de la FNCT sur sa fiche ne compte pas.",
+      "phrase": "En {{mois}}, sur {{total}} communes — saisissent : {{saisissent}} · inactives ce mois : {{inactives}} · pas encore démarrées : {{pasDemarrees}} · désactivées : {{desactivees}}.",
+      "chiffres": "Les chiffres du graphique",
+      "mois": "Mois",
+      "ceMois": "Par groupe, en {{mois}}",
+      "niveau": "Regrouper par",
+      "communes": "Communes",
+      "categories": {
+        "saisissent": "Saisissent",
+        "inactives": "Inactives ce mois",
+        "pas_demarrees": "Pas encore démarrées",
+        "desactivees": "Désactivées"
+      }
+    },
+    "repartition": {
+      "indicateur": "Indicateur",
+      "familles": {
+        "indicateur": "Indicateurs (5 axes)",
+        "dma": "Préparation au tri à la source",
+        "donnee": "Données des communes"
+      },
+      "lectureTaux": "Chaque groupe montre la moyenne des taux d'atteinte de ses communes renseignées.",
+      "lectureValeur": "Chaque groupe montre la moyenne des valeurs de ses communes renseignées.",
+      "sansClassement": "Les groupes sont dans l'ordre alphabétique : aucun classement n'est publié.",
+      "carte": "Carte des gouvernorats",
+      "carteIndisponible": "Les contours des gouvernorats ne sont pas encore chargés (découpage communal).",
+      "legende": "Légende de la carte",
+      "graphique": "Graphique de répartition",
+      "couverture": "{{n}} sur {{total}} communes",
+      "parNiveau": {
+        "gouvernorat": "Par gouvernorat",
+        "district": "Par district"
+      },
+      "moyenne": "Moyenne",
+      "couvertureColonne": "Porte sur",
+      "parCommune": "Le détail par commune",
+      "rechercher": "Chercher une commune ou un gouvernorat",
+      "colonnes": {
+        "nom": "Commune",
+        "gouvernorat": "Gouvernorat",
+        "valeur": "Valeur"
+      }
     }
   },
   "commun": {
@@ -2493,6 +2538,7 @@
         "national": "National"
       },
       "vues": {
+        "repartition": "Répartition",
         "axes": "5 axes",
         "dma": "Préparation au tri",
         "alertes": "Alertes",
