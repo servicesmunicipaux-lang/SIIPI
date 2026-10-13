@@ -211,6 +211,23 @@ chk "la réponse ne nomme aucune commune" "f|periode_debut,periode_fin,moyenne,c
 
 # -----------------------------------------------------------------------------
 echo
+echo "5 bis. Toutes les séries d'une commune en un passage (lot 3b)"
+SC="/kpi/series?communeId=$TC"
+chk "plus de 24 mois est refusé" 400 "$(req GET "$SC&debut=2020-01-01&fin=2022-06-30")"
+chk "des bornes à l'envers aussi" 400 "$(req GET "$SC&debut=2021-12-31&fin=2021-01-01")"
+chk "celles d'une autre commune sont introuvables (404)" 404 "$(req GET "/kpi/series?communeId=$AUTRE&debut=2021-01-01&fin=2021-03-31")"
+req GET "$SC&debut=2021-01-01&fin=2021-03-31" >/dev/null
+chk "le tonnage y a les mêmes points que sa série seule : janvier et mars, pas février" "2021-01-01:6.5|2021-03-01:7.0" \
+    "$(val "'|'.join(p['periode_debut'] + ':' + str(float(p['valeur'])) for p in d if p['code'] == 'TONNAGE_T')")"
+chk "aucun indicateur annuel n'y est découpé en mois" 0 \
+    "$(val "len([p for p in d if p['code'] in ('MASSE_SALARIALE', 'COUT_TONNE', 'M1-6', 'CIRCUITS')])")"
+chk "la déclaration mensuelle y fait son point, déclaré" "2021-02-01:declare" \
+    "$(val "'|'.join(p['periode_debut'] + ':' + p['source'] for p in d if p['code'] == 'M3-2')")"
+req GET /kpi/dependances >/dev/null
+chk "les dépendances couvrent chaque indicateur du catalogue" \
+    "$(sql "SELECT count(*) FROM indicateurs_kpi")" "$(val "len({x['indicateur_code'] for x in d})")"
+
+echo
 echo "6. Les droits"
 chk "la FNCT lit la série et ce qui manque à la commune" "200|200" \
     "$(req GET "$S&code=TONNAGE_T&debut=2021-01-01&fin=2021-03-31&pas=mois" "" "$T_FNCT")|$(req GET "/kpi/manques?communeId=$TC&code=KG_HAB_J&annee=2021" "" "$T_FNCT")"

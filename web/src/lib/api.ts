@@ -141,6 +141,13 @@ export type PropositionDecoupage = Corps<'/decoupage/propositions', 'post'>;
 // --- Indicateurs (5 axes), déclarations, DMA (Jalon 8 ; refonte, lot 1) ------
 export type KpiCommune = Reponse<'/kpi/5-axes', 'get'>;
 export type ResultatIndicateur = KpiCommune['indicateurs'][number];
+// Refonte, lot 3 : les séries, ce qui manque, le repère du gouvernorat.
+export type IndicateurCatalogue = Reponse<'/kpi/indicateurs', 'get'>['indicateurs'][number];
+export type PointSerie = Reponse<'/kpi/serie', 'get'>[number];
+export type PointSeriesCommune = Reponse<'/kpi/series', 'get'>[number];
+export type PointReference = Reponse<'/kpi/reference-gouvernorat', 'get'>[number];
+export type ManqueIndicateur = Reponse<'/kpi/manques', 'get'>[number];
+export type DependanceIndicateur = Reponse<'/kpi/dependances', 'get'>[number];
 export type SaisieDeclarations = Corps<'/kpi/declarations/{communeId}/{annee}', 'put'>;
 export type DeclarationsKpi = Reponse<'/kpi/declarations/{communeId}/{annee}', 'get'>;
 export type NiveauKpi = 'commune' | 'gouvernorat' | 'district' | 'national';
@@ -510,6 +517,11 @@ export function lireFichierLocal(f: File): Promise<{ nomFichier: string; contenu
     };
     lecteur.readAsDataURL(f);
   });
+}
+
+/** Les paramètres d'une série — les mêmes pour la série, son export et le repère. */
+export function parametresSerie(communeId: string, code: string, debut: string, fin: string, pas: 'mois' | 'annee') {
+  return new URLSearchParams({ communeId, code, debut, fin, pas }).toString();
 }
 
 export const api = {
@@ -1178,6 +1190,20 @@ export const api = {
     requete<{ indicateurs: Record<string, any>[]; parametres: Record<string, number> }>('/kpi/indicateurs'),
   kpiCommune: (communeId: string, annee: number) =>
     requete<KpiCommune>(`/kpi/5-axes?communeId=${encodeURIComponent(communeId)}&annee=${annee}`),
+  catalogueIndicateurs: () => requete<{ indicateurs: IndicateurCatalogue[] }>('/kpi/indicateurs'),
+  serieIndicateur: (communeId: string, code: string, debut: string, fin: string, pas: 'mois' | 'annee') =>
+    requete<PointSerie[]>(`/kpi/serie?${parametresSerie(communeId, code, debut, fin, pas)}`),
+  referenceGouvernorat: (communeId: string, code: string, debut: string, fin: string, pas: 'mois' | 'annee') =>
+    requete<PointReference[]>(`/kpi/reference-gouvernorat?${parametresSerie(communeId, code, debut, fin, pas)}`),
+  seriesCommune: (communeId: string, debut: string, fin: string) =>
+    requete<PointSeriesCommune[]>(
+      `/kpi/series?communeId=${encodeURIComponent(communeId)}&debut=${encodeURIComponent(debut)}&fin=${encodeURIComponent(fin)}`
+    ),
+  manquesIndicateur: (communeId: string, code: string, annee: number) =>
+    requete<ManqueIndicateur[]>(
+      `/kpi/manques?communeId=${encodeURIComponent(communeId)}&code=${encodeURIComponent(code)}&annee=${annee}`
+    ),
+  dependancesIndicateurs: () => requete<DependanceIndicateur[]>('/kpi/dependances'),
   // Les valeurs que la commune déclare : elles valent dès qu'elles sont enregistrées (D3).
   declarationsKpi: (communeId: string, annee: number) =>
     requete<DeclarationsKpi>(`/kpi/declarations/${encodeURIComponent(communeId)}/${annee}`),

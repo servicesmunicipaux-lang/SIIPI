@@ -276,7 +276,18 @@ export function EspaceCommunal({
         {onglet === 'reclamations' && <Reclamations communeId={communeId} />}
         {onglet === 'suggestions' && <PointsSuggeres communeId={communeId} />}
         {onglet === 'preuve' && <Preuve communeId={communeId} />}
-        {onglet === 'indicateurs' && <IndicateursCommune communeId={communeId} fnct={estFnct} />}
+        {onglet === 'indicateurs' && (
+          <IndicateursCommune
+            communeId={communeId}
+            fnct={estFnct}
+            // « Ce qui manque » peut conduire à un écran (pesées, parc…) : seule
+            // une entrée du menu est acceptée.
+            onOuvrirEcran={(ecran) => {
+              const cible = entrees.find((e) => e.cle === ecran);
+              if (cible) setOnglet(cible.cle);
+            }}
+          />
+        )}
         {onglet === 'circuits' && <Circuits communeId={communeId} />}
         {onglet === 'points' && <TableauPoints communeId={communeId} />}
         {onglet === 'registres' && <Registres communeId={communeId} />}
