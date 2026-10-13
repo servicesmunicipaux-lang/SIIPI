@@ -21,7 +21,7 @@ import {
 } from '../../lib/api';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
-import { formulaireAjout, type TypeAjout } from '../ajout/registre';
+import { formulaireAjout, type TypeFormulaire } from '../ajout/registre';
 
 type Donnees = {
   plans: Pcgd[];
@@ -36,7 +36,7 @@ export function MesReferences({ communeId, fnct = false }: { communeId: string; 
   const { t, i18n } = useTranslation();
   const [d, setD] = useState<Donnees | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [ajout, setAjout] = useState<TypeAjout | null>(null);
+  const [ajout, setAjout] = useState<TypeFormulaire | null>(null);
 
   const charger = useCallback(async () => {
     try {

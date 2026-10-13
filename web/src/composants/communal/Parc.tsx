@@ -15,7 +15,8 @@ import { api, ErreurApi, type EcheanceEntretien, type Vehicule, type EtatDuParc 
 import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
-import { ImportCsv } from '../ImportCsv';
+import { ImportParc } from '../ajout/ImportsCsv';
+import { useAjoutEnLigne } from '../ajout/useAjoutEnLigne';
 import { AlertesEntretien, EntretienEngin, STYLE_STATUT } from './Entretien';
 
 const ETATS = ['en_service', 'en_panne', 'a_reformer', 'reforme'] as const;
@@ -69,6 +70,9 @@ export function Parc({ communeId }: { communeId: string }) {
     [engins, filtre]
   );
 
+  // Le formulaire du registre d'ajout : le même que celui du catalogue « + Ajouter ».
+  const ajoutEngin = useAjoutEnLigne('engin', communeId, t('ajout.engin.ajouter'), charger);
+
   const compteurs = useMemo(() => {
     const c: Record<string, number> = { tous: engins?.length ?? 0 };
     for (const e of ETATS) c[e] = (engins ?? []).filter((v) => v.etat === e).length;
@@ -104,14 +108,17 @@ export function Parc({ communeId }: { communeId: string }) {
           <h1 className="text-xl font-semibold text-ardoise-900">{t('communal.parc.titre')}</h1>
           <p className="mt-1 text-sm text-ardoise-500">{t('communal.parc.sousTitre')}</p>
         </div>
-        <BoutonExport chemin={`/trucks?communeId=${encodeURIComponent(communeId)}`} desactive={etatParc.total === 0} />
+        <div className="flex flex-wrap items-center gap-2">
+          <BoutonExport chemin={`/trucks?communeId=${encodeURIComponent(communeId)}`} desactive={etatParc.total === 0} />
+          {ajoutEngin.bouton}
+        </div>
       </header>
+
+      {ajoutEngin.formulaire}
 
       {erreur && <Erreur message={erreur} />}
 
-      {/* Un engin se reconnaît à son immatriculation : réimporter un export
-          retouché met à jour les fiches, sans en créer de doubles. */}
-      <ImportCsv envoyer={(saisie) => api.importerParc(communeId, saisie)} onFait={charger} />
+      <ImportParc communeId={communeId} onFait={charger} />
 
       {/* B2.3 : ce qui est en retard ou à prévoir, avant que la panne ne le dise. */}
       <AlertesEntretien

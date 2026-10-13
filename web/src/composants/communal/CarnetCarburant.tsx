@@ -11,12 +11,11 @@
 // y voit d'abord une avarie possible. Aucun chiffre n'est rapporté à un
 // chauffeur.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   api,
   type Agent,
-  type Circuit,
   type Consommation,
   type DocumentEmis,
   type QuotaCarburant,
@@ -27,10 +26,10 @@ import { useAuth } from '../../lib/auth';
 import { useFormats } from '../../lib/formats';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
+import { FormulaireSortieCarnet } from '../ajout/FormulaireSortieCarnet';
 
 type Vue = 'consommation' | 'carnet' | 'bons' | 'quotas';
 const VUES: Vue[] = ['consommation', 'carnet', 'bons', 'quotas'];
-const SEANCES = ['matin', 'apres_midi', 'nuit'] as const;
 
 // Le mois et le jour à Tunis (UTC+1, sans heure d'été).
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
@@ -48,16 +47,14 @@ export function CarnetCarburant({ communeId }: { communeId: string }) {
   const [mois, setMois] = useState(moisCourant());
   const [engins, setEngins] = useState<Vehicule[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [circuits, setCircuits] = useState<Circuit[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    void Promise.all([api.engins(communeId), api.personnel(communeId), api.circuits(communeId)])
-      .then(([e, a, c]) => {
+    void Promise.all([api.engins(communeId), api.personnel(communeId)])
+      .then(([e, a]) => {
         setEngins(e);
         setAgents(a);
-        setCircuits(c);
       })
       .catch((e) => setErreur(e instanceof Error ? e.message : t('commun.erreur')));
   }, [communeId, t]);
@@ -109,9 +106,6 @@ export function CarnetCarburant({ communeId }: { communeId: string }) {
         <VueCarnet
           communeId={communeId}
           mois={mois}
-          engins={engins}
-          agents={agents}
-          circuits={circuits}
           onErreur={signaler}
           onMessage={(m) => {
             setErreur(null);
@@ -244,51 +238,18 @@ function VueConsommation({ communeId, mois }: { communeId: string; mois: string 
 function VueCarnet(props: {
   communeId: string;
   mois: string;
-  engins: Vehicule[];
-  agents: Agent[];
-  circuits: Circuit[];
   onErreur: (e: unknown) => void;
   onMessage: (m: string) => void;
 }) {
-  const { communeId, mois, engins, agents, circuits, onErreur, onMessage } = props;
+  const { communeId, mois, onErreur, onMessage } = props;
   const { t } = useTranslation();
   const f = useFormats();
   const [sorties, setSorties] = useState<SortieCarnet[] | null>(null);
-  const [saisie, setSaisie] = useState({ vehiculeId: '', jour: aujourdhui(), seance: 'matin' as (typeof SEANCES)[number], chauffeurId: '', circuitId: '', compteurSortie: '', compteurRetour: '' });
   const [retours, setRetours] = useState<Record<string, string>>({});
-  const [envoi, setEnvoi] = useState(false);
-
   const charger = useCallback(() => {
     api.carnets(communeId, mois).then(setSorties).catch(onErreur);
   }, [communeId, mois, onErreur]);
   useEffect(() => charger(), [charger]);
-
-  const chauffeurs = useMemo(
-    () => agents.filter((a) => ['chauffeur', 'tractoriste'].includes(String((a as { fonction?: string }).fonction))),
-    [agents]
-  );
-
-  async function enregistrer() {
-    setEnvoi(true);
-    try {
-      await api.enregistrerSortie(communeId, {
-        vehiculeId: saisie.vehiculeId,
-        jour: saisie.jour,
-        seance: saisie.seance,
-        chauffeurId: saisie.chauffeurId || null,
-        circuitId: saisie.circuitId || null,
-        compteurSortie: Number(saisie.compteurSortie),
-        compteurRetour: saisie.compteurRetour === '' ? null : Number(saisie.compteurRetour),
-      });
-      onMessage(t('communal.carburant.sortieEnregistree'));
-      setSaisie((s) => ({ ...s, compteurSortie: '', compteurRetour: '' }));
-      charger();
-    } catch (e) {
-      onErreur(e);
-    } finally {
-      setEnvoi(false);
-    }
-  }
 
   async function rentrer(id: string) {
     try {
@@ -302,61 +263,14 @@ function VueCarnet(props: {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 rounded-xl border border-siipi-200 bg-siipi-50/40 p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-sm">
-          <span className="font-medium">{t('communal.carburant.engin')}</span>
-          <select value={saisie.vehiculeId} onChange={(e) => setSaisie({ ...saisie, vehiculeId: e.target.value })} className={champ}>
-            <option value="">—</option>
-            {engins.map((e) => (
-              <option key={e.id} value={e.id}>{e.registration}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="font-medium">{t('communal.carburant.jour')}</span>
-          <input type="date" value={saisie.jour} max={aujourdhui()} onChange={(e) => setSaisie({ ...saisie, jour: e.target.value })} className={champ} />
-        </label>
-        <label className="text-sm">
-          <span className="font-medium">{t('communal.carburant.seance')}</span>
-          <select value={saisie.seance} onChange={(e) => setSaisie({ ...saisie, seance: e.target.value as (typeof SEANCES)[number] })} className={champ}>
-            {SEANCES.map((s) => (
-              <option key={s} value={s}>{t(`communal.carburant.seances_.${s}`)}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="font-medium">{t('communal.carburant.chauffeur')}</span>
-          <select value={saisie.chauffeurId} onChange={(e) => setSaisie({ ...saisie, chauffeurId: e.target.value })} className={champ}>
-            <option value="">—</option>
-            {chauffeurs.map((a) => (
-              <option key={a.id} value={a.id}>{(a as { nom_complet?: string }).nom_complet}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="font-medium">{t('communal.carburant.circuit')}</span>
-          <select value={saisie.circuitId} onChange={(e) => setSaisie({ ...saisie, circuitId: e.target.value })} className={champ}>
-            <option value="">—</option>
-            {circuits.map((c) => (
-              <option key={c.id} value={c.id}>{c.nom}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="font-medium">{t('communal.carburant.compteurSortie')}</span>
-          <input type="number" inputMode="decimal" min={0} value={saisie.compteurSortie} onChange={(e) => setSaisie({ ...saisie, compteurSortie: e.target.value })} className={champ} />
-        </label>
-        <label className="text-sm">
-          <span className="font-medium">{t('communal.carburant.compteurRetour')}</span>
-          <input type="number" inputMode="decimal" min={0} value={saisie.compteurRetour} onChange={(e) => setSaisie({ ...saisie, compteurRetour: e.target.value })} className={champ} />
-        </label>
-        <div className="flex items-end">
-          <button type="button" onClick={() => void enregistrer()} disabled={envoi || !saisie.vehiculeId || saisie.compteurSortie === ''} className={bouton}>
-            {t('communal.carburant.enregistrerSortie')}
-          </button>
-        </div>
-        <p className="text-xs text-ardoise-600 sm:col-span-2 lg:col-span-4">{t('communal.carburant.aideCompteurs')}</p>
-      </div>
+      {/* Le formulaire du registre d'ajout : le même que celui du catalogue « + Ajouter ». */}
+      <FormulaireSortieCarnet
+        communeId={communeId}
+        onFait={() => {
+          onMessage(t('communal.carburant.sortieEnregistree'));
+          charger();
+        }}
+      />
 
       {!sorties ? (
         <Chargement />

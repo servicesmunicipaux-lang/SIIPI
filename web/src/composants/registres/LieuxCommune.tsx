@@ -18,8 +18,8 @@ import 'leaflet/dist/leaflet.css';
 import { api, ErreurApi, type ActionPlanifiee, type CollectionFrontieres, type Lieu } from '../../lib/api';
 import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
+import { FormulaireLieu, TYPES_LIEU as TYPES } from '../ajout/FormulaireLieu';
 
-const TYPES = ['marche', 'cimetiere', 'abattoir', 'ecole', 'sante', 'autre'] as const;
 const COULEURS: Record<string, string> = {
   marche: '#d97706',
   cimetiere: '#6f7c8d',
@@ -40,7 +40,7 @@ const champ = 'min-h-10 rounded-lg border border-ardoise-300 bg-white px-2 text-
 const bouton = 'min-h-10 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-50 disabled:opacity-50';
 const boutonPrincipal = 'min-h-10 rounded-lg bg-siipi-600 px-4 text-sm font-semibold text-white hover:bg-siipi-700 disabled:opacity-50';
 
-/** Un clic sur la carte donne la position — du lieu à créer ou à déplacer. */
+/** Un clic sur la carte donne la nouvelle position du lieu à déplacer. */
 function Pointeur({ actif, onPosition }: { actif: boolean; onPosition: (lat: number, lng: number) => void }) {
   useMapEvents({
     click: (e) => {
@@ -80,7 +80,9 @@ export function LieuxCommune({ communeId }: { communeId: string }) {
   const [frontiere, setFrontiere] = useState<CollectionFrontieres | null>(null);
   const [filtre, setFiltre] = useState<string>('');
   const [choisi, setChoisi] = useState<string | null>(null);
-  const [nouveau, setNouveau] = useState<{ nom: string; type: string; adresse: string; lat: number | null; lng: number | null } | null>(null);
+  // Le formulaire d'ajout est celui du registre (ajout/FormulaireLieu), avec sa
+  // propre carte : le même que celui du catalogue « + Ajouter ».
+  const [ajout, setAjout] = useState(false);
   const [deplacer, setDeplacer] = useState(false);
   const [nettoyages, setNettoyages] = useState<ActionPlanifiee[]>([]);
   const [datePlan, setDatePlan] = useState('');
@@ -127,7 +129,7 @@ export function LieuxCommune({ communeId }: { communeId: string }) {
   const visibles = lieux.filter((l) => !filtre || l.type === filtre);
   const lieu = lieux.find((l) => l.id === choisi) ?? null;
   const centre: [number, number] = lieux[0] ? [lieux[0].lat, lieux[0].lng] : [34, 9.6];
-  const pointage = !!nouveau || deplacer;
+  const pointage = deplacer;
 
   return (
     <div className="space-y-3">
@@ -143,10 +145,10 @@ export function LieuxCommune({ communeId }: { communeId: string }) {
         </select>
         <button
           type="button"
-          className={nouveau ? boutonPrincipal : bouton}
+          className={ajout ? boutonPrincipal : bouton}
           onClick={() => {
             setDeplacer(false);
-            setNouveau((n) => (n ? null : { nom: '', type: 'marche', adresse: '', lat: null, lng: null }));
+            setAjout((a) => !a);
           }}
         >
           {t('registres.lieux.ajouter')}
@@ -169,8 +171,7 @@ export function LieuxCommune({ communeId }: { communeId: string }) {
           <Pointeur
             actif={pointage}
             onPosition={(lat, lng) => {
-              if (nouveau) setNouveau({ ...nouveau, lat, lng });
-              else if (deplacer && lieu)
+              if (deplacer && lieu)
                 void executer(() => api.modifierLieu(lieu.id, { lat, lng }), t('registres.lieux.deplace')).then(() => setDeplacer(false));
             }}
           />
@@ -185,9 +186,6 @@ export function LieuxCommune({ communeId }: { communeId: string }) {
               <Tooltip>{l.nom}</Tooltip>
             </CircleMarker>
           ))}
-          {nouveau?.lat != null && nouveau.lng != null && (
-            <CircleMarker center={[nouveau.lat, nouveau.lng]} radius={10} pathOptions={{ color: '#13784f', dashArray: '4 4' }} />
-          )}
         </MapContainer>
       </div>
 
@@ -197,44 +195,16 @@ export function LieuxCommune({ communeId }: { communeId: string }) {
         </p>
       )}
 
-      {nouveau && (
-        <form
-          className="grid gap-2 rounded-xl border border-siipi-200 bg-siipi-50 p-3 sm:grid-cols-2 lg:grid-cols-5"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (nouveau.lat == null || nouveau.lng == null) {
-              setEtat({ type: 'erreur', texte: t('registres.lieux.positionRequise') });
-              return;
-            }
-            void executer(
-              () =>
-                api.creerLieu(communeId, {
-                  nom: nouveau.nom.trim(),
-                  type: nouveau.type as (typeof TYPES)[number],
-                  lat: nouveau.lat!,
-                  lng: nouveau.lng!,
-                  adresse: nouveau.adresse.trim() || null,
-                }),
-              t('registres.lieux.cree')
-            ).then(() => setNouveau(null));
+      {ajout && (
+        <FormulaireLieu
+          communeId={communeId}
+          onAnnuler={() => setAjout(false)}
+          onFait={async () => {
+            setAjout(false);
+            await charger();
+            setEtat({ type: 'ok', texte: t('registres.lieux.cree') });
           }}
-        >
-          <input required value={nouveau.nom} onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })} placeholder={t('registres.lieux.nom')} aria-label={t('registres.lieux.nom')} className={champ} />
-          <select value={nouveau.type} onChange={(e) => setNouveau({ ...nouveau, type: e.target.value })} aria-label={t('registres.lieux.type')} className={champ}>
-            {TYPES.map((ty) => (
-              <option key={ty} value={ty}>
-                {t(`registres.lieux.types.${ty}`)}
-              </option>
-            ))}
-          </select>
-          <input value={nouveau.adresse} onChange={(e) => setNouveau({ ...nouveau, adresse: e.target.value })} placeholder={t('registres.lieux.adresse')} aria-label={t('registres.lieux.adresse')} className={champ} />
-          <span className="chiffres self-center text-xs text-ardoise-600">
-            {nouveau.lat != null ? `${nouveau.lat}, ${nouveau.lng}` : t('registres.lieux.positionRequise')}
-          </span>
-          <button type="submit" disabled={enCours} className={boutonPrincipal}>
-            {t('registres.lieux.creer')}
-          </button>
-        </form>
+        />
       )}
 
       <div className="grid gap-3 lg:grid-cols-2">
@@ -268,7 +238,7 @@ export function LieuxCommune({ communeId }: { communeId: string }) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" className={deplacer ? boutonPrincipal : bouton} onClick={() => { setNouveau(null); setDeplacer((x) => !x); }}>
+                <button type="button" className={deplacer ? boutonPrincipal : bouton} onClick={() => { setAjout(false); setDeplacer((x) => !x); }}>
                   {t('registres.lieux.deplacer')}
                 </button>
                 <button type="button" disabled={enCours} className={bouton} onClick={() => void executer(() => api.modifierLieu(lieu.id, { actif: !lieu.actif }), t('registres.enregistre'))}>

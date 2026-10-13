@@ -2019,6 +2019,109 @@
       "total": "Total : {{total}} %",
       "horsTolerance": "il doit faire 100 % à 1 près",
       "negative": "une fraction ne peut pas être négative"
+    },
+    "catalogue": {
+      "bouton": "Ajouter",
+      "titre": "Que voulez-vous ajouter ?",
+      "fermer": "Fermer",
+      "retour": "Retour au catalogue",
+      "rien": "Votre rôle ne permet d'ajouter aucune donnée dans ce portail.",
+      "ouvreEcran": "S'ouvre sur l'écran « {{ecran}} »",
+      "enregistre": "{{objet}} : enregistrement effectué."
+    },
+    "rubriques": {
+      "equipe": "Mon équipe",
+      "moyens": "Mes moyens",
+      "territoire": "Mon territoire",
+      "references": "Mes références",
+      "actions": "Mes actions",
+      "registres": "Registres du jour",
+      "partenaires": "Mes partenaires",
+      "imports": "Import en masse"
+    },
+    "types": {
+      "agent": "Un agent",
+      "engin": "Un engin",
+      "circuit": "Un circuit",
+      "point": "Un point de collecte",
+      "lieu": "Un lieu",
+      "secteur": "Un secteur",
+      "pcgd": "Le PCGD",
+      "caracterisation": "Une caractérisation des déchets",
+      "rapport": "Une étude ou un rapport",
+      "projet": "Un projet",
+      "campagne-nettoyage": "Une campagne de nettoyage",
+      "action-planifiee": "Une action planifiée",
+      "pesee": "Une pesée",
+      "plein-carburant": "Un plein de carburant",
+      "fin-de-poste": "Une fin de poste",
+      "carnet-de-bord": "Une sortie au carnet de bord",
+      "incident": "Un incident du travail",
+      "dotation-epi": "Une dotation EPI",
+      "contact": "Un contact",
+      "commerce": "Un commerce",
+      "convention": "Une convention de propreté",
+      "prestataire": "Un prestataire",
+      "import-contacts": "Des contacts (fichier CSV)",
+      "import-parc": "Le parc (fichier CSV)",
+      "import-geographique": "Des fichiers géographiques d'un circuit"
+    },
+    "precisions": {
+      "circuit": "Avec son fichier GPX, KML ou GeoJSON",
+      "lieu": "Marché, cimetière, abattoir, école, centre de santé"
+    },
+    "position": {
+      "aide": "Cliquez sur la carte pour poser la position.",
+      "requise": "Position à poser sur la carte."
+    },
+    "agent": {
+      "ajouter": "Ajouter un agent",
+      "titre": "Un agent",
+      "aide": "Un nom et une fonction suffisent ; le grade, la classe et l'échelon se complètent plus tard. Ni CIN, ni salaire, ni adresse : la plateforme ne les conserve pas.",
+      "nom": "Nom et prénom",
+      "fonction": "Fonction",
+      "statut": "Statut",
+      "statuts": {
+        "titulaire": "Titulaire",
+        "contractuel": "Contractuel",
+        "occasionnel": "Occasionnel",
+        "mise_a_disposition": "Mis à disposition",
+        "prestataire": "Agent d'un prestataire"
+      },
+      "service": "Service",
+      "services": {
+        "proprete": "Propreté",
+        "espaces_verts": "Espaces verts",
+        "hygiene": "Hygiène",
+        "atelier": "Atelier",
+        "administratif": "Administratif"
+      },
+      "matricule": "Matricule (facultatif)",
+      "dateRecrutement": "Date de recrutement (facultative)"
+    },
+    "engin": {
+      "ajouter": "Ajouter un engin",
+      "titre": "Un engin",
+      "aide": "L'immatriculation identifie l'engin : une même immatriculation n'entre qu'une fois. Le reste se complète plus tard dans le Parc.",
+      "immatriculation": "Immatriculation",
+      "type": "Type d'engin",
+      "marque": "Marque (facultative)",
+      "capacite": "Capacité (m³)",
+      "chargeUtile": "Charge utile (t)",
+      "valeurAchat": "Valeur d'achat (TND)",
+      "nombreInvalide": "Capacité, charge utile et valeur d'achat s'écrivent en chiffres, sans signe moins."
+    },
+    "point": {
+      "titre": "Un point de collecte",
+      "aide": "Un point appartient à un circuit : il se place à la fin du voyage choisi, et la fiche du circuit sait ensuite le déplacer dans l'ordre.",
+      "aucunCircuit": "La commune n'a encore aucun circuit : créez d'abord le circuit, puis ses points.",
+      "circuit": "Circuit",
+      "type": "Type de point",
+      "nom": "Nom ou repère (facultatif)",
+      "voyage": "Voyage"
+    },
+    "carnet": {
+      "titre": "Une sortie au carnet de bord"
     }
   },
   "prestataire": {

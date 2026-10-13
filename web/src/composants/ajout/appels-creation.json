@@ -1,0 +1,21 @@
+{
+  "agent": ["creerAgent"],
+  "engin": ["creerEngin"],
+  "circuit": ["creerCircuit"],
+  "point": ["ajouterPoint"],
+  "lieu": ["creerLieu"],
+  "pcgd": ["enregistrerPcgd"],
+  "caracterisation": ["enregistrerCaracterisation"],
+  "rapport": ["enregistrerRapportEtude"],
+  "projet": ["creerPublication"],
+  "plein-carburant": ["ajouterAuRegistre"],
+  "fin-de-poste": ["ajouterAuRegistre"],
+  "carnet-de-bord": ["enregistrerSortie"],
+  "incident": ["ajouterAuRegistre"],
+  "dotation-epi": ["ajouterAuRegistre"],
+  "contact": ["creerContact"],
+  "commerce": ["ajouterAuRegistre"],
+  "convention": ["ajouterAuRegistre"],
+  "import-contacts": ["importerContacts"],
+  "import-parc": ["importerParc"]
+}
