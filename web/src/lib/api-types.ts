@@ -6759,6 +6759,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/wapla/bilans/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le bilan, ligne par ligne, pour l’export (Excel, CSV)
+         * @description La mention de méthode, puis toutes les entrées du moteur — celles du bilan avec leur provenance, et les valeurs par défaut de l’UNIDO utilisées, nommées comme telles —, puis les résultats d’un bilan calculé : flux, GES (potentiel engagé), uPOPs, coûts. Avec format=csv ou xlsx : le fichier.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les lignes du bilan. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            rubrique: "methode" | "entree" | "flux" | "ges" | "upops" | "cout";
+                            cle: string;
+                            valeur: number | null;
+                            unite: string;
+                            provenance: string | null;
+                            source: string | null;
+                        }[];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/wapla/bilans/{id}/retrait": {
         parameters: {
             query?: never;

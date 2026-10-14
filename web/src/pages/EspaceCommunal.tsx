@@ -41,9 +41,10 @@ import { Registres } from '../composants/registres/Registres';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 import { Catalogue } from '../composants/ajout/Catalogue';
 import { MaCommune } from '../composants/communal/MaCommune';
+import { EcranWapla } from '../composants/wapla/EcranWapla';
 import type { EcranAjout } from '../composants/ajout/registre';
 
-type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
+type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -83,6 +84,8 @@ const ENTREES: EntreeNavigation<Onglet>[] = [
   { cle: 'rapports',      pole: 'pilotage' },
   { cle: 'references',    pole: 'pilotage' },
   { cle: 'coutComplet',   pole: 'pilotage' },
+  // La couche WaPla : des estimations de planification, à part de SIIPI.
+  { cle: 'wapla',         pole: 'pilotage' },
 
   { cle: 'contacts',      pole: 'administration' },
   { cle: 'comptes',       pole: 'administration' },
@@ -312,6 +315,7 @@ export function EspaceCommunal({
         {onglet === 'rapports' && <RapportsEtudes communeId={communeId} />}
         {onglet === 'references' && <MesReferences communeId={communeId} fnct={estFnct} />}
         {onglet === 'coutComplet' && <CoutComplet communeId={communeId} />}
+        {onglet === 'wapla' && <EcranWapla communeId={communeId} fnct={estFnct} />}
         {onglet === 'acteursInformels' && cadreInformelActif && <ActeursInformels communeId={communeId} />}
         {onglet === 'contacts' && <Contacts communeId={communeId} />}
         {onglet === 'comptes' && <Comptes communeId={communeId} />}

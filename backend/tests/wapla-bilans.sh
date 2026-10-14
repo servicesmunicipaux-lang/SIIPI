@@ -219,6 +219,20 @@ PY
 chk "le résultat est en mode corrigé, et dit sa version" "corrige|w1b-1" "$(val "d['resultat']['mode']")|$(val "d['resultat']['version_moteur']")"
 chk "le gisement calculé est celui de SIIPI (2 920 t), et la masse se conserve" "2920.0|t" \
     "$(val "float(d['resultat']['flux']['WG'])")|$(val "abs(d['resultat']['flux']['WG'] - sum(d['resultat']['flux'][k] or 0 for k in ('LGE1','LGE2','OBE','CE','OFG','EFLD','ReT','CMP','LW','LS1','LS2'))) < 1e-6" | vrai)"
+# L'export (lot W3) : la méthode, toutes les entrées avec leur provenance — les
+# valeurs par défaut de l'UNIDO nommées comme telles —, puis les résultats.
+chk "l'export du bilan s'ouvre sur la mention de méthode, avec la version et le niveau" "200|methode|t" \
+    "$(req GET "$B/$BILAN/export")|$(val "d[0]['rubrique']")|$(val "'Estimation de planification' in d[0]['source'] and 'w1b-1' in d[0]['source'] and 'etaye' in d[0]['source']" | vrai)"
+chk "… toutes les entrées du moteur, chacune avec sa provenance : mesurée, saisie, par défaut, non renseignée" "siipi_mesure|saisie_commune|defaut_wapla|non_renseigne" \
+    "$(val "next(x['provenance'] for x in d if x['rubrique'] == 'entree' and x['cle'] == 'ghg_1')")|$(val "next(x['provenance'] for x in d if x['rubrique'] == 'entree' and x['cle'] == 'tc_4')")|$(val "next(x['provenance'] for x in d if x['rubrique'] == 'entree' and x['cle'] == 'tc_14')")|$(val "next(x['provenance'] for x in d if x['rubrique'] == 'entree' and x['cle'] == 'cost_11')")"
+chk "… autant de lignes d'entrée que le moteur a d'entrées, une seule fois chacune" t \
+    "$(val "len([x for x in d if x['rubrique'] == 'entree']) == len({x['cle'] for x in d if x['rubrique'] == 'entree'}) >= 80" | vrai)"
+chk "… puis les résultats : le total de GES dit qu'il est un potentiel engagé, onze lignes d'uPOPs" "t|11" \
+    "$(val "'potentiel engagé' in next(x['source'] for x in d if x['rubrique'] == 'ges' and x['cle'] == 'total')" | vrai)|$(val "sum(1 for x in d if x['rubrique'] == 'upops')")"
+chk "en CSV : un fichier, qui nomme les valeurs par défaut de l'UNIDO" "200|t" \
+    "$(curl -s -o "$T/bilan.csv" -w '%{http_code}' -H "Authorization: Bearer $T_DIR" "$API$B/$BILAN/export?format=csv")|$(grep -q 'Valeur par défaut UNIDO' "$T/bilan.csv" && echo t || echo f)"
+chk "la FNCT exporte un bilan étayé ; un prestataire non (403)" "200|403" \
+    "$(req GET "$B/$BILAN/export" "" "$T_FNCT")|$(req GET "$B/$BILAN/export" "" "$T_PREST")"
 chk "une erreur du moteur revient en clair (coefficients au-delà de 1) : 400" "200|400|t" \
     "$(req PUT "$B/$BILAN/entrees/tc_2" '{"valeur":0.9}')|$(req POST "$B/$BILAN/calcul")|$(val "'dépassent 1' in d['error']" | vrai)"
 req PUT "$B/$BILAN/entrees/tc_2" '{"valeur":0.1}' >/dev/null

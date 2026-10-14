@@ -5,6 +5,43 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.37] — 2026-10-14 — WaPla, lot W3 : l'écran du bilan de planification
+
+Le premier écran de la couche WaPla (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 6), dans le
+pôle Pilotage du portail communal : **« Bilan de planification (WaPla) »**. La mention « Estimation de
+planification — méthode UNIDO WaPla. Ce n'est pas une mesure. » suit chaque vue.
+
+### L'amorce, puis le bilan
+- La commune ouvre le bilan d'un exercice : il naît de ce que SIIPI tient (W2a, W2b).
+- Les **25 entrées de planification**, en 10 groupes (gisement, collecte, procédés en service, destination,
+  non-collecté, gasoil, coûts, composition, climat, décharge), chacune avec **sa provenance** — mesurée ou
+  déclarée dans SIIPI, saisie, référence nationale, valeur par défaut UNIDO — et, quand SIIPI ne la tient
+  pas, **la raison** que donne l'amorce. Une part se saisit en %, un procédé s'active ou se désactive, la
+  gestion de la décharge se choisit.
+- « **Garder la valeur UNIDO** », exprès : elle compte comme telle dans le niveau de fiabilité.
+- **Calculer** reste fermé tant qu'une entrée clé n'est pas traitée, et l'écran dit lesquelles.
+- Les facteurs techniques de l'outil (facteurs d'émission, coefficients) restent à leur valeur UNIDO,
+  lisibles, non modifiables à cette étape.
+
+### Le résultat
+- Le **niveau de fiabilité** en tête, avec ce qui le fixe (part des entrées comptées restées par défaut,
+  seuil de la FNCT) et la version du moteur ; un bilan illustratif porte un **bandeau permanent**.
+- Le **diagramme de Sankey** des flux (t/an), lu de gauche à droite en arabe aussi ; sur téléphone, il
+  défile dans son cadre. Les résidus des feux, qui reviennent en décharge (correction D8), ne sont pas
+  dessinés — ils feraient une boucle — et l'écran le dit ; ils sont dans le tableau des flux.
+- Les **GES** par procédé, avec à côté ce qu'est le total : un **potentiel engagé**, pas l'émission de
+  l'année ni un inventaire national.
+- Les **uPOPs** par procédé et par milieu (air, eau, sol, produit, résidus).
+- Les **coûts** par procédé : « non renseigné » quand un terme manque, jamais 0.
+- **L'export** Excel ou CSV (`GET /wapla/bilans/{id}/export`) : la mention de méthode, **toutes** les
+  entrées du moteur avec leur provenance — les valeurs par défaut de l'UNIDO utilisées nommées comme
+  telles —, puis les résultats.
+
+### Campagne `wapla-bilans` (51)
+Six contrôles de l'export s'ajoutent : la méthode en tête avec la version et le niveau, chaque entrée avec
+sa provenance, le total de GES dit potentiel engagé, le CSV qui nomme les valeurs par défaut, la lecture par
+la FNCT, le refus au prestataire.
+
 ## [0.15.36] — 2026-10-14 — WaPla, lot W2b : les bilans, le calcul, le niveau de fiabilité
 
 Deuxième lot de la couche WaPla en base (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 3.1,
