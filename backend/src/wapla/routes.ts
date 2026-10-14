@@ -20,8 +20,9 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
 import { exportable, type JeuExport } from '../services/export.js';
+import { comparer } from './comparaison.js';
 import { fiabilite, type EntreeBilan, type RoleEntree } from './fiabilite.js';
-import { calculerWapla, DEFAUTS_WAPLA, entreesSchema, ErreurMoteur, VERSION_MOTEUR } from './moteur.js';
+import { calculerWapla, DEFAUTS_WAPLA, entreesSchema, ErreurMoteur, VERSION_MOTEUR, type ResultatWapla } from './moteur.js';
 
 export const waplaRouter = Router();
 
@@ -529,5 +530,201 @@ waplaRouter.get(
       lignes.push({ rubrique: 'cout', cle: 'total', valeur: r.couts.total, unite: 'TND/an', provenance: r.couts.total == null ? 'non_renseigne' : null, source: null });
     }
     res.json(lignes);
+  })
+);
+
+// ---------------------------------------------------------------------------
+// Les scénarios (lot W4a ; SPEC § 5 et § 6, point 3)
+// ---------------------------------------------------------------------------
+//
+// Un scénario part d'un bilan CALCULÉ : il en copie les entrées (avec leur
+// provenance), la commune y change des hypothèses, le calcul le compare au
+// statu quo. Figé, il ne change plus — la base le tient.
+
+type LigneScenario = {
+  id: string; bilan_id: string; commune_id: string; nom: string; description: string | null;
+  statut: 'brouillon' | 'calcule' | 'fige'; version_moteur: string | null; resultat: unknown; statu_quo: unknown;
+  comparaison: unknown; calcule_le: string | null; fige_le: string | null; cree_le: string;
+};
+const COLONNES_SCENARIO =
+  'id, bilan_id, commune_id, nom, description, statut, version_moteur, resultat, statu_quo, comparaison, calcule_le, fige_le, cree_le';
+
+async function scenarioVisible(id: string): Promise<LigneScenario> {
+  const s = await queryOne<LigneScenario>(`SELECT ${COLONNES_SCENARIO} FROM wapla.scenarios WHERE id = $1`, [id]);
+  if (!s) throw new ApiError(404, 'Scénario introuvable.');
+  return s;
+}
+
+async function scenarioComplet(id: string) {
+  const s = await scenarioVisible(id);
+  const entrees = await query<EntreeBilan & { source: string | null; saisi_le: string }>(
+    'SELECT cle, valeur, provenance, source, detail, saisi_le FROM wapla.entrees_scenario WHERE scenario_id = $1 ORDER BY cle',
+    [id]
+  );
+  return { ...s, entrees };
+}
+
+/** Une écriture refusée parce que le scénario est figé : 409, avec le message de la base. */
+function refusFige(err: unknown): never {
+  const m = (err as { message?: string }).message ?? '';
+  if (m.startsWith('SCENARIO_FIGE')) throw new ApiError(409, m.replace(/^SCENARIO_FIGE:\s*/, ''));
+  throw err;
+}
+
+export const creationScenarioSchema = z
+  .object({
+    nom: z.string().trim().min(1, 'Le scénario a besoin d’un nom.').max(120),
+    description: z.string().trim().max(2000).nullable().optional(),
+  })
+  .strict();
+
+waplaRouter.get(
+  '/bilans/:id/scenarios',
+  requireAuth,
+  requireRole(...ROLES),
+  asyncHandler(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    await bilanVisible(id);
+    res.json(
+      await query(
+        `SELECT id, bilan_id, nom, description, statut, version_moteur, comparaison, calcule_le, fige_le, cree_le
+           FROM wapla.scenarios WHERE bilan_id = $1 ORDER BY cree_le`,
+        [id]
+      )
+    );
+  })
+);
+
+waplaRouter.post(
+  '/bilans/:id/scenarios',
+  requireAuth,
+  requireRole('admin_commune'),
+  asyncHandler(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const d = creationScenarioSchema.parse(req.body);
+    const b = await bilanVisible(id);
+    if (b.statut !== 'calcule') {
+      throw new ApiError(400, 'Calculez d’abord le bilan : un scénario se compare à un statu quo calculé.');
+    }
+    const qui = req.user?.sub ?? null;
+    const scenarioId = await withTransaction(async (client) => {
+      const s = await client.query<{ id: string }>(
+        'INSERT INTO wapla.scenarios (bilan_id, commune_id, nom, description, cree_par) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+        [id, b.commune_id, d.nom, d.description ?? null, qui]
+      );
+      // Les entrées du statu quo, avec leur provenance : le point de départ.
+      await client.query(
+        `INSERT INTO wapla.entrees_scenario (scenario_id, commune_id, cle, valeur, provenance, source, detail, saisi_par)
+         SELECT $1, e.commune_id, e.cle, e.valeur, e.provenance, e.source, e.detail, $3
+           FROM wapla.entrees e WHERE e.bilan_id = $2`,
+        [s.rows[0].id, id, qui]
+      );
+      return s.rows[0].id;
+    });
+    res.status(201).json(await scenarioComplet(scenarioId));
+  })
+);
+
+waplaRouter.get(
+  '/scenarios/:id',
+  requireAuth,
+  requireRole(...ROLES),
+  asyncHandler(async (req, res) => {
+    res.json(await scenarioComplet(z.string().uuid().parse(req.params.id)));
+  })
+);
+
+export const hypotheseSchema = z.object({ valeur: z.union([z.number(), z.boolean()]) }).strict();
+
+waplaRouter.put(
+  '/scenarios/:id/entrees/:cle',
+  requireAuth,
+  requireRole('admin_commune'),
+  asyncHandler(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const cle = req.params.cle;
+    if (!(CLES_MOTEUR as string[]).includes(cle)) throw new ApiError(400, `Entrée inconnue du moteur : « ${cle} ».`);
+    const { valeur: brute } = hypotheseSchema.parse(req.body);
+    const v = entreesSchema.shape[cle as keyof typeof entreesSchema.shape].safeParse(brute);
+    if (!v.success || v.data == null) {
+      throw new ApiError(400, `Valeur refusée pour « ${cle} » : ${v.success ? 'une valeur est attendue' : v.error.issues[0].message}.`);
+    }
+    const s = await scenarioVisible(id);
+    try {
+      await query(
+        `INSERT INTO wapla.entrees_scenario (scenario_id, commune_id, cle, valeur, provenance, source, detail, saisi_par)
+         VALUES ($1, $2, $3, $4::jsonb, 'hypothese_scenario', NULL, NULL, $5)
+         ON CONFLICT (scenario_id, cle) DO UPDATE
+           SET valeur = EXCLUDED.valeur, provenance = 'hypothese_scenario', source = NULL, detail = NULL,
+               saisi_le = now(), saisi_par = EXCLUDED.saisi_par`,
+        [id, s.commune_id, cle, JSON.stringify(v.data), req.user?.sub ?? null]
+      );
+    } catch (err) {
+      refusFige(err);
+    }
+    res.json(await scenarioComplet(id));
+  })
+);
+
+waplaRouter.post(
+  '/scenarios/:id/calcul',
+  requireAuth,
+  requireRole('admin_commune'),
+  asyncHandler(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const s = await scenarioVisible(id);
+    if (s.statut === 'fige') throw new ApiError(409, 'Ce scénario est figé : il ne se recalcule plus. Copiez-le dans un nouveau scénario.');
+    const b = await bilanVisible(s.bilan_id);
+    if (b.statut !== 'calcule' || !b.resultat) {
+      throw new ApiError(400, 'Le statu quo n’est plus calculé (une de ses entrées a changé) : recalculez le bilan d’abord.');
+    }
+    const entrees = await query<{ cle: string; valeur: number | boolean }>(
+      'SELECT cle, valeur FROM wapla.entrees_scenario WHERE scenario_id = $1',
+      [id]
+    );
+    const donnees: Record<string, unknown> = { ...DEFAUTS_WAPLA };
+    for (const e of entrees) donnees[e.cle] = e.valeur;
+    let resultat;
+    try {
+      resultat = calculerWapla(donnees, { mode: 'corrige' });
+    } catch (err) {
+      if (err instanceof ErreurMoteur) throw new ApiError(400, err.message);
+      throw err;
+    }
+    const comparaison = comparer(b.resultat as ResultatWapla, resultat);
+    await query(
+      `UPDATE wapla.scenarios
+          SET statut = 'calcule', resultat = $2, statu_quo = $3, comparaison = $4, version_moteur = $5,
+              calcule_le = now(), calcule_par = $6
+        WHERE id = $1`,
+      [id, resultat, b.resultat, comparaison, VERSION_MOTEUR, req.user?.sub ?? null]
+    );
+    res.json(await scenarioComplet(id));
+  })
+);
+
+waplaRouter.post(
+  '/scenarios/:id/figer',
+  requireAuth,
+  requireRole('admin_commune'),
+  asyncHandler(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const s = await scenarioVisible(id);
+    if (s.statut === 'fige') throw new ApiError(409, 'Ce scénario est déjà figé.');
+    if (s.statut !== 'calcule') throw new ApiError(400, 'Calculez le scénario avant de le figer : on fige des chiffres, pas un brouillon.');
+    await query(`UPDATE wapla.scenarios SET statut = 'fige', fige_le = now(), fige_par = $2 WHERE id = $1`, [id, req.user?.sub ?? null]);
+    res.json(await scenarioComplet(id));
+  })
+);
+
+waplaRouter.post(
+  '/scenarios/:id/retrait',
+  requireAuth,
+  requireRole('admin_commune'),
+  asyncHandler(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const r = await queryOne<{ retire: boolean }>('SELECT wapla.retirer_scenario($1) AS retire', [id]);
+    if (!r?.retire) throw new ApiError(404, 'Scénario introuvable.');
+    res.status(204).end();
   })
 );
