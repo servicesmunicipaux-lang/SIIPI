@@ -5,6 +5,46 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.32] — 2026-10-13 — Refonte, lot 5 : « Ma commune dans SIIPI »
+
+Dernier lot de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 2.4) : la complétude de la
+commune. **Ce n'est pas une note** — ni pourcentage, ni jauge, ni « 12 sur 21 », ni liste qui compare les
+communes : une liste de choses à faire.
+
+### Ce que la commune a, ce qui lui reste à ajouter (migration 073)
+- **`elements_completude`** : 14 données de référence (population, périmètre, secteurs, circuits, parc,
+  plans d'entretien, agents de terrain, effectif et masse salariale de l'année, objectif de balayage,
+  commerces, PCGD, caractérisation, contacts) et 7 registres du mois (pesées, carburant, pointage, fins de
+  poste, contrôles terrain, entretien, nettoyages). Chacun dit en français et en arabe ce qu'il est et à
+  quoi il sert, et où il se complète : un formulaire du registre d'ajout, un écran, un paramètre.
+- **Ce qu'il débloque** se lit dans les dépendances du lot 3a (`sources_elements_completude` →
+  `dependances_indicateurs`) : jamais recopié. Un élément qui alimente un indicateur est « présent »
+  exactement quand la source est tenue (`app.source_tenue`) : « présent » ici et « il manque » sur
+  l'indicateur ne se contredisent pas.
+- **`app.completude_commune(commune, jour)`** et **`GET /kpi/completude`** : une commune à la fois (la FNCT
+  doit en nommer une), un jour qui n'est pas dans le futur ; les registres portent sur le mois de ce jour.
+  Un élément à ajouter n'a pas de nombre — l'écran dit « à ajouter », jamais « 0 ».
+- Restent dehors, exprès : le registre des incidents (un mois sans accident est une bonne nouvelle, il ne
+  doit pas s'afficher « à ajouter »), les réclamations résolues, la dotation EPI, les nettoyages des lieux
+  qui ne valent que pour certaines communes. Une moyenne nationale ne rend pas la caractérisation
+  « présente » : c'est le repli, pas une étude de la commune.
+
+### L'écran
+- **« Ma commune dans SIIPI »**, en tête du pôle Pilotage : deux listes, « Les données de référence » et
+  « Les registres de oct. 26 », chaque ligne « Présent » ou « À ajouter », ce qu'il y a derrière
+  (« Circuits enregistrés : 13. »), les indicateurs qu'elle débloque ou alimente, et son bouton :
+  « Ajouter » ouvre le formulaire sur place, « Renseigner » le paramètre, « Ouvrir « Pesées » » l'écran.
+  Une case ne montre que ce qui reste à ajouter. La FNCT lit, sans boutons.
+- **Un seul composant** décide du formulaire qui complète une donnée (`kpi/LigneACompleter.tsx`) : le
+  panneau d'un indicateur (« il manque ») et cet écran s'en servent tous deux.
+
+### Campagne `completude`
+Elle commence par ce que la plateforme refuse (sans compte, citoyen, prestataire, autre commune, liste
+« toutes communes », jour futur ou inexistant, catalogue réécrit, fonction interne), bâtit une commune vide
+— tout y est « à ajouter », sans aucun nombre — puis la remplit élément par élément ; une pesée d'aujourd'hui
+ne compte plus la veille du premier du mois ; une intervention d'entretien sans coût ne tient pas le registre,
+et l'indicateur dit la même chose.
+
 ## [0.15.31] — 2026-10-13 — Refonte, lot 4b : le déploiement en tête, la répartition sur une carte
 
 Seconde moitié du lot 4 de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 4) : les écrans

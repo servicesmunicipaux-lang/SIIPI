@@ -555,6 +555,37 @@ kpi5AxesRouter.get(
   })
 );
 
+// « Ma commune dans SIIPI » (lot 5 ; SPEC § 2.4). Une commune à la fois, sans
+// total ni pourcentage : une liste de choses à faire, pas une note. Il n'existe
+// volontairement pas de version « toutes les communes » — elle deviendrait un
+// classement de complétude.
+export const qCompletudeSchema = z.object({
+  jour: dateIso
+    .refine((j) => !Number.isNaN(Date.parse(`${j}T00:00:00Z`)) && new Date(`${j}T00:00:00Z`).toISOString().startsWith(j), 'Cette date n’existe pas.')
+    .optional(),
+});
+
+kpi5AxesRouter.get(
+  '/completude',
+  requireAuth,
+  requireRole(...ROLES),
+  asyncHandler(async (req, res) => {
+    const q = qCompletudeSchema.parse(req.query);
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise : précisez communeId.');
+    await communeVisible(communeId);
+    const jour = q.jour ?? aujourdhui();
+    if (jour > aujourdhui()) throw new ApiError(400, 'Le jour de référence ne peut pas être dans le futur : choisissez aujourd’hui ou une date passée.');
+    const lignes = await query<{ nombre: string | null } & Record<string, unknown>>(
+      `SELECT code, rubrique, ordre, libelle_fr, libelle_ar, aide_fr, aide_ar, nature, cible,
+              present, nombre, annee, indicateurs
+         FROM app.completude_commune($1, $2::date)`,
+      [communeId, jour]
+    );
+    res.json({ jour, elements: lignes.map((l) => ({ ...l, nombre: l.nombre == null ? null : Number(l.nombre) })) });
+  })
+);
+
 // ---------------------------------------------------------------------------
 // 5. Les vues nationales (FNCT) : 5 axes, DMA — par niveau
 // ---------------------------------------------------------------------------

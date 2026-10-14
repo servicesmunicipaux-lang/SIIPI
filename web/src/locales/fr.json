@@ -614,7 +614,8 @@
       "contacts": "Contacts",
       "carburant": "Carnet & carburant",
       "declassement": "Déclassement",
-      "acteursInformels": "Acteurs informels"
+      "acteursInformels": "Acteurs informels",
+      "maCommune": "Ma commune dans SIIPI"
     },
     "etats": {
       "fait": "Fait",
@@ -2014,6 +2015,47 @@
         "charette": "Charrette",
         "tricycle_electrique": "Tricycle électrique",
         "triporteur_moteur": "Triporteur à moteur"
+      }
+    },
+    "maCommune": {
+      "titre": "Ma commune dans SIIPI",
+      "chapeau": "Les données qui font de SIIPI la référence de votre commune, et les registres du mois. Chaque ligne est présente ou à ajouter, avec ce qu'elle débloque. Ce n'est pas une note : il n'y a rien à atteindre, seulement ce qui reste à faire.",
+      "fnctLecture": "La FNCT lit cette liste ; c'est la commune qui la complète.",
+      "seulementAAjouter": "Ne montrer que ce qui est à ajouter",
+      "references": "Les données de référence",
+      "registres": "Les registres de {{mois}}",
+      "rienAAjouter": "Rien à ajouter dans cette partie.",
+      "present": "Présent",
+      "aAjouter": "À ajouter",
+      "ajouter": "Ajouter",
+      "renseigner": "Renseigner",
+      "modifier": "Modifier",
+      "debloque": "Débloque :",
+      "alimente": "Alimente :",
+      "aSaisirPour": "À saisir pour {{annee}}.",
+      "details": {
+        "population": "Population retenue : {{n}} habitants.",
+        "perimetre": "Le contour est sur la carte.",
+        "secteurs": "Secteurs dessinés : {{n}}.",
+        "circuits": "Circuits enregistrés : {{n}}.",
+        "parc": "Engins enregistrés : {{n}}.",
+        "plans_entretien": "Plans d'entretien : {{n}}.",
+        "agents": "Agents de terrain en activité : {{n}}.",
+        "effectifs": "Effectif {{annee}} : {{n}}.",
+        "masse_salariale": "Saisie pour {{annee}}.",
+        "objectif_balayage": "Objectif : {{n}} mètres linéaires par jour.",
+        "commerces": "Commerces suivis : {{n}}.",
+        "pcgdAdopte": "Adopté en {{annee}}.",
+        "pcgdSansAnnee": "Enregistré, sans année d'adoption (en préparation ou en révision).",
+        "caracterisation": "Étude la plus récente : {{annee}}.",
+        "contacts": "Contacts : {{n}}.",
+        "pesees": "Pesées en {{mois}} : {{n}}.",
+        "carburant": "Pleins en {{mois}} : {{n}}.",
+        "presences": "Jours pointés en {{mois}} : {{n}}.",
+        "fins_de_poste": "Fins de poste en {{mois}} : {{n}}.",
+        "controles": "Contrôles en {{mois}} : {{n}}.",
+        "maintenance": "Interventions en {{mois}} : {{n}}.",
+        "balayage": "Nettoyages terminés en {{mois}} : {{n}}."
       }
     }
   },

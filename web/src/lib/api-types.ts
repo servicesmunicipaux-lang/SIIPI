@@ -4867,6 +4867,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/kpi/completude": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * « Ma commune dans SIIPI » : ce qui est présent, ce qui est à ajouter
+         * @description Les données de référence de la commune et les registres du mois, chacun présent ou à ajouter, avec ce qui le complète et les indicateurs qu’il débloque. Une commune à la fois, sans total, sans pourcentage, sans rang : une liste de choses à faire, pas une note. Le jour ne peut pas être dans le futur.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    jour?: string;
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La liste, élément par élément. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            jour: string;
+                            elements: components["schemas"]["ElementCompletude"][];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/kpi/repartition": {
         parameters: {
             query?: never;
@@ -24024,6 +24105,30 @@ export interface components {
             declare_code: string | null;
             libelle_fr: string;
             libelle_ar: string;
+        };
+        ElementCompletude: {
+            code: string;
+            /**
+             * @description « reference » : une donnée qui se pose une fois et se tient à jour ; « registre_mois » : un registre tenu chaque mois.
+             * @enum {string}
+             */
+            rubrique: "reference" | "registre_mois";
+            ordre: number;
+            libelle_fr: string;
+            libelle_ar: string;
+            aide_fr: string;
+            aide_ar: string;
+            /** @enum {string} */
+            nature: "formulaire" | "ecran" | "parametre";
+            /** @description Le type du formulaire d’ajout, l’écran du portail ou le paramètre qui le complète. */
+            cible: string;
+            present: boolean;
+            /** @description Ce qu’il y a derrière un élément présent (circuits, habitants, pleins du mois…). Vide quand l’élément est à ajouter : jamais « 0 ». */
+            nombre: number | null;
+            /** @description L’année de la donnée ou l’année concernée (PCGD, caractérisation, effectif). */
+            annee: number | null;
+            /** @description Les indicateurs qu’il débloque, lus dans les dépendances du catalogue. */
+            indicateurs: string[];
         };
         GroupeRepartition: {
             cle: string;
