@@ -144,10 +144,10 @@ La lecture du code a relevé une vingtaine de défauts. Ceux qui changent un ré
 | D1 | uPOPs des dépotoirs : le code soustrait la **constante 36** au lieu du tonnage nettoyé | Résultat faux dès qu'un nettoyage de dépotoir est saisi | Corriger (soustraire le tonnage nettoyé) |
 | D2 | Incinération avec valorisation énergétique : le CO₂ fossile des plastiques **disparaît** | Incinération flatteuse | Corriger (CO₂ fossile + crédit énergie) |
 | D3 | Le total GES interne oublie les feux de décharge, alors que le tableau affiché les compte | Deux totaux différents | Un seul total, feux compris |
-| D4 | Coût de décharge mis à 0 si l'exploitation **ou** l'investissement est vide | Coût nul affiché | « Non renseigné » (règle 1.1) |
+| D4 | Coût de décharge mis à 0 si l'exploitation **ou** l'investissement est vide ; plus largement, l'outil additionne les coûts avec `na.rm` : un coût non saisi compte pour zéro dans tous les totaux | Coût nul affiché | « Non renseigné » (règle 1.1), pour **tout** total dont un terme manque (corrigé au lot W1b) ; un procédé absent coûte 0, ce n'est pas une donnée manquante ; un investissement nul se saisit 0 |
 | D5 | Recettes du recyclage : une case vide fait disparaître toute la ligne | Ligne absente sans explication | « Non renseigné » sur le seul matériau manquant |
 | D6 | Climat : température > 20 °C avec exactement 400 mm de pluie ne correspond à aucune classe | L'outil plante | Bornes fermées, aucun trou |
-| D7 | Méthane de décharge : les résidus d'incinération et le curseur de dégradation sont ignorés | Méthane indépendant du bilan de masse | Corriger : un seul tonnage déposé, le même pour la masse et le méthane |
+| D7 | Méthane de décharge : les résidus d'incinération et le curseur de dégradation sont ignorés ; les tonnes brûlées et récupérées, calculées sur une entrée qui compte ces résidus, sont retirées — plus de cendres, moins de méthane | Méthane indépendant du bilan de masse | **Tranché le 14/10/2026 (Nacer)** : le méthane porte sur la part ni brûlée ni récupérée de ce qui a du carbone dégradable, c'est-à-dire l'entrée **sans les résidus** (d'incinération, des feux, du brûlage à l'air libre) ; même règle au dépotoir. Le curseur de dégradation (tc_19, tc_16) reste un paramètre de masse : le méthane reste un potentiel engagé, sans double compte avec le DOCf, et l'écran le dit. Cas de la décision : 40 % incinéré, 55 t de résidus → 362,9 t CO₂-éq (fidèle 337,4 ; résidus comptés 435,5) |
 | D8 | Résidus des feux de décharge : ils sortent du bilan | La masse n'est pas conservée | Les réintégrer : Σ entrées = Σ sorties + stocks |
 | D9 | Part dégradable du dépotoir sans données climatiques : le facteur de gestion est omis | Incohérence avec la décharge | Même règle pour les deux |
 | D10 | Sommes de parts > 1 (composition, nature des déchets) seulement signalées | Parts négatives calculées | **Refusées par la base** |
@@ -221,7 +221,8 @@ Chaque décision a une valeur par défaut. Sans réponse, la valeur par défaut 
 
 | Sujet | Valeur par défaut proposée | Décideur |
 |---|---|---|
-| Mode du moteur affiché | **Corrigé**, le mode fidèle réservé aux tests | Nacer |
+| Mode du moteur affiché | **Corrigé**, le mode fidèle réservé aux tests (en service au lot W1b) | Nacer |
+| Base du méthane (D7) | **Tranché le 14/10/2026** : sans les résidus ; curseur de dégradation séparé | Nacer |
 | Seuil de valeurs par défaut pour « étayé » | 30 % des entrées hors entrées clés | FNCT |
 | Diffusion des uPOPs | Commune + FNCT ; export public seulement après validation de la FNCT | FNCT |
 | Source de la composition des déchets | Tranché : caractérisation tenue dans SIIPI, personnalisable par la commune, moyenne nationale ANGeD en repli | — |

@@ -5,6 +5,46 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.34] — 2026-10-14 — WaPla, lot W1b : le mode corrigé
+
+Deuxième lot du moteur WaPla (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 4.2) : le mode
+**corrigé**, désormais le mode par défaut et le seul qui s'affichera. Le mode fidèle reste, pour les
+campagnes.
+
+### Les dix défauts corrigés
+- **D1** : les uPOPs du dépotoir soustraient le tonnage nettoyé, plus la constante 36.
+- **D2** : avec valorisation énergétique, le CO₂ fossile des plastiques reste compté ; le crédit s'y ajoute.
+- **D3** : un seul total de GES, feux compris.
+- **D4** : un total de coût dont un terme manque est « non renseigné », jamais 0 (règle d'or 1.1) — la
+  décharge, mais aussi la collecte, le compostage, l'incinération, le centre de tri et le total général.
+  Un procédé absent coûte 0 ; un investissement nul se saisit 0.
+- **D5** : un prix de recyclage manquant ne rend « non renseigné » que son matériau
+  (`recyclage_par_matiere`).
+- **D6** : plus de 20 °C et exactement 400 mm de pluie donnent la classe 4 ; l'outil s'arrêtait.
+- **D7** (tranché le 14/10/2026) : le méthane de décharge et de dépotoir porte sur la part ni brûlée ni
+  récupérée de ce qui a du carbone dégradable — l'entrée **sans les résidus** d'incinération, de feux et de
+  brûlage. Des cendres en plus ne changent plus le méthane (40 % incinéré, 55 t de résidus : 362,9 t CO₂-éq,
+  contre 337,4 dans l'outil). Le curseur de dégradation reste un paramètre de masse.
+- **D8** : les résidus des feux rentrent dans la décharge et le dépotoir ; la boucle se résout exactement.
+  La masse est conservée : Σ des puits = gisement.
+- **D9** : sans climat, le dépotoir prend aussi le multiplicateur de gestion (0,7 × 1,05).
+- **D10** : des parts dont la somme dépasse 100 % (composition, nature des déchets, recyclables) sont
+  refusées, avec ce qu'il faut corriger.
+
+### Ce qui change dans les résultats
+- `ges.total` remplace `total_interne` (fidèle : sans les feux, comme l'outil ; corrigé : feux compris) ;
+  `ges.total_affiche` n'existe qu'en mode fidèle. `couts.total` remplace `total_affiche`.
+- Chaque résultat porte `mode` et la liste de ses `corrections` ; `version_moteur` : `w1b-1`.
+- L'arrondi « à deux chiffres » du mode fidèle va au chiffre pair à égalité, comme R (7 450 → 7 400) ; il
+  allait vers le haut.
+
+### Campagne `wapla-moteur` (70)
+Le témoin indépendant `tests/wapla_attendus.py` reçoit les mêmes corrections, écrites autrement (la boucle
+des feux s'y résout par itérations) : moteur et témoin d'accord à 10⁻⁹ près sur 215 jeux, dans douze
+réglages (fidèle, corrigé, chaque correction seule). En mode corrigé, la masse est conservée à 10⁻⁶ t près
+sur chaque jeu calculé ; appliquée seule, chaque correction ne change que ce que son défaut touche, et
+aucune n'est muette.
+
 ## [0.15.33] — 2026-10-14 — WaPla, lot W1a : le moteur, en mode fidèle
 
 Premier lot de code de la couche WaPla (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 4) :
