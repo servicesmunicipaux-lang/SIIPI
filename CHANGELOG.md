@@ -5,6 +5,47 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.36] — 2026-10-14 — WaPla, lot W2b : les bilans, le calcul, le niveau de fiabilité
+
+Deuxième lot de la couche WaPla en base (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 3.1,
+§ 6). Une **estimation de planification**, jamais une mesure ; aucun chiffre de SIIPI n'en dépend.
+
+### Les bilans (migration 075)
+- **`wapla.bilans`** : un par commune et par exercice. Il **naît de l'amorce** (W2a) : chaque entrée que
+  SIIPI tient y entre avec sa provenance et sa source. Ni centre de tri ni incinération dans le statu quo
+  d'une commune tunisienne (SPEC § 3.3).
+- **`wapla.entrees`** : saisie de la commune (dans les bornes de l'outil), ou **valeur par défaut de
+  l'UNIDO gardée exprès** — elle compte alors comme telle. Une entrée ne s'efface pas.
+- **Le calcul** se fait dans l'API avec le moteur **corrigé** ; la base garde le résultat, la **version du
+  moteur** et le niveau. **Une saisie rend le résultat caduc** : le bilan revient au brouillon.
+- Un bilan se **retire** (suppression logique) ; un autre peut alors s'ouvrir pour le même exercice.
+
+### Le niveau de fiabilité (`src/wapla/fiabilite.ts`, fonction pure)
+- Les trois **clés** — gisement, taux de collecte, destination (la part de chaque procédé actif) — doivent
+  être traitées avant le calcul (SPEC § 6).
+- Une clé gardée par défaut → **illustratif** : visible par la commune seule, **la base le cache à la FNCT**.
+- Sinon, la part des **17 entrées comptées** (`wapla.cles_entrees`) restées par défaut — ou issues de la
+  seule moyenne nationale — au moins égale au **seuil de la FNCT** (`wapla.reglages`, 30 %, réglable) →
+  **indicatif** ; en dessous → **étayé**. Le détail (quelles entrées, quelle part, quel seuil) est gardé.
+
+### Une couche qui ne compte pas dans SIIPI
+Les tables de la couche n'ont pas le journal d'audit de SIIPI, exprès : le déploiement national compte
+les écritures de la commune au journal, et une saisie WaPla y ferait passer une commune pour active. Elles
+gardent leur propre trace (qui, quand).
+
+### Routes `/wapla`
+`GET`/`PUT /wapla/reglages…` (FNCT), `GET`/`POST /wapla/bilans`, `GET /wapla/bilans/{id}`,
+`PUT /wapla/bilans/{id}/entrees/{cle}`, `POST /wapla/bilans/{id}/calcul`, `POST /wapla/bilans/{id}/retrait`.
+
+### Campagne `wapla-bilans`
+Refus d'abord (lecture sans compte, par un citoyen ou un prestataire ; ouverture, saisie ou retrait par la
+FNCT — aussi en SQL direct ; autre commune, exercice futur, doublon ; entrée inconnue, hors bornes, sans
+défaut ; calcul avant les clés ; entrée effacée ; provenance de SIIPI sans source). Puis le parcours : né de
+l'amorce, une clé gardée par défaut (illustratif, invisible pour la FNCT), la clé saisie (étayé : 5 entrées
+comptées sur 17 par défaut, 29,4 %), le seuil abaissé à 25 % (indicatif), une saisie qui rend le résultat
+caduc. Le résultat stocké est confronté au **témoin indépendant** (mode corrigé) ; la masse se conserve ; et
+rien de ce que la commune fait dans la couche ne compte comme saisie dans SIIPI.
+
 ## [0.15.35] — 2026-10-14 — WaPla, lot W2a : le schéma à part, les références, l'amorce
 
 Premier lot de la couche WaPla en base (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 2 et
