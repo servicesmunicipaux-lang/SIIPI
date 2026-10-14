@@ -109,6 +109,8 @@ import {
   qSeriesCommuneSchema,
 } from '../routes/kpi5Axes.routes.js';
 import { caracterisationSchema, pcgdSchema } from '../routes/references.routes.js';
+// La couche WaPla documente ses routes ici, comme les autres : le contrat est un.
+import { facteurReferenceSchema, qAmorceSchema, retraitFacteurSchema } from '../wapla/routes.js';
 import {
   poiSchema,
   pleinSchema,
@@ -1952,6 +1954,71 @@ registry.registerPath({
 });
 
 // --- Les registres qui automatisent les sources des KPI (lot « sources KPI ») -
+
+const TAG_WAPLA = 'WaPla (planification)';
+const EntreeAmorce = registry.register(
+  'EntreeAmorceWapla',
+  z.object({
+    cle: z.string().openapi({ description: 'L’entrée du moteur WaPla (waste_in, tc_1, ghg_1…), ou dechets_collectes_t, le tonnage pesé dont le taux de collecte se déduit.' }),
+    ordre: z.number().int(),
+    valeur: z.number().nullable().openapi({ description: 'Vide quand SIIPI ne tient pas la donnée : jamais 0 (règle d’or 1.1).' }),
+    provenance: z.enum(['siipi_mesure', 'siipi_declare', 'reference_tunisienne']).nullable(),
+    source: z.string().openapi({ description: 'D’où vient la valeur, en clair.' }),
+    detail: z.record(z.string(), z.unknown()).nullable(),
+    manque: z.string().nullable().openapi({ description: 'Pourquoi l’entrée est vide, et ce qu’il faut compléter.' }),
+    ecart: z.string().nullable().openapi({ description: 'Un écart à montrer (taux de collecte au-delà de 1, exercice pesé en partie…), jamais corrigé en silence.' }),
+  })
+);
+const FacteurReference = registry.register(
+  'FacteurReferenceWapla',
+  z.object({
+    id: z.string().uuid(),
+    code: z.enum(['precipitations_annuelles_mm', 'temperature_moyenne_c']),
+    gouvernorat: z.string(),
+    valeur: z.number(),
+    source: z.string(),
+    date_effet: z.string(),
+    saisi_le: z.string(),
+    retire_le: z.string().nullable(),
+    motif_retrait: z.string().nullable(),
+  })
+);
+registry.registerPath({
+  method: 'get', path: '/wapla/amorce', tags: [TAG_WAPLA],
+  summary: 'L’amorce d’un bilan WaPla : ce que SIIPI propose pour chaque entrée',
+  description:
+    'Pour chaque entrée que SIIPI peut alimenter (gisement, tonnage pesé, taux de collecte, gasoil de collecte, coût complet, redevance ANGeD, composition, climat) : la valeur, sa provenance et sa source, ou ce qui manque. Lecture seule ; la couche WaPla lit SIIPI, SIIPI ne la lit jamais. L’exercice ne peut pas être dans le futur.',
+  security: SECURISE,
+  request: { query: qAmorceSchema.extend({ communeId: paramCommuneId.optional() }) },
+  responses: {
+    200: json(z.object({ commune_id: z.string(), exercice: z.number().int(), entrees: z.array(EntreeAmorce) }), 'L’amorce, entrée par entrée.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'get', path: '/wapla/facteurs-reference', tags: [TAG_WAPLA],
+  summary: 'Les références tunisiennes de la couche WaPla (climat par gouvernorat)',
+  description: 'Les valeurs en vigueur ; avec retirees=1, aussi les valeurs retirées et leur motif.',
+  security: SECURISE,
+  request: { query: z.object({ retirees: z.enum(['1']).optional() }) },
+  responses: { 200: json(z.array(FacteurReference), 'Les références.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/wapla/facteurs-reference', tags: [TAG_WAPLA],
+  summary: 'Saisir une référence tunisienne (FNCT)',
+  description: 'Réservé à la FNCT. Datée et sourcée ; bornes plausibles pour la Tunisie ; une seule valeur en vigueur par gouvernorat, code et date (409 sinon).',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: facteurReferenceSchema } } } },
+  responses: { 201: json(FacteurReference, 'Référence enregistrée.'), 409: json(Erreur, 'Une valeur en vigueur existe déjà pour ce gouvernorat, ce code et cette date : la retirer d’abord.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/wapla/facteurs-reference/{id}/retrait', tags: [TAG_WAPLA],
+  summary: 'Retirer une référence (FNCT), avec son motif',
+  description: 'Une référence ne se corrige ni ne s’efface : elle se retire, et reste lisible avec son motif.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }), body: { content: { 'application/json': { schema: retraitFacteurSchema } } } },
+  responses: { 200: json(FacteurReference, 'Référence retirée.'), ...REPONSES_COMMUNES },
+});
 
 const TAG_SOURCES = 'Registres et lieux';
 const Ligne = z.record(z.string(), z.any());
@@ -7125,7 +7192,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.34',
+      version: '0.15.35',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

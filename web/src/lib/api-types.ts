@@ -5874,6 +5874,327 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/wapla/amorce": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * L’amorce d’un bilan WaPla : ce que SIIPI propose pour chaque entrée
+         * @description Pour chaque entrée que SIIPI peut alimenter (gisement, tonnage pesé, taux de collecte, gasoil de collecte, coût complet, redevance ANGeD, composition, climat) : la valeur, sa provenance et sa source, ou ce qui manque. Lecture seule ; la couche WaPla lit SIIPI, SIIPI ne la lit jamais. L’exercice ne peut pas être dans le futur.
+         */
+        get: {
+            parameters: {
+                query: {
+                    exercice: number;
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description L’amorce, entrée par entrée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            commune_id: string;
+                            exercice: number;
+                            entrees: components["schemas"]["EntreeAmorceWapla"][];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/wapla/facteurs-reference": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les références tunisiennes de la couche WaPla (climat par gouvernorat)
+         * @description Les valeurs en vigueur ; avec retirees=1, aussi les valeurs retirées et leur motif.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    retirees?: "1";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les références. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FacteurReferenceWapla"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Saisir une référence tunisienne (FNCT)
+         * @description Réservé à la FNCT. Datée et sourcée ; bornes plausibles pour la Tunisie ; une seule valeur en vigueur par gouvernorat, code et date (409 sinon).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        code: "precipitations_annuelles_mm" | "temperature_moyenne_c";
+                        gouvernorat: string;
+                        valeur: number;
+                        source: string;
+                        dateEffet: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Référence enregistrée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FacteurReferenceWapla"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Une valeur en vigueur existe déjà pour ce gouvernorat, ce code et cette date : la retirer d’abord. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/wapla/facteurs-reference/{id}/retrait": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retirer une référence (FNCT), avec son motif
+         * @description Une référence ne se corrige ni ne s’efface : elle se retire, et reste lisible avec son motif.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Référence retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FacteurReferenceWapla"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/poi": {
         parameters: {
             query?: never;
@@ -24206,6 +24527,37 @@ export interface components {
             observation: string | null;
             saisi_le: string;
             saisi_par: string | null;
+        };
+        EntreeAmorceWapla: {
+            /** @description L’entrée du moteur WaPla (waste_in, tc_1, ghg_1…), ou dechets_collectes_t, le tonnage pesé dont le taux de collecte se déduit. */
+            cle: string;
+            ordre: number;
+            /** @description Vide quand SIIPI ne tient pas la donnée : jamais 0 (règle d’or 1.1). */
+            valeur: number | null;
+            /** @enum {string|null} */
+            provenance: "siipi_mesure" | "siipi_declare" | "reference_tunisienne" | null;
+            /** @description D’où vient la valeur, en clair. */
+            source: string;
+            detail: {
+                [key: string]: unknown;
+            } | null;
+            /** @description Pourquoi l’entrée est vide, et ce qu’il faut compléter. */
+            manque: string | null;
+            /** @description Un écart à montrer (taux de collecte au-delà de 1, exercice pesé en partie…), jamais corrigé en silence. */
+            ecart: string | null;
+        };
+        FacteurReferenceWapla: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            code: "precipitations_annuelles_mm" | "temperature_moyenne_c";
+            gouvernorat: string;
+            valeur: number;
+            source: string;
+            date_effet: string;
+            saisi_le: string;
+            retire_le: string | null;
+            motif_retrait: string | null;
         };
         Lieu: {
             /** Format: uuid */

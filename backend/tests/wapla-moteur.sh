@@ -345,8 +345,8 @@ echo
 echo "8. Une couche à part"
 chk "le moteur n'importe que zod : ni base, ni route, ni rien de SIIPI" "zod" \
     "$(grep -E "^import .* from '" src/wapla/moteur.ts | sed -E "s/.* from '([^']+)'.*/\1/" | sort -u | paste -sd, -)"
-chk "aucun fichier de SIIPI hors de src/wapla n'importe le moteur" 0 \
-    "$(grep -rlE "from '(\.\./)+wapla/" src | grep '\.ts$' | grep -vc '^src/wapla/')"
+chk "aucun fichier de SIIPI hors de src/wapla n'importe le moteur (app.ts et le contrat n'en connaissent que les routes)" 0 \
+    "$(grep -rlE "wapla/moteur" src | grep '\.ts$' | grep -vc '^src/wapla/')"
 chk "chaque résultat porte la version du moteur ; sans réglage, c'est le mode corrigé" "w1b-1|corrige" \
     "$(moteur '[{}]'; m "d[0]['version_moteur'] + '|' + d[0]['mode']")"
 
