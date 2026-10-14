@@ -5,6 +5,54 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.35] — 2026-10-14 — WaPla, lot W2a : le schéma à part, les références, l'amorce
+
+Premier lot de la couche WaPla en base (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 2 et
+§ 3). La couche lit SIIPI ; SIIPI ne la lit jamais.
+
+### Un schéma à part (migration 074)
+- **`wapla`** : tout ce qui est WaPla y vit. Aucune fonction, vue, contrainte ou déclencheur de SIIPI n'y
+  touche.
+- **`wapla.facteurs_reference`** : les références tunisiennes — les normales climatiques par gouvernorat
+  (pluie annuelle, température moyenne), tenues par la **FNCT**, datées, **sourcées**, dans des bornes
+  plausibles. Une valeur ne se corrige ni ne s'efface : elle se **retire avec son motif**, et la suivante
+  prend sa place. Rien n'est ajouté aux paramètres nationaux de SIIPI.
+
+### L'amorce : ce que SIIPI propose pour chaque entrée de WaPla
+`wapla.amorce_commune(commune, exercice)` et **`GET /wapla/amorce`**, avec les droits de l'appelant (les
+règles de lecture de SIIPI s'appliquent) :
+- le **gisement** (population retenue × production théorique × 365) — déclaré ;
+- les **déchets collectés** (pesées ménagères de l'exercice) — mesurés, **sans extrapolation** : un
+  exercice pesé en partie le dit (« 3 mois pesés sur 12 ») ;
+- le **taux de collecte** (collecté / gisement) — au-delà de 1, **un écart à montrer**, jamais un plafond ;
+- le **gasoil de collecte** (pleins des engins « Propreté (levée des déchets) ») — mesuré ; sans plein,
+  « non renseigné », jamais 0 L ;
+- le **coût de collecte** du statu quo : le coût total publié par l'étude de coût complet de l'exercice,
+  lu tel quel ;
+- l'**exploitation de la décharge** : la redevance ANGeD, chaque pesée au taux de sa date, et son caractère
+  provisoire ;
+- la **composition** retenue (étude de la commune, PCGD, autre étude, puis moyenne nationale, dite comme
+  telle) ;
+- le **climat** du gouvernorat.
+Une entrée que SIIPI ne tient pas reste vide, avec ce qui manque. Ne sont pas proposés : la destination des
+tonnages (`pesees.destination` est un texte libre), le non-collecté, la gestion de la décharge — la commune
+les saisira (lot W2b).
+
+### Routes `/wapla`
+`GET /wapla/amorce`, `GET /wapla/facteurs-reference`, `POST /wapla/facteurs-reference` (FNCT),
+`POST /wapla/facteurs-reference/{id}/retrait` (FNCT, motif obligatoire). Les routes vivent dans
+`src/wapla/` ; hors de ce dossier, seuls `app.ts` (qui les monte) et le contrat les importent — jamais le
+moteur.
+
+### Campagne `wapla`
+Elle commence par les refus (amorce : sans compte, citoyen, prestataire, autre commune, exercice futur ;
+références : saisies par une commune — aussi en SQL direct —, sans source, hors bornes, gouvernorat inconnu,
+en double, corrigées, effacées, retirées sans motif), bâtit une commune de test et recalcule chaque valeur de
+l'amorce des seules lignes insérées. La **séparation** : aucun objet de SIIPI ne dépend du schéma `wapla`
+(pg_depend — et le contrôle attrape bien une vue qui le lirait), aucune fonction de SIIPI ne le nomme, et le
+schéma supprimé le temps d'une transaction, les chiffres de SIIPI (complétude, indicateurs, redevance,
+production) sont identiques à la ligne près.
+
 ## [0.15.34] — 2026-10-14 — WaPla, lot W1b : le mode corrigé
 
 Deuxième lot du moteur WaPla (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 4.2) : le mode
