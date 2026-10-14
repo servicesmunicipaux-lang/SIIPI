@@ -61,7 +61,7 @@ Recharts, tableau exportable, formule FR/AR, repère) ; « il manque » ouvre su
 la déclaration ou le paramètre de la commune. v0.15.30 : refonte, lot 4a — le tableau national (migration 072) :
 une saisie est le fait de la commune elle-même (`app._saisies_communales`, jamais la FNCT), déploiement mois par
 mois (`/observatoire/activite`), tonnages estimé / déclaré / mesuré / pesé jamais additionnés, répartition d'un
-indicateur avec « N communes sur M » et sans rang, contours des gouvernorats. v0.15.31 : lot 4b — la synthèse nationale s'ouvre sur le suivi du déploiement ; « Répartition » donne la carte des gouvernorats, le graphique alphabétique et le détail par commune, triable. v0.15.32 : lot 5 — « Ma commune dans SIIPI » (migration 073, `app.completude_commune`) : chaque donnée de référence et chaque registre du mois, présent ou à ajouter, avec son formulaire et les indicateurs qu'il débloque ; ni total, ni pourcentage, ni liste « toutes communes ». Le choix du formulaire qui complète une donnée vit dans un seul composant (`web/src/composants/kpi/LigneACompleter.tsx`). La refonte est close ; suite : la couche WaPla.**
+indicateur avec « N communes sur M » et sans rang, contours des gouvernorats. v0.15.31 : lot 4b — la synthèse nationale s'ouvre sur le suivi du déploiement ; « Répartition » donne la carte des gouvernorats, le graphique alphabétique et le détail par commune, triable. v0.15.32 : lot 5 — « Ma commune dans SIIPI » (migration 073, `app.completude_commune`) : chaque donnée de référence et chaque registre du mois, présent ou à ajouter, avec son formulaire et les indicateurs qu'il débloque ; ni total, ni pourcentage, ni liste « toutes communes ». Le choix du formulaire qui complète une donnée vit dans un seul composant (`web/src/composants/kpi/LigneACompleter.tsx`). La refonte est close. v0.15.33 : WaPla, lot W1a — le moteur réécrit en mode fidèle (`backend/src/wapla/moteur.ts`, fonction pure, sans base) : il reproduit l'outil UNIDO défauts compris, vecteurs de l'annexe retrouvés, aucun écart avec le témoin `tests/wapla_attendus.py` sur 213 jeux ; réutilisation confirmée par l'UNIDO le 13/10/2026. Suite : W1b, le mode corrigé (D1 à D10).**
 
 ---
 
@@ -185,7 +185,7 @@ données personnelles). Jusqu'à confirmation par un juriste de la FNCT :
 ```bash
 docker compose exec -T api npm run migrate            # migrations en attente
 docker compose exec -T api npm run verifier:contrat   # toute route servie est documentée
-docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (49 au 13/10/2026)
+docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (50 au 14/10/2026)
 docker compose exec -T api npm run test:module4       # une seule campagne
 docker compose exec -T api npm run recette:etat -- <commune>   # une commune peut-elle commencer sa recette ? (lecture seule)
 docker compose run  --rm web npx tsc --noEmit         # typage du front
@@ -335,11 +335,11 @@ sans erreur de :**
 
 1. **`npm run verifier:contrat`** — toute route servie est documentée ;
 2. **toutes les campagnes `backend/tests/*.sh`** — pas « celles qui concernent
-   la tâche ». Elles étaient 49 au 13/10/2026 (S0 a ajouté `assainissement`,
+   la tâche ». Elles étaient 50 au 14/10/2026 (S0 a ajouté `assainissement`,
    S1 `simulation-3mois`, 16.1 `barbechas`, 16.2 `documents`, 16.3 `exploitation`,
    16.4 `declassement`, 17.3 `parametres-nationaux`, 17.1 `parametres-communaux`,
    17.5 `cout-complet`, 18.1 `acteurs-informels`, v0.15.15 `mot-de-passe-public`,
-   v0.15.16 `recette-etat`, v0.15.23 `purge-media`, v0.15.26 `references`, v0.15.28 `series-indicateurs`, v0.15.30 `tableau-national`, v0.15.32 `completude`).
+   v0.15.16 `recette-etat`, v0.15.23 `purge-media`, v0.15.26 `references`, v0.15.28 `series-indicateurs`, v0.15.30 `tableau-national`, v0.15.32 `completude`, v0.15.33 `wapla-moteur`).
 
 Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 
@@ -347,7 +347,7 @@ Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 docker compose exec -T api npm test
 ```
 
-Le dossier `backend/tests/` contenait **50 fichiers `.sh`** au 13/10/2026 : 49
+Le dossier `backend/tests/` contenait **51 fichiers `.sh`** au 14/10/2026 : 50
 campagnes et `executer.sh`, le lanceur, qui n'est pas une campagne. Ces chiffres
 ne sont pas des valeurs à retenir mais à **recalculer** — un critère d'acceptation qui se
 dessèche sans bruit est pire qu'aucun :
@@ -453,9 +453,10 @@ backend/
   src/routes/      une route par domaine ; les littéraux avant /:id
   src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF),
                    conservationMedias.ts (photos de 36 mois, archive froide)
+  src/wapla/       la couche WaPla : moteur.ts, fonction pure — rien de SIIPI ne l'importe
   src/openapi/     document.ts — le contrat, généré depuis les schémas zod
   seed/            jeux réels : Dar Chaabane, Djerba (Houmt Souk, Midoun, Ajim)
-  tests/           49 campagnes au 13/10/2026, lancées par tests/executer.sh
+  tests/           50 campagnes au 14/10/2026, lancées par tests/executer.sh
 web/
   src/composants/  communal/ · national/ · prestataire/ · kpi/ · registres/
                    ajout/ — le registre des formulaires de création et le catalogue « + Ajouter »

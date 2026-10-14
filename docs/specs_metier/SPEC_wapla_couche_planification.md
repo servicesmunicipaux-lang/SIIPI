@@ -38,7 +38,7 @@ Aucune méthode de SIIPI ne change :
 
 **Ce qu'il n'est pas.** Ce n'est pas un outil opérationnel : le coût de collecte y tient en un seul chiffre, et le gasoil en un seul total annuel. SIIPI est beaucoup plus fin (circuits, pesées par voyage, carnets de bord). La couche WaPla se situe **au-dessus** : elle agrège une année, elle ne descend jamais au circuit.
 
-**Licence.** L'outil est distribué gratuitement (« Permission to use is hereby granted, free of charge ») et le paquet contient une licence Apache 2.0, qui couvre vraisemblablement l'enveloppe d'installation plutôt que le code de l'application. **Ce que nous faisons** : réécrire le moteur sans copier le code, en citant la méthode (UNIDO/GEF, TU Wien, 2021). **À confirmer par écrit auprès de l'UNIDO** avant toute diffusion nationale (§ 9).
+**Licence.** L'outil est distribué gratuitement (« Permission to use is hereby granted, free of charge ») et le paquet contient une licence Apache 2.0, qui couvre vraisemblablement l'enveloppe d'installation plutôt que le code de l'application. **Ce que nous faisons** : réécrire le moteur sans copier le code, en citant la méthode (UNIDO/GEF, TU Wien, 2021). **Confirmé par l'UNIDO le 13 octobre 2026** : le moteur réécrit et sa spécification sont dans le dépôt (§ 9).
 
 ---
 
@@ -227,7 +227,7 @@ Chaque décision a une valeur par défaut. Sans réponse, la valeur par défaut 
 | Source de la composition des déchets | Tranché : caractérisation tenue dans SIIPI, personnalisable par la commune, moyenne nationale ANGeD en repli | — |
 | Climat | Normales INM par gouvernorat | FNCT |
 | Classe de gestion des décharges contrôlées ANGeD | Déclarée site par site, datée, par la FNCT | FNCT / ANGeD |
-| Réutilisation du code et de la méthode | Méthode citée, code réécrit ; accord écrit de l'UNIDO avant diffusion nationale | FNCT |
+| Réutilisation du code et de la méthode | **Tranché le 13/10/2026** : accord de l'UNIDO ; méthode citée, code réécrit (`backend/src/wapla/`) | FNCT |
 | Place dans la feuille de route | Jalon 15, W0 dès maintenant | Nacer |
 
 ---

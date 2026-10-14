@@ -5,6 +5,38 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.33] — 2026-10-14 — WaPla, lot W1a : le moteur, en mode fidèle
+
+Premier lot de code de la couche WaPla (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 4) :
+le moteur de l'outil UNIDO WaPla v1.5 (TU Wien, 2021), réécrit. **Réutilisation confirmée par l'UNIDO
+le 13 octobre 2026** : le moteur et sa spécification (`docs/specs_metier/sources/wapla/
+wapla-moteur-reference.md`) entrent dans le dépôt.
+
+### Une fonction pure, à part
+- **`backend/src/wapla/moteur.ts`** : des entrées, des résultats — flux de matière (37 flux, 35
+  coefficients de transfert, procédés optionnels retirés et réacheminés comme dans l'outil), uPOPs
+  (mg TEQ/an), GES (t CO₂-éq/an, méthane en potentiel engagé), classe climatique, coûts (annuités,
+  coûts spécifiques). Ni base, ni route, ni écran ; il n'importe que zod, et aucun fichier de SIIPI ne
+  l'importe. Chaque résultat porte `version_moteur` et son mode.
+- **Mode fidèle seulement** : il reproduit l'outil, défauts compris (D1 à D10 de la note de cadrage :
+  la constante 36 des uPOPs du dépotoir, le CO₂ fossile qui disparaît avec la valorisation énergétique,
+  le total de GES sans les feux, le coût de décharge nul, la ligne de recettes qui disparaît, le trou de
+  la classe climatique, le bilan de masse qui fuit des résidus des feux…). C'est la preuve que l'outil
+  est compris ; le mode corrigé, le seul qui s'affichera, vient au lot W1b.
+- Le moteur **refuse** ce que l'outil laisse passer sans calcul possible : une clé inconnue (une faute
+  de frappe garderait la valeur par défaut sans que personne le voie), une durée d'amortissement
+  nulle (coût infini), un coût saisi pour un procédé inactif (l'outil ne dit pas ce qu'il en fait).
+- `npm run wapla:calculer` : le moteur en ligne de commande, une liste de jeux en entrée.
+
+### Campagne `wapla-moteur`
+Elle commence par les refus, retrouve les vecteurs de référence de l'annexe (valeurs par défaut et
+scénario B : 460 t collectées, 238,28 t en stock de décharge, 699,3 t CO₂-éq feux compris, 690 dans le
+tableau de l'outil), confronte le moteur au **témoin indépendant** `tests/wapla_attendus.py` sur 13 jeux
+fixes et 200 tirés au hasard (graine fixe), puis vérifie que chaque défaut D1 à D10 est bien là.
+
+Les vecteurs viennent d'une lecture du code de l'outil, pas encore d'une exécution : les rejouer dans
+l'application WaPla sous Windows reste à faire (lot W0).
+
 ## [0.15.32] — 2026-10-13 — Refonte, lot 5 : « Ma commune dans SIIPI »
 
 Dernier lot de `docs/specs_metier/SPEC_refonte_indicateurs_saisie.md` (§ 2.4) : la complétude de la
