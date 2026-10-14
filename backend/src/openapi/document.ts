@@ -112,6 +112,8 @@ import { caracterisationSchema, pcgdSchema } from '../routes/references.routes.j
 // La couche WaPla documente ses routes ici, comme les autres : le contrat est un.
 import {
   creationBilanSchema,
+  creationScenarioSchema,
+  hypotheseSchema,
   facteurReferenceSchema,
   qAmorceSchema,
   reglageSchema,
@@ -2151,6 +2153,96 @@ registry.registerPath({
   security: SECURISE,
   request: { params: pBilan },
   responses: { 204: { description: 'Bilan retiré.' }, ...REPONSES_COMMUNES },
+});
+
+const ComparaisonWapla = registry.register(
+  'ComparaisonWapla',
+  z.object({
+    indicateurs: z.record(z.string(), z.object({ statu_quo: z.number(), scenario: z.number(), ecart: z.number() })).openapi({
+      description: 'mise_en_decharge_t, brule_air_libre_t, ges_t_co2e (potentiel engagé), upops_mg_teq : statu quo, scénario, écart.',
+    }),
+    cout: z.object({
+      ecart: z.number().nullable().openapi({ description: 'TND/an que le scénario ajoute (procédés ajoutés seulement) ; null tant qu’un coût manque.' }),
+      procedes_ajoutes: z.array(z.enum(['compostage', 'mrf', 'incineration'])),
+      couts_manquants: z.array(z.enum(['compostage', 'mrf', 'incineration'])),
+      detail: z.record(z.string(), z.number().nullable()),
+    }),
+  })
+);
+const ScenarioWapla = registry.register(
+  'ScenarioWapla',
+  z.object({
+    id: z.string().uuid(),
+    bilan_id: z.string().uuid(),
+    commune_id: z.string(),
+    nom: z.string(),
+    description: z.string().nullable(),
+    statut: z.enum(['brouillon', 'calcule', 'fige']),
+    version_moteur: z.string().nullable(),
+    resultat: z.record(z.string(), z.unknown()).nullable(),
+    statu_quo: z.record(z.string(), z.unknown()).nullable().openapi({ description: 'Le résultat du statu quo, copié au calcul du scénario.' }),
+    comparaison: ComparaisonWapla.nullable(),
+    calcule_le: z.string().nullable(),
+    fige_le: z.string().nullable(),
+    cree_le: z.string(),
+    entrees: z.array(EntreeBilanWapla.extend({
+      provenance: z.enum(['siipi_mesure', 'siipi_declare', 'saisie_commune', 'reference_tunisienne', 'defaut_wapla', 'hypothese_scenario']),
+    })),
+  })
+);
+const pScenario = z.object({ id: z.string().uuid() });
+registry.registerPath({
+  method: 'get', path: '/wapla/bilans/{id}/scenarios', tags: [TAG_WAPLA],
+  summary: 'Les scénarios d’un bilan',
+  security: SECURISE,
+  request: { params: pBilan },
+  responses: { 200: json(z.array(ScenarioWapla.omit({ resultat: true, statu_quo: true, entrees: true, commune_id: true })), 'Les scénarios.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/wapla/bilans/{id}/scenarios', tags: [TAG_WAPLA],
+  summary: 'Créer un scénario à partir d’un bilan calculé (commune)',
+  description: 'Le scénario copie les entrées du statu quo, avec leur provenance. Refusé tant que le bilan n’est pas calculé.',
+  security: SECURISE,
+  request: { params: pBilan, body: { content: { 'application/json': { schema: creationScenarioSchema } } } },
+  responses: { 201: json(ScenarioWapla, 'Scénario créé.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/wapla/scenarios/{id}', tags: [TAG_WAPLA],
+  summary: 'Un scénario : hypothèses, résultat, comparaison au statu quo',
+  security: SECURISE,
+  request: { params: pScenario },
+  responses: { 200: json(ScenarioWapla, 'Le scénario.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'put', path: '/wapla/scenarios/{id}/entrees/{cle}', tags: [TAG_WAPLA],
+  summary: 'Poser une hypothèse de scénario (commune)',
+  description: 'L’entrée prend la provenance « hypothese_scenario » ; le calcul du scénario devient caduc. Un scénario figé refuse (409).',
+  security: SECURISE,
+  request: { params: pScenario.extend({ cle: z.string() }), body: { content: { 'application/json': { schema: hypotheseSchema } } } },
+  responses: { 200: json(ScenarioWapla, 'Le scénario, à jour.'), 409: json(Erreur, 'Le scénario est figé.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/wapla/scenarios/{id}/calcul', tags: [TAG_WAPLA],
+  summary: 'Calculer le scénario et le comparer au statu quo (commune)',
+  description: 'Moteur corrigé ; le résultat du statu quo est copié dans le scénario. L’écart de coût ne porte que sur les procédés que le scénario ajoute (SPEC § 5).',
+  security: SECURISE,
+  request: { params: pScenario },
+  responses: { 200: json(ScenarioWapla, 'Le scénario calculé.'), 409: json(Erreur, 'Le scénario est figé.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/wapla/scenarios/{id}/figer', tags: [TAG_WAPLA],
+  summary: 'Figer un scénario calculé (commune)',
+  description: 'Un scénario figé garde ses entrées, son résultat, la version du moteur et sa comparaison : la base refuse toute modification.',
+  security: SECURISE,
+  request: { params: pScenario },
+  responses: { 200: json(ScenarioWapla, 'Le scénario figé.'), 409: json(Erreur, 'Déjà figé.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/wapla/scenarios/{id}/retrait', tags: [TAG_WAPLA],
+  summary: 'Retirer un scénario (commune) — suppression logique',
+  security: SECURISE,
+  request: { params: pScenario },
+  responses: { 204: { description: 'Scénario retiré.' }, ...REPONSES_COMMUNES },
 });
 
 const TAG_SOURCES = 'Registres et lieux';
@@ -7325,7 +7417,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.37',
+      version: '0.15.38',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

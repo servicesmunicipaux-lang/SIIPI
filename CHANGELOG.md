@@ -5,6 +5,43 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.38] — 2026-10-14 — WaPla, lot W4a : les scénarios, comparés au statu quo
+
+Les données et le calcul des scénarios du PCGD (`docs/specs_metier/SPEC_wapla_couche_planification.md`
+§ 5, § 6 point 3). Les écrans suivent au lot W4b.
+
+### Un scénario (migration 076)
+- **`wapla.scenarios`** : un scénario part d'un bilan **calculé** — le statu quo. Il en copie les entrées,
+  avec leur provenance ; la commune y pose ses hypothèses (`hypothese_scenario`) : une part envoyée au
+  compostage, un procédé activé, un investissement. Une hypothèse posée rend le calcul caduc.
+- **Le calcul** (moteur corrigé, dans l'API) **copie le résultat du statu quo** dans le scénario :
+  recalculer le bilan ensuite ne change pas la comparaison.
+- **Figé, un scénario ne change plus** : ni ses entrées, ni son résultat, ni sa comparaison, ni la version
+  du moteur. La base le tient — l'API répond 409, le SQL direct est refusé. Il ne peut qu'être retiré,
+  logiquement.
+
+### La comparaison (`src/wapla/comparaison.ts`, fonction pure)
+- Statu quo, scénario et écart pour ce que la note de cadrage nomme : **tonnes mises en décharge, tonnes
+  brûlées à l'air libre, t CO₂-éq, mg TEQ**.
+- **L'écart de coût** ne porte que sur ce que le scénario **ajoute** (SPEC § 5) : un procédé qui ne reçoit
+  rien dans le statu quo et reçoit des déchets dans le scénario — annuité, exploitation, moins recettes. Un
+  procédé déjà en service garde son coût dans celui de SIIPI. Un coût manquant rend l'écart « non
+  renseigné », avec le procédé en cause.
+
+### Routes `/wapla`
+`GET`/`POST /wapla/bilans/{id}/scenarios`, `GET /wapla/scenarios/{id}`,
+`PUT /wapla/scenarios/{id}/entrees/{cle}`, `POST /wapla/scenarios/{id}/calcul`,
+`POST /wapla/scenarios/{id}/figer`, `POST /wapla/scenarios/{id}/retrait`.
+
+### Campagne `wapla-scenarios`
+Refus d'abord (bilan non calculé, FNCT — aussi en SQL direct —, prestataire, sans nom, hypothèse inconnue
+ou hors bornes, figer un brouillon). Puis 20 % de la collecte au compostage : moins de déchets en décharge,
+le compostage reconnu comme ajouté, l'écart « non renseigné » puis égal à 200 000 / 10 + 50 000 − compost ×
+20 ; les grandeurs et l'écart recalculés par un témoin des seuls résultats stockés, le résultat confronté au
+témoin du moteur. Le **test de sortie de W4** : figé, le scénario garde ses chiffres, sa comparaison, sa
+version et ses entrées à l'octet près après un changement des références de la FNCT et un nouveau calcul du
+statu quo. Les scénarios d'un bilan illustratif sont cachés à la FNCT.
+
 ## [0.15.37] — 2026-10-14 — WaPla, lot W3 : l'écran du bilan de planification
 
 Le premier écran de la couche WaPla (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 6), dans le
