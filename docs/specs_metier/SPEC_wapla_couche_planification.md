@@ -92,6 +92,8 @@ Aucune méthode de SIIPI ne change :
 
 Le seuil de 30 % est un réglage de la FNCT, pas une constante du code.
 
+**Précisé au lot W2b (14/10/2026).** Les trois entrées clés sont le gisement (`waste_in`), le taux de collecte (`tc_1`) et la destination des tonnages collectés — la part de chaque procédé **actif** (`tc_4` compostage, `tc_5` centre de tri, `tc_22` incinération). Le § 6 (« rien n'est calculé tant que les trois entrées clés ne sont pas renseignées ») et le niveau « illustratif » se concilient ainsi : la commune doit **traiter** chaque clé — une valeur, ou la valeur par défaut de l'UNIDO **gardée exprès** — avant le calcul ; une clé gardée par défaut donne un bilan illustratif. Les « entrées restantes » du seuil sont les 17 entrées de planification du § 3.2 (recyclables à la source, non-collecté, gasoil, coûts de collecte et de décharge, composition, climat, gestion de la décharge), tenues dans `wapla.cles_entrees` ; une composition issue de la seule moyenne nationale y compte comme par défaut. Les facteurs techniques de l'outil (facteurs d'émission, coefficients de dégradation) n'entrent pas dans le compte.
+
 ### 3.2 Correspondance entrées WaPla ← SIIPI
 
 | Entrée WaPla | Source dans SIIPI | Provenance | Remarque |
@@ -223,7 +225,7 @@ Chaque décision a une valeur par défaut. Sans réponse, la valeur par défaut 
 |---|---|---|
 | Mode du moteur affiché | **Corrigé**, le mode fidèle réservé aux tests (en service au lot W1b) | Nacer |
 | Base du méthane (D7) | **Tranché le 14/10/2026** : sans les résidus ; curseur de dégradation séparé | Nacer |
-| Seuil de valeurs par défaut pour « étayé » | 30 % des entrées hors entrées clés | FNCT |
+| Seuil de valeurs par défaut pour « étayé » | 30 % des 17 entrées comptées (`wapla.reglages`, réglable par la FNCT depuis le lot W2b) | FNCT |
 | Diffusion des uPOPs | Commune + FNCT ; export public seulement après validation de la FNCT | FNCT |
 | Source de la composition des déchets | Tranché : caractérisation tenue dans SIIPI, personnalisable par la commune, moyenne nationale ANGeD en repli | — |
 | Climat | Normales INM par gouvernorat | FNCT |

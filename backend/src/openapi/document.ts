@@ -110,7 +110,14 @@ import {
 } from '../routes/kpi5Axes.routes.js';
 import { caracterisationSchema, pcgdSchema } from '../routes/references.routes.js';
 // La couche WaPla documente ses routes ici, comme les autres : le contrat est un.
-import { facteurReferenceSchema, qAmorceSchema, retraitFacteurSchema } from '../wapla/routes.js';
+import {
+  creationBilanSchema,
+  facteurReferenceSchema,
+  qAmorceSchema,
+  reglageSchema,
+  retraitFacteurSchema,
+  saisieEntreeSchema,
+} from '../wapla/routes.js';
 import {
   poiSchema,
   pleinSchema,
@@ -2018,6 +2025,110 @@ registry.registerPath({
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }), body: { content: { 'application/json': { schema: retraitFacteurSchema } } } },
   responses: { 200: json(FacteurReference, 'Référence retirée.'), ...REPONSES_COMMUNES },
+});
+
+const ProvenanceWapla = z.enum(['siipi_mesure', 'siipi_declare', 'saisie_commune', 'reference_tunisienne', 'defaut_wapla']);
+const EntreeBilanWapla = registry.register(
+  'EntreeBilanWapla',
+  z.object({
+    cle: z.string(),
+    valeur: z.union([z.number(), z.boolean()]),
+    provenance: ProvenanceWapla,
+    source: z.string().nullable(),
+    detail: z.record(z.string(), z.unknown()).nullable(),
+    saisi_le: z.string(),
+  })
+);
+const BilanWapla = registry.register(
+  'BilanWapla',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    exercice: z.number().int(),
+    statut: z.enum(['brouillon', 'calcule']),
+    version_moteur: z.string().nullable(),
+    resultat: z.record(z.string(), z.unknown()).nullable().openapi({
+      description: 'Le résultat du moteur corrigé (flux, uPOPs, GES, climat, coûts) : une estimation de planification, jamais une mesure.',
+    }),
+    niveau: z.enum(['etaye', 'indicatif', 'illustratif']).nullable(),
+    fiabilite: z.record(z.string(), z.unknown()).nullable(),
+    calcule_le: z.string().nullable(),
+    cree_le: z.string(),
+    entrees: z.array(EntreeBilanWapla),
+    roles: z.array(z.object({ cle: z.string(), role: z.enum(['cle', 'comptee']), groupe: z.string() })),
+    a_traiter: z.array(z.string()).openapi({ description: 'Les entrées clés à traiter avant le calcul (une valeur, ou la valeur par défaut gardée exprès).' }),
+  })
+);
+const pBilan = z.object({ id: z.string().uuid() });
+registry.registerPath({
+  method: 'get', path: '/wapla/reglages', tags: [TAG_WAPLA],
+  summary: 'Les réglages de la couche WaPla (seuil de fiabilité)',
+  security: SECURISE,
+  responses: {
+    200: json(z.array(z.object({ cle: z.string(), valeur: z.number(), libelle: z.string(), modifie_le: z.string() })), 'Les réglages.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'put', path: '/wapla/reglages/seuil_defauts_etaye', tags: [TAG_WAPLA],
+  summary: 'Régler le seuil « étayé » / « indicatif » (FNCT)',
+  description: 'La part des entrées comptées restées par défaut au-delà de laquelle un bilan est indicatif (0 à 1).',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: reglageSchema } } } },
+  responses: { 200: json(z.object({ cle: z.string(), valeur: z.number() }), 'Réglage enregistré.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/wapla/bilans', tags: [TAG_WAPLA],
+  summary: 'Les bilans WaPla d’une commune',
+  description: 'La FNCT ne voit pas les bilans illustratifs (la base le tient).',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional() }) },
+  responses: { 200: json(z.array(BilanWapla.omit({ resultat: true, fiabilite: true, entrees: true, roles: true, a_traiter: true })), 'Les bilans.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/wapla/bilans', tags: [TAG_WAPLA],
+  summary: 'Ouvrir le bilan d’un exercice (commune)',
+  description: 'Réservé à la commune. Le bilan naît de l’amorce : chaque entrée que SIIPI tient y entre avec sa provenance ; ni centre de tri ni incinération dans le statu quo (SPEC § 3.3). Un bilan par exercice (409 sinon).',
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional() }), body: { content: { 'application/json': { schema: creationBilanSchema } } } },
+  responses: {
+    201: json(BilanWapla, 'Bilan ouvert.'),
+    409: json(Erreur, 'La commune a déjà un bilan pour cet exercice.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'get', path: '/wapla/bilans/{id}', tags: [TAG_WAPLA],
+  summary: 'Un bilan WaPla : entrées, résultat, niveau de fiabilité',
+  security: SECURISE,
+  request: { params: pBilan },
+  responses: { 200: json(BilanWapla, 'Le bilan.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'put', path: '/wapla/bilans/{id}/entrees/{cle}', tags: [TAG_WAPLA],
+  summary: 'Saisir une entrée, ou garder exprès la valeur par défaut de l’UNIDO (commune)',
+  description: 'Une saisie rend le résultat caduc : le bilan revient au brouillon. La valeur suit les bornes de l’outil.',
+  security: SECURISE,
+  request: {
+    params: pBilan.extend({ cle: z.string() }),
+    body: { content: { 'application/json': { schema: saisieEntreeSchema } } },
+  },
+  responses: { 200: json(BilanWapla, 'Le bilan, à jour.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/wapla/bilans/{id}/calcul', tags: [TAG_WAPLA],
+  summary: 'Calculer le bilan avec le moteur corrigé (commune)',
+  description: 'Refusé tant qu’une entrée clé n’est pas traitée. Le résultat garde la version du moteur ; le niveau de fiabilité est établi au même moment.',
+  security: SECURISE,
+  request: { params: pBilan },
+  responses: { 200: json(BilanWapla, 'Le bilan calculé.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/wapla/bilans/{id}/retrait', tags: [TAG_WAPLA],
+  summary: 'Retirer un bilan (commune) — suppression logique',
+  security: SECURISE,
+  request: { params: pBilan },
+  responses: { 204: { description: 'Bilan retiré.' }, ...REPONSES_COMMUNES },
 });
 
 const TAG_SOURCES = 'Registres et lieux';
@@ -7192,7 +7303,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.35',
+      version: '0.15.36',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
