@@ -92,3 +92,44 @@ export const UPOPS: { cle: string; procede: string; milieu: string }[] = [
   { cle: 'incineration_residus', procede: 'incineration', milieu: 'residus' },
   { cle: 'compost_produit', procede: 'compostage', milieu: 'produit' },
 ];
+
+/**
+ * Les coûts de ce qu'un scénario AJOUTE (lot W4b ; SPEC § 5) : pour chaque
+ * procédé optionnel, son investissement, sa durée d'amortissement, son taux,
+ * son exploitation et ses recettes. Seul un procédé que le statu quo
+ * n'alimentait pas entre dans l'écart de coût.
+ */
+export const COUTS_PROCEDES_AJOUTES: { procede: 'compostage' | 'mrf' | 'incineration'; entrees: EntreePlanification[] }[] = [
+  {
+    procede: 'compostage',
+    entrees: [
+      { cle: 'cost_15', groupe: 'ajout_compostage', nature: 'nombre', unite: 'tnd', min: 0 },
+      { cle: 'cost_16', groupe: 'ajout_compostage', nature: 'nombre', unite: 'annees', min: 1 },
+      { cle: 'cost_17', groupe: 'ajout_compostage', nature: 'nombre', unite: 'pourcent', min: 0, max: 50 },
+      { cle: 'cost_3', groupe: 'ajout_compostage', nature: 'nombre', unite: 'tnd_an', min: 0 },
+      { cle: 'cost_4', groupe: 'ajout_compostage', nature: 'nombre', unite: 'tnd_t', min: 0 },
+    ],
+  },
+  {
+    procede: 'mrf',
+    entrees: [
+      { cle: 'cost_18', groupe: 'ajout_mrf', nature: 'nombre', unite: 'tnd', min: 0 },
+      { cle: 'cost_19', groupe: 'ajout_mrf', nature: 'nombre', unite: 'annees', min: 1 },
+      { cle: 'cost_20', groupe: 'ajout_mrf', nature: 'nombre', unite: 'pourcent', min: 0, max: 50 },
+      { cle: 'cost_2', groupe: 'ajout_mrf', nature: 'nombre', unite: 'tnd_an', min: 0 },
+    ],
+  },
+  {
+    procede: 'incineration',
+    entrees: [
+      { cle: 'cost_21', groupe: 'ajout_incineration', nature: 'nombre', unite: 'tnd', min: 0 },
+      { cle: 'cost_22', groupe: 'ajout_incineration', nature: 'nombre', unite: 'annees', min: 1 },
+      { cle: 'cost_23', groupe: 'ajout_incineration', nature: 'nombre', unite: 'pourcent', min: 0, max: 50 },
+      { cle: 'cost_10', groupe: 'ajout_incineration', nature: 'nombre', unite: 'tnd_an', min: 0 },
+      { cle: 'cost_24', groupe: 'ajout_incineration', nature: 'nombre', unite: 'tnd_an', min: 0 },
+    ],
+  },
+];
+
+/** Les grandeurs comparées au statu quo, dans l'ordre de la note de cadrage. */
+export const INDICATEURS_COMPARES = ['mise_en_decharge_t', 'brule_air_libre_t', 'ges_t_co2e', 'upops_mg_teq'] as const;

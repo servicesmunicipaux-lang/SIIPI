@@ -3086,7 +3086,21 @@
       "APY": "Pluie annuelle",
       "ATY": "Température moyenne annuelle",
       "ghg_4": "Gestion de la décharge",
-      "ghg_19": "Biogaz de décharge capté"
+      "ghg_19": "Biogaz de décharge capté",
+      "cost_15": "Investissement",
+      "cost_16": "Durée d’amortissement",
+      "cost_17": "Taux d’intérêt",
+      "cost_3": "Exploitation annuelle",
+      "cost_4": "Recette par tonne de compost vendue",
+      "cost_18": "Investissement",
+      "cost_19": "Durée d’amortissement",
+      "cost_20": "Taux d’intérêt",
+      "cost_2": "Exploitation annuelle",
+      "cost_21": "Investissement",
+      "cost_22": "Durée d’amortissement",
+      "cost_23": "Taux d’intérêt",
+      "cost_10": "Exploitation annuelle",
+      "cost_24": "Recettes annuelles de l’énergie vendue"
     },
     "provenances": {
       "siipi_mesure": "Mesuré (SIIPI)",
@@ -3094,7 +3108,8 @@
       "saisie_commune": "Saisi par la commune",
       "reference_tunisienne": "Référence nationale",
       "defaut_wapla": "Valeur par défaut UNIDO",
-      "non_renseigne": "Non renseigné"
+      "non_renseigne": "Non renseigné",
+      "hypothese_scenario": "Hypothèse du scénario"
     },
     "unites": {
       "t_an": "t/an",
@@ -3102,7 +3117,10 @@
       "tnd_an": "TND/an",
       "mm": "mm",
       "degres": "°C",
-      "pourcent": "%"
+      "pourcent": "%",
+      "tnd": "TND",
+      "annees": "ans",
+      "tnd_t": "TND/t"
     },
     "choix": {
       "ghg_4": {
@@ -3110,6 +3128,49 @@
         "0_8": "Dépotoir profond (plus de 5 m)",
         "0_4": "Dépotoir peu profond (moins de 5 m)"
       }
+    },
+    "scenarios": {
+      "liste": "Les scénarios",
+      "aide": "Un scénario part de ce bilan (le statu quo) et en change des hypothèses : une part envoyée au compostage, un procédé mis en service, un investissement. Il se compare au statu quo ; figé, il ne change plus.",
+      "nom": "Nom du scénario",
+      "nomExemple": "Plateforme de compostage 2027",
+      "creer": "Créer le scénario",
+      "calculerDabord": "Calculez le bilan pour créer des scénarios : ils se comparent à un statu quo calculé.",
+      "statuts": {
+        "brouillon": "Brouillon",
+        "calcule": "Calculé",
+        "fige": "Figé"
+      },
+      "retour": "← Le bilan",
+      "titre": "Scénario : {{nom}}",
+      "fige": "Figé le {{le}}, calculé par le moteur {{version}} : ce scénario ne change plus — ni ses hypothèses, ni ses chiffres.",
+      "brouillon": "Brouillon : pas encore calculé, ou une hypothèse a changé depuis le dernier calcul.",
+      "calculer": "Calculer et comparer",
+      "figer": "Figer le scénario",
+      "confirmerFiger": "Figer ce scénario ? Ses hypothèses et ses chiffres ne pourront plus changer.",
+      "comparaison": "Comparé au statu quo",
+      "statuQuo": "Statu quo",
+      "scenario": "Scénario",
+      "ecart": "Écart",
+      "indicateurs": {
+        "mise_en_decharge_t": "Déchets mis en décharge (t/an)",
+        "brule_air_libre_t": "Déchets brûlés à l’air libre (t/an)",
+        "ges_t_co2e": "Gaz à effet de serre (t CO₂-éq/an)",
+        "upops_mg_teq": "Dioxines et furanes (mg TEQ/an)",
+        "cout": "Coût de ce que le scénario ajoute"
+      },
+      "coutSiipi": "celui de SIIPI",
+      "ecartCout": "{{ecart}} TND/an",
+      "aucunAjout": "Le scénario n’ajoute aucun procédé : son écart de coût est nul.",
+      "ajoutes": "Procédés ajoutés par le scénario : {{procedes}}.",
+      "coutsManquants": "Coûts à saisir pour : {{procedes}}.",
+      "hypotheses": "Les hypothèses",
+      "hypothesesAide": "Chaque entrée part du statu quo, avec sa provenance ; une valeur changée devient une hypothèse du scénario. Les coûts du statu quo restent ceux de SIIPI.",
+      "coutsDe": "Coûts ajoutés — {{procede}}",
+      "coutsDeAide": "Ne comptent que si le statu quo n’alimentait pas ce procédé.",
+      "resultatDetaille": "Le résultat détaillé du scénario",
+      "retirer": "Retirer le scénario",
+      "confirmerRetrait": "Retirer ce scénario ? Il ne sera plus affiché."
     }
   }
 }

@@ -5,6 +5,35 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.39] — 2026-10-14 — WaPla, lot W4b : les écrans des scénarios
+
+Les écrans des scénarios du PCGD (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 6, point 3),
+sur les routes du lot W4a.
+
+### Dans le bilan
+- Une section « **Les scénarios** » : la liste (brouillon, calculé, figé) et la création d'un scénario
+  nommé — seulement depuis un bilan calculé, l'écran le dit sinon.
+- L'exercice proposé à l'ouverture d'un bilan est le premier qui n'en a pas encore : la liste montrait une
+  année quand le bouton en gardait une autre.
+
+### Le scénario
+- **Les hypothèses** : les entrées de planification, chacune partant du statu quo avec sa provenance ; une
+  valeur changée prend le badge « **Hypothèse du scénario** ». Les coûts du statu quo restent ceux de SIIPI
+  et ne sont pas demandés.
+- **Les coûts de ce que le scénario ajoute**, pour chaque procédé optionnel en service : investissement,
+  durée d'amortissement, taux, exploitation, recettes.
+- **La comparaison** : statu quo, scénario et écart **signé** pour les déchets mis en décharge, brûlés à
+  l'air libre, les GES (potentiel engagé, dit à côté), les dioxines et furanes ; puis le coût de ce que le
+  scénario ajoute — « +54 700 TND/an », ou « non renseigné » avec les procédés dont il manque les coûts.
+- **Figer**, avec confirmation : en tête, « figé le …, calculé par le moteur … : ce scénario ne change
+  plus » ; plus aucun champ, plus de calcul.
+- Le résultat détaillé du scénario (diagramme, tableaux) en dépliant ; retrait du scénario.
+
+### Banc d'essai
+Le script du critère supprime désormais aussi le schéma `wapla` avant de rejouer les migrations : depuis
+W2a, il ne supprimait que `public` et `app`, si bien que la « base neuve » gardait les tables et les lignes de
+la couche d'un passage à l'autre. Le critère a été rejoué sur une base vraiment neuve (W2a à W4b compris).
+
 ## [0.15.38] — 2026-10-14 — WaPla, lot W4a : les scénarios, comparés au statu quo
 
 Les données et le calcul des scénarios du PCGD (`docs/specs_metier/SPEC_wapla_couche_planification.md`

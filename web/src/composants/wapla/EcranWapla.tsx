@@ -13,6 +13,9 @@ import { Chargement, Erreur } from '../Elements';
 import { BilanWapla } from './BilanWapla';
 
 const anneeTunis = () => Number(new Date(Date.now() + 3_600_000).toISOString().slice(0, 4));
+/** Les six derniers exercices qui n'ont pas encore de bilan. */
+const anneesOuvrables = (bilans: { exercice: number }[]) =>
+  Array.from({ length: 6 }, (_, i) => anneeTunis() - i).filter((a) => !bilans.some((b) => b.exercice === a));
 
 export function EcranWapla({ communeId, fnct }: { communeId: string; fnct: boolean }) {
   const { t } = useTranslation();
@@ -24,7 +27,12 @@ export function EcranWapla({ communeId, fnct }: { communeId: string; fnct: boole
 
   const charger = useCallback(async () => {
     try {
-      setBilans(await api.bilansWapla(communeId));
+      const liste = await api.bilansWapla(communeId);
+      setBilans(liste);
+      // L'exercice proposé est le premier qui n'a pas encore de bilan : sinon
+      // la liste montrerait une année et le bouton en garderait une autre.
+      const libres = anneesOuvrables(liste);
+      setExercice((e) => (libres.includes(e) ? e : (libres[0] ?? e)));
       setErreur(null);
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
@@ -49,6 +57,7 @@ export function EcranWapla({ communeId, fnct }: { communeId: string; fnct: boole
   if (erreur && !bilans) return <Erreur message={erreur} onReessayer={() => void charger()} />;
   if (!bilans) return <Chargement />;
 
+  const annees = anneesOuvrables(bilans);
   const ouvrir = async () => {
     setEnCours(true);
     setErreur(null);
@@ -61,7 +70,6 @@ export function EcranWapla({ communeId, fnct }: { communeId: string; fnct: boole
       setEnCours(false);
     }
   };
-  const annees = Array.from({ length: 6 }, (_, i) => anneeTunis() - i).filter((a) => !bilans.some((b) => b.exercice === a));
 
   return (
     <div className="space-y-6">

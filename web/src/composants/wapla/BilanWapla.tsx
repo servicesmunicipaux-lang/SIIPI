@@ -21,17 +21,20 @@ import {
   type BilanWapla as Bilan,
   type EntreeBilanWapla,
   type LigneBilanWapla,
+  type ResumeScenarioWapla,
 } from '../../lib/api';
 import { formaterNombre } from '../../i18n';
 import { BoutonExport } from '../BoutonExport';
 import { Chargement, Erreur } from '../Elements';
 import { CLES_PLANIFICATION, ENTREES_PLANIFICATION, GROUPES, PROCEDE_DE_LA_PART, type EntreePlanification } from './presentation';
 import { ResultatWapla } from './ResultatWapla';
+import { ScenarioWapla } from './ScenarioWapla';
 
 const bouton = 'min-h-10 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-50 disabled:opacity-40';
 const boutonPrincipal = 'min-h-11 rounded-lg bg-siipi-600 px-4 text-sm font-semibold text-white hover:bg-siipi-700 disabled:opacity-40';
 
-const COULEURS_PROVENANCE: Record<string, string> = {
+export const COULEURS_PROVENANCE: Record<string, string> = {
+  hypothese_scenario: 'bg-rose-100 text-rose-900',
   siipi_mesure: 'bg-siipi-100 text-siipi-900',
   siipi_declare: 'bg-sky-100 text-sky-900',
   saisie_commune: 'bg-violet-100 text-violet-900',
@@ -52,6 +55,9 @@ export function BilanWapla({ id, fnct, onRetour }: { id: string; fnct: boolean; 
   const [amorce, setAmorce] = useState<AmorceWapla | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
+  const [scenarios, setScenarios] = useState<ResumeScenarioWapla[]>([]);
+  const [scenarioOuvert, setScenarioOuvert] = useState<string | null>(null);
+  const [nomScenario, setNomScenario] = useState('');
 
   const charger = useCallback(async () => {
     try {
@@ -61,6 +67,7 @@ export function BilanWapla({ id, fnct, onRetour }: { id: string; fnct: boolean; 
       setErreur(null);
       // L'amorce donne la raison d'une entrée que SIIPI ne tient pas.
       api.amorceWapla(b.commune_id, b.exercice).then(setAmorce).catch(() => setAmorce(null));
+      api.scenariosWapla(id).then(setScenarios).catch(() => setScenarios([]));
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
     }
@@ -83,6 +90,19 @@ export function BilanWapla({ id, fnct, onRetour }: { id: string; fnct: boolean; 
   };
 
   if (!bilan) return erreur ? <Erreur message={erreur} onReessayer={() => void charger()} /> : <Chargement />;
+  if (scenarioOuvert) {
+    return (
+      <ScenarioWapla
+        id={scenarioOuvert}
+        lignesBilan={lignes}
+        fnct={fnct}
+        onRetour={() => {
+          setScenarioOuvert(null);
+          void charger();
+        }}
+      />
+    );
+  }
 
   const entree = (cle: string) => bilan.entrees.find((e) => e.cle === cle);
   const ligne = (cle: string) => lignes.find((l) => l.rubrique === 'entree' && l.cle === cle);
@@ -146,6 +166,56 @@ export function BilanWapla({ id, fnct, onRetour }: { id: string; fnct: boolean; 
         </section>
       )}
 
+      <section className="space-y-3" aria-labelledby="wapla-scenarios">
+        <h3 id="wapla-scenarios" className="text-lg font-semibold text-ardoise-900">{t('wapla.scenarios.liste')}</h3>
+        <p className="max-w-3xl text-sm text-ardoise-600">{t('wapla.scenarios.aide')}</p>
+        {scenarios.length > 0 && (
+          <ul className="space-y-2">
+            {scenarios.map((sc) => (
+              <li key={sc.id}>
+                <button
+                  type="button"
+                  onClick={() => setScenarioOuvert(sc.id)}
+                  className="flex w-full flex-wrap items-center justify-between gap-2 rounded-xl border border-ardoise-200 bg-white p-3 text-start hover:bg-ardoise-50"
+                >
+                  <span className="font-medium text-ardoise-900">{sc.nom}</span>
+                  <span className="text-sm text-ardoise-600">{t(`wapla.scenarios.statuts.${sc.statut}`)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!fnct &&
+          (bilan.statut === 'calcule' ? (
+            <form
+              className="flex flex-wrap items-end gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!nomScenario.trim()) return;
+                void agir(async () => {
+                  const sc = await api.creerScenarioWapla(id, nomScenario.trim(), null);
+                  setNomScenario('');
+                  setScenarioOuvert(sc.id);
+                });
+              }}
+            >
+              <label className="text-sm">
+                <span className="block text-ardoise-600">{t('wapla.scenarios.nom')}</span>
+                <input
+                  className="mt-1 min-h-10 w-64 max-w-full rounded-lg border border-ardoise-300 px-2 text-sm"
+                  value={nomScenario}
+                  maxLength={120}
+                  placeholder={t('wapla.scenarios.nomExemple')}
+                  onChange={(e) => setNomScenario(e.target.value)}
+                />
+              </label>
+              <button type="submit" className={bouton} disabled={enCours || !nomScenario.trim()}>{t('wapla.scenarios.creer')}</button>
+            </form>
+          ) : (
+            <p className="text-sm text-ardoise-500">{t('wapla.scenarios.calculerDabord')}</p>
+          ))}
+      </section>
+
       <section className="space-y-4" aria-labelledby="wapla-entrees">
         <h3 id="wapla-entrees" className="text-lg font-semibold text-ardoise-900">{t('wapla.bilan.entrees')}</h3>
         {GROUPES.map((g) => (
@@ -197,8 +267,11 @@ export function BilanWapla({ id, fnct, onRetour }: { id: string; fnct: boolean; 
   );
 }
 
-/** Une entrée de planification : sa valeur, sa provenance, et de quoi la saisir. */
-function LigneEntree({
+/**
+ * Une entrée de planification : sa valeur, sa provenance, et de quoi la saisir.
+ * Le même composant sert au bilan et aux hypothèses d'un scénario (lot W4b).
+ */
+export function LigneEntree({
   def,
   entree,
   ligne,
@@ -207,15 +280,18 @@ function LigneEntree({
   sans_objet,
   lectureSeule,
   onSaisir,
+  defautPossible = true,
 }: {
   def: EntreePlanification;
-  entree: EntreeBilanWapla | undefined;
+  entree: Pick<EntreeBilanWapla, 'valeur' | 'source'> & { provenance: string } | undefined;
   ligne: LigneBilanWapla | undefined;
   manque: string | null;
   cle_a_traiter: boolean;
   sans_objet: boolean;
   lectureSeule: boolean;
   onSaisir: (saisie: { valeur: number | boolean } | { defaut: true }) => void;
+  /** Un scénario ne garde pas « la valeur UNIDO » exprès : il part du statu quo. */
+  defautPossible?: boolean;
 }) {
   const { t } = useTranslation();
   const valeurActuelle = entree ? entree.valeur : ligne?.valeur ?? null;
@@ -239,7 +315,7 @@ function LigneEntree({
   // Une entrée encore absente du bilan vaut la valeur par défaut de l'outil, si
   // elle en a une (l'export la marque « defaut_wapla ») : la commune peut la
   // garder exprès. Un coût n'en a pas.
-  const peutGarderDefaut = !entree && ligne?.provenance === 'defaut_wapla';
+  const peutGarderDefaut = defautPossible && !entree && ligne?.provenance === 'defaut_wapla';
 
   return (
     <div className={`flex flex-wrap items-start justify-between gap-3 rounded-lg p-2 ${cle_a_traiter ? 'bg-amber-50 ring-1 ring-amber-300' : ''}`}>

@@ -156,6 +156,8 @@ export type EntreeBilanWapla = BilanWapla['entrees'][number];
 export type AmorceWapla = Reponse<'/wapla/amorce', 'get'>;
 export type EntreeAmorceWapla = AmorceWapla['entrees'][number];
 export type LigneBilanWapla = Reponse<'/wapla/bilans/{id}/export', 'get'>[number];
+export type ScenarioWapla = Reponse<'/wapla/scenarios/{id}', 'get'>;
+export type ResumeScenarioWapla = Reponse<'/wapla/bilans/{id}/scenarios', 'get'>[number];
 export type ElementCompletude = CompletudeCommune['elements'][number];
 export type DependanceIndicateur = Reponse<'/kpi/dependances', 'get'>[number];
 export type SaisieDeclarations = Corps<'/kpi/declarations/{communeId}/{annee}', 'put'>;
@@ -1238,6 +1240,21 @@ export const api = {
     requete<void>(`/wapla/bilans/${encodeURIComponent(id)}/retrait`, { method: 'POST' }),
   // Toutes les entrées du moteur, facteurs techniques compris, avec leur provenance.
   lignesBilanWapla: (id: string) => requete<LigneBilanWapla[]>(`/wapla/bilans/${encodeURIComponent(id)}/export`),
+  scenariosWapla: (bilanId: string) => requete<ResumeScenarioWapla[]>(`/wapla/bilans/${encodeURIComponent(bilanId)}/scenarios`),
+  creerScenarioWapla: (bilanId: string, nom: string, description: string | null) =>
+    requete<ScenarioWapla>(`/wapla/bilans/${encodeURIComponent(bilanId)}/scenarios`, {
+      method: 'POST',
+      body: JSON.stringify({ nom, description }),
+    }),
+  scenarioWapla: (id: string) => requete<ScenarioWapla>(`/wapla/scenarios/${encodeURIComponent(id)}`),
+  hypotheseScenarioWapla: (id: string, cle: string, valeur: number | boolean) =>
+    requete<ScenarioWapla>(`/wapla/scenarios/${encodeURIComponent(id)}/entrees/${encodeURIComponent(cle)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ valeur }),
+    }),
+  calculerScenarioWapla: (id: string) => requete<ScenarioWapla>(`/wapla/scenarios/${encodeURIComponent(id)}/calcul`, { method: 'POST' }),
+  figerScenarioWapla: (id: string) => requete<ScenarioWapla>(`/wapla/scenarios/${encodeURIComponent(id)}/figer`, { method: 'POST' }),
+  retirerScenarioWapla: (id: string) => requete<void>(`/wapla/scenarios/${encodeURIComponent(id)}/retrait`, { method: 'POST' }),
   amorceWapla: (communeId: string, exercice: number) =>
     requete<AmorceWapla>(`/wapla/amorce?${new URLSearchParams({ communeId, exercice: String(exercice) }).toString()}`),
   completudeCommune: (communeId: string) =>
