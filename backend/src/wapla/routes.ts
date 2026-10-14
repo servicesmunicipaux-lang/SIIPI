@@ -19,6 +19,7 @@ import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
+import { exportable, type JeuExport } from '../services/export.js';
 import { fiabilite, type EntreeBilan, type RoleEntree } from './fiabilite.js';
 import { calculerWapla, DEFAUTS_WAPLA, entreesSchema, ErreurMoteur, VERSION_MOTEUR } from './moteur.js';
 
@@ -433,5 +434,100 @@ waplaRouter.post(
     const r = await queryOne<{ retire: boolean }>('SELECT wapla.retirer_bilan($1) AS retire', [id]);
     if (!r?.retire) throw new ApiError(404, 'Bilan introuvable.');
     res.status(204).end();
+  })
+);
+
+// ---------------------------------------------------------------------------
+// L'export d'un bilan (lot W3 ; SPEC § 6, point 4)
+// ---------------------------------------------------------------------------
+//
+// Une ligne par chiffre : la mention de méthode d'abord, puis TOUTES les
+// entrées du moteur — celles du bilan avec leur provenance, et les valeurs par
+// défaut de l'UNIDO qu'il a utilisées, nommées comme telles — puis les
+// résultats. Un fichier sorti de la plateforme garde ainsi ce qui permet de le
+// relire : d'où vient chaque chiffre, et ce qu'il doit à des hypothèses.
+
+const PROVENANCES_EXPORT = {
+  siipi_mesure: { fr: 'Mesuré (SIIPI)', ar: 'مقيس (المنصة)' },
+  siipi_declare: { fr: 'Déclaré (SIIPI)', ar: 'مصرّح به (المنصة)' },
+  saisie_commune: { fr: 'Saisi par la commune', ar: 'أدخلته البلدية' },
+  reference_tunisienne: { fr: 'Référence nationale', ar: 'مرجع وطني' },
+  defaut_wapla: { fr: 'Valeur par défaut UNIDO', ar: 'قيمة افتراضية لليونيدو' },
+  non_renseigne: { fr: 'Non renseigné', ar: 'غير مُدخل' },
+};
+
+export const JEU_WAPLA_BILAN: JeuExport = {
+  nom: 'bilan-wapla',
+  titre: { fr: 'Bilan WaPla — estimation de planification', ar: 'حصيلة WaPla — تقدير للتخطيط' },
+  colonnes: [
+    {
+      cle: 'rubrique', fr: 'Rubrique', ar: 'الباب',
+      libelles: {
+        methode: { fr: 'Méthode', ar: 'المنهجية' },
+        entree: { fr: 'Entrée', ar: 'مُدخل' },
+        flux: { fr: 'Flux de matière', ar: 'تدفق المواد' },
+        ges: { fr: 'Gaz à effet de serre', ar: 'غازات الاحتباس الحراري' },
+        upops: { fr: 'Dioxines et furanes (uPOPs)', ar: 'الديوكسينات والفيورانات' },
+        cout: { fr: 'Coûts', ar: 'الكلفة' },
+      },
+    },
+    { cle: 'cle', fr: 'Code', ar: 'الرمز' },
+    { cle: 'valeur', fr: 'Valeur', ar: 'القيمة', type: 'nombre' },
+    { cle: 'unite', fr: 'Unité', ar: 'الوحدة' },
+    { cle: 'provenance', fr: 'Provenance', ar: 'المصدر', libelles: PROVENANCES_EXPORT },
+    { cle: 'source', fr: 'Source ou précision', ar: 'المرجع أو التوضيح' },
+  ],
+};
+
+type LigneExport = { rubrique: string; cle: string; valeur: number | null; unite: string; provenance: string | null; source: string | null };
+
+/** Une valeur du moteur pour le tableur : un booléen devient 1 ou 0, et l'unité le dit. */
+const valeurTableur = (v: unknown): number | null => (typeof v === 'boolean' ? (v ? 1 : 0) : typeof v === 'number' ? v : null);
+
+waplaRouter.get(
+  '/bilans/:id/export',
+  requireAuth,
+  requireRole(...ROLES),
+  exportable(JEU_WAPLA_BILAN, (req) => req.params.id?.slice(0, 8)),
+  asyncHandler(async (req, res) => {
+    const id = z.string().uuid().parse(req.params.id);
+    const b = await bilanVisible(id);
+    const entrees = await entreesDu(id);
+    const lignes: LigneExport[] = [
+      {
+        rubrique: 'methode', cle: 'mention', valeur: null, unite: '', provenance: null,
+        source:
+          `Estimation de planification — méthode UNIDO WaPla (TU Wien, 2021), réécrite pour la FNCT ; exercice ${b.exercice} ; ` +
+          (b.statut === 'calcule' ? `moteur ${b.version_moteur}, niveau ${b.niveau}` : 'bilan non calculé (brouillon)') +
+          '. Une estimation, jamais une mesure.',
+      },
+    ];
+    for (const cle of CLES_MOTEUR) {
+      const e = entrees.get(cle);
+      const defaut = DEFAUTS_WAPLA[cle];
+      const valeur = e ? e.valeur : defaut;
+      lignes.push({
+        rubrique: 'entree',
+        cle,
+        valeur: valeurTableur(valeur),
+        unite: typeof valeur === 'boolean' ? '1 = oui, 0 = non' : '',
+        provenance: e ? e.provenance : defaut == null ? 'non_renseigne' : 'defaut_wapla',
+        source: e?.source ?? null,
+      });
+    }
+    if (b.statut === 'calcule' && b.resultat) {
+      const r = b.resultat as {
+        flux: Record<string, number | null>;
+        ges: Record<string, number | null>;
+        upops: Record<string, number>;
+        couts: { procedes: Record<string, { total: number | null }>; total: number | null };
+      };
+      for (const [cle, v] of Object.entries(r.flux)) if (v != null) lignes.push({ rubrique: 'flux', cle, valeur: v, unite: 't/an', provenance: null, source: null });
+      for (const [cle, v] of Object.entries(r.ges)) if (v != null) lignes.push({ rubrique: 'ges', cle, valeur: v, unite: 't CO2-éq/an', provenance: null, source: cle === 'total' ? 'potentiel engagé : tout le méthane à venir de la tonne déposée cette année' : null });
+      for (const [cle, v] of Object.entries(r.upops)) lignes.push({ rubrique: 'upops', cle, valeur: v, unite: 'mg TEQ/an', provenance: null, source: null });
+      for (const [cle, p] of Object.entries(r.couts.procedes)) lignes.push({ rubrique: 'cout', cle, valeur: p.total, unite: 'TND/an', provenance: p.total == null ? 'non_renseigne' : null, source: null });
+      lignes.push({ rubrique: 'cout', cle: 'total', valeur: r.couts.total, unite: 'TND/an', provenance: r.couts.total == null ? 'non_renseigne' : null, source: null });
+    }
+    res.json(lignes);
   })
 );

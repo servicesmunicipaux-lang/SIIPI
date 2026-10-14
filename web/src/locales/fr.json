@@ -615,7 +615,8 @@
       "carburant": "Carnet & carburant",
       "declassement": "Déclassement",
       "acteursInformels": "Acteurs informels",
-      "maCommune": "Ma commune dans SIIPI"
+      "maCommune": "Ma commune dans SIIPI",
+      "wapla": "Bilan de planification (WaPla)"
     },
     "etats": {
       "fait": "Fait",
@@ -2951,5 +2952,164 @@
   },
   "formation": {
     "bandeau": "BASE DE FORMATION — Données fictives."
+  },
+  "wapla": {
+    "titre": "Bilan de planification (WaPla)",
+    "mention": "Estimation de planification — méthode UNIDO WaPla. Ce n’est pas une mesure.",
+    "chapeau": "Un bilan annuel des flux de déchets de la commune, de leurs émissions (gaz à effet de serre, dioxines et furanes) et de leurs coûts, pour préparer le PCGD. Il part de ce que SIIPI tient déjà ; la commune complète le reste. Aucun chiffre de SIIPI n’en dépend.",
+    "fnctLecture": "La FNCT lit les bilans de la commune ; elle n’y saisit rien. Les bilans illustratifs ne lui sont pas montrés.",
+    "exercice": "Exercice",
+    "ouvrir": "Ouvrir le bilan",
+    "ouvrirAide": "Le bilan s’ouvre avec ce que SIIPI tient pour l’exercice : gisement, pesées, gasoil, coût complet, redevance, composition, climat.",
+    "aucun": "Aucun bilan pour l’instant : ouvrez celui d’un exercice.",
+    "aucunFnct": "La commune n’a pas encore de bilan visible.",
+    "retour": "← Les bilans",
+    "statuts": {
+      "brouillon": "Brouillon"
+    },
+    "niveaux": {
+      "etaye": "Étayé",
+      "indicatif": "Indicatif",
+      "illustratif": "Illustratif"
+    },
+    "niveauxAide": {
+      "etaye": "Les entrées clés viennent de la commune, et peu d’entrées gardent la valeur par défaut de l’UNIDO.",
+      "indicatif": "Les entrées clés viennent de la commune, mais beaucoup d’entrées gardent la valeur par défaut de l’UNIDO : à lire avec prudence.",
+      "illustratif": "Une entrée clé garde la valeur par défaut de l’UNIDO, calibrée pour l’Afrique australe : ce bilan illustre la méthode, il ne décrit pas la commune. Il n’est visible que par elle."
+    },
+    "bilan": {
+      "titre": "Bilan {{exercice}}",
+      "partDefaut": "Entrées comptées gardant la valeur par défaut : {{n}} sur {{total}} ({{part}} %) ; seuil de la FNCT : {{seuil}} %.",
+      "version": "Calculé par le moteur {{version}}.",
+      "brouillon": "Brouillon : pas encore calculé, ou une entrée a changé depuis le dernier calcul.",
+      "calculer": "Calculer le bilan",
+      "aTraiter": "Avant le calcul, traitez : {{cles}} — une valeur, ou la valeur par défaut gardée exprès.",
+      "entrees": "Les entrées",
+      "techniques": "Les facteurs techniques de l’outil ({{n}})",
+      "techniquesAide": "Facteurs d’émission, coefficients de dégradation et de transfert : la valeur de l’outil UNIDO s’applique. Ils ne sont pas modifiables à cette étape.",
+      "confirmerRetrait": "Retirer ce bilan ? Il ne sera plus affiché ; un autre pourra être ouvert pour le même exercice.",
+      "retirer": "Retirer le bilan",
+      "sansObjet": "Sans objet : le procédé n’est pas actif.",
+      "siipiNeTientPas": "SIIPI ne la tient pas : {{manque}}",
+      "desactiver": "Désactiver",
+      "activer": "Activer",
+      "enregistrer": "Enregistrer",
+      "garderDefaut": "Garder la valeur UNIDO"
+    },
+    "resultat": {
+      "titre": "Le résultat",
+      "diagramme": "Les flux de déchets (t/an)",
+      "aucunFlux": "Aucun flux à dessiner.",
+      "horsDiagramme": "Les résidus des feux, qui reviennent en décharge et au dépotoir, ne sont pas dessinés (ils feraient une boucle) : ils sont dans le tableau des flux.",
+      "ges": "Gaz à effet de serre (t CO₂-éq par an)",
+      "totalGes": "Total",
+      "potentielEngage": "Le méthane est compté comme un potentiel engagé : tout ce qu’émettra, sur des décennies, la tonne déposée cette année. C’est fait pour comparer des scénarios ; ce n’est pas l’émission de l’année, et cela ne se compare pas à un inventaire national.",
+      "upops": "Dioxines et furanes (mg TEQ par an)",
+      "procede": "Procédé",
+      "upopsNote": "Facteurs de la Convention de Stockholm (Toolkit PNUE). Les émissions vers les résidus ne comptent que si le site est un jour fouillé.",
+      "couts": "Coûts (TND par an)",
+      "totalCouts": "Total",
+      "tableauFlux": "Le tableau des flux",
+      "flux": "Flux",
+      "deVers": "De → vers",
+      "trajet": "{{de}} → {{vers}}"
+    },
+    "procedes": {
+      "0": "Hors système",
+      "1": "Production de déchets",
+      "2": "Collecte",
+      "3": "Non collecté",
+      "5": "Centre de tri",
+      "6": "Compostage",
+      "7": "Brûlage à l’air libre",
+      "8": "Dépotoir",
+      "9": "Décharge",
+      "10": "Recyclage",
+      "11": "Incinération",
+      "12": "Environnement",
+      "13": "Produits",
+      "14": "Stock en décharge et au dépotoir",
+      "15": "Feux de décharge et de dépotoir"
+    },
+    "lignesGes": {
+      "collecte": "Collecte",
+      "decharge": "Décharge",
+      "depotoir": "Dépotoir",
+      "brulage": "Brûlage à l’air libre",
+      "feux": "Feux de décharge et de dépotoir",
+      "recyclage": "Recyclage",
+      "compostage": "Compostage",
+      "incineration": "Incinération",
+      "mrf": "Centre de tri"
+    },
+    "milieux": {
+      "air": "Air",
+      "eau": "Eau",
+      "sol": "Sol",
+      "produit": "Produit",
+      "residus": "Résidus"
+    },
+    "groupes": {
+      "gisement": "Le gisement",
+      "collecte": "La collecte",
+      "procedes": "Les procédés en service",
+      "destination": "La destination des déchets collectés",
+      "non_collecte": "Le non-collecté",
+      "gasoil": "Le gasoil",
+      "couts": "Les coûts du statu quo",
+      "composition": "La composition des déchets",
+      "climat": "Le climat",
+      "decharge": "La décharge"
+    },
+    "entrees": {
+      "waste_in": "Déchets produits (gisement)",
+      "tc_1": "Part collectée",
+      "tc_2": "Part triée chez l’habitant pour le recyclage",
+      "compostage": "Compostage",
+      "mrf": "Centre de tri",
+      "incineration": "Incinération",
+      "tc_4": "Part de la collecte envoyée au compostage",
+      "tc_5": "Part de la collecte envoyée au centre de tri",
+      "tc_22": "Part de la collecte incinérée",
+      "tc_6": "Part du non-collecté déposée en dépotoir",
+      "tc_35": "Part du non-collecté perdue vers les eaux",
+      "ghg_1": "Gasoil de collecte",
+      "cost_1": "Coût annuel de la collecte",
+      "cost_5": "Coût annuel d’exploitation de la décharge",
+      "ghg_6": "Biodéchets dans les déchets mis en décharge",
+      "ghg_5": "Papier et carton dans les déchets mis en décharge",
+      "ghg_15": "Biodéchets dans les déchets déposés en dépotoir",
+      "ghg_14": "Papier et carton dans les déchets déposés en dépotoir",
+      "ghg_3": "Plastiques dans les déchets brûlés à l’air libre",
+      "ghg_11": "Plastiques dans les déchets incinérés",
+      "ghg_18": "Plastiques dans les déchets brûlés en décharge",
+      "APY": "Pluie annuelle",
+      "ATY": "Température moyenne annuelle",
+      "ghg_4": "Gestion de la décharge",
+      "ghg_19": "Biogaz de décharge capté"
+    },
+    "provenances": {
+      "siipi_mesure": "Mesuré (SIIPI)",
+      "siipi_declare": "Déclaré (SIIPI)",
+      "saisie_commune": "Saisi par la commune",
+      "reference_tunisienne": "Référence nationale",
+      "defaut_wapla": "Valeur par défaut UNIDO",
+      "non_renseigne": "Non renseigné"
+    },
+    "unites": {
+      "t_an": "t/an",
+      "l_an": "L/an",
+      "tnd_an": "TND/an",
+      "mm": "mm",
+      "degres": "°C",
+      "pourcent": "%"
+    },
+    "choix": {
+      "ghg_4": {
+        "1": "Décharge bien gérée",
+        "0_8": "Dépotoir profond (plus de 5 m)",
+        "0_4": "Dépotoir peu profond (moins de 5 m)"
+      }
+    }
   }
 }

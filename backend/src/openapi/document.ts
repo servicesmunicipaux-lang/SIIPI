@@ -2124,6 +2124,28 @@ registry.registerPath({
   responses: { 200: json(BilanWapla, 'Le bilan calculé.'), ...REPONSES_COMMUNES },
 });
 registry.registerPath({
+  method: 'get', path: '/wapla/bilans/{id}/export', tags: [TAG_WAPLA],
+  summary: 'Le bilan, ligne par ligne, pour l’export (Excel, CSV)',
+  description:
+    'La mention de méthode, puis toutes les entrées du moteur — celles du bilan avec leur provenance, et les valeurs par défaut de l’UNIDO utilisées, nommées comme telles —, puis les résultats d’un bilan calculé : flux, GES (potentiel engagé), uPOPs, coûts. Avec format=csv ou xlsx : le fichier.',
+  security: SECURISE,
+  request: { params: pBilan, query: z.object(paramsExport) },
+  responses: {
+    200: jsonOuExport(
+      z.array(z.object({
+        rubrique: z.enum(['methode', 'entree', 'flux', 'ges', 'upops', 'cout']),
+        cle: z.string(),
+        valeur: z.number().nullable(),
+        unite: z.string(),
+        provenance: z.string().nullable(),
+        source: z.string().nullable(),
+      })),
+      'Les lignes du bilan.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
   method: 'post', path: '/wapla/bilans/{id}/retrait', tags: [TAG_WAPLA],
   summary: 'Retirer un bilan (commune) — suppression logique',
   security: SECURISE,
@@ -7303,7 +7325,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.36',
+      version: '0.15.37',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

@@ -149,6 +149,13 @@ export type PointReference = Reponse<'/kpi/reference-gouvernorat', 'get'>[number
 export type ManqueIndicateur = Reponse<'/kpi/manques', 'get'>[number];
 // Refonte, lot 5 : « Ma commune dans SIIPI ».
 export type CompletudeCommune = Reponse<'/kpi/completude', 'get'>;
+// La couche WaPla (lot W3) : bilans de planification, à part de SIIPI.
+export type BilanWapla = Reponse<'/wapla/bilans/{id}', 'get'>;
+export type ResumeBilanWapla = Reponse<'/wapla/bilans', 'get'>[number];
+export type EntreeBilanWapla = BilanWapla['entrees'][number];
+export type AmorceWapla = Reponse<'/wapla/amorce', 'get'>;
+export type EntreeAmorceWapla = AmorceWapla['entrees'][number];
+export type LigneBilanWapla = Reponse<'/wapla/bilans/{id}/export', 'get'>[number];
 export type ElementCompletude = CompletudeCommune['elements'][number];
 export type DependanceIndicateur = Reponse<'/kpi/dependances', 'get'>[number];
 export type SaisieDeclarations = Corps<'/kpi/declarations/{communeId}/{annee}', 'put'>;
@@ -1212,6 +1219,27 @@ export const api = {
       `/kpi/manques?communeId=${encodeURIComponent(communeId)}&code=${encodeURIComponent(code)}&annee=${annee}`
     ),
   dependancesIndicateurs: () => requete<DependanceIndicateur[]>('/kpi/dependances'),
+  bilansWapla: (communeId: string) =>
+    requete<ResumeBilanWapla[]>(`/wapla/bilans?${new URLSearchParams({ communeId }).toString()}`),
+  ouvrirBilanWapla: (communeId: string, exercice: number) =>
+    requete<BilanWapla>(`/wapla/bilans?${new URLSearchParams({ communeId }).toString()}`, {
+      method: 'POST',
+      body: JSON.stringify({ exercice }),
+    }),
+  bilanWapla: (id: string) => requete<BilanWapla>(`/wapla/bilans/${encodeURIComponent(id)}`),
+  saisirEntreeWapla: (id: string, cle: string, saisie: { valeur: number | boolean } | { defaut: true }) =>
+    requete<BilanWapla>(`/wapla/bilans/${encodeURIComponent(id)}/entrees/${encodeURIComponent(cle)}`, {
+      method: 'PUT',
+      body: JSON.stringify(saisie),
+    }),
+  calculerBilanWapla: (id: string) =>
+    requete<BilanWapla>(`/wapla/bilans/${encodeURIComponent(id)}/calcul`, { method: 'POST' }),
+  retirerBilanWapla: (id: string) =>
+    requete<void>(`/wapla/bilans/${encodeURIComponent(id)}/retrait`, { method: 'POST' }),
+  // Toutes les entrées du moteur, facteurs techniques compris, avec leur provenance.
+  lignesBilanWapla: (id: string) => requete<LigneBilanWapla[]>(`/wapla/bilans/${encodeURIComponent(id)}/export`),
+  amorceWapla: (communeId: string, exercice: number) =>
+    requete<AmorceWapla>(`/wapla/amorce?${new URLSearchParams({ communeId, exercice: String(exercice) }).toString()}`),
   completudeCommune: (communeId: string) =>
     requete<CompletudeCommune>(`/kpi/completude?${new URLSearchParams({ communeId }).toString()}`),
   // Les valeurs que la commune déclare : elles valent dès qu'elles sont enregistrées (D3).
