@@ -286,17 +286,19 @@ comme pour le jumeau numérique (`CLAUDE.md` § 7).
 
 ---
 
-## 7. À trancher avant l'ouverture
+## 7. Tranché le 16 octobre 2026
 
-| # | Question | Qui | Proposition de ce document |
-|---|---|---|---|
-| D-1 | **Forme juridique** d'un prêt d'engin et d'un accord de desserte : convention signée par les deux présidents ? délibérations des deux conseils ? Le référentiel cite la section 9 du Code des collectivités locales pour l'achat groupé, pas pour le prêt | Juriste FNCT | SIIPI exige la **référence** d'un acte, sans en fixer la forme |
-| D-2 | Pendant le prêt, une écriture de la **prêteuse** pour l'engin : refusée, ou montrée comme écart ? | FNCT | Refusée, avec la période du prêt dans le message |
-| D-3 | Une **panne pendant le prêt** : qui la déclare, qui paie la réparation ? | FNCT | La bénéficiaire déclare ; la prêteuse instruit ; le paiement relève de l'acte (`conditions`) |
-| D-4 | **Le chauffeur** : fourni par la prêteuse (un agent qui travaille chez la voisine) ou par la bénéficiaire ? Dans le premier cas, l'agent doit-il être rattaché à la bénéficiaire ? | FNCT | Chauffeur de la bénéficiaire par défaut ; un chauffeur prêté passe par le rattachement, déjà existant, pour la durée du prêt |
-| D-5 | La **distance limitrophe** et la **tolérance** des contours | FNCT, avec le conseiller SIG | Paramètres nationaux datés ; valeurs à fixer sur les relevés de Djerba |
-| D-6 | Une **réclamation citoyenne** déposée près d'une limite : transférable à la commune voisine, comme on transfère au prestataire ? | FNCT | Hors du jalon 14 ; à instruire avec le jalon 15 |
-| D-7 | Les **communes de recette** du jalon 14 | FNCT, communes | Djerba (Ajim, Midoun, Houmt Souk) pour les points limitrophes : la mutualisation de fait y est mesurée (§ 1.3) |
+Les sept questions sont tranchées (`docs/specs_metier/DECISIONS_2026-10-16.md`) ; la décision prime sur la proposition.
+
+| # | Question | Qui | Proposition de ce document | Décision (16/10/2026) |
+|---|---|---|---|---|
+| D-1 | **Forme juridique** d'un prêt d'engin et d'un accord de desserte : convention signée par les deux présidents ? délibérations des deux conseils ? Le référentiel cite la section 9 du Code des collectivités locales pour l'achat groupé, pas pour le prêt | Juriste FNCT | SIIPI exige la **référence** d'un acte, sans en fixer la forme | **Convention signée par les deux présidents** ; SIIPI enregistre sa référence |
+| D-2 | Pendant le prêt, une écriture de la **prêteuse** pour l'engin : refusée, ou montrée comme écart ? | FNCT | Refusée, avec la période du prêt dans le message | **Refusée**, avec la période du prêt affichée |
+| D-3 | Une **panne pendant le prêt** : qui la déclare, qui paie la réparation ? | FNCT | La bénéficiaire déclare ; la prêteuse instruit ; le paiement relève de l'acte (`conditions`) | **La bénéficiaire déclare, la prêteuse instruit**, la convention fixe qui paie |
+| D-4 | **Le chauffeur** : fourni par la prêteuse (un agent qui travaille chez la voisine) ou par la bénéficiaire ? Dans le premier cas, l'agent doit-il être rattaché à la bénéficiaire ? | FNCT | Chauffeur de la bénéficiaire par défaut ; un chauffeur prêté passe par le rattachement, déjà existant, pour la durée du prêt | **Chauffeur de la bénéficiaire par défaut** |
+| D-5 | La **distance limitrophe** et la **tolérance** des contours | FNCT, avec le conseiller SIG | Paramètres nationaux datés ; valeurs à fixer sur les relevés de Djerba | **Valeurs fixées sur les relevés de Djerba**, en paramètres nationaux datés ; le conseiller SIG valide |
+| D-6 | Une **réclamation citoyenne** déposée près d'une limite : transférable à la commune voisine, comme on transfère au prestataire ? | FNCT | Hors du jalon 14 ; à instruire avec le jalon 15 | **Non transférée** ; à instruire avec le jalon 15 |
+| D-7 | Les **communes de recette** du jalon 14 | FNCT, communes | Djerba (Ajim, Midoun, Houmt Souk) pour les points limitrophes : la mutualisation de fait y est mesurée (§ 1.3) | **Djerba : Ajim, Midoun, Houmt Souk** (19.2 et recette R2) |
 
 **Préalable, inchangé** : les jalons 11 à 13 ont tourné en production (`FEUILLE_DE_ROUTE.md`). Les
 recettes R1 et R2 sont différées ; le jalon 14 l'est donc aussi, quelle que soit la réponse à ces
