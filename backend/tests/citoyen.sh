@@ -14,6 +14,14 @@
 #
 #   docker compose run --rm api npm run test:citoyen
 #
+# ELLE NE TOUCHE QU'À SES CITOYENS (JC-005, docs/recette/JOURNAL_DES_CORRECTIONS.md).
+# Jusqu'à la v0.15.48, elle remettait à zéro l'adresse de TOUS les citoyens de
+# la base, au début et à la fin : sur une base portant de vrais habitants,
+# chaque passage leur aurait retiré leurs horaires de collecte et le ciblage
+# des notifications. Elle crée désormais son citoyen d'essai, et un citoyen
+# « témoin » domicilié qu'elle ne doit pas toucher ; elle vérifie en partant
+# que le témoin et tous les autres citoyens sont tels qu'elle les a trouvés.
+#
 # Note : l'API limite les connexions à 20 par quart d'heure et par adresse IP.
 # Pour enchaîner les campagnes, démarrer l'API avec AUTH_RATE_LIMIT_MAX=200.
 # =============================================================================
@@ -25,7 +33,7 @@ pass=0; fail=0
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"Siipi2026!\"}" \
+    -d "{\"email\":\"$1\",\"password\":\"${2:-Siipi2026!}\"}" \
     | python3 -c "import sys,json;print(json.load(sys.stdin).get('token',''))" 2>/dev/null
 }
 sql()  { $PSQL -c "$1" 2>/dev/null | tr -d ' '; }
@@ -46,7 +54,6 @@ chk() {
 
 T_HS=$(tok directeur.houmtsouk@siipi.tn)
 T_MARSA=$(tok directeur.marsa@siipi.tn)
-T_CIT=$(tok citoyen.demo@siipi.tn)
 T_PREST=$(tok prestataire.houmtsouk@siipi.tn)
 # Le découpage se valide par la FNCT depuis le Jalon 7 : c'est elle qui pose
 # les secteurs du décor.
@@ -59,14 +66,51 @@ JOUR_SEMAINE=$(date -u +%u)          # 1 = lundi … 7 = dimanche
 DANS_2J=$(date -u -d '+2 days' +%F)
 DANS_7J=$(date -u -d '+7 days' +%F)
 
-# Nettoyage préalable : une campagne interrompue laisse ses données derrière
-# elle et fausse la suivante.
-$PSQL -c "DELETE FROM annonces_collecte WHERE message_fr LIKE 'TEST %';
-          DELETE FROM circuits WHERE nom LIKE 'TEST circuit citoyen%';
-          DELETE FROM zones_collecte WHERE name LIKE 'TEST zone citoyen%';
-          DELETE FROM versions_decoupage WHERE zones::text LIKE '%TEST zone citoyen%' OR note LIKE '%TEST zone citoyen%';
-          DELETE FROM tickets WHERE title LIKE 'TEST signalement%';
-          UPDATE citoyens SET commune_id = NULL, adresse = NULL, position = NULL, zone_id = NULL;" >/dev/null 2>&1
+# Les citoyens de la campagne : celui qu'elle éprouve, et un témoin domicilié
+# qu'elle ne doit jamais toucher. Le témoin est BÂTI : sans lui, le contrôle
+# « les autres citoyens sont intacts » passerait à vide sur une base où aucun
+# citoyen n'a d'adresse — précisément la base des campagnes.
+CIT_EMAIL="test-citoyen-campagne@example.test"
+TEM_EMAIL="test-citoyen-temoin@example.test"
+CIT_MDP="TEST-Citoyen-$$"
+NOS_CITOYENS="'$CIT_EMAIL','$TEM_EMAIL'"
+# Ce qui identifie l'état d'un citoyen pour cette campagne : sa commune, son
+# adresse, sa position et son secteur.
+etat_citoyens() {  # $1 = filtre SQL sur u.email
+  sql "SELECT coalesce(md5(string_agg(c.id::text||'|'||coalesce(c.commune_id,'')||'|'||coalesce(c.adresse,'')||'|'
+                                      ||coalesce(ST_AsText(c.position),'')||'|'||coalesce(c.zone_id::text,''), ',' ORDER BY c.id)), 'aucun')
+         FROM citoyens c JOIN users u ON u.id = c.user_id WHERE $1"
+}
+
+# Nettoyage : ses lignes TEST et ses deux citoyens, rien d'autre. Une campagne
+# interrompue laisse ses données derrière elle et fausserait la suivante.
+nettoyer() {
+  $PSQL -c "DELETE FROM annonces_collecte WHERE message_fr LIKE 'TEST %';
+            DELETE FROM tickets WHERE title LIKE 'TEST signalement%';
+            DELETE FROM circuits WHERE nom LIKE 'TEST circuit citoyen%';
+            DELETE FROM zones_collecte WHERE name LIKE 'TEST zone citoyen%';
+            DELETE FROM versions_decoupage WHERE zones::text LIKE '%TEST zone citoyen%' OR note LIKE '%TEST zone citoyen%';
+            DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email IN ($NOS_CITOYENS));
+            DELETE FROM users WHERE email IN ($NOS_CITOYENS);" >/dev/null 2>&1
+}
+nettoyer
+trap nettoyer EXIT
+
+# L'état de tous les AUTRES citoyens, avant que la campagne ne commence.
+AUTRES_AVANT=$(etat_citoyens "u.email NOT IN ($NOS_CITOYENS)")
+
+for e in "$CIT_EMAIL" "$TEM_EMAIL"; do
+  code -X POST "$API/citizens/register" -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$e\",\"password\":\"$CIT_MDP\",\"fullName\":\"TEST Citoyen de campagne\"}" >/dev/null
+done
+T_CIT=$(tok "$CIT_EMAIL" "$CIT_MDP")
+T_TEM=$(tok "$TEM_EMAIL" "$CIT_MDP")
+[ -n "$T_CIT" ] && [ -n "$T_TEM" ] || { echo "Les citoyens d'essai n'ont pas pu être créés." >&2; exit 1; }
+code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_TEM" -H 'Content-Type: application/json' \
+  -d "{\"communeId\":\"$COMMUNE\",\"adresse\":\"TEST témoin, rue du témoin\",\"lat\":33.65,\"lng\":10.65}" >/dev/null
+TEMOIN_AVANT=$(etat_citoyens "u.email = '$TEM_EMAIL'")
+[ "$(sql "SELECT count(*) FROM citoyens c JOIN users u ON u.id = c.user_id WHERE u.email = '$TEM_EMAIL' AND c.adresse IS NOT NULL AND c.position IS NOT NULL")" = 1 ] \
+  || { echo "Le citoyen témoin n'a pas pu déclarer son adresse." >&2; exit 1; }
 
 echo
 echo "1. Le décor : deux secteurs, deux circuits"
@@ -232,7 +276,7 @@ chk "une latitude impossible est refusée" 400 "$(localiser "200,9")"
 chk "un champ inconnu est refusé" 400 \
     "$(code -X POST "$API/communes/localiser" -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' -d '{"lat":35,"lng":9,"adresse":"x"}')"
 AUDIT_AVANT=$(sql "SELECT count(*) FROM audit_log")
-CITOYEN_AVANT=$(sql "SELECT md5(coalesce(commune_id,'')||coalesce(ST_AsText(position),'')) FROM citoyens c JOIN users u ON u.id=c.user_id WHERE u.email='citoyen.demo@siipi.tn'")
+CITOYEN_AVANT=$(etat_citoyens "u.email = '$CIT_EMAIL'")
 CODE=$(localiser "$P_KASSERINE")
 chk "localisé dans l'Ennour de Kasserine : c'est elle qui est proposée" "200|True|kasserine_ennour|Kasserine" \
     "$CODE|$(jq_ "d['trouvee']")|$(jq_ "d['commune']['id']")|$(jq_ "d['commune']['gouvernorat']")"
@@ -244,7 +288,7 @@ CODE=$(localiser "36.5,12.5")
 chk "en mer, hors de toute commune : non trouvée, et la raison est dite" "200|False|hors_commune" \
     "$CODE|$(jq_ "d['trouvee']")|$(jq_ "d['raison']")"
 chk "la position n'est écrite nulle part : ni au journal, ni sur la fiche du citoyen" "$AUDIT_AVANT|$CITOYEN_AVANT" \
-    "$(sql "SELECT count(*) FROM audit_log")|$(sql "SELECT md5(coalesce(commune_id,'')||coalesce(ST_AsText(position),'')) FROM citoyens c JOIN users u ON u.id=c.user_id WHERE u.email='citoyen.demo@siipi.tn'")"
+    "$(sql "SELECT count(*) FROM audit_log")|$(etat_citoyens "u.email = '$CIT_EMAIL'")"
 
 # Le choix manuel : gouvernorat, puis commune, affichée « Nom (Gouvernorat) ».
 code "$API/communes" -H "Authorization: Bearer $T_CIT" >/dev/null
@@ -262,12 +306,15 @@ CODE=$(code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_CIT" -H 
 code "$API/citoyen/adresse" -H "Authorization: Bearer $T_CIT" >/dev/null
 chk "le choix manuel est enregistré : l'Ennour de Kasserine, pas celle de Sfax" "200|kasserine_ennour" "$CODE|$(jq_ "d['commune_id']")"
 
-$PSQL -c "DELETE FROM annonces_collecte WHERE message_fr LIKE 'TEST %';
-          DELETE FROM tickets WHERE title LIKE 'TEST signalement%';
-          DELETE FROM circuits WHERE nom LIKE 'TEST circuit citoyen%';
-          DELETE FROM zones_collecte WHERE name LIKE 'TEST zone citoyen%';
-          DELETE FROM versions_decoupage WHERE zones::text LIKE '%TEST zone citoyen%' OR note LIKE '%TEST zone citoyen%';
-          UPDATE citoyens SET commune_id = NULL, adresse = NULL, position = NULL, zone_id = NULL;" >/dev/null 2>&1
+echo
+echo "11. En partant, elle n'a touché qu'à son citoyen d'essai (JC-005)"
+chk "le citoyen témoin garde sa commune, son adresse, sa position et son secteur" "$TEMOIN_AVANT" \
+    "$(etat_citoyens "u.email = '$TEM_EMAIL'")"
+nettoyer
+chk "ses deux citoyens et ses lignes TEST sont effacés" "0|0|0" \
+    "$(sql "SELECT count(*) FROM users WHERE email IN ($NOS_CITOYENS)")|$(sql "SELECT count(*) FROM tickets WHERE title LIKE 'TEST signalement%'")|$(sql "SELECT count(*) FROM circuits WHERE nom LIKE 'TEST circuit citoyen%'")"
+chk "tous les autres citoyens de la base sont tels qu'elle les a trouvés" "$AUTRES_AVANT" \
+    "$(etat_citoyens "u.email NOT IN ($NOS_CITOYENS)")"
 
 echo
 if [ "$fail" -eq 0 ]; then
