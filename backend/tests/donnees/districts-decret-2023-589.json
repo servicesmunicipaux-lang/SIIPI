@@ -1,0 +1,11 @@
+{
+  "source": "Décret n° 2023-589 du 21 septembre 2023",
+  "note": "Témoin de la campagne `districts` (D-FNCT-2) : recopié de la décision de la FNCT du 16 octobre 2026, indépendamment de la migration 078. Les gouvernorats sont écrits comme le référentiel des communes les écrit : « La Manouba » du décret y est « Manouba ».",
+  "districts": {
+    "D1": ["Bizerte", "Béja", "Jendouba", "Le Kef"],
+    "D2": ["Tunis", "Ariana", "Ben Arous", "Zaghouan", "Manouba", "Nabeul"],
+    "D3": ["Siliana", "Sousse", "Kasserine", "Kairouan", "Monastir", "Mahdia"],
+    "D4": ["Gafsa", "Sfax", "Sidi Bouzid", "Tozeur"],
+    "D5": ["Kébili", "Gabès", "Tataouine", "Médenine"]
+  }
+}

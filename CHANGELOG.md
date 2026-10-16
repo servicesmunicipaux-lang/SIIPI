@@ -5,6 +5,47 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.41] — 2026-10-16 — D-FNCT-2 : les cinq districts du décret n° 2023-589
+
+Décision de la FNCT du 16 octobre 2026 : les districts sont ceux du **décret n° 2023-589 du 21 septembre
+2023**. D1 : Bizerte, Béja, Jendouba, Le Kef. D2 : Tunis, Ariana, Ben Arous, Zaghouan, Manouba, Nabeul.
+D3 : Siliana, Sousse, Kasserine, Kairouan, Monastir, Mahdia. D4 : Gafsa, Sfax, Sidi Bouzid, Tozeur.
+D5 : Kébili, Gabès, Tataouine, Médenine.
+
+### Ajouté
+- **Migration 078** : le découpage du décret, posé dans les tables de la migration 050
+  (`districts_fnct`, `gouvernorats_district`) — celles que lisent déjà `/kpi/national`, `/kpi/repartition`,
+  le suivi du déploiement et `/wapla/agregats` : une seconde table aurait fait deux vérités. Le gouvernorat
+  reste le texte porté par chaque commune (il n'a pas de table à lui) ; « La Manouba » du décret s'y écrit
+  « Manouba ». Codes D1 à D5 (la base accepte désormais les majuscules), noms en français et en arabe,
+  **source** (nouvelle colonne, cinq caractères au moins). Posé seulement si la FNCT n'avait défini aucun
+  district.
+- **`PUT /kpi/districts`** exige la **source** du découpage et refuse un gouvernorat **sans district**
+  (400, avec la liste des oubliés) : un oubli ferait sortir ses communes de toutes les sommes par district.
+  `GET /kpi/districts` rend la source ; sa réponse est décrite dans le contrat.
+- **Écran** *Observatoire → Paramètres nationaux → Les districts de la FNCT* : les cinq districts, leurs
+  gouvernorats, la source citée ; « Modifier le découpage » (codes, noms FR/AR, district de chaque
+  gouvernorat, source exigée). Il remplace l'éditeur des réglages des indicateurs, qui n'envoyait pas les
+  noms arabes et les aurait effacés à chaque enregistrement.
+- **Aucun nom de gouvernorat dans le code** : la campagne `districts` le vérifie côté API, et
+  `web/scripts/verifier-gouvernorats.mjs`, enchaîné par `npm run lint`, côté front.
+- **Campagne `districts`** : refus d'abord (sans compte, commune, citoyen, sans source, gouvernorat oublié,
+  inconnu, district inconnu, code en double, un gouvernorat dans deux districts en SQL direct) ; le
+  découpage en base est celui d'un témoin recopié de la décision (`tests/donnees/districts-decret-2023-589.json`),
+  5 districts, 24 gouvernorats, aucun orphelin, aucun doublon ; les sommes par district (indicateurs
+  nationaux, agrégats WaPla) sont celles de leurs gouvernorats ; une redéfinition par la FNCT est suivie
+  par les sommes. Le découpage est une donnée réelle : relevé en entrant, rétabli en partant, vérifié
+  identique.
+
+### Corrigé
+- La campagne `kpi-5-axes` **effaçait tout le découpage** (`DELETE FROM gouvernorats_district`) à chaque
+  passage, et le réécrivait par un `PUT` d'essai : sur une base portant le découpage officiel, chaque
+  `npm test` l'aurait détruit (le cas de JC-007). Elle ne retire plus que sa propre ligne d'essai ; le
+  `PUT` est éprouvé par la campagne `districts`, qui rétablit le découpage.
+
+### Mise à jour d'une installation existante
+`npm run migrate` : le découpage du décret est posé si aucun district n'était défini.
+
 ## [0.15.40] — 2026-10-16 — WaPla, lot W5 : les agrégats nationaux des bilans étayés
 
 L'observatoire de la FNCT additionne les bilans WaPla par territoire

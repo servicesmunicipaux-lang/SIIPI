@@ -159,6 +159,7 @@ export type LigneBilanWapla = Reponse<'/wapla/bilans/{id}/export', 'get'>[number
 export type ScenarioWapla = Reponse<'/wapla/scenarios/{id}', 'get'>;
 export type ResumeScenarioWapla = Reponse<'/wapla/bilans/{id}/scenarios', 'get'>[number];
 export type AgregatsWapla = Reponse<'/wapla/agregats', 'get'>;
+export type DistrictsFnct = Reponse<'/kpi/districts', 'get'>;
 export type ElementCompletude = CompletudeCommune['elements'][number];
 export type DependanceIndicateur = Reponse<'/kpi/dependances', 'get'>[number];
 export type SaisieDeclarations = Corps<'/kpi/declarations/{communeId}/{annee}', 'put'>;
@@ -1290,10 +1291,7 @@ export const api = {
   repartitionIndicateur: (annee: number, code: string, niveau: NiveauKpi) =>
     requete<LigneRepartition[]>(`/kpi/repartition?${new URLSearchParams({ annee: String(annee), code, niveau }).toString()}`),
   contoursGouvernorats: () => requete<ContoursGouvernorats>('/observatoire/contours-gouvernorats'),
-  kpiDistricts: () =>
-    requete<{ districts: { code: string; nom: string; nom_ar: string | null }[]; rattachements: { gouvernorat: string; district_code: string }[]; gouvernorats: string[] }>(
-      '/kpi/districts'
-    ),
+  kpiDistricts: () => requete<DistrictsFnct>('/kpi/districts'),
   enregistrerDistricts: (saisie: Corps<'/kpi/districts', 'put'>) =>
     requete<{ districts: number; rattaches: number }>('/kpi/districts', { method: 'PUT', body: JSON.stringify(saisie) }),
   kpiPrestataire: (annee: number) => requete<{ annee: number; lignes: any[] }>(`/kpi/prestataire?annee=${annee}`),

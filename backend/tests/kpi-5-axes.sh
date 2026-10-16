@@ -63,7 +63,7 @@ nettoyer() {
         -c "DELETE FROM effectifs_service WHERE commune_id = '$TC';" \
         -c "DELETE FROM interventions_maintenance WHERE commune_id = '$TC';" \
         -c "DELETE FROM vehicules WHERE commune_id = '$TC';" \
-        -c "DELETE FROM gouvernorats_district; DELETE FROM districts_fnct WHERE code LIKE 'test-%';" \
+        -c "DELETE FROM gouvernorats_district WHERE gouvernorat = 'TEST'; DELETE FROM districts_fnct WHERE code LIKE 'test-%';" \
         -c "UPDATE parametres_kpi SET valeur = 80 WHERE cle = 'taux_resolution_min';" >/dev/null 2>&1
 }
 fin() {
@@ -245,14 +245,20 @@ chk "aucun agrégat ne porte de note ni de classement" 0 "$(val "sum(1 for g in 
 req GET "/kpi/national?annee=$AN&niveau=commune" "" "$T_FNCT" >/dev/null
 chk "niveau commune : les axes et la couverture de la commune, sans rang" "17|0" \
     "$(val "next(c['couverture']['total'] for c in d if c['commune_id']=='$TC')")|$(val "sum(1 for c in d if 'rang' in c or 'score' in c)")"
-chk "sans districts définis, les communes sont « non rattachées » — rien n'est inventé" "non_rattache" \
-    "$(req GET "/kpi/national?annee=$AN&niveau=district" "" "$T_FNCT" >/dev/null; val "d[0]['cle']")"
+# Le découpage officiel (D-FNCT-2) ne couvre pas le gouvernorat d'essai : sa
+# commune est « non rattachée », pas glissée dans un district voisin. Le PUT,
+# qui réécrit tout le découpage, est éprouvé par la campagne `districts`, qui
+# le rétablit en partant ; ici, rien n'est réécrit.
+chk "un gouvernorat qu'aucun district ne couvre est « non rattaché » — rien n'est inventé" "True" \
+    "$(req GET "/kpi/national?annee=$AN&niveau=district" "" "$T_FNCT" >/dev/null; val "any(g['cle'] == 'non_rattache' for g in d)")"
 chk "la commune ne définit pas les districts" 403 \
-    "$(req PUT /kpi/districts '{"districts":[{"code":"test-nord","nom":"Nord"}],"rattachements":{}}')"
+    "$(req PUT /kpi/districts '{"districts":[{"code":"test-nord","nom":"Nord"}],"rattachements":{},"source":"TEST source"}')"
 chk "un district inconnu est refusé" 400 \
-    "$(req PUT /kpi/districts '{"districts":[{"code":"test-nord","nom":"TEST Nord"}],"rattachements":{"TEST":"test-sud"}}' "$T_FNCT")"
-chk "la FNCT définit ses districts et y rattache les gouvernorats" "200|test-nord" \
-    "$(req PUT /kpi/districts '{"districts":[{"code":"test-nord","nom":"TEST Nord"}],"rattachements":{"TEST":"test-nord"}}' "$T_FNCT")|$(req GET "/kpi/national?annee=$AN&niveau=district" "" "$T_FNCT" >/dev/null; val "next(g['cle'] for g in d if g['cle']=='test-nord')")"
+    "$(req PUT /kpi/districts '{"districts":[{"code":"test-nord","nom":"TEST Nord"}],"rattachements":{"TEST":"test-sud"},"source":"TEST source"}' "$T_FNCT")"
+$PSQL -c "INSERT INTO districts_fnct (code, nom, nom_ar, ordre, source) VALUES ('test-nord', 'TEST Nord', 'TEST', 99, 'TEST source');" \
+      -c "INSERT INTO gouvernorats_district (gouvernorat, district_code) VALUES ('TEST', 'test-nord');" >/dev/null
+chk "un gouvernorat rattaché compte dans son district" "test-nord" \
+    "$(req GET "/kpi/national?annee=$AN&niveau=district" "" "$T_FNCT" >/dev/null; val "next(g['cle'] for g in d if g['cle']=='test-nord')")"
 
 # -----------------------------------------------------------------------------
 echo

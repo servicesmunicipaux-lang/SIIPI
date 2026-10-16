@@ -21,7 +21,6 @@ const NIVEAUX: NiveauKpi[] = ['commune', 'gouvernorat', 'district', 'national'];
 const ANNEE = new Date().getFullYear();
 
 const champ = 'min-h-10 rounded-lg border border-ardoise-300 bg-white px-2 text-sm';
-const bouton = 'min-h-10 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-50 disabled:opacity-50';
 const boutonPrincipal = 'min-h-10 rounded-lg bg-siipi-600 px-4 text-sm font-semibold text-white hover:bg-siipi-700 disabled:opacity-50';
 const th = 'px-3 py-2 text-start text-xs uppercase text-ardoise-500';
 const td = 'px-3 py-2';
@@ -261,27 +260,21 @@ function Alertes({ annee, onOuvrirCommune }: { annee: number; onOuvrirCommune: (
 }
 
 // ---------------------------------------------------------------------------
-// Les réglages de la FNCT : les seuils d'alerte, les districts. Rien de tout
-// cela n'est supposé par la plateforme.
+// Les réglages de la FNCT : les seuils d'alerte. Les districts sont dans les
+// paramètres nationaux (D-FNCT-2), avec le décret qui les fonde.
 // ---------------------------------------------------------------------------
 
 function Reglages() {
   const { t } = useTranslation();
   const [cat, setCat] = useState<{ indicateurs: Record<string, any>[]; parametres: Record<string, number> } | null>(null);
   const [seuils, setSeuils] = useState<Record<string, string>>({});
-  const [districts, setDistricts] = useState<{ code: string; nom: string }[]>([]);
-  const [rattachements, setRattachements] = useState<Record<string, string>>({});
-  const [gouvernorats, setGouvernorats] = useState<string[]>([]);
   const [etat, setEtat] = useState<{ type: 'ok' | 'erreur'; texte: string } | null>(null);
   const [enCours, setEnCours] = useState(false);
 
   const charger = async () => {
-    const [c, dist] = await Promise.all([api.kpiCatalogue(), api.kpiDistricts()]);
+    const c = await api.kpiCatalogue();
     setCat(c);
     setSeuils(Object.fromEntries(Object.entries(c.parametres).map(([k, v]) => [k, String(v)])));
-    setDistricts(dist.districts.map((x) => ({ code: x.code, nom: x.nom })));
-    setRattachements(Object.fromEntries(dist.rattachements.map((r) => [r.gouvernorat, r.district_code])));
-    setGouvernorats(dist.gouvernorats);
   };
   useEffect(() => {
     void charger();
@@ -354,72 +347,6 @@ function Reglages() {
         </button>
       </div>
 
-      <div className="space-y-2 rounded-xl border border-ardoise-200 bg-white p-4">
-        <h3 className="font-semibold text-ardoise-900">{t('kpi.reglages.districts')}</h3>
-        <p className="text-sm text-ardoise-600">{t('kpi.reglages.districtsAide')}</p>
-        <ul className="space-y-1">
-          {districts.map((d, i) => (
-            <li key={i} className="flex flex-wrap gap-2">
-              <input
-                value={d.code}
-                onChange={(e) => setDistricts((l) => l.map((x, j) => (j === i ? { ...x, code: e.target.value.toLowerCase() } : x)))}
-                placeholder={t('kpi.reglages.code')}
-                aria-label={t('kpi.reglages.code')}
-                className={`${champ} w-32 font-mono`}
-              />
-              <input
-                value={d.nom}
-                onChange={(e) => setDistricts((l) => l.map((x, j) => (j === i ? { ...x, nom: e.target.value } : x)))}
-                placeholder={t('kpi.reglages.nom')}
-                aria-label={t('kpi.reglages.nom')}
-                className={`${champ} min-w-48 flex-1`}
-              />
-              <button type="button" className={bouton} onClick={() => setDistricts((l) => l.filter((_, j) => j !== i))}>
-                {t('kpi.reglages.retirer')}
-              </button>
-            </li>
-          ))}
-        </ul>
-        <button type="button" className={bouton} onClick={() => setDistricts((l) => [...l, { code: '', nom: '' }])}>
-          {t('kpi.reglages.ajouterDistrict')}
-        </button>
-        {districts.length > 0 && (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {gouvernorats.map((g) => (
-              <label key={g} className="flex items-center justify-between gap-2 text-sm">
-                <span>{g}</span>
-                <select value={rattachements[g] ?? ''} onChange={(e) => setRattachements((r) => ({ ...r, [g]: e.target.value }))} className={champ}>
-                  <option value="">{t('kpi.national.nonRattache')}</option>
-                  {districts
-                    .filter((d) => d.code)
-                    .map((d) => (
-                      <option key={d.code} value={d.code}>
-                        {d.nom || d.code}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            ))}
-          </div>
-        )}
-        <button
-          type="button"
-          disabled={enCours}
-          className={boutonPrincipal}
-          onClick={() =>
-            void executer(
-              () =>
-                api.enregistrerDistricts({
-                  districts: districts.filter((d) => d.code && d.nom),
-                  rattachements: Object.fromEntries(gouvernorats.map((g) => [g, rattachements[g] || null])),
-                }),
-              t('kpi.reglages.districtsEnregistres')
-            )
-          }
-        >
-          {t('kpi.reglages.enregistrer')}
-        </button>
-      </div>
     </div>
   );
 }

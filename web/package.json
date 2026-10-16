@@ -1,14 +1,14 @@
 {
   "name": "siipi-web",
   "private": true,
-  "version": "0.15.40",
+  "version": "0.15.41",
   "type": "module",
   "description": "Front-end du Système d'Information Intelligent pour la Propreté Intercommunale (FNCT)",
   "scripts": {
     "dev": "vite --port 3000 --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 3000 --host 0.0.0.0",
-    "lint": "tsc --noEmit && node scripts/verifier-ajout.mjs",
+    "lint": "tsc --noEmit && node scripts/verifier-ajout.mjs && node scripts/verifier-gouvernorats.mjs",
     "types:api": "openapi-typescript http://localhost:4000/openapi.json -o src/lib/api-types.ts"
   },
   "dependencies": {
