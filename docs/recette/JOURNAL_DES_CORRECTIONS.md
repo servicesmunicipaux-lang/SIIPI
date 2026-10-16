@@ -116,11 +116,11 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Trouvé par** | Essai de la route `POST /communes/localiser` (D-FNCT-1) |
 | **Où** | Toutes les routes qui lisent un corps JSON (constaté sur `/communes/localiser` et `/citoyen/adresse`) |
 | **Constat** | Un corps JSON mal formé reçoit **500 « Erreur interne du serveur »** au lieu d'un 400 qui dise que la requête est illisible. |
-| **Cause** | Non établie ; vraisemblablement le gestionnaire d'erreurs ne reconnaît pas l'erreur d'analyse du corps levée par Express. |
-| **Portée** | Toute l'API : un client mal écrit croit à une panne du serveur ; le journal compte de fausses erreurs internes. Aucune donnée n'est touchée. |
+| **Cause** | Établie le 16 octobre 2026 : le gestionnaire d'erreurs ne reconnaissait pas les erreurs du lecteur de corps d'Express (`entity.parse.failed` 400, `entity.too.large` 413, `charset.unsupported` et `encoding.unsupported` 415), qui tombaient dans « erreur interne ». Le journal des requêtes, monté après les lecteurs, ne voyait même pas ces requêtes. |
+| **Portée** | Toute l'API, et pas seulement le JSON mal formé : un corps trop gros (413) et un jeu de caractères ou une compression illisibles (415) recevaient aussi 500. Un client mal écrit croyait à une panne du serveur ; le journal comptait de fausses erreurs internes. Aucune donnée n'est touchée. |
 | **Gravité** | Gênant |
-| **Correction** | **Ouverte.** |
-| **Contrôle ajouté** | Aucun encore ; une campagne pourra envoyer un corps mal formé à une route et attendre 400. |
+| **Correction** | v0.15.49 : le gestionnaire d'erreurs rend le statut de l'erreur de lecture (400, 413, 415) avec un message qui dit quoi corriger ; le journal des requêtes passe avant les lecteurs de corps et consigne ces refus. |
+| **Contrôle ajouté** | Campagne `corps-illisibles` (18 contrôles), sur sa propre API pour lire son journal : routes publiques, routes sous compte et `/fichiers` (lecteur à part, 70 Mo) ; aucune « [error] », aucune réponse 500. Éprouvée à rebours : avec l'ancien gestionnaire, 14 contrôles échouent. |
 
 ### JC-007
 
@@ -149,3 +149,31 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Gravité** | Bloquant (pour une mise en production) |
 | **Correction** | v0.15.23 : l'image crée `/var/siipi/fichiers` et `/var/siipi/archive` et les donne à `node`. Vérifié sur l'image reconstruite : les deux volumes neufs sont accessibles en écriture. |
 | **Contrôle ajouté** | Aucun automatique : les campagnes tournent dans le conteneur de développement, pas dans l'image de production. La vérification est consignée dans la note de v0.15.23. |
+
+### JC-009
+
+| Champ | |
+|---|---|
+| **Date** | 16 octobre 2026 |
+| **Trouvé par** | Relecture de la campagne `citoyen`, en corrigeant JC-005 |
+| **Où** | Campagne `citoyen` ; commune de Djerba Houmt Souk |
+| **Constat** | La campagne pose ses secteurs, ses circuits et ses annonces d'essai dans Houmt Souk, commune réelle, avec les comptes de démonstration `directeur.houmtsouk` et `prestataire.houmtsouk`. Elle les efface en partant. |
+| **Cause** | Écrite avant la règle « jamais un compte de démonstration pour écrire dans une commune réelle » (JC-001). |
+| **Portée** | Toute base sur laquelle `npm test` a tourné. Pendant la campagne, Houmt Souk porte des secteurs, des circuits, des annonces et un signalement `TEST` ; une campagne interrompue les y laisse jusqu'au passage suivant. **Constaté le 16 octobre 2026, plus grave** : un secteur posé par la FNCT passe par une correction directe du découpage (`app.avant_correction_fnct`), qui fige l'état présent en « version 1 » si la commune n'a aucune version. La campagne effaçait en partant les versions qui citaient ses secteurs, mais pas cette version 1, validée, d'origine « initiale », qui annonce une « première modification enregistrée par la plateforme » qui n'a jamais eu lieu. Reproduit sur la pile d'essai en lançant la campagne seule. **Elle n'est pas la seule** : dans un `npm test` complet, la campagne `suppression`, qui tourne avant elle, fige déjà cette version 1 dans Houmt Souk (et dans Midoun), et `decoupage` laisse à Midoun une version 2 « Périmètre corrigé directement par la FNCT » — voir JC-010. La base du dossier principal n'en porte aucune (vérifié le 16/10/2026). La campagne effaçait aussi pour de bon les versions 2 et 3 qu'elle avait validées dans une commune réelle. |
+| **Gravité** | Bloquant (fausse l'historique du découpage d'une commune réelle) |
+| **Correction** | v0.15.50 : la campagne travaille dans sa commune de test (`test_citoyen`), avec un directeur temporaire (`tests/outils/directeur_temporaire.sh`) ; les comptes de démonstration n'y servent plus qu'à des refus (une autre commune, un prestataire), sans rien écrire. Son nettoyage est borné à sa commune de test : une ligne égarée dans une commune réelle y reste, et les contrôles la voient. La correction de cette seule campagne n'empêche pas, à elle seule, une version fantôme de naître pendant `npm test` : `suppression` et `decoupage` en créent encore (JC-010, ouverte). Une version 1 déjà laissée dans Houmt Souk par un passage antérieur n'est **pas** retirée par la correction : elle se reconnaît à son origine « initiale », à sa date (celle d'un passage des campagnes) et à l'absence de toute modification réelle du découpage ; la retirer d'une base réelle est une décision de la FNCT. |
+| **Contrôle ajouté** | Dix contrôles dans la campagne `citoyen` : pendant qu'elle a ses lignes en base (section 9 bis), puis en partant, aucune annonce, aucun secteur, aucun circuit, aucune version de découpage ni aucun signalement n'a été ajouté, modifié ou retiré hors de sa commune de test (empreinte de chaque table hors commune de test, prise avant le premier geste) ; plus un contrôle que la commune de test porte bien les lignes de la campagne. Éprouvé par trois mutants qui refont dans Houmt Souk un geste de l'ancienne campagne : une annonce (2 contrôles échouent : annonces pendant et en partant), un secteur (4 : secteurs et versions du découpage), un circuit (2 : circuits). |
+
+### JC-010
+
+| Champ | |
+|---|---|
+| **Date** | 16 octobre 2026 |
+| **Trouvé par** | Inventaire des versions fantômes de JC-009 |
+| **Où** | Campagnes `suppression` (Houmt Souk, Midoun) et `decoupage` (Midoun) |
+| **Constat** | Après un `npm test` complet sur la pile d'essai, trois versions du découpage subsistent dans des communes réelles : à Houmt Souk et à Midoun, une version 1 « initiale » validée, figée par `suppression` quand la FNCT y pose son « Secteur temporaire de test » ; à Midoun, une version 2 « Périmètre corrigé directement par la FNCT », posée par `decoupage` en corrigeant la limite de la commune avec le compte de démonstration de la FNCT. `suppression` efface les versions qui citent son secteur, pas la version 1 ; `decoupage` rend la limite officielle de Midoun (JC-007) mais n'efface aucune version. |
+| **Cause** | Toute correction directe de la FNCT (secteur ou limite) passe par `app.avant_correction_fnct`, qui fige l'état présent en version 1 si la commune n'en a aucune, puis par `app.apres_correction_fnct`, qui inscrit la correction en version suivante. Les deux campagnes ont été écrites avant cet historique (migration 049) ou sans le restaurer. `versions-decoupage`, qui travaille aussi à Houmt Souk, relève les versions trouvées et rend exactement celles-là : elle n'est pas en cause. |
+| **Portée** | Toute base sur laquelle `npm test` a tourné : l'historique du découpage de Houmt Souk et de Midoun porte des versions validées qui n'ont jamais eu lieu, dont une correction de périmètre attribuée à la FNCT. Un écran ou un export de l'historique les présenterait comme réelles. La base du dossier principal n'en porte aucune (vérifié le 16/10/2026). |
+| **Gravité** | Bloquant (fausse l'historique du découpage de deux communes réelles) |
+| **Correction** | **Ouverte.** Proposée : ces deux campagnes relèvent les versions de la commune avant leur premier geste et rendent exactement celles-là en partant (comme `versions-decoupage`), ou travaillent dans une commune de test ; avec, dans chacune, un contrôle que l'historique du découpage des communes réelles est inchangé. Le retrait des versions déjà laissées sur une base réelle est une décision de la FNCT. |
+| **Contrôle ajouté** | Aucun encore. |
