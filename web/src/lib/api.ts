@@ -215,6 +215,7 @@ export type Destinataires = Reponse<'/communication/apercu', 'get'>;
 export type SondageQuestion = Reponse<'/communication/{id}/questions', 'get'>[number];
 export type LigneDepouillement = Reponse<'/communication/{id}/depouillement', 'get'>[number];
 export type EnvoiNotification = Reponse<'/communication/envois', 'get'>[number];
+export type IndicateursCommunication = Reponse<'/communication/indicateurs', 'get'>;
 export type Pesee = Reponse<'/pesees', 'get'>[number];
 export type PeseeAttendue = Reponse<'/pesees/attendues', 'get'>[number];
 export type TonnageCircuit = Reponse<'/pesees/tonnages', 'get'>[number];
@@ -1035,6 +1036,8 @@ export const api = {
   },
   envois: (communeId: string) =>
     requete<EnvoiNotification[]>(`/communication/envois?communeId=${encodeURIComponent(communeId)}`),
+  indicateursCommunication: (communeId: string, debut: string, fin: string) =>
+    requete<IndicateursCommunication>(`/communication/indicateurs?${new URLSearchParams({ communeId, debut, fin }).toString()}`),
   coherenceCommunication: (communeId: string) =>
     requete<Incoherence[]>(`/communication/coherence?communeId=${encodeURIComponent(communeId)}`),
   creerPublication: (communeId: string, saisie: Record<string, unknown>) =>

@@ -29,10 +29,11 @@ import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
 import { FormulairePublication, type TypePublication } from '../ajout/FormulairePublication';
+import { IndicateursCommunication } from './IndicateursCommunication';
 
 
-type Vue = TypePublication | 'envois';
-const VUES: Vue[] = ['notification', 'sondage', 'projet', 'envois'];
+type Vue = TypePublication | 'envois' | 'indicateurs';
+const VUES: Vue[] = ['notification', 'sondage', 'projet', 'envois', 'indicateurs'];
 
 const COULEUR_STATUT: Record<string, string> = {
   brouillon: 'bg-ardoise-100 text-ardoise-700',
@@ -70,7 +71,7 @@ export function Communication({ communeId }: { communeId: string }) {
   }, [communeId, charger]);
 
   const affichees = useMemo(
-    () => (publications ?? []).filter((p) => vue !== 'envois' && p.type === vue),
+    () => (publications ?? []).filter((p) => p.type === vue),
     [publications, vue]
   );
 
@@ -128,7 +129,7 @@ export function Communication({ communeId }: { communeId: string }) {
         ))}
       </nav>
 
-      {vue !== 'envois' && (
+      {vue !== 'envois' && vue !== 'indicateurs' && (
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-ardoise-600">
@@ -262,6 +263,8 @@ export function Communication({ communeId }: { communeId: string }) {
           </ul>
         </>
       )}
+
+      {vue === 'indicateurs' && <IndicateursCommunication communeId={communeId} />}
 
       {vue === 'envois' && (
         <section className="overflow-x-auto rounded-xl border border-ardoise-200 bg-white">

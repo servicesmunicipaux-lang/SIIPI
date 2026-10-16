@@ -131,9 +131,9 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 87 | 91 % |
+| ✅ Fait et éprouvé | 88 | 92 % |
 | 🟡 Partiel | 5 | 5 % |
-| ⬜ À faire | 2 | 2 % |
+| ⬜ À faire | 1 | 1 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
 
@@ -159,7 +159,7 @@ les tonnes et la masse salariale.
 | **5.2 Sondages** | 4 |  |  |  | Complète : questionnaire, ciblage, invitation push, résultats et leur export Excel / CSV / PDF. |
 | **5.3 Projets** | 4 |  |  |  | Complète. |
 | **5.4 Notifications ciblées** | 3 | 1 |  |  | Le push est réellement émis ; SMS et courriel restent à câbler (décision de fournisseur). |
-| **5.5 Points citoyens** | 3 |  | 1 |  | Il reste les indicateurs de communication. |
+| **5.5 Points citoyens** | 4 |  |  |  | Complet depuis la v0.15.44 (indicateurs de communication). |
 | **3.2.6 Paramètres** | 6 |  |  |  | Complète : langue, format de date, unités, alertes et mot de passe par personne ; seuils par commune (Jalon 7). |
 | **3.2.7 Contacts** | 4 |  |  |  | Complète : liste, ajout, modification, retrait (Jalon 3), export et import CSV (Jalon 4). |
 | **3.2.8 Découpage communal** | 5 | 1 |  |  | Proposé par la commune, validé par la FNCT, versionné et restaurable (Jalon 7) ; reste l'import Shapefile. |
@@ -285,7 +285,7 @@ les tonnes et la masse salariale.
 | `B5.5.1` | Gestion des adresses citoyennes | ✅ Fait | migration 021 · campagne citoyen |
 | `B5.5.2` | Validation des nouveaux points | ✅ Fait | PointsSuggeres.tsx (onglet communal) · migration 042 · campagne suggestions |
 | `B5.5.3` | Association équipe → circuit | ✅ Fait | migrations 034/040 · campagne module4 |
-| `B5.5.4` | Indicateurs de communication (délai, volumétrie, taux) | ⬜ À faire |  |
+| `B5.5.4` | Indicateurs de communication (délai, volumétrie, taux) | ✅ Fait | migration 079 (`app.indicateurs_communication`) · `GET /communication/indicateurs` · IndicateursCommunication.tsx · campagne communication-indicateurs (v0.15.44) |
 
 ### 3.2.6 Paramètres
 

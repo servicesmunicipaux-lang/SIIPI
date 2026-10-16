@@ -109,6 +109,7 @@ import {
   qSeriesCommuneSchema,
 } from '../routes/kpi5Axes.routes.js';
 import { caracterisationSchema, pcgdSchema } from '../routes/references.routes.js';
+import { qIndicateursCommunicationSchema } from '../routes/communication.routes.js';
 // La couche WaPla documente ses routes ici, comme les autres : le contrat est un.
 import {
   creationBilanSchema,
@@ -4607,6 +4608,52 @@ registry.registerPath({
   responses: { 200: json(z.array(EnvoiNotification), 'Envois.'), ...REPONSES_COMMUNES },
 });
 
+const TauxCommunication = z.object({ numerateur: z.number().int(), denominateur: z.number().int(), valeur: z.number().nullable().openapi({ description: 'Entre 0 et 1 ; null sans dénominateur, jamais 0.' }) });
+registry.registerPath({
+  method: 'get',
+  path: '/communication/indicateurs',
+  tags: ['Communication'],
+  summary: 'Indicateurs de communication : délai, volumétrie, taux (B5.5.4)',
+  description:
+    'Sur une période en dates de Tunis : publications publiées, envois, destinataires joints et non joints, envois individuels par issue, points proposés, répondants ; délai médian de décision sur un point proposé et points en attente ; taux de livraison, de lecture, de portée, de validation des points proposés, de participation aux sondages. Que des totaux, jamais une ligne par citoyen (loi organique n° 2004-63). Un taux sans dénominateur est null, jamais 0. Directeur de la commune ou FNCT ; une commune hors périmètre est introuvable.',
+  security: SECURISE,
+  request: { query: qIndicateursCommunicationSchema },
+  responses: {
+    200: json(
+      z.object({
+        commune_id: z.string(),
+        periode: z.object({ debut: z.string(), fin: z.string() }),
+        volumetrie: z.object({
+          publications: z.object({ notification: z.number().int(), sondage: z.number().int(), projet: z.number().int() }),
+          envois: z.number().int(),
+          destinataires: z.number().int(),
+          sans_adresse: z.number().int(),
+          desabonnes: z.number().int(),
+          envois_individuels: z.object({
+            total: z.number().int(), livre: z.number().int(), echec: z.number().int(), non_abonne: z.number().int(),
+            non_souhaite: z.number().int(), sans_souscription: z.number().int(),
+          }),
+          suggestions_recues: z.number().int(),
+          repondants_sondage: z.number().int(),
+        }),
+        delais: z.object({
+          decision_suggestion_h: z.object({ mediane: z.number().nullable(), decisions: z.number().int() }),
+          suggestions_en_attente: z.object({ nombre: z.number().int(), plus_ancienne_jours: z.number().int().nullable() }),
+        }),
+        taux: z.object({
+          livraison: TauxCommunication,
+          lecture: TauxCommunication,
+          portee: TauxCommunication,
+          validation_suggestions: TauxCommunication,
+          participation_sondages: TauxCommunication,
+        }),
+      }),
+      'Les indicateurs de la période.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
 registry.registerPath({
   method: 'get',
   path: '/communication/coherence',
@@ -7509,7 +7556,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.43',
+      version: '0.15.44',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

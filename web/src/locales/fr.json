@@ -1331,7 +1331,8 @@
         "notification": "Notifications",
         "sondage": "Sondages",
         "projet": "Projets",
-        "envois": "Historique"
+        "envois": "Historique",
+        "indicateurs": "Indicateurs"
       },
       "aide": {
         "notification": "Un message ciblé sur un secteur : report de tournée, travaux, consigne ponctuelle.",
@@ -1399,6 +1400,45 @@
         "commune": "La commune",
         "association": "Une association",
         "autre": "Autre porteur"
+      },
+      "indicateurs": {
+        "titre": "Indicateurs de communication",
+        "aide": "Vos messages arrivent-ils, sont-ils lus, combien d’habitants ne pouvez-vous pas joindre, et en combien de temps répondez-vous aux points proposés par les citoyens ? Sur la période choisie, en dates de Tunis.",
+        "debut": "Du",
+        "fin": "Au",
+        "bornes": "Le début de la période doit précéder sa fin.",
+        "volumetrie": "Volumétrie",
+        "publications": "Publications publiées",
+        "publicationsDetail": "notifications : {{notifications}} · sondages : {{sondages}} · projets : {{projets}}",
+        "envois": "Envois",
+        "envoisDetail": "{{joints}} destinataires joints · non joints : {{sansAdresse}} sans adresse, {{desabonnes}} désabonnés",
+        "individuels": "Envois individuels (push)",
+        "individuelsDetail": "{{livres}} livrés · {{echecs}} en échec · {{nonJoints}} sans abonnement ou non souhaités",
+        "suggestions": "Points proposés par les citoyens",
+        "repondants": "Répondants aux sondages",
+        "delais": "Délais",
+        "delaiDecision": "Délai médian de décision sur un point proposé",
+        "heures": "{{n}} h",
+        "surDecisions": "décisions dans la période : {{n}}",
+        "enAttente": "Points proposés en attente de décision (aujourd’hui)",
+        "plusAncienne": "le plus ancien attend depuis {{n}} j",
+        "tauxTitre": "Taux",
+        "taux": {
+          "livraison": "Livraison des notifications",
+          "lecture": "Lecture des notifications livrées",
+          "portee": "Portée des envois",
+          "validation_suggestions": "Points proposés retenus",
+          "participation_sondages": "Participation aux sondages"
+        },
+        "tauxVide": {
+          "livraison": "aucune notification tentée vers un abonné",
+          "lecture": "aucune notification livrée",
+          "portee": "aucun envoi",
+          "validation_suggestions": "aucune décision sur un point proposé",
+          "participation_sondages": "aucun sondage envoyé"
+        },
+        "sur": "{{n}} sur {{d}}",
+        "note": "Livraison : livrées sur livrées et en échec. Portée : destinataires joints sur ceux du périmètre (joints, sans adresse, désabonnés). Participation : répondants distincts sur les foyers invités par le plus grand envoi de chaque sondage. Aucun citoyen n’est nommé : seulement des comptes."
       }
     },
     "rapportsEtudes": {
