@@ -5,6 +5,27 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.48] — 2026-10-16 — JC-005 : la campagne `citoyen` ne touche plus qu'à ses citoyens
+
+### Corrigé
+- **JC-005** (`docs/recette/JOURNAL_DES_CORRECTIONS.md`). La campagne `citoyen` remettait à zéro la commune,
+  l'adresse, la position et le secteur de **tous** les citoyens de la base, au début et à la fin. Sur une base
+  portant de vrais habitants, chaque passage des campagnes leur aurait retiré leurs horaires de collecte et le
+  ciblage de leurs notifications, sans que personne ne le voie.
+  - Elle crée son propre citoyen d'essai à la place du compte de démonstration, et ne touche qu'à lui.
+  - Elle crée aussi un citoyen **témoin**, domicilié, auquel elle ne doit pas toucher.
+  - En partant, elle efface ses deux citoyens et ses lignes `TEST`, rien d'autre.
+
+### Ajouté
+- Trois contrôles en fin de campagne `citoyen` :
+  - le témoin garde sa commune, son adresse, sa position et son secteur ;
+  - les deux citoyens de la campagne sont effacés ;
+  - tous les autres citoyens de la base sont tels qu'elle les a trouvés (empreinte prise avant le premier
+    geste).
+
+  Le témoin est bâti : sans lui, le dernier contrôle passerait à vide sur une base où personne n'a d'adresse.
+  Éprouvé à rebours : l'ancienne remise à zéro, réinjectée, fait échouer deux de ces contrôles.
+
 ## [0.15.47] — 2026-10-16 — Le courriel : mot de passe provisoire et notifications sur demande
 
 Décision du 16 octobre 2026 (`docs/specs_metier/DECISIONS_2026-10-16.md`) : courriel d'abord, SMS plus

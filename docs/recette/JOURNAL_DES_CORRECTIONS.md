@@ -105,8 +105,8 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Cause** | Écrite pour une base de démonstration, où le seul citoyen est `citoyen.demo`. |
 | **Portée** | Toute base sur laquelle `npm test` tourne — `MIGRER.bat`, `TESTS.bat`, dont celle du dossier principal. Sur une instance où de vrais citoyens auraient déclaré leur adresse, chaque passage des campagnes l'effacerait : plus d'horaires de collecte, plus de ciblage des notifications, sans que personne ne le voie. |
 | **Gravité** | Bloquant pour toute base portant de vrais citoyens |
-| **Correction** | **Ouverte.** Proposée : que la campagne bâtisse son propre citoyen d'essai (comme `fichiers` et `module5` depuis JC-003 et JC-004) et ne touche qu'à lui. En attendant : la règle de `CLAUDE.md` § 9 — aucune campagne sur une base réelle. |
-| **Contrôle ajouté** | Aucun encore. |
+| **Correction** | v0.15.48 : la campagne crée son citoyen d'essai et un citoyen « témoin » domicilié, ne touche qu'au premier, et efface les deux en partant. L'ancienne remise à zéro générale a disparu, au début comme à la fin. |
+| **Contrôle ajouté** | Trois contrôles en fin de campagne `citoyen` : le témoin garde sa commune, son adresse, sa position et son secteur ; les deux citoyens de la campagne sont effacés ; tous les autres citoyens de la base sont tels qu'elle les a trouvés (empreinte prise avant le premier geste). Le témoin est bâti : sans lui, ce dernier contrôle passerait à vide sur une base où personne n'a d'adresse. Éprouvé à rebours : l'ancienne remise à zéro, réinjectée, fait échouer deux contrôles. |
 
 ### JC-006
 
