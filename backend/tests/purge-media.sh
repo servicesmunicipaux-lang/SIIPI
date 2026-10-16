@@ -14,21 +14,32 @@
 # original qui ne correspond plus à sa fiche n'est jamais restauré.
 #
 # Elle bâtit ses données (commune, directeur, citoyen, images fabriquées par la
-# bibliothèque d'images de l'API) et lance la tâche RESTREINTE À SA COMMUNE :
-# sur une base qui porterait des photos réelles de plus de 36 mois, un passage
-# national lancé par un test les aurait archivées.
+# bibliothèque d'images de l'API) et lance la tâche RESTREINTE À SA COMMUNE.
+#
+# TOUT EST JETABLE (D-FNCT-4, 16 octobre 2026 ; leçon de JC-007) : une base
+# neuve, migrée et semée pour elle ; une API à part, sur le port 4005 ; un
+# volume de fichiers et une archive froide dans son dossier temporaire. Rien
+# n'est écrit dans la base des campagnes ni dans le volume des photos : un
+# passage lancé par un test ne peut archiver aucune photo réelle, et le passage
+# MENSUEL, que seule une base jetable permet de laisser partir pour de bon, est
+# éprouvé à la fin. Tout disparaît en partant.
 #
 #   docker compose exec -T api npm run test:purge-media
 # =============================================================================
 
 set -u
-API="${API_URL:-http://localhost:4000}"
-PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 RACINE="$(cd "$(dirname "$0")/.." && pwd)"
-COURANT="${SIIPI_FICHIERS_DIR:-/var/siipi/fichiers}"
+cd "$RACINE" || exit 1
 pass=0; fail=0
 T=$(mktemp -d)
 ARCH="$T/archive"
+COURANT="$T/fichiers"
+mkdir -p "$COURANT"
+PORT_ESSAI=4005
+BASE=siipi_essai_purge_media
+. tests/outils/instance_essai.sh
+API="http://localhost:$PORT_ESSAI"
+PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d $BASE"
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
@@ -42,10 +53,15 @@ chk() {
   if [ "$2" = "$3" ]; then printf '  \033[32m✓\033[0m %s\n' "$1"; pass=$((pass+1))
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
-# La tâche, telle qu'on la lance à la main, sur l'archive de la campagne.
+# La tâche, telle qu'on la lance à la main, sur la base, le volume et l'archive de la campagne.
 medias() {
-  ( cd "$RACINE" && SIIPI_ARCHIVE_DIR="$ARCH" npm run -s "medias:$1" -- --commune "$TC" ) > "$T/medias.log" 2>&1
+  ( DATABASE_URL="$(url_essai "$BASE")" SIIPI_FICHIERS_DIR="$COURANT" SIIPI_ARCHIVE_DIR="$ARCH" \
+      npm run -s "medias:$1" -- --commune "$TC" ) > "$T/medias.log" 2>&1
   echo $?
+}
+# L'API d'essai, sur la base, le volume et l'archive de la campagne ; ses variables en plus.
+api() {
+  api_essai "$PORT_ESSAI" "$BASE" SIIPI_FICHIERS_DIR="$COURANT" SIIPI_ARCHIVE_DIR="$ARCH" "$@"
 }
 # Lire les octets servis : code HTTP ; type, poids et empreinte dans $T/servi*.
 lire() {  # $1 = id, $2 = jeton, $3 = suffixe (/original)
@@ -59,30 +75,28 @@ TC=test_purge_media
 COMMUNE_DIR="$TC"
 CIT_EMAIL="test-purge-media-citoyen@example.test"
 CIT_MDP="TEST-Citoyen-$$"
-. "$(dirname "$0")/outils/directeur_temporaire.sh"
-nettoyer() {
-  $PSQL -c "DELETE FROM demandes_restauration WHERE commune_id = '$TC';" \
-        -c "DELETE FROM passages_conservation_medias WHERE perimetre = '$TC';" \
-        -c "DELETE FROM tickets WHERE ticket_number LIKE 'TEST-P-%';" \
-        -c "DELETE FROM fichiers WHERE commune_id = '$TC';" \
-        -c "DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email = '$CIT_EMAIL');" \
-        -c "DELETE FROM users WHERE email = '$CIT_EMAIL';" >/dev/null 2>&1
-  rm -rf "${COURANT:?}/$TC"
-}
+. tests/outils/directeur_temporaire.sh
+# La base jetable s'efface avec tout ce qu'elle porte : il n'y a rien d'autre à nettoyer.
 fin() {
-  nettoyer
-  retirer_directeur_temporaire
-  $PSQL -c "DELETE FROM communes WHERE id = '$TC';" >/dev/null 2>&1
+  arreter_api_essai
+  retirer_bases_essai
   rm -rf "$T"
 }
-nettoyer
-$PSQL -c "DELETE FROM communes WHERE id = '$TC';" >/dev/null 2>&1
+trap fin EXIT
+base_essai "$BASE"
+DATABASE_URL="$(url_essai "$BASE")" npm run -s seed > "$T/seed.log" 2>&1 \
+  || { echo "La base d'essai n'a pas pu être semée (voir le journal du seed)." >&2; tail -5 "$T/seed.log" >&2; exit 1; }
+api; DEMARRAGE=$?
+[ "$DEMARRAGE" -eq 0 ] || { echo "L'API d'essai n'a pas démarré (code $DEMARRAGE)." >&2; tail -20 "$T/api_$PORT_ESSAI.log" >&2; exit 1; }
 $PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$TC', 'TEST commune de la conservation', 'TEST', 'TEST', 5000);" >/dev/null
 directeur_temporaire "$TC"
-trap fin EXIT
 T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
 T_FNCT=$(tok admin.national@siipi.tn)
-[ -n "$T_DIR" ] && [ -n "$T_FNCT" ] || { echo "API injoignable sur $API, ou compte FNCT absent." >&2; exit 1; }
+[ -n "$T_DIR" ] && [ -n "$T_FNCT" ] || { echo "API d'essai injoignable sur $API, ou compte FNCT absent de la base semée." >&2; exit 1; }
+chk "la campagne travaille sur sa base jetable, pas sur celle des campagnes" "$BASE|t" \
+    "$(sql "SELECT current_database()")|$([ "$BASE" != "${PGDATABASE:-siipi_national}" ] && echo t || echo f)"
+chk "… et sur son volume de fichiers, pas sur celui des photos" t \
+    "$(case "$COURANT" in "$T"/*) echo t ;; *) echo f ;; esac)"
 
 code -X POST "$API/citizens/register" -H 'Content-Type: application/json' \
   -d "{\"email\":\"$CIT_EMAIL\",\"password\":\"$CIT_MDP\",\"fullName\":\"TEST-P Citoyen\"}" >/dev/null
@@ -303,6 +317,31 @@ chk "la restauration aussi, au nom de la tâche" "tache_conservation_medias" \
 chk "et la fiche restaurée" 1 \
     "$(sql "SELECT count(*) FROM audit_log WHERE table_name = 'fichiers' AND record_id = '$P37'
              AND 'original_restaure_le' = ANY(changed_fields)")"
+
+echo
+echo "8. Le passage mensuel part tout seul (et seulement si on l'active)"
+# Sur la base des campagnes, ce passage national aurait pu toucher des photos
+# réelles : c'est ici, sur la base jetable, qu'on le laisse partir pour de bon.
+chk "sans SIIPI_CONSERVATION_MEDIAS=active, l'API n'a lancé aucun passage mensuel" "0|f" \
+    "$(sql "SELECT count(*) FROM passages_conservation_medias WHERE declenche_par = 'planificateur'")|$(grep -q 'conservation des photos active' "$T/api_$PORT_ESSAI.log" && echo t || echo f)"
+P37B=$(depot lourde.jpg 'TEST-P-mensuel.jpg' constat_terrain)
+$PSQL -c "UPDATE fichiers SET created_at = now() - interval '37 months' WHERE id = '$P37B';" >/dev/null
+chk "une nouvelle photo de 37 mois attend le passage" f "$(sql "SELECT compressee_le IS NOT NULL FROM fichiers WHERE id = '$P37B'")"
+api SIIPI_CONSERVATION_MEDIAS=active; DEMARRAGE=$?
+chk "l'API redémarre avec la tâche active, et l'annonce" "0|t" \
+    "$DEMARRAGE|$(grep -q 'conservation des photos active' "$T/api_$PORT_ESSAI.log" && echo t || echo f)"
+# La première vérification a lieu une minute après le démarrage.
+for _ in $(seq 1 60); do
+  [ "$(sql "SELECT count(*) FROM passages_conservation_medias WHERE declenche_par = 'planificateur' AND statut <> 'en_cours'")" -gt 0 ] && break
+  sleep 3
+done
+chk "le passage du mois a eu lieu, national, au nom du planificateur" "planificateur||termine" \
+    "$(sql "SELECT declenche_par || '|' || coalesce(perimetre, '') || '|' || statut FROM passages_conservation_medias
+             WHERE declenche_par = 'planificateur' ORDER BY id DESC LIMIT 1")"
+chk "il a compressé la photo de 37 mois" t "$(sql "SELECT compressee_le IS NOT NULL FROM fichiers WHERE id = '$P37B'")"
+chk "… dont l'original est dans l'archive froide" t \
+    "$([ -f "$ARCH/$(sql "SELECT chemin_relatif FROM fichiers WHERE id = '$P37B'")" ] && echo t || echo f)"
+chk "la photo de 30 mois reste entière" f "$(sql "SELECT compressee_le IS NOT NULL FROM fichiers WHERE id = '$P30'")"
 
 echo
 echo "----------------------------------------------------------------"
