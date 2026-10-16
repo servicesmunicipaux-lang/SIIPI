@@ -5,6 +5,54 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.46] — 2026-10-16 — 16.2 : les gabarits des documents scellés, « modèle provisoire »
+
+Décision du 16 octobre 2026 (`docs/specs_metier/DECISIONS_2026-10-16.md`) : construire maintenant les quatre
+gabarits. Chacun s'imprime « modèle provisoire » jusqu'à sa validation par le chef de dépôt de Dar Chaâbane
+pendant la recette.
+
+### Ajouté
+- **`src/documents/gabarits.ts`** : un gabarit par type — ordre de mission, bon de sortie de carburant, bon
+  de travail, déclaration de panne. Chacun porte :
+  - ses titres et sa référence en français et en arabe ;
+  - ses champs (clé, libellés, nature, obligatoire, unité) et ses signatures avec leurs qualités ;
+  - son **statut**, `provisoire` aujourd'hui. Il passera à `valide` dans le code, donc dans l'historique.
+
+  Les clés du bon de carburant sont celles qu'écrit le carnet (058) : le bon émis depuis le carnet s'imprime
+  tel quel.
+- **Le gabarit est le contrat du contenu.** `POST /documents` refuse un champ obligatoire absent (en le
+  nommant), un champ que le gabarit n'imprime pas, et une date ou un nombre mal écrits. Le contenu est figé dès
+  l'émission : une erreur ne se rattraperait plus.
+- **`GET /documents/{id}/impression`** rend une page A4 bilingue en HTML imprimable (`impression.ts`), qui
+  porte :
+  - l'en-tête de l'État, du gouvernorat et de la commune en français et en arabe, puis le numéro d'ordre et
+    la référence ;
+  - les champs, les observations, les signatures, et la mention d'édition (date, heure de Tunis, auteur) ;
+  - l'**empreinte du contenu**, à comparer au registre ;
+  - le bandeau « MODÈLE PROVISOIRE », et pour un document annulé un tampon « ANNULÉ » avec son motif ;
+  - **un champ vide reste une case vide**, sans tiret ni zéro ; tout texte est échappé.
+- **`GET /documents/gabarits`**, d'où l'écran tire ses formulaires.
+- **Migration 080 — `gouvernorats_noms`** : le nom arabe des 24 gouvernorats, pour « ولاية … ». C'est une
+  donnée, pas du code, conformément à D-FNCT-2. Lecture pour tous, écriture par la FNCT.
+- **Écran** *Flotte, GMAO & dépôt → Documents*, le registre de tous les documents :
+  - filtre par type, impression, annulation motivée ;
+  - les **numéros manquants** signalés ;
+  - les modèles provisoires annoncés.
+- **Un formulaire unique** (`ajout/FormulaireDocument.tsx`), construit depuis le gabarit, pour l'ordre de
+  mission, le bon de travail et la déclaration de panne. Il est ouvert depuis le registre et depuis
+  « + Ajouter » ; la commune émet, la FNCT lit. L'émission est dite définitive avant le clic. Le bon de
+  carburant reste émis depuis le carnet, qui enregistre le plein en même temps.
+- **Imprimer** sur chaque bon du carnet de carburant. L'impression passe par un cadre invisible de la page,
+  pas par une fenêtre que le navigateur bloquerait.
+- **Campagne `documents`** :
+  - elle émet désormais des contenus conformes ;
+  - une section nouvelle couvre les quatre gabarits provisoires, les champs manquants nommés, le champ inconnu,
+    la date mal écrite et la déclaration de panne émise ;
+  - à l'impression, elle vérifie le numéro, le titre arabe, le bandeau, le texte échappé, la case vide restée
+    vide, l'empreinte et la mention d'édition ;
+  - le directeur d'une autre commune reçoit 404, une requête sans compte 401, et un document annulé
+    s'imprime barré avec son motif.
+
 ## [0.15.45] — 2026-10-16 — C2.2 : l'import des fichiers de limites (Shapefile, KML, KMZ, GeoJSON)
 
 Un géomètre ou un bureau d'études livre le périmètre ou les secteurs d'une commune en Shapefile, le format

@@ -24,6 +24,7 @@ import { FormulaireAgent } from './FormulaireAgent';
 import { FormulaireCaracterisation } from './FormulaireCaracterisation';
 import { FormulaireCircuit } from './FormulaireCircuit';
 import { FormulaireContact } from './FormulaireContact';
+import { FormulaireDocument, type TypeDocumentEmis } from './FormulaireDocument';
 import { FormulaireEngin } from './FormulaireEngin';
 import { FormulaireLieu } from './FormulaireLieu';
 import { FormulairePcgd } from './FormulairePcgd';
@@ -73,6 +74,13 @@ const registre = (nom: NomRegistre) => {
   return Formulaire;
 };
 const FormulaireProjet = (p: PropsFormulaireAjout) => <FormulairePublication type="projet" {...p} />;
+// Les documents à numérotation scellée (lot 16.2) : un seul formulaire, tiré du
+// gabarit de chaque type. Émettre est réservé à la commune (la base le tient).
+const document = (type: TypeDocumentEmis) => {
+  const Formulaire = (p: PropsFormulaireAjout) => <FormulaireDocument type={type} {...p} />;
+  Formulaire.displayName = `FormulaireDocument(${type})`;
+  return Formulaire;
+};
 
 // `Record<TypeFormulaire, …>` : un type d'`appels-creation.json` sans
 // formulaire ne compile pas.
@@ -96,6 +104,9 @@ const FORMULAIRES: Record<TypeFormulaire, Omit<EntreeFormulaire, 'type'>> = {
   convention: { rubrique: 'partenaires', roles: COMMUNE_ET_FNCT, Formulaire: registre('conventions') },
   'import-contacts': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportContacts },
   'import-parc': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportParc },
+  'ordre-mission': { rubrique: 'equipe', roles: COMMUNE, Formulaire: document('ordre_mission') },
+  'bon-travail': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('bon_travail') },
+  'declaration-panne': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('declaration_panne') },
 };
 
 const ECRANS: Record<TypeEcran, Omit<EntreeEcran, 'type'>> = {

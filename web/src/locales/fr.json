@@ -701,7 +701,8 @@
       "declassement": "Déclassement",
       "acteursInformels": "Acteurs informels",
       "maCommune": "Ma commune dans SIIPI",
-      "wapla": "Bilan de planification (WaPla)"
+      "wapla": "Bilan de planification (WaPla)",
+      "documents": "Documents"
     },
     "etats": {
       "fait": "Fait",
@@ -2183,6 +2184,22 @@
         "maintenance": "Interventions en {{mois}} : {{n}}.",
         "balayage": "Nettoyages terminés en {{mois}} : {{n}}."
       }
+    },
+    "documents": {
+      "titre": "Registre des documents",
+      "aide": "Les ordres de mission, bons de carburant, bons de travail et déclarations de panne, chacun sous un numéro continu attribué par la base. Une pièce émise ne se modifie pas : on l’annule, avec un motif, et son numéro reste au registre.",
+      "provisoires": "Modèles provisoires : ils s’impriment « modèle provisoire » jusqu’à leur validation par le chef de dépôt pendant la recette.",
+      "carburant": "Les bons de carburant s’émettent depuis l’écran Carnet & carburant, qui enregistre le plein en même temps.",
+      "trous": "Numéros manquants dans le registre — à expliquer : {{liste}}.",
+      "filtre": "Afficher",
+      "tous": "Tous les documents",
+      "aucun": "Aucun document émis.",
+      "statutAnnule": "Annulé",
+      "motifAffiche": "Motif : {{motif}}",
+      "imprimer": "Imprimer",
+      "annuler": "Annuler…",
+      "motif": "Motif de l’annulation de {{numero}} (cinq caractères au moins) :",
+      "annule": "{{numero}} annulé ; son numéro reste au registre."
     }
   },
   "ajout": {
@@ -2279,11 +2296,17 @@
       "prestataire": "Un prestataire",
       "import-contacts": "Des contacts (fichier CSV)",
       "import-parc": "Le parc (fichier CSV)",
-      "import-geographique": "Des fichiers géographiques d'un circuit"
+      "import-geographique": "Des fichiers géographiques d'un circuit",
+      "ordre-mission": "Un ordre de mission",
+      "bon-travail": "Un bon de travail",
+      "declaration-panne": "Une déclaration de panne"
     },
     "precisions": {
       "circuit": "Avec son fichier GPX, KML ou GeoJSON",
-      "lieu": "Marché, cimetière, abattoir, école, centre de santé"
+      "lieu": "Marché, cimetière, abattoir, école, centre de santé",
+      "ordre-mission": "numéroté, imprimable",
+      "bon-travail": "maintenance d’un engin, numéroté",
+      "declaration-panne": "panne d’un engin, numérotée"
     },
     "position": {
       "aide": "Cliquez sur la carte pour poser la position.",
@@ -2346,6 +2369,13 @@
       "cible": "Cible",
       "cibleAide": "Ce à quoi la valeur se rapporte : sans cible, un ratio ne se lit pas.",
       "commentaire": "Commentaire (facultatif)"
+    },
+    "document": {
+      "titre": "{{document}}",
+      "aide": "Les champs marqués * sont obligatoires. Un champ laissé vide restera une case vide sur le document imprimé.",
+      "provisoire": "Modèle provisoire, en attente de validation par le chef de dépôt.",
+      "choisirEngin": "— Choisir l’engin —",
+      "definitif": "Émettre attribue le numéro suivant et fige le contenu : une erreur se corrige en annulant la pièce, avec un motif, puis en en émettant une nouvelle."
     }
   },
   "prestataire": {

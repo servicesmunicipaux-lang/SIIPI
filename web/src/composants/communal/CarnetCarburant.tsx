@@ -21,6 +21,7 @@ import {
   type QuotaCarburant,
   type SortieCarnet,
   type Vehicule,
+  imprimerDocument,
 } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useFormats } from '../../lib/formats';
@@ -457,17 +458,26 @@ function VueBons(props: {
                   <span className="font-mono font-semibold">{b.numero_affiche}</span>
                   <span className="ms-3">{c.engin} · {c.date ? f.date(c.date) : ''} · {c.litres} L {c.carburant ?? ''}</span>
                 </span>
-                {b.statut === 'annule' ? (
-                  <span className="rounded bg-ardoise-100 px-2 py-0.5 text-xs text-ardoise-700">
-                    {t('communal.carburant.annule')} — {b.motif_annulation}
-                  </span>
-                ) : (
-                  peutEmettre && (
-                    <button type="button" onClick={() => void annuler(b)} className="min-h-11 rounded-lg border border-red-300 px-3 text-sm text-red-800">
-                      {t('communal.carburant.annuler')}
-                    </button>
-                  )
-                )}
+                <span className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void imprimerDocument(b.id).catch(onErreur)}
+                    className="min-h-11 rounded-lg border border-ardoise-300 px-3 text-sm text-ardoise-700"
+                  >
+                    {t('communal.documents.imprimer')}
+                  </button>
+                  {b.statut === 'annule' ? (
+                    <span className="rounded bg-ardoise-100 px-2 py-0.5 text-xs text-ardoise-700">
+                      {t('communal.carburant.annule')} — {b.motif_annulation}
+                    </span>
+                  ) : (
+                    peutEmettre && (
+                      <button type="button" onClick={() => void annuler(b)} className="min-h-11 rounded-lg border border-red-300 px-3 text-sm text-red-800">
+                        {t('communal.carburant.annuler')}
+                      </button>
+                    )
+                  )}
+                </span>
               </li>
             );
           })}
