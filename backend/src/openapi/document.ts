@@ -96,7 +96,7 @@ import {
   GRAVITES,
 } from '../preferences.js';
 import { parametresCommuneSchema, localisationSchema } from '../routes/communes.routes.js';
-import { propositionDecoupageSchema } from '../routes/decoupage.routes.js';
+import { lectureFichierGeoSchema, propositionDecoupageSchema } from '../routes/decoupage.routes.js';
 import {
   commentaireFnctSchema,
   declarationsSchema,
@@ -1397,6 +1397,35 @@ registry.registerPath({
   security: SECURISE,
   request: { params: idVersion },
   responses: { 200: json(VersionDecoupageDetail, 'Version détaillée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/decoupage/lire-fichier',
+  tags: [TAG_DECOUPAGE],
+  summary: 'Lire un fichier de limites : Shapefile (zip), KML, KMZ ou GeoJSON (C2.2)',
+  description:
+    'Rend les formes du fichier en WGS 84 (EPSG:4326), avec leurs attributs, pour que l’écran les montre avant toute proposition : rien n’est enregistré. Systèmes reconnus : WGS 84, WGS 84 / UTM 32N, Carthage / UTM 32N, Carthage / Nord et Sud Tunisie, Web Mercator ; un autre est refusé en le nommant, jamais deviné. Les attributs d’un Shapefile sont décodés selon son .cpg. Une forme invalide est signalée, pas corrigée.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: lectureFichierGeoSchema } } } },
+  responses: {
+    200: json(
+      z.object({
+        format: z.enum(['shapefile', 'kml', 'kmz', 'geojson']),
+        projection: z.string(),
+        srid_source: z.number().int(),
+        avertissements: z.array(z.string()),
+        geojson: z.object({
+          type: z.literal('FeatureCollection'),
+          features: z.array(
+            z.object({ type: z.literal('Feature'), properties: z.record(z.string(), z.any()), geometry: z.record(z.string(), z.any()) })
+          ),
+        }),
+      }),
+      'Les formes, en WGS 84.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 registry.registerPath({
@@ -7556,7 +7585,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.44',
+      version: '0.15.45',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

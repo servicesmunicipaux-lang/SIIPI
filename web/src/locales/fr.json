@@ -103,18 +103,20 @@
       "retour": "Retour à l’annuaire",
       "modifier": "Modifier le tracé",
       "abandonner": "Abandonner les modifications",
-      "importer": "Importer un fichier GeoJSON",
+      "importer": "Importer un fichier (Shapefile, KML, KMZ, GeoJSON)",
       "enregistrer": "Enregistrer la limite",
       "enregistree": "Limite enregistrée. La superficie a été recalculée depuis le tracé.",
-      "sansFrontiere": "Cette commune n’a pas encore de limite enregistrée. Importez un fichier GeoJSON pour la créer.",
-      "fichierInvalide": "Fichier illisible : il doit contenir un polygone ou un multipolygone en GeoJSON.",
+      "sansFrontiere": "Cette commune n’a pas encore de limite enregistrée. Importez un fichier (Shapefile, KML, KMZ ou GeoJSON) pour la créer.",
+      "fichierInvalide": "Ce fichier ne contient aucun contour (polygone ou multipolygone).",
       "aide": "Modifier le tracé fait apparaître les sommets : faites-les glisser pour rectifier. Un contour qui se recoupe, qui sort de Tunisie ou qui est vide sera refusé par le serveur.",
       "sources": {
         "officiel": "Tracé issu de la couche nationale officielle.",
         "corrige_fnct": "Tracé rectifié à la main par la FNCT.",
         "osm": "Tracé issu d’OpenStreetMap (ancien import)."
       },
-      "tropDeSommets": "Ce tracé compte {{sommets}} sommets. À l’échelle de la commune entière, les poignées se superposent : zoomez sur la zone à rectifier pour les manipuler. Pour une correction d’ensemble, importez le fichier fourni par le géomètre — il vaudra toujours mieux qu’une retouche à la souris."
+      "tropDeSommets": "Ce tracé compte {{sommets}} sommets. À l’échelle de la commune entière, les poignées se superposent : zoomez sur la zone à rectifier pour les manipuler. Pour une correction d’ensemble, importez le fichier fourni par le géomètre — il vaudra toujours mieux qu’une retouche à la souris.",
+      "contourNomme": "Le contour qui porte le nom de la commune a été retenu.",
+      "premierContour": "Aucun ne porte le nom de la commune : le premier a été retenu, vérifiez-le sur la carte avant d’enregistrer."
     },
     "vues": {
       "observatoire": "Observatoire national",
@@ -2606,13 +2608,13 @@
     "demandeRetour": "demande de retour à la version {{n}}",
     "instruire": "Instruire →",
     "nouvelleProposition": "Nouvelle proposition de découpage",
-    "aideEdition": "Partez du découpage en vigueur : retouchez le périmètre, déplacez les sommets d'un secteur, dessinez-en un nouveau, importez un fichier GeoJSON. Rien ne change avant la validation de la FNCT.",
+    "aideEdition": "Partez du découpage en vigueur : retouchez le périmètre, déplacez les sommets d'un secteur, dessinez-en un nouveau, importez un fichier (Shapefile, KML, KMZ ou GeoJSON). Rien ne change avant la validation de la FNCT.",
     "abandonnerProposition": "Abandonner",
     "outils": "Outils de dessin",
     "retoucherPerimetre": "Retoucher le périmètre",
     "dessinerSecteur": "Dessiner un secteur",
-    "importerSecteurs": "Importer des secteurs (GeoJSON)",
-    "importerPerimetre": "Importer le périmètre (GeoJSON)",
+    "importerSecteurs": "Importer des secteurs",
+    "importerPerimetre": "Importer le périmètre",
     "aidePerimetre": "Déplacez les sommets du périmètre. Les secteurs ne sont pas modifiables pendant ce temps.",
     "aideDessin": "Cliquez point par point ; cliquez sur le premier point pour fermer le secteur.",
     "aideSommets": "Déplacez les sommets d'un secteur pour le redessiner ; cliquez sur un secteur pour le retrouver dans la liste.",
@@ -2635,7 +2637,15 @@
     "perimetreInchange": "Périmètre inchangé",
     "secteursModifies": "secteurs modifiés",
     "secteursInchanges": "secteurs inchangés",
-    "figee": "Figé le {{date}}, juste avant la première modification"
+    "figee": "Figé le {{date}}, juste avant la première modification",
+    "formatsLus": "Fichiers lus : Shapefile (les .shp, .shx, .dbf, .prj et .cpg dans un même zip), KML, KMZ, GeoJSON. Les systèmes de coordonnées tunisiens sont ramenés en WGS 84.",
+    "fichierLu": "{{format}} lu ({{projection}}) : {{n}} contour(s).",
+    "formats": {
+      "shapefile": "Shapefile",
+      "kml": "KML",
+      "kmz": "KMZ",
+      "geojson": "GeoJSON"
+    }
   },
   "kpi": {
     "titre": "Indicateurs — {{commune}}",

@@ -3451,6 +3451,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/decoupage/lire-fichier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lire un fichier de limites : Shapefile (zip), KML, KMZ ou GeoJSON (C2.2)
+         * @description Rend les formes du fichier en WGS 84 (EPSG:4326), avec leurs attributs, pour que l’écran les montre avant toute proposition : rien n’est enregistré. Systèmes reconnus : WGS 84, WGS 84 / UTM 32N, Carthage / UTM 32N, Carthage / Nord et Sud Tunisie, Web Mercator ; un autre est refusé en le nommant, jamais deviné. Les attributs d’un Shapefile sont décodés selon son .cpg. Une forme invalide est signalée, pas corrigée.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomFichier: string;
+                        contenu: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Les formes, en WGS 84. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            format: "shapefile" | "kml" | "kmz" | "geojson";
+                            projection: string;
+                            srid_source: number;
+                            avertissements: string[];
+                            geojson: {
+                                /** @enum {string} */
+                                type: "FeatureCollection";
+                                features: {
+                                    /** @enum {string} */
+                                    type: "Feature";
+                                    properties: {
+                                        [key: string]: unknown;
+                                    };
+                                    geometry: {
+                                        [key: string]: unknown;
+                                    };
+                                }[];
+                            };
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/decoupage/propositions": {
         parameters: {
             query?: never;

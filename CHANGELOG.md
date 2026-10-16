@@ -5,6 +5,48 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.45] — 2026-10-16 — C2.2 : l'import des fichiers de limites (Shapefile, KML, KMZ, GeoJSON)
+
+Un géomètre ou un bureau d'études livre le périmètre ou les secteurs d'une commune en Shapefile, le format
+d'ArcGIS et de QGIS, souvent dans un système de coordonnées tunisien. Les écrans de découpage ne lisaient que
+du GeoJSON.
+
+### Ajouté
+- **`POST /decoupage/lire-fichier`** (directeur de commune ou FNCT) lit un fichier de limites et rend ses
+  formes **en WGS 84**, avec leurs attributs. Elle n'enregistre rien : l'écran les montre avant toute
+  proposition.
+  - **Shapefile en zip** : la projection vient du .prj, l'encodage des attributs du .cpg (arabe en UTF-8
+    ou Windows-1256). Les contours troués et à plusieurs parties sont lus, ainsi que les champs texte,
+    numériques, logiques et date.
+  - **KML et KMZ** : les polygones, leurs trous, le nom et les attributs.
+  - **GeoJSON** : son membre « crs » est lu quand il existe.
+  - **La projection ne se devine pas.** SIIPI reconnaît WGS 84, WGS 84 / UTM 32N, Carthage / UTM 32N,
+    Carthage / Nord et Sud Tunisie, et Web Mercator. PostGIS reprojette, changement de datum compris. Un
+    autre système est refusé en le nommant. Un Shapefile sans .prj n'est accepté que si ses coordonnées
+    sont des degrés en Tunisie, et la réponse le dit.
+  - Une forme invalide est signalée, pas corrigée. Un encodage supposé est dit.
+- **`services/zip.ts`**, le seul lecteur d'archives :
+  - il lit le répertoire central, si bien que les zips écrits en flux par Windows ou QGIS sont lus ;
+  - il refuse plus de 200 entrées, plus de 200 Mo décompressés et les entrées chiffrées ;
+  - il ne décompresse jamais au-delà de la taille annoncée, ce qui arrête les « bombes ».
+
+  La lecture des KMZ de relevés (`kml.ts`) passe désormais par lui.
+- **Écrans de découpage** : *Découpage → Proposer une modification* (commune : périmètre, secteurs) et le
+  découpage d'une commune à l'observatoire (FNCT) acceptent Shapefile, KML, KMZ et GeoJSON. Le résultat de
+  la lecture (format, système, nombre de contours, avertissements) s'affiche sous les boutons. Quand un
+  fichier porte plusieurs contours, la FNCT reçoit celui qui porte le nom de la commune, sinon le premier ;
+  l'écran le dit dans les deux cas. FR/AR.
+- **Campagne `import-geo`** :
+  - elle commence par les refus : sans compte, citoyen, prestataire, archive sans .dbf, sans Shapefile, .shp
+    seul, fichier quelconque, bombe zip, Lambert 93, mètres sans .prj, GeoJSON dans un système inconnu ou
+    en mètres sans le dire ;
+  - chaque format est confronté à un témoin (`tests/donnees/fichiers_geo.py`), qui écrit lui-même les
+    fichiers octet par octet et calcule UTM 32N et Web Mercator par les formules du manuel ;
+  - précisions vérifiées : retour en degrés à 1e-9 ° en WGS 84, à 1e-6 ° depuis UTM et Web Mercator ;
+    changement de datum de Carthage appliqué ;
+  - attributs arabes justes en UTF-8 comme en Windows-1256 ;
+  - aucune version de découpage créée par la lecture.
+
 ## [0.15.44] — 2026-10-16 — B5.5.4 : les indicateurs de communication
 
 La dernière fonctionnalité « à faire » de la rubrique 5.5 du cahier des charges, qui demande délai,

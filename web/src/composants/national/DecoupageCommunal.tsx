@@ -171,26 +171,35 @@ export function DecoupageCommunal({
     }
   };
 
+  // Le fichier — Shapefile (zip), KML, KMZ ou GeoJSON — est lu par l'API, qui
+  // le ramène en WGS 84 (lot C2.2). S'il porte plusieurs contours (la couche
+  // de tout un gouvernorat, par exemple), on prend celui qui porte le nom de la
+  // commune, et on le dit ; à défaut, le premier, et on le dit aussi.
   const importerFichier = async (fichier: File) => {
     setErreur(null);
+    setMessage(null);
     try {
-      const contenu = JSON.parse(await fichier.text());
-      // On accepte indifféremment une géométrie nue, une Feature ou une
-      // FeatureCollection : ce sont les trois formes que produisent QGIS,
-      // ArcGIS et les exports en ligne, et l'utilisateur n'a pas à savoir
-      // laquelle il tient.
-      const g: Geometrie | undefined =
-        contenu.type === 'FeatureCollection'
-          ? contenu.features?.[0]?.geometry
-          : contenu.type === 'Feature'
-            ? contenu.geometry
-            : contenu;
-      if (!g || (g.type !== 'Polygon' && g.type !== 'MultiPolygon')) {
-        throw new Error(t('national.decoupage.fichierInvalide'));
-      }
+      const lu = await api.lireFichierLimites(fichier);
+      const polygones = lu.geojson.features.filter((f) => f.geometry?.type === 'Polygon' || f.geometry?.type === 'MultiPolygon');
+      if (!polygones.length) throw new Error(t('national.decoupage.fichierInvalide'));
+      const simplifier = (s: unknown) =>
+        String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9؀-ۿ]/g, '');
+      const cible = simplifier(commune?.name);
+      const nommee = polygones.find((f) => Object.values(f.properties ?? {}).some((v) => typeof v === 'string' && simplifier(v) === cible));
+      const choisie = nommee ?? polygones[0];
+      const g = choisie.geometry as unknown as Geometrie;
       setGeometrie(g);
       setModifiee(g);
       setEdition(false);
+      setMessage(
+        [
+          t('decoupage.fichierLu', { format: t(`decoupage.formats.${lu.format}`), projection: lu.projection, n: polygones.length }),
+          polygones.length > 1 ? t(nommee ? 'national.decoupage.contourNomme' : 'national.decoupage.premierContour') : '',
+          ...lu.avertissements,
+        ]
+          .filter(Boolean)
+          .join(' ')
+      );
     } catch (err) {
       setErreur(err instanceof Error ? err.message : t('national.decoupage.fichierInvalide'));
     }
@@ -297,7 +306,7 @@ export function DecoupageCommunal({
           {t('national.decoupage.importer')}
           <input
             type="file"
-            accept=".geojson,.json,application/geo+json,application/json"
+            accept=".zip,.shp,.kml,.kmz,.geojson,.json,application/zip,application/geo+json,application/json"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
