@@ -6,7 +6,8 @@
 // commune doit voir avant de revenir à une version ancienne.
 
 import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, useMap } from 'react-leaflet';
+import { FondsDeCarte } from '../carte/FondsDeCarte';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '@geoman-io/leaflet-geoman-free';
@@ -185,10 +186,7 @@ export function CarteDecoupage(props: {
   return (
     <div className={`${props.hauteur ?? 'h-[55dvh]'} overflow-hidden rounded-xl border border-ardoise-200`}>
       <MapContainer center={[34, 9.6]} zoom={7} scrollWheelZoom className="size-full">
-        <TileLayer
-          attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <FondsDeCarte />
         <Couches {...props} revision={props.revision ?? 0} />
       </MapContainer>
     </div>

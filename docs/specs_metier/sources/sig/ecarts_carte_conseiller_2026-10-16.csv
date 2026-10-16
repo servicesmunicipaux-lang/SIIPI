@@ -1,0 +1,902 @@
+﻿code;commune_siipi;gouvernorat_siipi;champ;carte_conseiller;siipi
+1111;Tunis (Capitale);Tunis;nom;Tunis Ville;Tunis (Capitale)
+1111;Tunis (Capitale);Tunis;nom_ar;تونس العاصمة;بلدية تونس
+1111;Tunis (Capitale);Tunis;population;637568;638845
+1111;Tunis (Capitale);Tunis;superficie_km2;190.7;122.03
+1112;Le Bardo;Tunis;superficie_km2;10.43;6.67
+1113;Le Kram;Tunis;nom;EL kram;Le Kram
+1113;Le Kram;Tunis;superficie_km2;15.14;9.67
+1114;La Goulette;Tunis;superficie_km2;31.43;20.09
+1115;Carthage;Tunis;population;17010;24216
+1115;Carthage;Tunis;superficie_km2;9.49;6.06
+1116;Sidi Bou Saïd;Tunis;nom;Sidi Bou Said;Sidi Bou Saïd
+1116;Sidi Bou Saïd;Tunis;nom_ar;سيدي بوسعيد;سيدي بو سعيد
+1116;Sidi Bou Saïd;Tunis;population;7206;6000
+1116;Sidi Bou Saïd;Tunis;superficie_km2;3.48;2.22
+1117;La Marsa;Tunis;superficie_km2;48.9;31.21
+1118;Sidi Hassine;Tunis;superficie_km2;100.61;64.49
+1211;Ariana (Ville);Ariana;nom;Ariana;Ariana (Ville)
+1211;Ariana (Ville);Ariana;superficie_km2;28.78;18.39
+1212;La Soukra;Ariana;nom;Soukra;La Soukra
+1212;La Soukra;Ariana;population;129693;129622
+1212;La Soukra;Ariana;superficie_km2;44.33;28.31
+1213;Raoued;Ariana;superficie_km2;90.3;57.59
+1214;Kalaât El Andalous;Ariana;nom;Kalaat El Andalos;Kalaât El Andalous
+1214;Kalaât El Andalous;Ariana;superficie_km2;297.69;189.44
+1215;Sidi Thabet;Ariana;population;24503;24502
+1215;Sidi Thabet;Ariana;superficie_km2;152.14;97.09
+1216;Ettadhamen;Ariana;superficie_km2;5.15;3.29
+1217;Mnihla;Ariana;nom;El Mnihla;Mnihla
+1217;Mnihla;Ariana;superficie_km2;36.82;23.52
+1311;Ben Arous;Ben Arous;superficie_km2;23.56;15.1
+1312;El Mourouj;Ben Arous;superficie_km2;25.32;16.24
+1313;Hammam Lif;Ben Arous;superficie_km2;17.78;11.4
+1314;Hammam Chott;Ben Arous;population;31858;31810
+1314;Hammam Chott;Ben Arous;superficie_km2;44.54;28.59
+1315;Boumhel El Bassatine;Ben Arous;nom;Bou Mhel El Bassatine;Boumhel El Bassatine
+1315;Boumhel El Bassatine;Ben Arous;superficie_km2;31.09;19.94
+1316;Ezzahra;Ben Arous;nom;Ez-Zahra;Ezzahra
+1316;Ezzahra;Ben Arous;superficie_km2;10.89;6.98
+1317;Radès;Ben Arous;nom;Rades;Radès
+1317;Radès;Ben Arous;population;59998;60000
+1317;Radès;Ben Arous;superficie_km2;32.43;20.77
+1318;Mégrine;Ben Arous;nom;Megrine;Mégrine
+1318;Mégrine;Ben Arous;superficie_km2;16.65;10.66
+1319;El Mhamedia;Ben Arous;nom;Mhamedia;El Mhamedia
+1319;El Mhamedia;Ben Arous;population;66439;66500
+1319;El Mhamedia;Ben Arous;superficie_km2;156.0;100.23
+1320;Mornag;Ben Arous;population;42362;61518
+1320;Mornag;Ben Arous;superficie_km2;338.34;217.68
+1321;Khledia;Ben Arous;nom;Khelidia;Khledia
+1321;Khledia;Ben Arous;population;19156;18500
+1321;Khledia;Ben Arous;superficie_km2;262.72;169.05
+1322;Fouchana;Ben Arous;population;46717;74868
+1322;Fouchana;Ben Arous;superficie_km2;37.54;24.08
+1323;Naâssen;Ben Arous;nom;Naassen;Naâssen
+1323;Naâssen;Ben Arous;superficie_km2;32.68;20.98
+1411;Manouba;Manouba;nom;Mannouba;Manouba
+1411;Manouba;Manouba;population;32005;32000
+1411;Manouba;Manouba;superficie_km2;13.58;8.69
+1412;Den Den;Manouba;nom;Denden;Den Den
+1412;Den Den;Manouba;population;26787;28500
+1412;Den Den;Manouba;superficie_km2;5.44;3.48
+1413;Douar Hicher;Manouba;population;84090;84000
+1413;Douar Hicher;Manouba;superficie_km2;14.21;9.09
+1414;Oued Ellil;Manouba;superficie_km2;90.6;57.94
+1415;Mornaguia;Manouba;population;28986;42687
+1415;Mornaguia;Manouba;superficie_km2;137.72;88.35
+1416;Borj El Amri;Manouba;population;17408;17409
+1416;Borj El Amri;Manouba;superficie_km2;273.94;175.85
+1417;Jedeida;Manouba;nom;Djedaida;Jedeida
+1417;Jedeida;Manouba;superficie_km2;280.43;179.16
+1418;Tebourba;Manouba;superficie_km2;449.89;287.47
+1419;El Battane;Manouba;nom;El Battan;El Battane
+1419;El Battane;Manouba;superficie_km2;250.67;160.52
+1420;El Bassatine;Manouba;population;13701;14200
+1420;El Bassatine;Manouba;superficie_km2;232.64;149.26
+1511;Nabeul (Ville);Nabeul;nom;Nabeul;Nabeul (Ville)
+1511;Nabeul (Ville);Nabeul;superficie_km2;113.41;73.18
+1512;Dar Chaâbane El Fehri;Nabeul;nom;Dar Chaabane El Fehri;Dar Chaâbane El Fehri
+1512;Dar Chaâbane El Fehri;Nabeul;population;46781;46450
+1512;Dar Chaâbane El Fehri;Nabeul;superficie_km2;105.99;68.31
+1513;Beni Khiar;Nabeul;population;23640;26500
+1513;Beni Khiar;Nabeul;superficie_km2;52.73;34.0
+1514;El Maâmoura;Nabeul;nom;El Mâamoura;El Maâmoura
+1514;El Maâmoura;Nabeul;population;10994;8800
+1514;El Maâmoura;Nabeul;superficie_km2;36.53;23.56
+1515;Somaâ;Nabeul;population;8498;7800
+1515;Somaâ;Nabeul;superficie_km2;77.76;50.07
+1516;Korba;Nabeul;population;59578;68964
+1516;Korba;Nabeul;superficie_km2;290.12;186.49
+1517;Tazarka;Nabeul;nom_ar;تازركة;تزغران
+1517;Tazarka;Nabeul;population;9388;10500
+1517;Tazarka;Nabeul;superficie_km2;30.74;19.8
+1518;Menzel Temime;Nabeul;population;49220;56524
+1518;Menzel Temime;Nabeul;superficie_km2;203.84;130.36
+1519;Menzel Horr;Nabeul;population;16425;6200
+1519;Menzel Horr;Nabeul;superficie_km2;200.66;128.46
+1520;El Mida;Nabeul;superficie_km2;243.65;156.24
+1521;Kélibia;Nabeul;nom;Kelibia;Kélibia
+1521;Kélibia;Nabeul;population;47656;58491
+1521;Kélibia;Nabeul;superficie_km2;55.87;35.72
+1522;Azmour;Nabeul;population;10835;5500
+1522;Azmour;Nabeul;superficie_km2;158.87;101.4
+1523;Hammam Ghezaz;Nabeul;nom;Hammam El Guezaz;Hammam Ghezaz
+1523;Hammam Ghezaz;Nabeul;population;9545;15400
+1523;Hammam Ghezaz;Nabeul;superficie_km2;65.56;41.85
+1524;Dar Allouche;Nabeul;nom;Dar Allouch;Dar Allouche
+1524;Dar Allouche;Nabeul;population;6182;6700
+1524;Dar Allouche;Nabeul;superficie_km2;58.3;37.16
+1525;El Haouaria;Nabeul;population;64440;41312
+1525;El Haouaria;Nabeul;superficie_km2;227.22;144.59
+1526;Takelsa;Nabeul;superficie_km2;427.55;273.53
+1527;Soliman;Nabeul;population;37749;53491
+1527;Soliman;Nabeul;superficie_km2;77.74;49.86
+1528;Korbous;Nabeul;population;3532;3800
+1528;Korbous;Nabeul;superficie_km2;76.77;49.16
+1529;Menzel Bouzelfa;Nabeul;nom;Menzel Bou Zelfa;Menzel Bouzelfa
+1529;Menzel Bouzelfa;Nabeul;population;37860;37859
+1529;Menzel Bouzelfa;Nabeul;superficie_km2;211.09;135.44
+1530;Béni Khalled;Nabeul;nom;Beni Khalled;Béni Khalled
+1530;Béni Khalled;Nabeul;population;26135;37964
+1530;Béni Khalled;Nabeul;superficie_km2;119.73;76.95
+1531;Zaouiet Djedidi;Nabeul;population;11829;9500
+1531;Zaouiet Djedidi;Nabeul;superficie_km2;62.63;40.27
+1532;Grombalia;Nabeul;population;44004;67475
+1532;Grombalia;Nabeul;superficie_km2;269.51;173.55
+1533;Bouargoub;Nabeul;nom;Bou Argoub;Bouargoub
+1533;Bouargoub;Nabeul;population;30942;31406
+1533;Bouargoub;Nabeul;superficie_km2;201.51;129.86
+1534;Hammamet;Nabeul;population;83633;97579
+1534;Hammamet;Nabeul;superficie_km2;161.2;104.16
+1535;Fondouk Jedid-Seltan;Nabeul;nom;Fondek Ejedid - Es Selten;Fondouk Jedid-Seltan
+1535;Fondouk Jedid-Seltan;Nabeul;nom_ar;فندق الجديد - سلتان;فندق الجديد سلتان
+1535;Fondouk Jedid-Seltan;Nabeul;population;23471;13500
+1535;Fondouk Jedid-Seltan;Nabeul;superficie_km2;191.38;123.02
+1536;Tazghrane Boukrim Zaouiet El Mgaiez;Nabeul;nom;Tazegrane Boukrim Zaouiet Mgaiez;Tazghrane Boukrim Zaouiet El Mgaiez
+1536;Tazghrane Boukrim Zaouiet El Mgaiez;Nabeul;nom_ar;تزغران بوكريم زاوية المقايز;تزغران بوكريم
+1536;Tazghrane Boukrim Zaouiet El Mgaiez;Nabeul;population;15322;14500
+1536;Tazghrane Boukrim Zaouiet El Mgaiez;Nabeul;superficie_km2;270.82;172.81
+1537;Sidi Jedidi;Nabeul;population;14222;11000
+1537;Sidi Jedidi;Nabeul;superficie_km2;326.89;211.14
+1538;Boucharray-Chrifet;Nabeul;nom;Echerifet Boucharray ;Boucharray-Chrifet
+1538;Boucharray-Chrifet;Nabeul;nom_ar;الشريفات بوشراي;بوشراي الشريفات
+1538;Boucharray-Chrifet;Nabeul;population;12210;12000
+1538;Boucharray-Chrifet;Nabeul;superficie_km2;67.44;43.29
+1611;Zaghouan (Ville);Zaghouan;nom;Zaghouan;Zaghouan (Ville)
+1611;Zaghouan (Ville);Zaghouan;superficie_km2;650.71;420.56
+1612;Zriba;Zaghouan;nom;Ez-Zeriba;Zriba
+1612;Zriba;Zaghouan;population;24617;22000
+1612;Zriba;Zaghouan;superficie_km2;523.77;339.43
+1613;Bir Mcherga;Zaghouan;nom;Bir Mchergua;Bir Mcherga
+1613;Bir Mcherga;Zaghouan;population;14604;24775
+1613;Bir Mcherga;Zaghouan;superficie_km2;471.61;304.25
+1614;Djebel Oust;Zaghouan;nom;Jebel Oust;Djebel Oust
+1614;Djebel Oust;Zaghouan;population;9783;12500
+1614;Djebel Oust;Zaghouan;superficie_km2;395.21;254.46
+1615;El Fahs;Zaghouan;population;34456;46449
+1615;El Fahs;Zaghouan;superficie_km2;611.83;396.09
+1616;Ennadhour;Zaghouan;nom;En-Nadhour;Ennadhour
+1616;Ennadhour;Zaghouan;superficie_km2;546.09;355.64
+1617;Saouaf;Zaghouan;superficie_km2;401.68;260.99
+1618;El Amaiem;Zaghouan;population;11993;11800
+1618;El Amaiem;Zaghouan;superficie_km2;812.39;527.3
+1711;Bizerte (Nord & Centre);Bizerte;nom;Bizerte;Bizerte (Nord & Centre)
+1711;Bizerte (Nord & Centre);Bizerte;population;167759;142966
+1711;Bizerte (Nord & Centre);Bizerte;superficie_km2;737.35;466.18
+1712;Sejnane;Bizerte;nom;Sedjnane;Sejnane
+1712;Sejnane;Bizerte;population;21369;40166
+1712;Sejnane;Bizerte;superficie_km2;412.29;261.71
+1713;Mateur;Bizerte;population;46975;46972
+1713;Mateur;Bizerte;superficie_km2;886.17;564.4
+1714;Menzel Bourguiba;Bizerte;superficie_km2;202.41;128.5
+1715;Tinja;Bizerte;superficie_km2;95.85;60.83
+1716;Ghar El Melh;Bizerte;nom;Ghar El Meleh;Ghar El Melh
+1716;Ghar El Melh;Bizerte;population;9242;10450
+1716;Ghar El Melh;Bizerte;superficie_km2;49.18;31.17
+1717;Aousja;Bizerte;nom;Ousja;Aousja
+1717;Aousja;Bizerte;population;10235;5800
+1717;Aousja;Bizerte;superficie_km2;96.44;61.15
+1718;Menzel Jemil;Bizerte;nom;Menzel Djemil;Menzel Jemil
+1718;Menzel Jemil;Bizerte;population;28139;26500
+1718;Menzel Jemil;Bizerte;superficie_km2;115.06;72.84
+1719;Menzel Abderrahmane;Bizerte;nom;Menzel Abderrahmen;Menzel Abderrahmane
+1719;Menzel Abderrahmane;Bizerte;population;19085;19081
+1719;Menzel Abderrahmane;Bizerte;superficie_km2;15.29;9.67
+1720;El Alia;Bizerte;population;27075;21544
+1720;El Alia;Bizerte;superficie_km2;133.97;84.94
+1721;Ras Jebel;Bizerte;nom;Ras El Djebel;Ras Jebel
+1721;Ras Jebel;Bizerte;nom_ar;راس الجبل;رأس الجبل
+1721;Ras Jebel;Bizerte;population;29977;28610
+1721;Ras Jebel;Bizerte;superficie_km2;47.22;29.89
+1722;Metline;Bizerte;population;14146;11000
+1722;Metline;Bizerte;superficie_km2;50.6;32.02
+1723;Raf Raf;Bizerte;nom;Rafraf;Raf Raf
+1723;Raf Raf;Bizerte;population;14118;14500
+1723;Raf Raf;Bizerte;superficie_km2;35.06;22.21
+1724;Utique;Bizerte;superficie_km2;599.44;381.31
+1725;Joumine;Bizerte;superficie_km2;864.87;552.13
+1726;Ghezala;Bizerte;nom;Ghzala;Ghezala
+1726;Ghezala;Bizerte;population;26977;27799
+1726;Ghezala;Bizerte;superficie_km2;646.3;410.56
+1727;El Hchachna;Bizerte;superficie_km2;574.76;364.36
+2111;Béja;Béja;gouvernorat;Beja;Béja
+2111;Béja;Béja;population;83780;109299
+2111;Béja;Béja;superficie_km2;671.5;429.72
+2112;El Maagoula;Béja;gouvernorat;Beja;Béja
+2112;El Maagoula;Béja;nom;El Mâagoula;El Maagoula
+2112;El Maagoula;Béja;population;15554;12400
+2112;El Maagoula;Béja;superficie_km2;333.89;214.37
+2113;Zahret Mediene;Béja;gouvernorat;Beja;Béja
+2113;Zahret Mediene;Béja;nom;Zahret Medien;Zahret Mediene
+2113;Zahret Mediene;Béja;population;21187;14200
+2113;Zahret Mediene;Béja;superficie_km2;372.39;238.36
+2114;Nefza;Béja;gouvernorat;Beja;Béja
+2114;Nefza;Béja;population;26159;51100
+2114;Nefza;Béja;superficie_km2;499.22;317.52
+2115;Teboursouk;Béja;gouvernorat;Beja;Béja
+2115;Teboursouk;Béja;superficie_km2;613.08;395.86
+2116;Testour;Béja;gouvernorat;Beja;Béja
+2116;Testour;Béja;population;27540;33613
+2116;Testour;Béja;superficie_km2;866.55;557.6
+2117;Goubellat;Béja;gouvernorat;Beja;Béja
+2117;Goubellat;Béja;superficie_km2;644.87;415.58
+2118;Medjez El Bab;Béja;gouvernorat;Beja;Béja
+2118;Medjez El Bab;Béja;superficie_km2;718.8;461.21
+2119;Thibar;Béja;gouvernorat;Beja;Béja
+2119;Thibar;Béja;nom;Tibar;Thibar
+2119;Thibar;Béja;superficie_km2;177.1;114.19
+2120;Ouechtata-El Jamila;Béja;gouvernorat;Beja;Béja
+2120;Ouechtata-El Jamila;Béja;nom;Ouechtata - El Jamila;Ouechtata-El Jamila
+2120;Ouechtata-El Jamila;Béja;population;21942;18500
+2120;Ouechtata-El Jamila;Béja;superficie_km2;431.74;275.4
+2121;Sidi Ismail;Béja;gouvernorat;Beja;Béja
+2121;Sidi Ismail;Béja;population;9965;9800
+2121;Sidi Ismail;Béja;superficie_km2;230.22;148.1
+2122;Slouguia;Béja;gouvernorat;Beja;Béja
+2122;Slouguia;Béja;population;6073;9500
+2122;Slouguia;Béja;superficie_km2;130.36;83.94
+2211;Jendouba (Ville);Jendouba;nom;Jendouba;Jendouba (Ville)
+2211;Jendouba (Ville);Jendouba;population;74421;113116
+2211;Jendouba (Ville);Jendouba;superficie_km2;462.41;297.88
+2212;Bou Salem;Jendouba;population;43997;35152
+2212;Bou Salem;Jendouba;superficie_km2;495.87;319.29
+2213;Tabarka;Jendouba;population;33942;48353
+2213;Tabarka;Jendouba;superficie_km2;211.58;135.01
+2214;Aïn Draham;Jendouba;nom;Ain Draham;Aïn Draham
+2214;Aïn Draham;Jendouba;population;23227;35400
+2214;Aïn Draham;Jendouba;superficie_km2;508.93;325.71
+2215;Fernana;Jendouba;population;25398;50024
+2215;Fernana;Jendouba;superficie_km2;293.28;188.46
+2216;Beni M'Tir;Jendouba;nom;Beni Mtir;Beni M'Tir
+2216;Beni M'Tir;Jendouba;population;5553;7800
+2216;Beni M'Tir;Jendouba;superficie_km2;111.89;71.8
+2217;Ghardimaou;Jendouba;population;50793;64170
+2217;Ghardimaou;Jendouba;superficie_km2;588.56;379.9
+2218;Oued Meliz;Jendouba;superficie_km2;310.28;200.28
+2219;Balta Bou Aouane;Jendouba;nom;Balta -Bouaouene;Balta Bou Aouane
+2219;Balta Bou Aouane;Jendouba;population;30268;38764
+2219;Balta Bou Aouane;Jendouba;superficie_km2;410.65;263.52
+2220;Souk Essebt;Jendouba;nom;Souk Es-Sabet;Souk Essebt
+2220;Souk Essebt;Jendouba;population;38695;16500
+2220;Souk Essebt;Jendouba;superficie_km2;386.3;249.35
+2221;Kalaa-El Maaden-Ferksan;Jendouba;nom;El Golaa - El Maaden -Forgassen;Kalaa-El Maaden-Ferksan
+2221;Kalaa-El Maaden-Ferksan;Jendouba;nom_ar;القلعة - المعدن - فرقصان;القلعة المعدن فرقصان
+2221;Kalaa-El Maaden-Ferksan;Jendouba;population;13377;15100
+2221;Kalaa-El Maaden-Ferksan;Jendouba;superficie_km2;215.95;139.05
+2222;El Jaouada;Jendouba;nom;Jaouaouada;El Jaouada
+2222;El Jaouada;Jendouba;population;16739;14200
+2222;El Jaouada;Jendouba;superficie_km2;197.84;127.13
+2223;Tabarka El Jadida;Jendouba;nom;Tabarka Nouvelle;Tabarka El Jadida
+2223;Tabarka El Jadida;Jendouba;population;15051;16800
+2223;Tabarka El Jadida;Jendouba;superficie_km2;378.14;241.36
+2224;Hammam Bourguiba;Jendouba;nom;Hammem Bourguiba;Hammam Bourguiba
+2224;Hammam Bourguiba;Jendouba;population;12173;9800
+2224;Hammam Bourguiba;Jendouba;superficie_km2;266.81;171.0
+2311;Le Kef (Ville);Le Kef;gouvernorat;Kef;Le Kef
+2311;Le Kef (Ville);Le Kef;nom;Le Kef;Le Kef (Ville)
+2311;Le Kef (Ville);Le Kef;population;60876;73706
+2311;Le Kef (Ville);Le Kef;superficie_km2;335.76;218.47
+2312;Nebeur;Le Kef;gouvernorat;Kef;Le Kef
+2312;Nebeur;Le Kef;population;13137;27600
+2312;Nebeur;Le Kef;superficie_km2;355.13;229.92
+2313;Touiref;Le Kef;gouvernorat;Kef;Le Kef
+2313;Touiref;Le Kef;population;6592;6799
+2313;Touiref;Le Kef;superficie_km2;497.79;322.51
+2314;Sakiet Sidi Youssef;Le Kef;gouvernorat;Kef;Le Kef
+2314;Sakiet Sidi Youssef;Le Kef;superficie_km2;1123.88;730.73
+2315;Tajerouine;Le Kef;gouvernorat;Kef;Le Kef
+2315;Tajerouine;Le Kef;population;19658;27590
+2315;Tajerouine;Le Kef;superficie_km2;878.74;574.18
+2316;Menzel Salem;Le Kef;gouvernorat;Kef;Le Kef
+2316;Menzel Salem;Le Kef;population;7934;10500
+2316;Menzel Salem;Le Kef;superficie_km2;226.13;148.12
+2317;Kalaat Senan;Le Kef;gouvernorat;Kef;Le Kef
+2317;Kalaat Senan;Le Kef;nom;Kalâat Snan;Kalaat Senan
+2317;Kalaat Senan;Le Kef;nom_ar;قلعة السنان;قلعة سنان
+2317;Kalaat Senan;Le Kef;population;15621;15600
+2317;Kalaat Senan;Le Kef;superficie_km2;776.56;509.71
+2318;Kalaat Khasba;Le Kef;gouvernorat;Kef;Le Kef
+2318;Kalaat Khasba;Le Kef;nom;Kalâat Khasba;Kalaat Khasba
+2318;Kalaat Khasba;Le Kef;nom_ar;القلعة الخصباء;قلعة الخصبة
+2318;Kalaat Khasba;Le Kef;superficie_km2;322.71;212.28
+2319;Jerissa (Bou Jerida);Le Kef;gouvernorat;Kef;Le Kef
+2319;Jerissa (Bou Jerida);Le Kef;nom;Djerissa;Jerissa (Bou Jerida)
+2319;Jerissa (Bou Jerida);Le Kef;superficie_km2;268.82;176.36
+2320;El Kossour;Le Kef;gouvernorat;Kef;Le Kef
+2320;El Kossour;Le Kef;nom;El Ksour;El Kossour
+2320;El Kossour;Le Kef;superficie_km2;686.71;450.4
+2321;Dahmani;Le Kef;gouvernorat;Kef;Le Kef
+2321;Dahmani;Le Kef;superficie_km2;841.62;550.38
+2322;Le Sers;Le Kef;gouvernorat;Kef;Le Kef
+2322;Le Sers;Le Kef;nom;Es-Sers;Le Sers
+2322;Le Sers;Le Kef;population;17787;25915
+2322;Le Sers;Le Kef;superficie_km2;434.21;283.01
+2323;Zaafrane Dyr;Le Kef;gouvernorat;Kef;Le Kef
+2323;Zaafrane Dyr;Le Kef;nom;Zâafrane - Dyr El Kef;Zaafrane Dyr
+2323;Zaafrane Dyr;Le Kef;nom_ar;الزعفران - دير الكاف;الزعفران دير
+2323;Zaafrane Dyr;Le Kef;population;12830;8400
+2323;Zaafrane Dyr;Le Kef;superficie_km2;596.31;387.71
+2324;Bahra;Le Kef;gouvernorat;Kef;Le Kef
+2324;Bahra;Le Kef;nom_ar;بهرة;بحرة
+2324;Bahra;Le Kef;population;6168;9200
+2324;Bahra;Le Kef;superficie_km2;257.63;166.99
+2325;El Marja;Le Kef;gouvernorat;Kef;Le Kef
+2325;El Marja;Le Kef;population;5472;11200
+2325;El Marja;Le Kef;superficie_km2;222.05;144.97
+2411;Siliana (Ville);Siliana;nom;Siliana;Siliana (Ville)
+2411;Siliana (Ville);Siliana;population;44736;44342
+2411;Siliana (Ville);Siliana;superficie_km2;847.26;552.68
+2412;Bou Arada;Siliana;population;20444;20877
+2412;Bou Arada;Siliana;superficie_km2;586.49;379.96
+2413;Gaâfour;Siliana;superficie_km2;706.14;458.5
+2414;El Krib;Siliana;superficie_km2;655.21;424.25
+2415;Sidi Bou Rouis;Siliana;nom;Sidi Bourouis;Sidi Bou Rouis
+2415;Sidi Bou Rouis;Siliana;population;12618;12118
+2415;Sidi Bou Rouis;Siliana;superficie_km2;419.37;272.63
+2416;Makthar;Siliana;superficie_km2;537.99;352.64
+2417;Rohia;Siliana;nom;Er-Rouhia;Rohia
+2417;Rohia;Siliana;population;14740;25951
+2417;Rohia;Siliana;superficie_km2;415.57;273.37
+2418;Kesra;Siliana;superficie_km2;655.59;430.44
+2419;Bargou;Siliana;superficie_km2;700.88;456.58
+2420;El Aroussa;Siliana;superficie_km2;557.24;360.61
+2421;Sidi Morched;Siliana;population;14404;12500
+2421;Sidi Morched;Siliana;superficie_km2;512.89;335.42
+2422;El Hbebsa;Siliana;nom;El Hababsa;El Hbebsa
+2422;El Hbebsa;Siliana;population;11211;11400
+2422;El Hbebsa;Siliana;superficie_km2;586.9;387.22
+3111;Sousse (Ville Médina & Corniche);Sousse;nom;Sousse;Sousse (Ville Médina & Corniche)
+3111;Sousse (Ville Médina & Corniche);Sousse;population;174592;221530
+3111;Sousse (Ville Médina & Corniche);Sousse;superficie_km2;50.18;32.93
+3112;Ksibet Thrayet;Sousse;nom;Ksibet Sousse et Thrayet;Ksibet Thrayet
+3112;Ksibet Thrayet;Sousse;nom_ar;قصيبة سوسة والثريات;قصيبة الثريات
+3112;Ksibet Thrayet;Sousse;population;11312;15400
+3112;Ksibet Thrayet;Sousse;superficie_km2;31.74;20.86
+3113;Ezzouhour;Sousse;nom_ar;الزهور - سوسة;الزهور
+3113;Ezzouhour;Sousse;population;64532;18500
+3113;Ezzouhour;Sousse;superficie_km2;15.37;10.09
+3114;Zaouiet Sousse;Sousse;population;20992;20681
+3114;Zaouiet Sousse;Sousse;superficie_km2;24.63;16.18
+3115;Hammam Sousse;Sousse;superficie_km2;26.97;17.67
+3116;Akouda;Sousse;population;27200;34400
+3116;Akouda;Sousse;superficie_km2;35.8;23.45
+3117;Kalâa Kebira;Sousse;nom;Kalâa Kébira;Kalâa Kebira
+3117;Kalâa Kebira;Sousse;superficie_km2;363.56;238.23
+3118;Sidi Bou Ali;Sousse;population;19693;19544
+3118;Sidi Bou Ali;Sousse;superficie_km2;198.15;129.52
+3119;Hergla;Sousse;superficie_km2;146.26;95.46
+3120;Enfidha;Sousse;population;27219;49882
+3120;Enfidha;Sousse;superficie_km2;373.79;243.33
+3121;Bouficha;Sousse;population;26763;26796
+3121;Bouficha;Sousse;superficie_km2;414.31;268.72
+3122;Sidi El Hani;Sousse;nom;Sidi El Heni;Sidi El Hani
+3122;Sidi El Hani;Sousse;superficie_km2;488.06;321.06
+3123;M'saken;Sousse;nom;MSaken;M'saken
+3123;M'saken;Sousse;population;84295;110000
+3123;M'saken;Sousse;superficie_km2;501.53;330.07
+3124;Kalâa Seghira;Sousse;population;37797;37769
+3124;Kalâa Seghira;Sousse;superficie_km2;156.2;102.53
+3125;Messadine;Sousse;nom;Messâdine;Messadine
+3125;Messadine;Sousse;population;12930;14500
+3125;Messadine;Sousse;superficie_km2;8.66;5.69
+3126;Kondar;Sousse;nom;Kandar;Kondar
+3126;Kondar;Sousse;population;13565;14562
+3126;Kondar;Sousse;superficie_km2;272.45;178.32
+3127;Grymet Hicher;Sousse;nom;Gerimet Hicher;Grymet Hicher
+3127;Grymet Hicher;Sousse;nom_ar;القريمات هيشر;قريميط هيشر
+3127;Grymet Hicher;Sousse;population;22116;11200
+3127;Grymet Hicher;Sousse;superficie_km2;206.44;134.54
+3128;Chott Meriem;Sousse;nom;Chott Meriam;Chott Meriem
+3128;Chott Meriem;Sousse;population;7294;14800
+3128;Chott Meriem;Sousse;superficie_km2;33.07;21.63
+3211;Monastir (Ville);Monastir;nom;Monastir;Monastir (Ville)
+3211;Monastir (Ville);Monastir;superficie_km2;65.98;43.36
+3212;Khniss;Monastir;nom;Khenis;Khniss
+3212;Khniss;Monastir;population;11229;11200
+3212;Khniss;Monastir;superficie_km2;25.81;16.98
+3213;Ouerdanine;Monastir;superficie_km2;76.08;50.07
+3214;Sahline Moâtmar;Monastir;nom;Sahline Môotmar;Sahline Moâtmar
+3214;Sahline Moâtmar;Monastir;population;18996;19052
+3214;Sahline Moâtmar;Monastir;superficie_km2;44.07;28.97
+3215;Sidi Ameur Masjed Aïssa;Monastir;nom;Sidi Ameur Mesjed Issa;Sidi Ameur Masjed Aïssa
+3215;Sidi Ameur Masjed Aïssa;Monastir;population;8453;10500
+3215;Sidi Ameur Masjed Aïssa;Monastir;superficie_km2;20.17;13.26
+3216;Zéramdine;Monastir;nom;Zermadine;Zéramdine
+3216;Zéramdine;Monastir;population;16781;29792
+3216;Zéramdine;Monastir;superficie_km2;123.94;81.83
+3217;Beni Hassen;Monastir;population;8801;13869
+3217;Beni Hassen;Monastir;superficie_km2;45.37;29.96
+3218;Ghenada;Monastir;nom;Ghnada;Ghenada
+3218;Ghenada;Monastir;nom_ar;غنادة;الغنادة
+3218;Ghenada;Monastir;population;5068;7800
+3218;Ghenada;Monastir;superficie_km2;80.4;53.16
+3219;Jemmal;Monastir;nom;Djammel;Jemmal
+3219;Jemmal;Monastir;population;50275;65279
+3219;Jemmal;Monastir;superficie_km2;100.67;66.4
+3220;Menzel Kamel;Monastir;population;8432;8900
+3220;Menzel Kamel;Monastir;superficie_km2;117.18;77.26
+3221;Zaouiet Kontoch;Monastir;nom;Zouiet Kontoch;Zaouiet Kontoch
+3221;Zaouiet Kontoch;Monastir;superficie_km2;18.57;12.23
+3222;Bembla El Mnara;Monastir;nom;Bembla Manara;Bembla El Mnara
+3222;Bembla El Mnara;Monastir;nom_ar;بنبلة المنارة;بمبلة المنارة
+3222;Bembla El Mnara;Monastir;population;16078;16000
+3222;Bembla El Mnara;Monastir;superficie_km2;32.48;21.38
+3223;Menzel Ennour;Monastir;nom;Menzel En-Nour;Menzel Ennour
+3223;Menzel Ennour;Monastir;nom_ar;منزل نور;منزل النور
+3223;Menzel Ennour;Monastir;superficie_km2;14.05;9.26
+3224;El Masdour Menzel Harb;Monastir;nom;EL Masdour;El Masdour Menzel Harb
+3224;El Masdour Menzel Harb;Monastir;nom_ar;المصدور منزل حرب;المسدور منزل حرب
+3224;El Masdour Menzel Harb;Monastir;population;4705;9800
+3224;El Masdour Menzel Harb;Monastir;superficie_km2;29.39;19.35
+3225;Moknine;Monastir;population;57111;89277
+3225;Moknine;Monastir;superficie_km2;83.64;55.18
+3226;Sidi Bennour;Monastir;population;4520;6200
+3226;Sidi Bennour;Monastir;superficie_km2;31.96;21.12
+3227;Menzel Fersi;Monastir;nom;Menzel Farsi;Menzel Fersi
+3227;Menzel Fersi;Monastir;population;3603;4800
+3227;Menzel Fersi;Monastir;superficie_km2;39.52;26.1
+3228;Amiret El Fhoul;Monastir;population;5255;6500
+3228;Amiret El Fhoul;Monastir;superficie_km2;41.21;27.28
+3229;Amiret Touazra;Monastir;population;6261;7200
+3229;Amiret Touazra;Monastir;superficie_km2;37.82;25.02
+3230;Amiret El Hojjej;Monastir;nom;Amirat Hojjaj;Amiret El Hojjej
+3230;Amiret El Hojjej;Monastir;population;8121;8100
+3230;Amiret El Hojjej;Monastir;superficie_km2;37.37;24.71
+3231;Cherahil;Monastir;nom_ar;الشراحيل;شراحيل
+3231;Cherahil;Monastir;population;4406;5400
+3231;Cherahil;Monastir;superficie_km2;22.79;15.07
+3232;Bekalta;Monastir;superficie_km2;68.27;45.04
+3233;Téboulba;Monastir;nom;Teboulba;Téboulba
+3233;Téboulba;Monastir;superficie_km2;30.35;20.0
+3234;Ksar Hellal;Monastir;nom;Ksar Helal;Ksar Hellal
+3234;Ksar Hellal;Monastir;superficie_km2;33.44;22.04
+3235;Ksibet El Médiouni;Monastir;nom;Ksibt El Mediouni;Ksibet El Médiouni
+3235;Ksibet El Médiouni;Monastir;population;13082;13122
+3235;Ksibet El Médiouni;Monastir;superficie_km2;5.65;3.72
+3236;Bennane Bodheur;Monastir;nom;Benen Bodher;Bennane Bodheur
+3236;Bennane Bodheur;Monastir;population;14258;14218
+3236;Bennane Bodheur;Monastir;superficie_km2;31.21;20.56
+3237;Touza;Monastir;superficie_km2;19.55;12.89
+3238;Sayada;Monastir;superficie_km2;10.15;6.69
+3239;Lamta;Monastir;superficie_km2;3.41;2.25
+3240;Bouhjar;Monastir;nom;Bou-Hajar;Bouhjar
+3240;Bouhjar;Monastir;superficie_km2;5.79;3.81
+3241;Menzel Hayet;Monastir;population;12952;12927
+3241;Menzel Hayet;Monastir;superficie_km2;254.02;167.79
+3311;Mahdia (Ville & Cap Afrique);Mahdia;nom;Mahdia;Mahdia (Ville & Cap Afrique)
+3311;Mahdia (Ville & Cap Afrique);Mahdia;population;52602;79545
+3311;Mahdia (Ville & Cap Afrique);Mahdia;superficie_km2;98.9;65.39
+3312;Rejiche;Mahdia;nom;Réjiche;Rejiche
+3312;Rejiche;Mahdia;population;10311;10806
+3312;Rejiche;Mahdia;superficie_km2;22.3;14.76
+3313;Bou Merdes;Mahdia;population;16726;33500
+3313;Bou Merdes;Mahdia;superficie_km2;143.19;94.87
+3314;Ouled Chamekh;Mahdia;superficie_km2;535.73;354.63
+3315;Chorbane;Mahdia;population;25935;28722
+3315;Chorbane;Mahdia;superficie_km2;682.6;454.53
+3316;Hebira;Mahdia;population;10654;11000
+3316;Hebira;Mahdia;superficie_km2;465.9;309.85
+3317;Essouassi;Mahdia;population;29324;53852
+3317;Essouassi;Mahdia;superficie_km2;298.03;197.94
+3318;El Jem;Mahdia;nom;El Djem;El Jem
+3318;El Jem;Mahdia;population;33866;50840
+3318;El Jem;Mahdia;superficie_km2;242.33;160.97
+3319;Kerker;Mahdia;population;17164;24000
+3319;Kerker;Mahdia;superficie_km2;151.68;100.48
+3320;Chebba;Mahdia;superficie_km2;174.52;116.18
+3321;Melloulèche;Mahdia;nom;Melloulech;Melloulèche
+3321;Melloulèche;Mahdia;population;22085;22083
+3321;Melloulèche;Mahdia;superficie_km2;244.46;162.98
+3322;Sidi Alouane;Mahdia;population;25746;35272
+3322;Sidi Alouane;Mahdia;superficie_km2;158.52;105.17
+3323;Ksour Essef;Mahdia;population;33960;54340
+3323;Ksour Essef;Mahdia;superficie_km2;175.06;116.01
+3324;Bradaa;Mahdia;nom;El Bradâa;Bradaa
+3324;Bradaa;Mahdia;population;20406;12500
+3324;Bradaa;Mahdia;superficie_km2;161.06;106.99
+3325;Sidi Zid - Ouled Moulahem;Mahdia;nom;Sidi Zid-Ouled Moulahem;Sidi Zid - Ouled Moulahem
+3325;Sidi Zid - Ouled Moulahem;Mahdia;nom_ar;سيدي زيد - أولاد مولاهم;سيدي زيد أولاد مولاهم
+3325;Sidi Zid - Ouled Moulahem;Mahdia;population;21100;14500
+3325;Sidi Zid - Ouled Moulahem;Mahdia;superficie_km2;218.97;145.26
+3326;El Hkaima;Mahdia;nom;El Hekaima;El Hkaima
+3326;El Hkaima;Mahdia;population;16632;13000
+3326;El Hkaima;Mahdia;superficie_km2;126.69;83.82
+3327;Tlelsa;Mahdia;nom;Talalsa;Tlelsa
+3327;Tlelsa;Mahdia;nom_ar;التلالسة;تلايلسة
+3327;Tlelsa;Mahdia;population;14745;11500
+3327;Tlelsa;Mahdia;superficie_km2;191.4;127.27
+3328;Zelba;Mahdia;nom;Zalba;Zelba
+3328;Zelba;Mahdia;nom_ar;زالبة;زلبة
+3328;Zelba;Mahdia;population;12021;9800
+3328;Zelba;Mahdia;superficie_km2;276.24;183.82
+3411;Sfax (Ville & Médina);Sfax;nom;Sfax;Sfax (Ville & Médina)
+3411;Sfax (Ville & Médina);Sfax;superficie_km2;99.64;67.1
+3412;Sakiet Ezzit;Sfax;population;60244;68354
+3412;Sakiet Ezzit;Sfax;superficie_km2;121.67;81.72
+3413;Chihia;Sfax;population;27268;33000
+3413;Chihia;Sfax;superficie_km2;11.24;7.57
+3414;Sakiet Eddaïer;Sfax;nom;Sakiet Eddaier;Sakiet Eddaïer
+3414;Sakiet Eddaïer;Sfax;population;44511;54300
+3414;Sakiet Eddaïer;Sfax;superficie_km2;130.99;88.01
+3415;Gremda;Sfax;population;40862;48000
+3415;Gremda;Sfax;superficie_km2;20.99;14.12
+3416;El Aïn;Sfax;nom;El ain;El Aïn
+3416;El Aïn;Sfax;population;43333;43000
+3416;El Aïn;Sfax;superficie_km2;22.16;14.92
+3417;Thyna;Sfax;nom;Tina;Thyna
+3417;Thyna;Sfax;population;43542;45647
+3417;Thyna;Sfax;superficie_km2;82.89;55.94
+3418;Agareb;Sfax;population;40943;41000
+3418;Agareb;Sfax;superficie_km2;1091.81;735.44
+3419;Jebiniana;Sfax;nom;Djebeniana;Jebiniana
+3419;Jebiniana;Sfax;population;30764;51000
+3419;Jebiniana;Sfax;superficie_km2;275.8;184.24
+3420;El Hencha;Sfax;population;32247;49000
+3420;El Hencha;Sfax;superficie_km2;514.37;343.04
+3421;Menzel Chaker;Sfax;population;19564;38000
+3421;Menzel Chaker;Sfax;superficie_km2;1918.47;1284.89
+3422;Ghraiba;Sfax;nom;El Gheraiba;Ghraiba
+3422;Ghraiba;Sfax;population;15776;16000
+3422;Ghraiba;Sfax;superficie_km2;627.53;425.18
+3423;Bir Ali Ben Khalifa;Sfax;nom;Bir Ali Ben Khelifa;Bir Ali Ben Khalifa
+3423;Bir Ali Ben Khalifa;Sfax;population;31823;54000
+3423;Bir Ali Ben Khalifa;Sfax;superficie_km2;805.89;544.1
+3424;Skhira;Sfax;population;34673;35000
+3424;Skhira;Sfax;superficie_km2;1336.35;908.99
+3425;Mahares;Sfax;nom;Mahrès;Mahares
+3425;Mahares;Sfax;population;34257;34250
+3425;Mahares;Sfax;superficie_km2;645.98;437.21
+3426;Kerkennah (Îles);Sfax;nom;Kerkennah;Kerkennah (Îles)
+3426;Kerkennah (Îles);Sfax;superficie_km2;225.77;152.19
+3427;El Amra;Sfax;population;30599;32000
+3427;El Amra;Sfax;superficie_km2;268.91;180.26
+3428;El Aouabed Khazzanet;Sfax;nom;El Aouabed-Khazanet;El Aouabed Khazzanet
+3428;El Aouabed Khazzanet;Sfax;nom_ar;العوابد - الخزانات;العوابد الخزانات
+3428;El Aouabed Khazzanet;Sfax;population;34944;28000
+3428;El Aouabed Khazzanet;Sfax;superficie_km2;273.11;183.57
+3429;Ennadhour - Sidi Ali Belabed;Sfax;nom;Bir Ali Nord;Ennadhour - Sidi Ali Belabed
+3429;Ennadhour - Sidi Ali Belabed;Sfax;nom_ar;بئر علي الشمالية;الناظور سيدي علي بلعابد
+3429;Ennadhour - Sidi Ali Belabed;Sfax;population;20855;19500
+3429;Ennadhour - Sidi Ali Belabed;Sfax;superficie_km2;994.0;668.97
+3430;El Hajeb;Sfax;population;19455;24000
+3430;El Hajeb;Sfax;superficie_km2;68.86;46.43
+3431;Hazeg El Louza;Sfax;nom;Hzag-Ellouza;Hazeg El Louza
+3431;Hazeg El Louza;Sfax;nom_ar;الحزق - اللوزة;حزق اللوزة
+3431;Hazeg El Louza;Sfax;population;18914;17500
+3431;Hazeg El Louza;Sfax;superficie_km2;99.34;66.41
+3432;Ennour;Sfax;nom;Ennour - Sfax;Ennour
+3432;Ennour;Sfax;nom_ar;النور - صفاقس;النور
+3432;Ennour;Sfax;population;17804;16000
+3432;Ennour;Sfax;superficie_km2;509.19;340.41
+3433;Ennasr;Sfax;nom;En-Nacer;Ennasr
+3433;Ennasr;Sfax;population;16976;14500
+3433;Ennasr;Sfax;superficie_km2;263.92;176.7
+4111;Kairouan (Ville & Aghlabides);Kairouan;nom;Kairouan;Kairouan (Ville & Aghlabides)
+4111;Kairouan (Ville & Aghlabides);Kairouan;population;165761;186653
+4111;Kairouan (Ville & Aghlabides);Kairouan;superficie_km2;699.68;460.49
+4112;Chebika;Kairouan;nom;Echbika;Chebika
+4112;Chebika;Kairouan;population;20275;35308
+4112;Chebika;Kairouan;superficie_km2;454.32;298.96
+4113;Sbikha;Kairouan;population;40206;71922
+4113;Sbikha;Kairouan;superficie_km2;1136.57;743.97
+4114;Oueslatia;Kairouan;nom;El Oueslatia;Oueslatia
+4114;Oueslatia;Kairouan;population;27672;34452
+4114;Oueslatia;Kairouan;superficie_km2;1093.93;716.19
+4115;Aïn Jloula;Kairouan;nom;Ain Djeloula;Aïn Jloula
+4115;Aïn Jloula;Kairouan;population;6780;6678
+4115;Aïn Jloula;Kairouan;superficie_km2;298.11;195.73
+4116;Haffouz;Kairouan;population;27110;43792
+4116;Haffouz;Kairouan;superficie_km2;612.67;403.51
+4117;El Alâa;Kairouan;nom_ar;العلا;العلاء
+4117;El Alâa;Kairouan;superficie_km2;553.92;365.01
+4118;Hajeb El Ayoun;Kairouan;population;24697;36137
+4118;Hajeb El Ayoun;Kairouan;superficie_km2;532.01;353.03
+4119;Nasrallah;Kairouan;nom_ar;نصر الله;نصرالله
+4119;Nasrallah;Kairouan;population;21129;37112
+4119;Nasrallah;Kairouan;superficie_km2;632.87;420.96
+4120;Menzel Mhiri;Kairouan;nom;Menzel Mehiri;Menzel Mhiri
+4120;Menzel Mhiri;Kairouan;population;12660;13150
+4120;Menzel Mhiri;Kairouan;superficie_km2;398.34;264.01
+4121;Cherarda;Kairouan;nom;Echrarda;Cherarda
+4121;Cherarda;Kairouan;population;13692;27515
+4121;Cherarda;Kairouan;superficie_km2;206.13;137.62
+4122;Bouhajla;Kairouan;population;47615;72388
+4122;Bouhajla;Kairouan;superficie_km2;655.89;434.66
+4123;Sisseb-Driaat;Kairouan;nom;Sisseb-Ed-Dheriaat;Sisseb-Driaat
+4123;Sisseb-Driaat;Kairouan;nom_ar;سيسب - الذريعات;سيسب الدريعات
+4123;Sisseb-Driaat;Kairouan;population;31716;18500
+4123;Sisseb-Driaat;Kairouan;superficie_km2;477.42;311.7
+4124;Jehhina;Kairouan;nom;Jehina;Jehhina
+4124;Jehhina;Kairouan;population;24756;15400
+4124;Jehhina;Kairouan;superficie_km2;378.96;251.91
+4125;Rakkada;Kairouan;nom;Rakada;Rakkada
+4125;Rakkada;Kairouan;population;24244;16800
+4125;Rakkada;Kairouan;superficie_km2;477.74;315.63
+4126;Abida;Kairouan;population;15033;12000
+4126;Abida;Kairouan;superficie_km2;328.77;217.12
+4127;Chouayhia;Kairouan;nom;Chwayhia;Chouayhia
+4127;Chouayhia;Kairouan;population;13826;13500
+4127;Chouayhia;Kairouan;superficie_km2;288.6;192.27
+4128;Aïn El Beidha;Kairouan;nom;El Aîn El Beidha;Aïn El Beidha
+4128;Aïn El Beidha;Kairouan;nom_ar;العين البيضاء;عين البيضاء
+4128;Aïn El Beidha;Kairouan;population;12956;14200
+4128;Aïn El Beidha;Kairouan;superficie_km2;314.4;207.8
+4129;Chouachi;Kairouan;nom;Chaouachi;Chouachi
+4129;Chouachi;Kairouan;population;11440;11000
+4129;Chouachi;Kairouan;superficie_km2;347.69;229.91
+4211;Kasserine (Ville);Kasserine;nom;Kasserine;Kasserine (Ville)
+4211;Kasserine (Ville);Kasserine;population;31823;108794
+4211;Kasserine (Ville);Kasserine;superficie_km2;871.86;582.52
+4212;Sbeïtla;Kasserine;nom;Sbeitla;Sbeïtla
+4212;Sbeïtla;Kasserine;population;36388;75245
+4212;Sbeïtla;Kasserine;superficie_km2;349.57;232.83
+4213;Sbiba;Kasserine;population;22958;42091
+4213;Sbiba;Kasserine;superficie_km2;255.75;168.95
+4214;Jedliane;Kasserine;nom;Djedeliane;Jedliane
+4214;Jedliane;Kasserine;superficie_km2;419.81;276.6
+4215;Thala;Kasserine;superficie_km2;1084.15;715.36
+4216;Haïdra;Kasserine;nom;Hidra;Haïdra
+4216;Haïdra;Kasserine;superficie_km2;750.88;496.05
+4217;Foussana;Kasserine;population;23904;41447
+4217;Foussana;Kasserine;superficie_km2;758.58;503.22
+4218;Feriana;Kasserine;population;34354;51455
+4218;Feriana;Kasserine;superficie_km2;618.31;414.85
+4219;Thélepte;Kasserine;nom;Telept;Thélepte
+4219;Thélepte;Kasserine;population;17101;12500
+4219;Thélepte;Kasserine;superficie_km2;884.91;591.14
+4220;Majel Belabbès;Kasserine;nom;Majel Bel Abbes;Majel Belabbès
+4220;Majel Belabbès;Kasserine;nom_ar;ماجل بالعباس;ماجل بلعباس
+4220;Majel Belabbès;Kasserine;superficie_km2;1318.0;887.23
+4221;El Ayoun;Kasserine;population;19211;19295
+4221;El Ayoun;Kasserine;superficie_km2;624.45;412.85
+4222;Hassi El Ferid;Kasserine;nom;Hassi El Farid;Hassi El Ferid
+4222;Hassi El Ferid;Kasserine;superficie_km2;1446.18;969.11
+4223;Ezzouhour;Kasserine;nom;Ez-Zouhour;Ezzouhour
+4223;Ezzouhour;Kasserine;nom_ar;الزهور - القصرين;الزهور
+4223;Ezzouhour;Kasserine;superficie_km2;4.75;3.17
+4224;Ennour;Kasserine;nom;En-Nour - Kasserine;Ennour
+4224;Ennour;Kasserine;nom_ar;النور - القصرين;النور
+4224;Ennour;Kasserine;population;40573;15800
+4224;Ennour;Kasserine;superficie_km2;6.83;4.55
+4225;Chraia - Machreg Ech-Chems;Kasserine;nom;Ech-Charayaa- Machrek Ech-Chams;Chraia - Machreg Ech-Chems
+4225;Chraia - Machreg Ech-Chems;Kasserine;nom_ar;الشرائع - مشرق الشمس;الشرائع مشرق الشمس
+4225;Chraia - Machreg Ech-Chems;Kasserine;population;23899;18200
+4225;Chraia - Machreg Ech-Chems;Kasserine;superficie_km2;965.06;640.8
+4226;Rekhmat;Kasserine;nom;Er-Rakhmet;Rekhmat
+4226;Rekhmat;Kasserine;population;14958;13000
+4226;Rekhmat;Kasserine;superficie_km2;361.83;241.67
+4227;Aïn El Khemaysia;Kasserine;nom;Ain El Khemaissia;Aïn El Khemaysia
+4227;Aïn El Khemaysia;Kasserine;population;18231;11500
+4227;Aïn El Khemaysia;Kasserine;superficie_km2;420.91;278.52
+4228;Khamouda;Kasserine;nom;Khmouda;Khamouda
+4228;Khamouda;Kasserine;population;17543;14000
+4228;Khamouda;Kasserine;superficie_km2;616.54;409.9
+4229;Bouzgam;Kasserine;nom;Bouzguam;Bouzgam
+4229;Bouzgam;Kasserine;population;14579;16500
+4229;Bouzgam;Kasserine;superficie_km2;564.23;376.18
+4311;Sidi Bouzid (Ville);Sidi Bouzid;nom;Sidi Bouzid;Sidi Bouzid (Ville)
+4311;Sidi Bouzid (Ville);Sidi Bouzid;population;73226;122722
+4311;Sidi Bouzid (Ville);Sidi Bouzid;superficie_km2;632.4;423.29
+4312;Jilma;Sidi Bouzid;nom;Djelma;Jilma
+4312;Jilma;Sidi Bouzid;population;24732;43372
+4312;Jilma;Sidi Bouzid;superficie_km2;490.11;325.94
+4313;Cebbala Ouled Asker;Sidi Bouzid;nom;Cebalet;Cebbala Ouled Asker
+4313;Cebbala Ouled Asker;Sidi Bouzid;nom_ar;سبالة;سبالة أولاد عسكر
+4313;Cebbala Ouled Asker;Sidi Bouzid;population;20382;21322
+4313;Cebbala Ouled Asker;Sidi Bouzid;superficie_km2;443.95;295.56
+4314;Bir El Hafey;Sidi Bouzid;population;24751;38288
+4314;Bir El Hafey;Sidi Bouzid;superficie_km2;463.17;310.43
+4315;Sidi Ali Ben Aoun;Sidi Bouzid;population;18556;28214
+4315;Sidi Ali Ben Aoun;Sidi Bouzid;superficie_km2;571.77;384.44
+4316;Menzel Bouzaiane;Sidi Bouzid;nom;Menzel Bouzaine;Menzel Bouzaiane
+4316;Menzel Bouzaiane;Sidi Bouzid;population;25321;25312
+4316;Menzel Bouzaiane;Sidi Bouzid;superficie_km2;820.13;553.84
+4317;Meknassy;Sidi Bouzid;population;23789;24734
+4317;Meknassy;Sidi Bouzid;superficie_km2;923.45;623.75
+4318;Mezzouna;Sidi Bouzid;population;24766;24497
+4318;Mezzouna;Sidi Bouzid;superficie_km2;1677.89;1138.03
+4319;Regueb;Sidi Bouzid;population;41823;66720
+4319;Regueb;Sidi Bouzid;superficie_km2;1110.68;746.72
+4320;Ouled Haffouz;Sidi Bouzid;superficie_km2;632.65;422.42
+4321;Saïda;Sidi Bouzid;nom;Essaaida;Saïda
+4321;Saïda;Sidi Bouzid;nom_ar;السعيدة;سعيدة
+4321;Saïda;Sidi Bouzid;population;23175;13500
+4321;Saïda;Sidi Bouzid;superficie_km2;430.41;288.33
+4322;Souk Jedid;Sidi Bouzid;nom_ar;سوق الجديد;السوق الجديد
+4322;Souk Jedid;Sidi Bouzid;population;21660;21855
+4322;Souk Jedid;Sidi Bouzid;superficie_km2;515.64;346.35
+4323;El Ahouaz - El Assouda;Sidi Bouzid;nom;EL Assouada;El Ahouaz - El Assouda
+4323;El Ahouaz - El Assouda;Sidi Bouzid;nom_ar;الأسودة;الأحواز الأسودة
+4323;El Ahouaz - El Assouda;Sidi Bouzid;population;25267;18500
+4323;El Ahouaz - El Assouda;Sidi Bouzid;superficie_km2;522.42;349.68
+4324;El Faidh Bennour;Sidi Bouzid;nom;Faiedh Bennour;El Faidh Bennour
+4324;El Faidh Bennour;Sidi Bouzid;nom_ar;الفائض بنور;الفايض بنور
+4324;El Faidh Bennour;Sidi Bouzid;population;24183;14200
+4324;El Faidh Bennour;Sidi Bouzid;superficie_km2;667.87;445.52
+4325;Baten El Ghezal;Sidi Bouzid;nom;Batten  El Ghézel;Baten El Ghezal
+4325;Baten El Ghezal;Sidi Bouzid;population;15507;11000
+4325;Baten El Ghezal;Sidi Bouzid;superficie_km2;517.9;343.31
+4326;Rahal;Sidi Bouzid;population;13537;12000
+4326;Rahal;Sidi Bouzid;superficie_km2;304.32;204.66
+4327;El Mansoura;Sidi Bouzid;population;9658;10500
+4327;El Mansoura;Sidi Bouzid;superficie_km2;341.83;230.17
+5111;Gabès (Ville & Oasis Maritime);Gabès;gouvernorat;Gabes;Gabès
+5111;Gabès (Ville & Oasis Maritime);Gabès;nom;Gabes;Gabès (Ville & Oasis Maritime)
+5111;Gabès (Ville & Oasis Maritime);Gabès;population;99426;152921
+5111;Gabès (Ville & Oasis Maritime);Gabès;superficie_km2;44.67;30.71
+5112;Chenini Nahal;Gabès;gouvernorat;Gabes;Gabès
+5112;Chenini Nahal;Gabès;population;19586;14800
+5112;Chenini Nahal;Gabès;superficie_km2;154.87;106.5
+5113;Ghannouch;Gabès;gouvernorat;Gabes;Gabès
+5113;Ghannouch;Gabès;nom;Ghanouch;Ghannouch
+5113;Ghannouch;Gabès;superficie_km2;29.22;20.06
+5114;Métouia;Gabès;gouvernorat;Gabes;Gabès
+5114;Métouia;Gabès;nom;El Metouia;Métouia
+5114;Métouia;Gabès;population;12507;17000
+5114;Métouia;Gabès;superficie_km2;213.24;146.15
+5115;Oudref;Gabès;gouvernorat;Gabes;Gabès
+5115;Oudref;Gabès;nom;Ouedhref;Oudref
+5115;Oudref;Gabès;population;15371;10000
+5115;Oudref;Gabès;superficie_km2;388.97;266.19
+5116;El Hamma;Gabès;gouvernorat;Gabes;Gabès
+5116;El Hamma;Gabès;population;54192;73512
+5116;El Hamma;Gabès;superficie_km2;1372.29;945.54
+5117;Matmata;Gabès;gouvernorat;Gabes;Gabès
+5117;Matmata;Gabès;nom;Matmata ;Matmata
+5117;Matmata;Gabès;population;4444;4500
+5117;Matmata;Gabès;superficie_km2;1788.23;1241.66
+5118;Nouvelle Matmata;Gabès;gouvernorat;Gabes;Gabès
+5118;Nouvelle Matmata;Gabès;superficie_km2;1088.13;752.54
+5119;Mareth;Gabès;gouvernorat;Gabes;Gabès
+5119;Mareth;Gabès;population;30410;63122
+5119;Mareth;Gabès;superficie_km2;499.58;345.96
+5120;Zarat;Gabès;gouvernorat;Gabes;Gabès
+5120;Zarat;Gabès;nom;Ezzarat;Zarat
+5120;Zarat;Gabès;population;9125;8500
+5120;Zarat;Gabès;superficie_km2;170.95;118.13
+5121;Menzel Habib;Gabès;gouvernorat;Gabes;Gabès
+5121;Menzel Habib;Gabès;nom;Menzel El Habib;Menzel Habib
+5121;Menzel Habib;Gabès;superficie_km2;1393.98;952.09
+5122;Bouchemma;Gabès;gouvernorat;Gabes;Gabès
+5122;Bouchemma;Gabès;nom;Bou-chemma;Bouchemma
+5122;Bouchemma;Gabès;population;12182;16000
+5122;Bouchemma;Gabès;superficie_km2;69.67;47.87
+5123;Teboulbou;Gabès;gouvernorat;Gabes;Gabès
+5123;Teboulbou;Gabès;population;21727;22000
+5123;Teboulbou;Gabès;superficie_km2;405.25;279.24
+5124;El Hamma Ouest;Gabès;gouvernorat;Gabes;Gabès
+5124;El Hamma Ouest;Gabès;nom;Hamma Ouest;El Hamma Ouest
+5124;El Hamma Ouest;Gabès;population;19320;18000
+5124;El Hamma Ouest;Gabès;superficie_km2;2470.39;1696.44
+5125;Kettana;Gabès;gouvernorat;Gabes;Gabès
+5125;Kettana;Gabès;nom;Kattana;Kettana
+5125;Kettana;Gabès;population;13310;11200
+5125;Kettana;Gabès;superficie_km2;322.17;222.33
+5126;Dkhila Toujane;Gabès;gouvernorat;Gabes;Gabès
+5126;Dkhila Toujane;Gabès;nom;Dkhilet Toujane;Dkhila Toujane
+5126;Dkhila Toujane;Gabès;population;10277;9500
+5126;Dkhila Toujane;Gabès;superficie_km2;458.56;318.65
+5211;Médenine (Ville & Ksour);Médenine;gouvernorat;Mednine;Médenine
+5211;Médenine (Ville & Ksour);Médenine;nom;Mednine;Médenine (Ville & Ksour)
+5211;Médenine (Ville & Ksour);Médenine;population;91100;109409
+5211;Médenine (Ville & Ksour);Médenine;superficie_km2;971.52;676.43
+5212;Beni Khedache;Médenine;gouvernorat;Mednine;Médenine
+5212;Beni Khedache;Médenine;superficie_km2;1948.08;1359.46
+5213;Ben Guerdane;Médenine;gouvernorat;Mednine;Médenine
+5213;Ben Guerdane;Médenine;nom_ar;بن قردان;بنقردان
+5213;Ben Guerdane;Médenine;superficie_km2;6823.74;4798.01
+5214;Zarzis;Médenine;gouvernorat;Mednine;Médenine
+5214;Zarzis;Médenine;population;45223;75382
+5214;Zarzis;Médenine;superficie_km2;961.43;668.22
+5215;Djerba Houmt Souk;Médenine;gouvernorat;Mednine;Médenine
+5215;Djerba Houmt Souk;Médenine;nom;Djerba Houmet Souk;Djerba Houmt Souk
+5215;Djerba Houmt Souk;Médenine;superficie_km2;245.35;168.79
+5216;Djerba Midoun;Médenine;gouvernorat;Mednine;Médenine
+5216;Djerba Midoun;Médenine;superficie_km2;274.6;189.26
+5217;Djerba Ajim;Médenine;gouvernorat;Mednine;Médenine
+5217;Djerba Ajim;Médenine;superficie_km2;201.81;139.13
+5218;Sidi Makhlouf;Médenine;gouvernorat;Mednine;Médenine
+5218;Sidi Makhlouf;Médenine;superficie_km2;965.81;669.13
+5219;Zarzis Nord;Médenine;gouvernorat;Mednine;Médenine
+5219;Zarzis Nord;Médenine;population;30159;22000
+5219;Zarzis Nord;Médenine;superficie_km2;313.21;216.94
+5220;Boughrara;Médenine;gouvernorat;Mednine;Médenine
+5220;Boughrara;Médenine;nom;Bou-Ghrara;Boughrara
+5220;Boughrara;Médenine;population;18309;12000
+5220;Boughrara;Médenine;superficie_km2;565.31;392.48
+5311;Tataouine (Ville & Ksour Sahariens);Tataouine;nom;Tataouine;Tataouine (Ville & Ksour Sahariens)
+5311;Tataouine (Ville & Ksour Sahariens);Tataouine;population;88232;95798
+5311;Tataouine (Ville & Ksour Sahariens);Tataouine;superficie_km2;4078.62;2880.81
+5312;Bir Lahmar;Tataouine;nom_ar;بئر الأحمر;بئر لحمر
+5312;Bir Lahmar;Tataouine;superficie_km2;349.32;244.2
+5313;Ghomrassen;Tataouine;superficie_km2;980.45;687.04
+5314;Dehiba;Tataouine;nom;Dhehiba;Dehiba
+5314;Dehiba;Tataouine;superficie_km2;4325.17;3103.64
+5315;Remada;Tataouine;superficie_km2;37699.17;27171.66
+5316;Smâr;Tataouine;nom;Smar;Smâr
+5316;Smâr;Tataouine;superficie_km2;2831.31;1996.09
+5317;Tataouine Sud;Tataouine;population;7543;34344
+5317;Tataouine Sud;Tataouine;superficie_km2;2634.56;1856.89
+6111;Gafsa (Ville & Oasis);Gafsa;nom;Gafsa;Gafsa (Ville & Oasis)
+6111;Gafsa (Ville & Oasis);Gafsa;superficie_km2;1904.11;1289.96
+6112;El Ksar;Gafsa;population;29739;36482
+6112;El Ksar;Gafsa;superficie_km2;314.68;213.65
+6113;Moularès (Oum El Araies);Gafsa;nom;Moularès;Moularès (Oum El Araies)
+6113;Moularès (Oum El Araies);Gafsa;population;22798;31718
+6113;Moularès (Oum El Araies);Gafsa;superficie_km2;1180.61;799.54
+6114;Redeyef;Gafsa;population;26976;27940
+6114;Redeyef;Gafsa;superficie_km2;594.05;403.77
+6115;Métlaoui;Gafsa;nom;Metlaoui;Métlaoui
+6115;Métlaoui;Gafsa;population;38634;38628
+6115;Métlaoui;Gafsa;superficie_km2;1427.2;973.3
+6116;Mdhilla;Gafsa;nom;Mdhila;Mdhilla
+6116;Mdhilla;Gafsa;superficie_km2;944.51;644.45
+6117;El Guettar;Gafsa;nom;Guetar;El Guettar
+6117;El Guettar;Gafsa;superficie_km2;1370.14;933.39
+6118;Sened;Gafsa;nom;Sned;Sened
+6118;Sened;Gafsa;population;21487;36400
+6118;Sened;Gafsa;superficie_km2;639.23;432.41
+6119;Belkhir;Gafsa;population;14784;15159
+6119;Belkhir;Gafsa;superficie_km2;1235.91;840.85
+6120;Sidi Aïch;Gafsa;nom;Sidi Aich;Sidi Aïch
+6120;Sidi Aïch;Gafsa;population;10084;10000
+6120;Sidi Aïch;Gafsa;superficie_km2;656.61;442.92
+6121;Lalla;Gafsa;nom;Lala;Lalla
+6121;Lalla;Gafsa;population;6743;14000
+6121;Lalla;Gafsa;superficie_km2;92.74;63.01
+6122;Sidi Boubaker;Gafsa;population;4214;8500
+6122;Sidi Boubaker;Gafsa;superficie_km2;262.32;177.03
+6123;Zannouch;Gafsa;nom;Zanouch;Zannouch
+6123;Zannouch;Gafsa;population;15259;12500
+6123;Zannouch;Gafsa;superficie_km2;497.99;337.53
+6211;Tozeur (Ville & Oasis);Tozeur;nom;Tozeur;Tozeur (Ville & Oasis)
+6211;Tozeur (Ville & Oasis);Tozeur;population;46422;45000
+6211;Tozeur (Ville & Oasis);Tozeur;superficie_km2;1150.54;790.79
+6212;Degache;Tozeur;nom;De guech;Degache
+6212;Degache;Tozeur;population;21590;28543
+6212;Degache;Tozeur;superficie_km2;1202.3;825.23
+6213;Hamet Jerid;Tozeur;population;6953;6439
+6213;Hamet Jerid;Tozeur;superficie_km2;853.04;582.95
+6214;Nafta (Nefta);Tozeur;nom;Nefta;Nafta (Nefta)
+6214;Nafta (Nefta);Tozeur;population;21731;22000
+6214;Nafta (Nefta);Tozeur;superficie_km2;2417.04;1663.87
+6215;Tameghza;Tozeur;superficie_km2;1378.29;939.13
+6216;Hazoua;Tozeur;superficie_km2;1822.43;1256.28
+6311;Kébili (Ville & Nefzaoua);Kébili;gouvernorat;Kebili;Kébili
+6311;Kébili (Ville & Nefzaoua);Kébili;nom;Kebili;Kébili (Ville & Nefzaoua)
+6311;Kébili (Ville & Nefzaoua);Kébili;population;41951;28000
+6311;Kébili (Ville & Nefzaoua);Kébili;superficie_km2;1831.29;1260.39
+6312;Djemna;Kébili;gouvernorat;Kebili;Kébili
+6312;Djemna;Kébili;nom;Jemna;Djemna
+6312;Djemna;Kébili;population;7209;7500
+6312;Djemna;Kébili;superficie_km2;948.81;656.64
+6313;Douz (Porte du Sahara);Kébili;gouvernorat;Kebili;Kébili
+6313;Douz (Porte du Sahara);Kébili;nom;Douz;Douz (Porte du Sahara)
+6313;Douz (Porte du Sahara);Kébili;population;39270;45000
+6313;Douz (Porte du Sahara);Kébili;superficie_km2;11421.28;7994.34
+6314;El Golâa;Kébili;gouvernorat;Kebili;Kébili
+6314;El Golâa;Kébili;population;7912;9000
+6314;El Golâa;Kébili;superficie_km2;74.66;51.78
+6315;Souk Lahad;Kébili;gouvernorat;Kebili;Kébili
+6315;Souk Lahad;Kébili;nom;Souk El Ahad;Souk Lahad
+6315;Souk Lahad;Kébili;population;18905;20000
+6315;Souk Lahad;Kébili;superficie_km2;1992.52;1367.16
+6316;El Faouar;Kébili;gouvernorat;Kebili;Kébili
+6316;El Faouar;Kébili;nom;Faouar;El Faouar
+6316;El Faouar;Kébili;population;15376;18000
+6316;El Faouar;Kébili;superficie_km2;10336.81;7237.36
+6317;Rjim Maâtoug;Kébili;gouvernorat;Kebili;Kébili
+6317;Rjim Maâtoug;Kébili;nom;Rejim Maatoug;Rjim Maâtoug
+6317;Rjim Maâtoug;Kébili;population;4237;5000
+6317;Rjim Maâtoug;Kébili;superficie_km2;3672.79;2552.48
+6318;Bechri-Jersine-El Blidet;Kébili;gouvernorat;Kebili;Kébili
+6318;Bechri-Jersine-El Blidet;Kébili;nom;Bechelli-Jersine-El Blidete;Bechri-Jersine-El Blidet
+6318;Bechri-Jersine-El Blidet;Kébili;nom_ar;بشلي - جرسين - البليدات;بشري جرسين البليدات
+6318;Bechri-Jersine-El Blidet;Kébili;population;13141;14500
+6318;Bechri-Jersine-El Blidet;Kébili;superficie_km2;622.04;430.29
+6319;Bechni-Fatnassa;Kébili;gouvernorat;Kebili;Kébili
+6319;Bechni-Fatnassa;Kébili;nom;Bèchri-Fatnassa ;Bechni-Fatnassa
+6319;Bechni-Fatnassa;Kébili;nom_ar;بشري - فطناسة;بشني فطناسة
+6319;Bechni-Fatnassa;Kébili;population;8960;11000
+6319;Bechni-Fatnassa;Kébili;superficie_km2;1327.51;913.69

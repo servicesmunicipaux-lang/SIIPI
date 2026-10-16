@@ -136,7 +136,8 @@
       "parametres": "Paramètres nationaux",
       "demo": "Mode démo",
       "conservation": "Conservation des photos",
-      "wapla": "Bilans WaPla étayés"
+      "wapla": "Bilans WaPla étayés",
+      "carte": "Carte des communes"
     },
     "demo": {
       "titre": "Mode démo — le jumeau numérique",
@@ -363,6 +364,37 @@
       "enregistrer": "Enregistrer le découpage",
       "annuler": "Annuler",
       "enregistres": "Découpage enregistré."
+    },
+    "carte": {
+      "titre": "Carte des communes",
+      "chapeau": "Les communes et leur contour officiel. Choisissez le fond (plan ou satellite) et affichez ou masquez les communes avec le sélecteur de la carte ; cliquez une commune pour sa fiche.",
+      "recherche": "Chercher une commune",
+      "rechercheExemple": "Nom — gouvernorat",
+      "gouvernorat": "Gouvernorat",
+      "tous": "Tous les gouvernorats",
+      "toutAfficher": "Tout afficher",
+      "compte": "{{n}} commune(s)",
+      "habitants": "{{n}} habitants ({{provenance}})",
+      "sansPopulation": "population non renseignée pour {{n}}",
+      "couche": "Communes",
+      "habKm2": "hab./km²",
+      "source": "Contours : découpage officiel tenu dans SIIPI. Superficie calculée sur l’ellipsoïde à partir du contour. Fonds : © OpenStreetMap, © Esri.",
+      "fiche": {
+        "gouvernorat": "Gouvernorat",
+        "district": "District",
+        "type": "Type",
+        "population": "Population",
+        "superficie": "Superficie",
+        "densite": "Densité",
+        "secteurs": "Secteurs",
+        "code": "Code"
+      },
+      "provenances": {
+        "estime": "estimation",
+        "declare": "déclaration",
+        "mesure": "mesure",
+        "inconnue": "provenance inconnue"
+      }
     }
   },
   "commun": {
@@ -3215,6 +3247,12 @@
       "resultatDetaille": "Le résultat détaillé du scénario",
       "retirer": "Retirer le scénario",
       "confirmerRetrait": "Retirer ce scénario ? Il ne sera plus affiché."
+    }
+  },
+  "carte": {
+    "fonds": {
+      "plan": "Plan (OpenStreetMap)",
+      "satellite": "Satellite (Esri)"
     }
   }
 }

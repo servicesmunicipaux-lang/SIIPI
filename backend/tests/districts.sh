@@ -196,7 +196,8 @@ for base in ('src',):
             if not f.endswith('.ts') or f == 'document.ts':
                 continue
             for n, ligne in enumerate(open(os.path.join(dossier, f), encoding='utf-8'), 1):
-                code = ligne.split('//')[0].strip()
+                # Un commentaire « // » se retire, pas le « // » d'une adresse (https://…).
+                code = re.sub(r"""(^|[^:'"`])//.*$""", r'\1', ligne).strip()
                 if code.startswith('*') or code.startswith('/*'):
                     continue
                 if motif.search(code):

@@ -175,6 +175,7 @@ export type LigneGouvernorat = Reponse<'/observatoire/gouvernorats', 'get'>[numb
 export type LigneActivite = Reponse<'/observatoire/activite', 'get'>[number];
 export type LigneRepartition = Reponse<'/kpi/repartition', 'get'>[number];
 export type ContoursGouvernorats = Reponse<'/observatoire/contours-gouvernorats', 'get'>;
+export type CarteCommunes = Reponse<'/observatoire/carte-communes', 'get'>;
 export type NiveauActivite = 'national' | 'gouvernorat' | 'district';
 export type StatutCommune = Reponse<'/observatoire/deploiement', 'get'>[number];
 
@@ -1291,6 +1292,7 @@ export const api = {
   repartitionIndicateur: (annee: number, code: string, niveau: NiveauKpi) =>
     requete<LigneRepartition[]>(`/kpi/repartition?${new URLSearchParams({ annee: String(annee), code, niveau }).toString()}`),
   contoursGouvernorats: () => requete<ContoursGouvernorats>('/observatoire/contours-gouvernorats'),
+  carteCommunes: () => requete<CarteCommunes>('/observatoire/carte-communes'),
   kpiDistricts: () => requete<DistrictsFnct>('/kpi/districts'),
   enregistrerDistricts: (saisie: Corps<'/kpi/districts', 'put'>) =>
     requete<{ districts: number; rattaches: number }>('/kpi/districts', { method: 'PUT', body: JSON.stringify(saisie) }),

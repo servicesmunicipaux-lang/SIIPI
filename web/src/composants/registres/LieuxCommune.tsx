@@ -12,7 +12,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, GeoJSON, CircleMarker, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { FondsDeCarte } from '../carte/FondsDeCarte';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { api, ErreurApi, type ActionPlanifiee, type CollectionFrontieres, type Lieu } from '../../lib/api';
@@ -158,7 +159,7 @@ export function LieuxCommune({ communeId }: { communeId: string }) {
 
       <div className="h-[45dvh] overflow-hidden rounded-xl border border-ardoise-200">
         <MapContainer center={centre} zoom={13} scrollWheelZoom className={`size-full ${pointage ? 'cursor-crosshair' : ''}`}>
-          <TileLayer attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <FondsDeCarte />
           <Cadrer lieux={lieux} frontiere={frontiere} />
           {frontiere && (
             <GeoJSON

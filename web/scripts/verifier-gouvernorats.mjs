@@ -29,6 +29,10 @@ const GOUVERNORATS = [
 const echapper = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const motif = new RegExp(`['"\`](${GOUVERNORATS.map(echapper).join('|')})['"\`]`);
 
+// Un commentaire « // » se retire, pas le « // » d'une adresse (https://…) : couper
+// à la première paire de barres effacerait justement les adresses qu'on cherche.
+const sansCommentaire = (ligne) => ligne.replace(/(^|[^:'"`])\/\/.*$/, '$1');
+
 function fichiers(dossier) {
   return readdirSync(dossier).flatMap((nom) => {
     const chemin = join(dossier, nom);
@@ -43,7 +47,7 @@ for (const chemin of lus) {
   readFileSync(chemin, 'utf8')
     .split('\n')
     .forEach((ligne, i) => {
-      const code = ligne.split('//')[0].trim();
+      const code = sansCommentaire(ligne).trim();
       if (code.startsWith('*') || code.startsWith('/*') || code.startsWith('{/*')) return;
       if (motif.test(code)) trouves.push(`${relative(racine, chemin)}:${i + 1}`);
     });

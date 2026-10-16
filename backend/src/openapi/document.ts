@@ -2504,6 +2504,44 @@ registry.registerPath({
 
 registry.registerPath({
   method: 'get',
+  path: '/observatoire/carte-communes',
+  tags: ['Observatoire national'],
+  summary: 'La carte des communes (contours et fiches)',
+  description:
+    'Les communes réelles (ni la commune de démonstration, ni une commune retirée), leur contour officiel simplifié et leur fiche : noms FR/AR, gouvernorat, district FNCT, type, population et sa provenance, superficie calculée sur l’ellipsoïde à partir du contour, secteurs, code. Une valeur absente est null, jamais 0.',
+  security: SECURISE,
+  responses: {
+    200: json(
+      z.object({
+        type: z.literal('FeatureCollection'),
+        features: z.array(
+          z.object({
+            type: z.literal('Feature'),
+            properties: z.object({
+              id: z.string(),
+              nom: z.string(),
+              nom_ar: z.string().nullable(),
+              gouvernorat: z.string(),
+              district: z.string().nullable(),
+              type: z.string().nullable(),
+              population: z.number().int().nullable(),
+              provenance: z.string().nullable().openapi({ description: 'Provenance de la population : estime, declare, mesure…' }),
+              superficie_km2: z.number().nullable(),
+              secteurs: z.number().int().nullable(),
+              code: z.number().int().nullable(),
+            }),
+            geometry: z.record(z.string(), z.any()),
+          })
+        ),
+      }),
+      'Les communes.'
+    ),
+    401: REPONSES_COMMUNES[401],
+  },
+});
+
+registry.registerPath({
+  method: 'get',
   path: '/observatoire/deploiement',
   tags: ['Observatoire national'],
   summary: 'Statut de déploiement des 350 communes',
@@ -7471,7 +7509,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.42',
+      version: '0.15.43',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
