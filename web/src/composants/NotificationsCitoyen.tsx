@@ -126,10 +126,11 @@ export function MesNotifications() {
 }
 
 const TYPES = ['decision_reclamation', 'invitation_sondage', 'notification_ciblee'] as const;
-// SMS et courriel existent dans le modèle (migration 044) mais aucun
-// fournisseur n'est branché : les proposer comme s'ils marchaient tromperait
-// le citoyen. Seul « push » reste modifiable ici.
-const CANAUX_MODIFIABLES = new Set(['push']);
+// Le SMS existe dans le modèle (migration 044) mais aucun fournisseur n'est
+// branché : le proposer comme s'il marchait tromperait le citoyen. Le courriel
+// est branché depuis la v0.15.47, sur demande : décoché tant que le citoyen ne
+// l'a pas coché (la route complète ce défaut, l'écran ne le devine pas).
+const CANAUX_MODIFIABLES = new Set(['push', 'email']);
 
 export function PreferencesNotification() {
   const { t } = useTranslation();
@@ -153,12 +154,12 @@ export function PreferencesNotification() {
   }, []);
 
   const active = (canal: string, type: string) =>
-    prefs?.find((p) => p.canal === canal && p.type === type)?.active ?? true;
+    prefs?.find((p) => p.canal === canal && p.type === type)?.active ?? false;
 
-  const basculer = (type: string) => {
+  const basculer = (canal: string, type: string) => {
     setPrefs(
       (l) =>
-        l?.map((p) => (p.canal === 'push' && p.type === type ? { ...p, active: !p.active } : p)) ?? l
+        l?.map((p) => (p.canal === canal && p.type === type ? { ...p, active: !p.active } : p)) ?? l
     );
     setConfirmation(false);
   };
@@ -183,6 +184,7 @@ export function PreferencesNotification() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-ardoise-500">{t('citoyen.preferences.explication')}</p>
+      <p className="text-sm text-ardoise-500">{t('citoyen.preferences.courrielSurDemande')}</p>
 
       <div className="overflow-hidden rounded-xl border border-ardoise-200 bg-white">
         <table className="w-full text-sm">
@@ -215,7 +217,7 @@ export function PreferencesNotification() {
                         type="checkbox"
                         checked={active(canal, type)}
                         disabled={!modifiable}
-                        onChange={() => modifiable && basculer(type)}
+                        onChange={() => modifiable && basculer(canal, type)}
                         aria-label={`${t(`citoyen.preferences.canaux.${canal}`)} — ${t(`citoyen.notifications.types.${type}`)}`}
                         className={`size-5 rounded border-ardoise-300 ${
                           modifiable ? 'accent-siipi-600' : 'opacity-40'

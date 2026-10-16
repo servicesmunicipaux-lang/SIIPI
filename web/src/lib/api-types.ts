@@ -14075,7 +14075,7 @@ export interface paths {
         put?: never;
         /**
          * Ouvrir un compte
-         * @description Le mot de passe provisoire figure dans la réponse et nulle part ailleurs : il n'est stocké qu'en empreinte et ne pourra pas être relu. Son porteur doit le remplacer à la première connexion.
+         * @description Le mot de passe provisoire part par courriel à son titulaire quand un serveur SMTP est désigné (`courriel.statut = envoye`), et n'est alors PAS dans la réponse. Sinon (`non_configure`, `echec`), il figure dans la réponse et nulle part ailleurs : il n'est stocké qu'en empreinte et ne pourra pas être relu. Il n'ouvre que son propre remplacement, à la première connexion.
          */
         post: {
             parameters: {
@@ -14108,7 +14108,13 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["Compte"] & {
-                            motDePasseProvisoire: string;
+                            /** @description Issue de l’envoi : « envoye » (accepté par le serveur SMTP), « echec » (avec le message du serveur), « non_configure » (aucun serveur désigné : rien n’est parti). */
+                            courriel: {
+                                /** @enum {string} */
+                                statut: "envoye" | "echec" | "non_configure";
+                                erreur?: string;
+                            };
+                            motDePasseProvisoire?: string;
                         };
                     };
                 };
@@ -14299,6 +14305,168 @@ export interface paths {
         };
         trace?: never;
     };
+    "/courriel/etat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * État du serveur de courriel
+         * @description Réservé à la FNCT. Le serveur SMTP désigné par l’exploitant (variables SMTP_*), sa sécurité, s’il est authentifié, l’expéditeur — jamais le mot de passe.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description État du serveur de courriel. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            configure: boolean;
+                            serveur: string | null;
+                            /** @enum {string} */
+                            securite: "starttls" | "tls" | "aucune";
+                            authentifie: boolean;
+                            expediteur: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courriel/essai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Envoyer un courriel d’essai
+         * @description Réservé à la FNCT. Le courriel part à l’adresse du compte qui le demande, et à nulle autre : SIIPI n’est pas un relais.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Issue de l’essai. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            statut: "envoye" | "echec" | "non_configure";
+                            erreur?: string;
+                            destinataire: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/comptes/{id}/mot-de-passe": {
         parameters: {
             query?: never;
@@ -14320,7 +14488,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Nouveau mot de passe provisoire, affiché une seule fois. */
+                /** @description Nouveau mot de passe provisoire : envoyé par courriel, ou affiché une seule fois s’il n’est pas parti. */
                 200: {
                     headers: {
                         [name: string]: unknown;
@@ -14330,7 +14498,13 @@ export interface paths {
                             /** Format: uuid */
                             id: string;
                             full_name: string;
-                            motDePasseProvisoire: string;
+                            /** @description Issue de l’envoi : « envoye » (accepté par le serveur SMTP), « echec » (avec le message du serveur), « non_configure » (aucun serveur désigné : rien n’est parti). */
+                            courriel: {
+                                /** @enum {string} */
+                                statut: "envoye" | "echec" | "non_configure";
+                                erreur?: string;
+                            };
+                            motDePasseProvisoire?: string;
                         };
                     };
                 };
@@ -16003,6 +16177,12 @@ export interface paths {
                                     non_abonne: number;
                                     non_souhaite: number;
                                     sans_souscription: number;
+                                };
+                                courriels: {
+                                    total: number;
+                                    envoye: number;
+                                    echec: number;
+                                    non_configure: number;
                                 };
                                 suggestions_recues: number;
                                 repondants_sondage: number;
@@ -21151,7 +21331,7 @@ export interface paths {
         };
         /**
          * Mes préférences de notification
-         * @description Une combinaison canal × type absente de la base vaut « activé » (table creuse, voir migration 044) : cette route complète toujours les 9 combinaisons, jamais un sous-ensemble.
+         * @description Une combinaison canal × type absente de la base vaut « activé » pour le push, « désactivé » pour le courriel (sur demande, migration 081) et pour le SMS (non émis) : cette route complète toujours les 9 combinaisons, jamais un sous-ensemble.
          */
         get: {
             parameters: {

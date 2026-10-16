@@ -370,18 +370,19 @@ communicationRouter.post(
        compte.desabonnes, p.perimetre_type, req.user!.sub]
     );
 
-    // L'envoi RÉEL, pour l'instant réservé au push (B5.4.3 : le SMS et le
-    // courriel restent enregistrables comme canal choisi, mais rien ne part
-    // encore derrière — décision distincte, liée au fournisseur SMS de M1).
+    // L'envoi RÉEL (B5.4.3). « push » : le push, et le courriel pour les
+    // citoyens qui l'ont demandé pour ce type (081). « email » : le courriel
+    // seul, aux mêmes volontaires. « sms » reste enregistrable mais rien ne
+    // part (décision du 16/10/2026 : aucun fournisseur SMS).
     // Un échec du service d'émission ne défait pas l'agrégat déjà écrit
     // ci-dessus : l'agent voit « envoyé », et un envoi individuel manqué se
     // lit dans notifications_citoyen plutôt que de faire échouer ce geste.
-    if (d.canal === 'push') {
+    if (d.canal !== 'sms') {
       const contexte = p.type === 'sondage' ? 'invitation_sondage' : 'notification_ciblee';
       const titre = p.titre_fr;
       const corps = p.contenu_fr ?? p.titre_fr;
       try {
-        await notifierPublication(p.commune_id, p.id, contexte, titre, corps);
+        await notifierPublication(p.commune_id, p.id, contexte, titre, corps, { push: d.canal === 'push', courriel: true });
       } catch (err) {
         console.error('[communication] envoi push non abouti :', err);
       }

@@ -186,6 +186,9 @@ export type AnnonceCollecte = Reponse<'/citoyen/annonces', 'get'>[number];
 export type PointCarte = Reponse<'/citoyen/carte', 'get'>[number];
 export type NotificationCitoyen = Reponse<'/citoyen/notifications', 'get'>[number];
 export type PreferenceNotification = Reponse<'/citoyen/preferences', 'get'>[number];
+export type EtatCourriel = Reponse<'/courriel/etat', 'get'>;
+export type EssaiCourriel = Reponse<'/courriel/essai', 'post'>;
+export type TransmissionProvisoire = Pick<Reponse<'/comptes/{id}/mot-de-passe', 'post'>, 'courriel' | 'motDePasseProvisoire'>;
 export type CollecteurAgree = Reponse<'/enlevements/collecteurs', 'get'>[number];
 
 // --- Espace communal -------------------------------------------------------
@@ -601,16 +604,16 @@ export const api = {
     communeId?: string;
     phone?: string;
   }) =>
-    // La réponse porte le mot de passe provisoire : c'est la SEULE fois qu'il
-    // apparaît, il n'est stocké nulle part en clair.
-    requete<Compte & { motDePasseProvisoire: string }>('/comptes', {
+    // Le mot de passe provisoire part par courriel ; s'il n'est pas parti, la
+    // réponse le porte, et c'est la SEULE fois qu'il apparaît.
+    requete<Compte & TransmissionProvisoire>('/comptes', {
       method: 'POST',
       body: JSON.stringify(saisie),
     }),
   modifierCompte: (id: string, saisie: Record<string, unknown>) =>
     requete<Compte>(`/comptes/${id}`, { method: 'PATCH', body: JSON.stringify(saisie) }),
   reinitialiserMotDePasse: (id: string) =>
-    requete<{ id: string; full_name: string; motDePasseProvisoire: string }>(
+    requete<{ id: string; full_name: string } & TransmissionProvisoire>(
       `/comptes/${id}/mot-de-passe`,
       { method: 'POST', body: JSON.stringify({}) }
     ),
@@ -1367,6 +1370,9 @@ export const api = {
     }),
   toutMarquerLu: () => requete<{ maj: number }>('/citoyen/notifications/tout-lu', { method: 'PUT' }),
   mesPreferences: () => requete<PreferenceNotification[]>('/citoyen/preferences'),
+  // Le serveur de courriel, pour la FNCT : son état (jamais le mot de passe) et un essai vers son propre compte.
+  etatCourriel: () => requete<EtatCourriel>('/courriel/etat'),
+  essaiCourriel: () => requete<EssaiCourriel>('/courriel/essai', { method: 'POST', body: JSON.stringify({}) }),
   enregistrerPreferences: (preferences: PreferenceNotification[]) =>
     requete<void>('/citoyen/preferences', {
       method: 'PUT',

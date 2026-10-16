@@ -3,14 +3,15 @@
 // C'est le cadre du service qui sait qui entre et qui part. Un référentiel des
 // accès tenu ailleurs est faux le lendemain.
 //
-// Le mot de passe provisoire s'affiche UNE fois, à la création. Il n'est
-// stocké nulle part en clair et ne pourra pas être relu : si le cadre le perd,
-// il réinitialise. C'est volontaire — un mot de passe qu'on peut consulter
-// n'engage plus son porteur.
+// Le mot de passe provisoire part par courriel à la personne (v0.15.47), et le
+// cadre ne le voit pas. S'il n'est pas parti (aucun serveur, ou échec), il
+// s'affiche UNE fois. Il n'est stocké nulle part en clair et ne pourra pas
+// être relu : si le cadre le perd, il réinitialise. C'est volontaire — un mot
+// de passe qu'on peut consulter n'engage plus son porteur.
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type Compte } from '../../lib/api';
+import { api, ErreurApi, type Compte, type TransmissionProvisoire } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
@@ -25,8 +26,8 @@ export function Comptes({ communeId }: { communeId: string }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [ouvert, setOuvert] = useState(false);
   const [envoi, setEnvoi] = useState(false);
-  // Identifiants à transmettre, affichés une seule fois.
-  const [aTransmettre, setATransmettre] = useState<{ email: string; nom: string; motDePasse: string } | null>(null);
+  // Identifiants transmis par courriel, ou à transmettre, affichés une seule fois.
+  const [aTransmettre, setATransmettre] = useState<({ email: string; nom: string } & TransmissionProvisoire) | null>(null);
 
   const [f, setF] = useState({ email: '', fullName: '', role: 'admin_commune' as (typeof ROLES)[number], phone: '' });
 
@@ -50,7 +51,7 @@ export function Comptes({ communeId }: { communeId: string }) {
     setErreur(null);
     try {
       const cree = await api.creerCompte({ ...f, communeId, phone: f.phone || undefined });
-      setATransmettre({ email: cree.email, nom: cree.full_name, motDePasse: cree.motDePasseProvisoire });
+      setATransmettre({ email: cree.email, nom: cree.full_name, courriel: cree.courriel, motDePasseProvisoire: cree.motDePasseProvisoire });
       setF({ email: '', fullName: '', role: 'admin_commune', phone: '' });
       setOuvert(false);
       await charger();
@@ -65,7 +66,7 @@ export function Comptes({ communeId }: { communeId: string }) {
     setErreur(null);
     try {
       const r = await api.reinitialiserMotDePasse(c.id);
-      setATransmettre({ email: c.email, nom: c.full_name, motDePasse: r.motDePasseProvisoire });
+      setATransmettre({ email: c.email, nom: c.full_name, courriel: r.courriel, motDePasseProvisoire: r.motDePasseProvisoire });
       await charger();
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
@@ -108,11 +109,31 @@ export function Comptes({ communeId }: { communeId: string }) {
       {/* Les identifiants à transmettre. Volontairement visibles et non
           masqués : le cadre doit pouvoir les lire à voix haute, et ils
           disparaissent dès qu'il ferme l'encart. */}
-      {aTransmettre && (
+      {aTransmettre && !aTransmettre.motDePasseProvisoire && (
+        <div className="rounded-xl border-2 border-siipi-400 bg-siipi-50 p-4" role="status">
+          <h2 className="font-semibold text-siipi-900">{t('communal.comptes.courrielEnvoye')}</h2>
+          <p className="mt-1 text-sm text-siipi-800">
+            {t('communal.comptes.courrielEnvoyeAide', { nom: aTransmettre.nom, email: aTransmettre.email })}
+          </p>
+          <button
+            type="button"
+            onClick={() => setATransmettre(null)}
+            className="mt-3 min-h-11 rounded-lg border border-siipi-400 bg-white px-4 font-medium text-siipi-800"
+          >
+            {t('commun.fermer')}
+          </button>
+        </div>
+      )}
+      {aTransmettre?.motDePasseProvisoire && (
         <div className="rounded-xl border-2 border-siipi-400 bg-siipi-50 p-4">
           <h2 className="font-semibold text-siipi-900">{t('communal.comptes.aTransmettre')}</h2>
           <p className="mt-1 text-sm text-siipi-800">
             {t('communal.comptes.aTransmettreAide', { nom: aTransmettre.nom })}
+          </p>
+          <p className="mt-1 text-sm text-siipi-800">
+            {aTransmettre.courriel.statut === 'echec'
+              ? t('communal.comptes.courrielEchec', { erreur: aTransmettre.courriel.erreur ?? '' })
+              : t('communal.comptes.courrielNonConfigure')}
           </p>
           <dl className="mt-3 space-y-1.5">
             <div className="flex flex-wrap items-baseline gap-2">
@@ -122,7 +143,7 @@ export function Comptes({ communeId }: { communeId: string }) {
             <div className="flex flex-wrap items-baseline gap-2">
               <dt className="text-sm text-ardoise-600">{t('communal.comptes.motDePasse')}</dt>
               <dd className="chiffres select-all rounded bg-white px-2 py-1 text-lg font-bold tracking-wide">
-                {aTransmettre.motDePasse}
+                {aTransmettre.motDePasseProvisoire}
               </dd>
             </div>
           </dl>

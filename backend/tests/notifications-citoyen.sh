@@ -64,12 +64,12 @@ code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_A" -H 'Content-
 
 # -----------------------------------------------------------------------------
 echo
-echo "1. Préférences par défaut : absence de ligne vaut « activé »"
+echo "1. Préférences par défaut : absence de ligne vaut « activé » pour le push, « désactivé » pour le courriel et le SMS"
 CODE=$(code -H "Authorization: Bearer $T_A" "$API/citoyen/preferences")
 chk "la route répond" 200 "$CODE"
 chk "les 9 combinaisons canal × type sont rendues" 9 "$(len)"
-chk "toutes activées par défaut" 0 \
-    "$(python3 -c "import json;d=json.load(open('$T/r.json'));print(sum(1 for x in d if not x['active']))")"
+chk "le push activé pour les 3 types, le courriel et le SMS désactivés (le courriel est sur demande, 081)" "3|0|0" \
+    "$(python3 -c "import json;d=json.load(open('$T/r.json'));print('|'.join(str(sum(1 for x in d if x['canal']==c and x['active'])) for c in ('push','email','sms')))")"
 
 echo
 echo "2. Désactiver un type précis (préférence fine)"
@@ -84,7 +84,7 @@ import json
 d=json.load(open('$T/r.json'))
 une=[x for x in d if x['canal']=='push' and x['type']=='decision_reclamation']
 autres=[x for x in d if not (x['canal']=='push' and x['type']=='decision_reclamation')]
-print(1 if (not une[0]['active']) and all(x['active'] for x in autres) else 0)")"
+print(1 if (not une[0]['active']) and all(x['active'] == (x['canal'] == 'push') for x in autres) else 0)")"
 
 echo
 echo "3. Historique conservé MALGRÉ un type désactivé (pas d'envoi, mais une trace)"

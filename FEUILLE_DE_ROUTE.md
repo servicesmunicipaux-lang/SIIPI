@@ -205,7 +205,7 @@ les tonnes et la masse salariale.
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
 | `B1.1` | Enregistrement d'un cadre | 🟡 Partiel | compte, fonction, courriel : oui. Photo et date de naissance : non câblés |
-| `B1.2` | Création de compte + mot de passe provisoire | 🟡 Partiel | le mot de passe provisoire existe ; l'envoi par courriel n'est pas branché (courriel d'abord : décision du 16/10/2026) |
+| `B1.2` | Création de compte + mot de passe provisoire | ✅ Fait | mot de passe provisoire envoyé par courriel à son titulaire quand un serveur SMTP est désigné, absent alors de la réponse ; sinon affiché une fois au cadre (v0.15.47) · campagne `courriel` |
 | `B1.3` | Accès cadre → espace commune | ✅ Fait | Connexion.tsx · campagne comptes |
 | `B1.4` | CRUD personnel (activer / désactiver / modifier / retirer) | ✅ Fait | migration 039 · campagne module4 |
 | `B1.5` | Rôles (administrateur, gestionnaire prestataire) | ✅ Fait | migrations 010/020 · campagne cloisonnement |
@@ -275,7 +275,7 @@ les tonnes et la masse salariale.
 |---|---|---|---|
 | `B5.4.1` | Création d'une notification par zone | ✅ Fait | migration 035 · campagne module5 |
 | `B5.4.2` | Ciblage sur les adresses citoyennes | ✅ Fait | app.destinataires_publication · campagne module5 |
-| `B5.4.3` | Canaux de diffusion (push, SMS, courriel) | 🟡 Partiel | push réellement émis (migration 044) ; SMS et courriel enregistrables mais non câblés (décision du 16/10/2026 : courriel d'abord, SMS plus tard, aucun contrat SMS maintenant) |
+| `B5.4.3` | Canaux de diffusion (push, SMS, courriel) | 🟡 Partiel | push réellement émis (migration 044) ; **courriel émis depuis la v0.15.47**, sur demande du citoyen, type par type (migration 081) ; SMS enregistrable mais non câblé (décision du 16/10/2026 : courriel d'abord, SMS plus tard, aucun contrat SMS maintenant) |
 | `B5.4.4` | Historique des envois | ✅ Fait | envois_notification · campagne module5 |
 
 ### 5.5 Points citoyens
@@ -1489,6 +1489,11 @@ d'avoir observé l'usage réel. C'est un **écart assumé** au cahier des charge
 le canal immédiat ; aucun contrat SMS maintenant. **Pas de code par SMS (OTP)** tant qu'aucun
 fournisseur SMS n'est choisi : l'inscription reste par courriel, le numéro de téléphone pourra être
 saisi plus tard, sans vérification.
+
+**Fait en v0.15.47.** Le courriel part par un serveur SMTP que désigne l'exploitant (variables
+`SMTP_*`) : le mot de passe provisoire d'un compte, et les notifications aux citoyens qui l'ont
+**demandé**, type par type (une préférence absente vaut « désactivé »). Sans serveur, rien ne part
+et c'est dit ; chaque courriel tenté est consigné (`notifications_citoyen`, canal `email`).
 
 Conséquences : le choix d'inscription cesse d'être un préalable du **Jalon 9**
 (application mobile), qui reste en attente de son marquage blanc seul. Il est sans
