@@ -116,6 +116,11 @@ app.use(
   })
 );
 app.use(cors({ origin: config.corsOrigin, credentials: true }));
+// Le journal des requêtes AVANT les lecteurs de corps (JC-006) : placé après,
+// il ne voyait jamais une requête dont le corps était illisible ou trop gros —
+// l'erreur partait avant lui, et l'exploitant ne lisait que le « 500 » de
+// l'ancien gestionnaire d'erreurs, sans la requête qui l'avait causé.
+app.use(morgan(config.isProduction ? 'combined' : 'dev'));
 // 70 Mo sur /fichiers, et seulement là : un rapport ou une étude (usage
 // rapport_etude) va jusqu'à 50 Mo une fois DÉCODÉ, et l'encodage base64
 // l'alourdit d'un tiers — 50 Mo deviennent 67 Mo sur le fil. Élargir la
@@ -131,7 +136,6 @@ app.use('/fichiers', express.json({ limit: '70mb' }));
 // sans explication utilisable, toute photo un peu grande : Express répond 413
 // avant que la route n'ait pu dire laquelle des deux tailles pose problème.
 app.use(express.json({ limit: '12mb' }));
-app.use(morgan(config.isProduction ? 'combined' : 'dev'));
 
 // Identifie l'appelant et installe le contexte lu par les politiques de
 // cloisonnement de la base (RLS). Doit précéder toutes les routes.

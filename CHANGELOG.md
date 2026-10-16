@@ -5,6 +5,35 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.49] — 2026-10-16 — JC-006 : un corps illisible reçoit 400, jamais 500
+
+### Corrigé
+- **JC-006** (`docs/recette/JOURNAL_DES_CORRECTIONS.md`). Un corps de requête que l'API ne savait pas lire
+  recevait « Erreur interne du serveur » (500). Le client croyait à une panne et réessayait, et le journal se
+  remplissait de fausses erreurs internes. La cause est établie : le gestionnaire d'erreurs ne reconnaissait
+  pas les erreurs du lecteur de corps d'Express. Le défaut touchait toute l'API, et pas seulement le JSON mal
+  formé. Chaque cas reçoit désormais son statut, avec un message qui dit quoi corriger :
+  - un JSON mal formé : **400** ;
+  - un corps trop gros : **413**, et le message rappelle qu'un fichier se dépose par `/fichiers` ;
+  - un jeu de caractères ou une compression illisibles : **415**.
+- Le journal des requêtes passe **avant** les lecteurs de corps. Placé après, il ne voyait jamais une requête
+  refusée à la lecture ; l'exploitant ne lisait que le « 500 », sans la requête qui l'avait causé.
+
+### Ajouté
+- **Campagne `corps-illisibles`** (18 contrôles). Elle démarre sa propre API, en développement, sur le port
+  4007, pour lire son journal. Elle éprouve :
+  - des routes publiques (`/auth/login`, `/citizens/register`) et des routes sous compte
+    (`/communes/localiser`, `/citoyen/adresse`) ;
+  - `/fichiers`, qui a son propre lecteur : 13 Mo y sont lus, quand ils sont refusés ailleurs ;
+  - qu'une requête bien formée passe toujours, et qu'un mauvais mot de passe reste un 401 ;
+  - que le journal consigne les 8 refus, sans aucune « [error] » ni réponse 500.
+
+  Éprouvée à rebours : avec l'ancien gestionnaire, 14 de ses contrôles échouent.
+
+### Consigné
+- **JC-009, ouverte** : la campagne `citoyen` écrit encore ses secteurs et circuits d'essai dans Houmt Souk avec
+  des comptes de démonstration (règle de JC-001).
+
 ## [0.15.48] — 2026-10-16 — JC-005 : la campagne `citoyen` ne touche plus qu'à ses citoyens
 
 ### Corrigé

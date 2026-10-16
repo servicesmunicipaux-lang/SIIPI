@@ -116,11 +116,11 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Trouvé par** | Essai de la route `POST /communes/localiser` (D-FNCT-1) |
 | **Où** | Toutes les routes qui lisent un corps JSON (constaté sur `/communes/localiser` et `/citoyen/adresse`) |
 | **Constat** | Un corps JSON mal formé reçoit **500 « Erreur interne du serveur »** au lieu d'un 400 qui dise que la requête est illisible. |
-| **Cause** | Non établie ; vraisemblablement le gestionnaire d'erreurs ne reconnaît pas l'erreur d'analyse du corps levée par Express. |
-| **Portée** | Toute l'API : un client mal écrit croit à une panne du serveur ; le journal compte de fausses erreurs internes. Aucune donnée n'est touchée. |
+| **Cause** | Établie le 16 octobre 2026 : le gestionnaire d'erreurs ne reconnaissait pas les erreurs du lecteur de corps d'Express (`entity.parse.failed` 400, `entity.too.large` 413, `charset.unsupported` et `encoding.unsupported` 415), qui tombaient dans « erreur interne ». Le journal des requêtes, monté après les lecteurs, ne voyait même pas ces requêtes. |
+| **Portée** | Toute l'API, et pas seulement le JSON mal formé : un corps trop gros (413) et un jeu de caractères ou une compression illisibles (415) recevaient aussi 500. Un client mal écrit croyait à une panne du serveur ; le journal comptait de fausses erreurs internes. Aucune donnée n'est touchée. |
 | **Gravité** | Gênant |
-| **Correction** | **Ouverte.** |
-| **Contrôle ajouté** | Aucun encore ; une campagne pourra envoyer un corps mal formé à une route et attendre 400. |
+| **Correction** | v0.15.49 : le gestionnaire d'erreurs rend le statut de l'erreur de lecture (400, 413, 415) avec un message qui dit quoi corriger ; le journal des requêtes passe avant les lecteurs de corps et consigne ces refus. |
+| **Contrôle ajouté** | Campagne `corps-illisibles` (18 contrôles), sur sa propre API pour lire son journal : routes publiques, routes sous compte et `/fichiers` (lecteur à part, 70 Mo) ; aucune « [error] », aucune réponse 500. Éprouvée à rebours : avec l'ancien gestionnaire, 14 contrôles échouent. |
 
 ### JC-007
 
@@ -149,3 +149,17 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Gravité** | Bloquant (pour une mise en production) |
 | **Correction** | v0.15.23 : l'image crée `/var/siipi/fichiers` et `/var/siipi/archive` et les donne à `node`. Vérifié sur l'image reconstruite : les deux volumes neufs sont accessibles en écriture. |
 | **Contrôle ajouté** | Aucun automatique : les campagnes tournent dans le conteneur de développement, pas dans l'image de production. La vérification est consignée dans la note de v0.15.23. |
+
+### JC-009
+
+| Champ | |
+|---|---|
+| **Date** | 16 octobre 2026 |
+| **Trouvé par** | Relecture de la campagne `citoyen`, en corrigeant JC-005 |
+| **Où** | Campagne `citoyen` ; commune de Djerba Houmt Souk |
+| **Constat** | La campagne pose ses secteurs, ses circuits et ses annonces d'essai dans Houmt Souk, commune réelle, avec les comptes de démonstration `directeur.houmtsouk` et `prestataire.houmtsouk`. Elle les efface en partant. |
+| **Cause** | Écrite avant la règle « jamais un compte de démonstration pour écrire dans une commune réelle » (JC-001). |
+| **Portée** | Toute base sur laquelle `npm test` tourne. Pendant la campagne, Houmt Souk porte des secteurs et des circuits `TEST` ; une campagne interrompue les y laisse jusqu'au passage suivant. Non vérifié encore : l'effet de ces secteurs, posés par la FNCT, sur les versions du découpage de la commune pendant la campagne (elle efface en partant les versions qui les citent). |
+| **Gravité** | Gênant |
+| **Correction** | **Ouverte.** Proposée : une commune de test et un directeur temporaire (`tests/outils/directeur_temporaire.sh`), comme `module2` à `module6` depuis JC-001. |
+| **Contrôle ajouté** | Aucun encore. |
