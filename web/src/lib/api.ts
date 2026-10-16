@@ -215,6 +215,7 @@ export type Destinataires = Reponse<'/communication/apercu', 'get'>;
 export type SondageQuestion = Reponse<'/communication/{id}/questions', 'get'>[number];
 export type LigneDepouillement = Reponse<'/communication/{id}/depouillement', 'get'>[number];
 export type EnvoiNotification = Reponse<'/communication/envois', 'get'>[number];
+export type FichierLimites = Reponse<'/decoupage/lire-fichier', 'post'>;
 export type IndicateursCommunication = Reponse<'/communication/indicateurs', 'get'>;
 export type Pesee = Reponse<'/pesees', 'get'>[number];
 export type PeseeAttendue = Reponse<'/pesees/attendues', 'get'>[number];
@@ -1034,6 +1035,9 @@ export const api = {
     if (p.cibleTypes?.length) q.set('cibleTypes', p.cibleTypes.join(','));
     return requete<Destinataires>(`/communication/apercu?${q.toString()}`);
   },
+  /** Lit un Shapefile (zip), un KML, un KMZ ou un GeoJSON de limites : rend ses formes en WGS 84, sans rien enregistrer (C2.2). */
+  lireFichierLimites: async (fichier: File) =>
+    requete<FichierLimites>('/decoupage/lire-fichier', { method: 'POST', body: JSON.stringify(await lireFichierLocal(fichier)) }),
   envois: (communeId: string) =>
     requete<EnvoiNotification[]>(`/communication/envois?communeId=${encodeURIComponent(communeId)}`),
   indicateursCommunication: (communeId: string, debut: string, fin: string) =>

@@ -43,7 +43,7 @@
 // ---------------------------------------------------------------------------
 
 import { XMLParser } from 'fast-xml-parser';
-import { inflateRawSync } from 'node:zlib';
+import { lireZip } from './zip.js';
 import type { JeuExport } from './export.js';
 import { lireTableau, messageLecture, normaliser } from './import.js';
 import { JEU_POINTS } from './jeuxExport.js';
@@ -1045,26 +1045,11 @@ function lireGeoJson(texteJson: string): ResultatKml {
   };
 }
 
-// Lecture minimale d'une archive zip : on ne dépend pas d'une bibliothèque
-// supplémentaire pour extraire un unique fichier d'un KMZ.
+// Un KMZ est une archive zip contenant un .kml. On prend la première entrée dont
+// le nom finit par .kml plutôt que de supposer « doc.kml ». La lecture du zip est
+// celle de services/zip.ts (répertoire central, plafonds) : un seul lecteur.
 function extraireKmz(buf: Buffer): string {
-  let i = 0;
-  while (i < buf.length - 4) {
-    if (buf.readUInt32LE(i) !== 0x04034b50) break;
-    const compression = buf.readUInt16LE(i + 8);
-    const tailleCompressee = buf.readUInt32LE(i + 18);
-    const longueurNom = buf.readUInt16LE(i + 26);
-    const longueurExtra = buf.readUInt16LE(i + 28);
-    const debutNom = i + 30;
-    const nomEntree = buf.subarray(debutNom, debutNom + longueurNom).toString('utf-8');
-    const debutDonnees = debutNom + longueurNom + longueurExtra;
-    const donnees = buf.subarray(debutDonnees, debutDonnees + tailleCompressee);
-    if (nomEntree.toLowerCase().endsWith('.kml')) {
-      // 0 = stocké tel quel, 8 = dégonflage BRUT (deflate sans en-tête zlib),
-      // d'où inflateRawSync et non unzipSync, qui attendrait un en-tête.
-      return compression === 0 ? donnees.toString('utf-8') : inflateRawSync(donnees).toString('utf-8');
-    }
-    i = debutDonnees + tailleCompressee;
-  }
-  throw new Error('KMZ_SANS_KML');
+  const kml = lireZip(buf).find((e) => e.nom.toLowerCase().endsWith('.kml'));
+  if (!kml) throw new Error('KMZ_SANS_KML');
+  return kml.donnees.toString('utf-8');
 }

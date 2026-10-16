@@ -131,8 +131,8 @@ que par une recette terrain (§ 6).
 
 | | Nombre | Part |
 |---|---:|---:|
-| ✅ Fait et éprouvé | 88 | 92 % |
-| 🟡 Partiel | 5 | 5 % |
+| ✅ Fait et éprouvé | 89 | 93 % |
+| 🟡 Partiel | 4 | 4 % |
 | ⬜ À faire | 1 | 1 % |
 | ⏸ Suspendu | 2 | 2 % |
 | **Total des fonctionnalités du cahier des charges** | **96** | **100 %** |
@@ -162,7 +162,7 @@ les tonnes et la masse salariale.
 | **5.5 Points citoyens** | 4 |  |  |  | Complet depuis la v0.15.44 (indicateurs de communication). |
 | **3.2.6 Paramètres** | 6 |  |  |  | Complète : langue, format de date, unités, alertes et mot de passe par personne ; seuils par commune (Jalon 7). |
 | **3.2.7 Contacts** | 4 |  |  |  | Complète : liste, ajout, modification, retrait (Jalon 3), export et import CSV (Jalon 4). |
-| **3.2.8 Découpage communal** | 5 | 1 |  |  | Proposé par la commune, validé par la FNCT, versionné et restaurable (Jalon 7) ; reste l'import Shapefile. |
+| **3.2.8 Découpage communal** | 6 |  |  |  | Proposé par la commune, validé par la FNCT, versionné et restaurable (Jalon 7) ; Shapefile, KML, KMZ et GeoJSON importés (v0.15.45). |
 | **3.2.9 Rapports et études** | 7 |  |  |  | Complète : versionnement et lecteur PDF intégré ajoutés au Jalon 3. |
 | **3.2.10 KPI 5 axes** | 5 |  |  |  | Complète : 5 axes calculés et déclarés, 19 indicateurs, préparation DMA (Jalon 8). Barème, note et classement retirés au lot 1 de la refonte (v0.15.25) : la couverture se dit « 14 indicateurs calculables sur 19 ». |
 | **3.2.11 Prestataires privés** | 4 |  |  |  | Complète : tableau de bord restreint du prestataire (Jalon 8). |
@@ -312,7 +312,7 @@ les tonnes et la masse salariale.
 | ID | Fonctionnalité | Statut | Preuve, ou ce qui manque |
 |---|---|---|---|
 | `C2.1` | Carte du périmètre communal | ✅ Fait | migration 025 · campagne decoupage |
-| `C2.2` | Import GeoJSON / Shapefile / KML | 🟡 Partiel | GeoJSON et KML : oui. Shapefile : non |
+| `C2.2` | Import GeoJSON / Shapefile / KML | ✅ Fait | `POST /decoupage/lire-fichier` (services/fichierGeo.ts, zip.ts) : Shapefile en zip (attributs selon le .cpg, projection selon le .prj), KML, KMZ, GeoJSON (membre « crs ») ; systèmes tunisiens ramenés en WGS 84 par PostGIS · écrans de découpage commune et FNCT · campagne import-geo (v0.15.45) |
 | `C2.3` | Édition manuelle du polygone | ✅ Fait | DecoupageCommunal.tsx (Geoman) |
 | `C2.4` | Découpage en zones | ✅ Fait | migration 012 · campagne decoupage |
 | `C2.5` | Validation par le Super Admin FNCT | ✅ Fait | la commune propose son découpage (périmètre et secteurs), la FNCT compare, valide ou refuse motif à l'appui (`versions_decoupage`, `app.valider_version_decoupage`, migration 049) ; la commune ne modifie plus son découpage directement · campagne versions-decoupage |

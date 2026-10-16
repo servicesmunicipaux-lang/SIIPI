@@ -245,6 +245,9 @@ function EditeurProposition({
   const [revision, setRevision] = useState(0);
   const [note, setNote] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
+  // Ce que la lecture d'un fichier a donné, ou pourquoi elle a échoué — affiché
+  // sous les boutons d'import, pas en bas de page où personne ne le verrait.
+  const [lecture, setLecture] = useState<{ type: 'ok' | 'erreur'; texte: string } | null>(null);
   const [enCours, setEnCours] = useState(false);
 
   const structure = (maj: (s: Secteur[]) => Secteur[]) => {
@@ -282,11 +285,22 @@ function EditeurProposition({
     [editerPerimetre, dessiner]
   );
 
+  // Le fichier est lu par l'API (Shapefile, KML, KMZ, GeoJSON ; projection et
+  // encodage compris) : l'écran reçoit des formes en WGS 84, et ce que la
+  // lecture a dû supposer ou signaler, qu'il affiche.
   const importer = async (fichier: File, cible: 'perimetre' | 'secteurs') => {
-    setErreur(null);
+    setLecture(null);
     try {
-      const polygones = lirePolygones(JSON.parse(await fichier.text()));
+      const lu = await api.lireFichierLimites(fichier);
+      const polygones = lirePolygones(lu.geojson);
       if (polygones.length === 0) throw new Error(t('decoupage.fichierSansPolygone'));
+      setLecture({
+        type: 'ok',
+        texte: [
+          t('decoupage.fichierLu', { format: t(`decoupage.formats.${lu.format}`), projection: lu.projection, n: polygones.length }),
+          ...lu.avertissements,
+        ].join(' '),
+      });
       if (cible === 'perimetre') {
         setPerimetre(polygones[0].geometry);
         setPerimetreModifie(true);
@@ -304,7 +318,7 @@ function EditeurProposition({
         ]);
       }
     } catch (err) {
-      setErreur(err instanceof Error ? err.message : t('decoupage.fichierSansPolygone'));
+      setLecture({ type: 'erreur', texte: err instanceof Error ? err.message : t('decoupage.fichierSansPolygone') });
     }
   };
 
@@ -384,7 +398,7 @@ function EditeurProposition({
           {t('decoupage.importerSecteurs')}
           <input
             type="file"
-            accept=".geojson,.json,application/geo+json,application/json"
+            accept=".zip,.shp,.kml,.kmz,.geojson,.json,application/zip,application/geo+json,application/json"
             className="hidden"
             onChange={(e) => {
               const fichier = e.target.files?.[0];
@@ -397,7 +411,7 @@ function EditeurProposition({
           {t('decoupage.importerPerimetre')}
           <input
             type="file"
-            accept=".geojson,.json,application/geo+json,application/json"
+            accept=".zip,.shp,.kml,.kmz,.geojson,.json,application/zip,application/geo+json,application/json"
             className="hidden"
             onChange={(e) => {
               const fichier = e.target.files?.[0];
@@ -407,6 +421,15 @@ function EditeurProposition({
           />
         </label>
       </div>
+      <p className="text-xs text-ardoise-500">{t('decoupage.formatsLus')}</p>
+      {lecture && (
+        <p
+          role={lecture.type === 'erreur' ? 'alert' : 'status'}
+          className={`rounded-lg border p-3 text-sm ${lecture.type === 'erreur' ? 'border-red-200 bg-red-50 text-red-800' : 'border-siipi-300 bg-siipi-50 text-siipi-900'}`}
+        >
+          {lecture.texte}
+        </p>
+      )}
 
       <CarteDecoupage
         perimetre={perimetre}

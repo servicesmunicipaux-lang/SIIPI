@@ -18,6 +18,8 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
 import { controlerTrace, polygoneSchema } from '../services/geometrie.js';
+import { ErreurFichierGeo, lireFichierGeo } from '../services/fichierGeo.js';
+import { ErreurZip } from '../services/zip.js';
 
 export const decoupageRouter = Router();
 
@@ -175,6 +177,78 @@ export const propositionDecoupageSchema = z
   .refine((d) => d.perimetre !== undefined || d.zones !== undefined, {
     message: 'Une proposition doit porter sur le périmètre, sur les secteurs, ou sur les deux.',
   });
+
+// ---------------------------------------------------------------------------
+// La lecture d'un fichier de limites (lot C2.2)
+// ---------------------------------------------------------------------------
+//
+// Shapefile (zip), KML, KMZ ou GeoJSON : la commune ou la FNCT y prend un
+// périmètre ou des secteurs. Rien n'est enregistré ici — la route rend des
+// entités en WGS 84, que l'écran montre avant toute proposition. La
+// reprojection est celle de PostGIS (systèmes tunisiens compris) ; une forme
+// invalide est signalée, pas corrigée : elle le sera, et dite, à la proposition.
+
+export const lectureFichierGeoSchema = z
+  .object({
+    nomFichier: z.string().trim().min(1).max(200),
+    /** Le fichier, en base 64. */
+    contenu: z.string().min(1).max(11_500_000, 'Fichier trop volumineux : 8 Mo au plus.'),
+  })
+  .strict();
+
+const MAX_ENTITES = 5000;
+
+decoupageRouter.post(
+  '/lire-fichier',
+  requireAuth,
+  requireRole(...ROLES),
+  asyncHandler(async (req, res) => {
+    const d = lectureFichierGeoSchema.parse(req.body);
+    let lu;
+    try {
+      lu = lireFichierGeo(Buffer.from(d.contenu, 'base64'), d.nomFichier);
+    } catch (err) {
+      if (err instanceof ErreurFichierGeo || err instanceof ErreurZip) throw new ApiError(400, err.message);
+      throw new ApiError(400, 'Fichier illisible : SIIPI lit un Shapefile (zip), un KML, un KMZ ou un GeoJSON.');
+    }
+    const avecForme = lu.entites.filter((e) => e.geometrie);
+    if (avecForme.length > MAX_ENTITES) throw new ApiError(400, `Le fichier compte ${avecForme.length} formes : ${MAX_ENTITES} au plus.`);
+    const sansForme = lu.entites.length - avecForme.length;
+    if (sansForme) lu.avertissements.push(`${sansForme} enregistrement(s) sans forme ignoré(s).`);
+    if (!avecForme.length) throw new ApiError(400, 'Le fichier ne contient aucune forme.');
+
+    let lignes: { i: string; geometrie: string; valide: boolean }[];
+    try {
+      lignes = await query<{ i: string; geometrie: string; valide: boolean }>(
+        `SELECT t.i, ST_AsGeoJSON(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(t.g), $2), 4326), 7) AS geometrie,
+                ST_IsValid(ST_SetSRID(ST_GeomFromGeoJSON(t.g), $2)) AS valide
+           FROM jsonb_array_elements_text($1::jsonb) WITH ORDINALITY AS t(g, i)
+          ORDER BY t.i`,
+        [JSON.stringify(avecForme.map((e) => JSON.stringify(e.geometrie))), lu.srid]
+      );
+    } catch {
+      throw new ApiError(400, 'Une forme du fichier est illisible (coordonnées manquantes ou anneau non fermé) : vérifiez-la dans QGIS.');
+    }
+    const invalides = lignes.filter((l) => !l.valide).length;
+    if (invalides) {
+      lu.avertissements.push(`${invalides} forme(s) invalide(s) (contour qui se recoupe, par exemple) : elles seront corrigées à la proposition, ce que l'historique dira.`);
+    }
+    res.json({
+      format: lu.format,
+      projection: lu.projection,
+      srid_source: lu.srid,
+      avertissements: lu.avertissements,
+      geojson: {
+        type: 'FeatureCollection',
+        features: lignes.map((l, k) => ({
+          type: 'Feature',
+          properties: { ...avecForme[k].proprietes, ...(avecForme[k].couche ? { couche: avecForme[k].couche } : {}) },
+          geometry: JSON.parse(l.geometrie),
+        })),
+      },
+    });
+  })
+);
 
 decoupageRouter.post(
   '/propositions',
