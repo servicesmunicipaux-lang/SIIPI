@@ -135,7 +135,8 @@
       "deploiement": "Déploiement par gouvernorat",
       "parametres": "Paramètres nationaux",
       "demo": "Mode démo",
-      "conservation": "Conservation des photos"
+      "conservation": "Conservation des photos",
+      "wapla": "Bilans WaPla étayés"
     },
     "demo": {
       "titre": "Mode démo — le jumeau numérique",
@@ -312,6 +313,32 @@
         "gouvernorat": "Gouvernorat",
         "valeur": "Valeur"
       }
+    },
+    "wapla": {
+      "titre": "Bilans de planification WaPla — agrégats nationaux",
+      "chapeau": "Les seuls bilans étayés de l’exercice, additionnés par territoire, et toujours le nombre de communes sur lequel ils portent. Un bilan indicatif ou illustratif n’y entre pas ; la commune de démonstration non plus. Aucun classement : les territoires viennent par ordre alphabétique.",
+      "niveaux": {
+        "gouvernorat": "Gouvernorat",
+        "district": "District"
+      },
+      "parNiveau": {
+        "gouvernorat": "Par gouvernorat",
+        "district": "Par district"
+      },
+      "national": "Ensemble des communes — exercice {{exercice}}",
+      "couverture": "Bilans étayés : {{n}} sur {{total}} communes",
+      "communes": "Bilans étayés (communes)",
+      "aucunEtaye": "Aucun bilan étayé pour cet exercice : il n’y a rien à additionner.",
+      "aucunEtayeLigne": "Aucun bilan étayé",
+      "ordre": "Ordre alphabétique (districts : ordre de la FNCT). Chaque somme ne porte que sur les communes comptées à côté d’elle.",
+      "grandeurs": {
+        "gisement_t": "Gisement (t/an)",
+        "mise_en_decharge_t": "Mis en décharge (t/an)",
+        "brule_air_libre_t": "Brûlé à l’air libre (t/an)",
+        "ges_t_co2e": "GES (t CO₂-éq/an)",
+        "upops_mg_teq": "Dioxines et furanes (mg TEQ/an)"
+      },
+      "couvertureCourte": "{{n}} sur {{total}}"
     }
   },
   "commun": {

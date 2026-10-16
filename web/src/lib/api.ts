@@ -158,6 +158,7 @@ export type EntreeAmorceWapla = AmorceWapla['entrees'][number];
 export type LigneBilanWapla = Reponse<'/wapla/bilans/{id}/export', 'get'>[number];
 export type ScenarioWapla = Reponse<'/wapla/scenarios/{id}', 'get'>;
 export type ResumeScenarioWapla = Reponse<'/wapla/bilans/{id}/scenarios', 'get'>[number];
+export type AgregatsWapla = Reponse<'/wapla/agregats', 'get'>;
 export type ElementCompletude = CompletudeCommune['elements'][number];
 export type DependanceIndicateur = Reponse<'/kpi/dependances', 'get'>[number];
 export type SaisieDeclarations = Corps<'/kpi/declarations/{communeId}/{annee}', 'put'>;
@@ -1255,6 +1256,8 @@ export const api = {
   calculerScenarioWapla: (id: string) => requete<ScenarioWapla>(`/wapla/scenarios/${encodeURIComponent(id)}/calcul`, { method: 'POST' }),
   figerScenarioWapla: (id: string) => requete<ScenarioWapla>(`/wapla/scenarios/${encodeURIComponent(id)}/figer`, { method: 'POST' }),
   retirerScenarioWapla: (id: string) => requete<void>(`/wapla/scenarios/${encodeURIComponent(id)}/retrait`, { method: 'POST' }),
+  agregatsWapla: (exercice: number) =>
+    requete<AgregatsWapla>(`/wapla/agregats?${new URLSearchParams({ exercice: String(exercice) }).toString()}`),
   amorceWapla: (communeId: string, exercice: number) =>
     requete<AmorceWapla>(`/wapla/amorce?${new URLSearchParams({ communeId, exercice: String(exercice) }).toString()}`),
   completudeCommune: (communeId: string) =>

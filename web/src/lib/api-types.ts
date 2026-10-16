@@ -7488,6 +7488,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/wapla/agregats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Agrégats nationaux des bilans étayés (FNCT)
+         * @description Par gouvernorat et par district, les seuls bilans calculés et étayés de l’exercice, d’une commune réelle (ni la commune de démonstration, ni une commune retirée), avec leur nombre : « N communes sur M ». Gisement, déchets mis en décharge, brûlés à l’air libre, GES (potentiel engagé), dioxines et furanes. Aucun rang, aucune ligne par commune ; les gouvernorats par ordre alphabétique, les districts dans l’ordre de la FNCT. Estimation de planification — méthode UNIDO WaPla.
+         */
+        get: {
+            parameters: {
+                query: {
+                    exercice: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les agrégats de l’exercice. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            exercice: number;
+                            grandeurs: ("gisement_t" | "mise_en_decharge_t" | "brule_air_libre_t" | "ges_t_co2e" | "upops_mg_teq")[];
+                            national: {
+                                /** @description N : les communes dont le bilan de l’exercice est étayé. */
+                                communes_etayees: number;
+                                /** @description M : les communes réelles du territoire, avec ou sans bilan. */
+                                communes: number;
+                                /** @description Les sommes sur les N communes ; null quand N = 0 (jamais 0). */
+                                valeurs: {
+                                    gisement_t?: number;
+                                    mise_en_decharge_t?: number;
+                                    brule_air_libre_t?: number;
+                                    ges_t_co2e?: number;
+                                    upops_mg_teq?: number;
+                                } | null;
+                            };
+                            districts: {
+                                /** @description N : les communes dont le bilan de l’exercice est étayé. */
+                                communes_etayees: number;
+                                /** @description M : les communes réelles du territoire, avec ou sans bilan. */
+                                communes: number;
+                                /** @description Les sommes sur les N communes ; null quand N = 0 (jamais 0). */
+                                valeurs: {
+                                    gisement_t?: number;
+                                    mise_en_decharge_t?: number;
+                                    brule_air_libre_t?: number;
+                                    ges_t_co2e?: number;
+                                    upops_mg_teq?: number;
+                                } | null;
+                                /** @description null : les gouvernorats rattachés à aucun district. */
+                                code: string | null;
+                                nom: string | null;
+                                nom_ar: string | null;
+                            }[];
+                            gouvernorats: {
+                                /** @description N : les communes dont le bilan de l’exercice est étayé. */
+                                communes_etayees: number;
+                                /** @description M : les communes réelles du territoire, avec ou sans bilan. */
+                                communes: number;
+                                /** @description Les sommes sur les N communes ; null quand N = 0 (jamais 0). */
+                                valeurs: {
+                                    gisement_t?: number;
+                                    mise_en_decharge_t?: number;
+                                    brule_air_libre_t?: number;
+                                    ges_t_co2e?: number;
+                                    upops_mg_teq?: number;
+                                } | null;
+                                gouvernorat: string;
+                                district: string | null;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/poi": {
         parameters: {
             query?: never;

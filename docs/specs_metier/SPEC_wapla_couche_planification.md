@@ -180,6 +180,8 @@ C'est le point où la séparation est la plus facile à rompre.
 
 **FNCT** (observatoire national) : agrégats par gouvernorat et par district des seuls bilans **étayés** de l'exercice, avec leur nombre (« 12 communes sur 31 du gouvernorat ») et sans classement des communes. La commune de démonstration n'y figure jamais.
 
+**Précisé au lot W5 (16/10/2026).** Entre dans un agrégat un bilan **calculé** (un brouillon, dont une saisie a rendu le résultat caduc, n'y entre pas), **étayé**, non retiré, d'une commune **réelle** (ni la commune de démonstration, ni une commune retirée du référentiel) ; la base tient la règle (`wapla.bilans_agregeables`, migration 077). M compte les communes réelles du territoire, avec ou sans bilan. Les grandeurs additionnées sont le gisement et celles de la comparaison des scénarios (§ 5 : décharge, brûlage à l'air libre, t CO₂-éq, mg TEQ), avec la même définition ; les coûts n'y sont pas, faute d'un coût renseigné dans chaque bilan. Un territoire sans bilan étayé n'a pas de chiffre (« 0 sur M », jamais 0 t). Ni rang, ni ligne par commune : les gouvernorats par ordre alphabétique, les districts dans l'ordre de la FNCT, les gouvernorats sans district en un groupe nommé.
+
 **Diffusion des uPOPs : à trancher (§ 9).** Un chiffre de dioxines par commune, calculé en grande partie sur des hypothèses, peut être mal reçu s'il circule hors de son contexte. Proposition par défaut : visible par la commune et la FNCT, jamais dans un export public sans validation de la FNCT.
 
 ---

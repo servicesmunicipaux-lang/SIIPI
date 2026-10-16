@@ -115,6 +115,8 @@ import {
   creationScenarioSchema,
   hypotheseSchema,
   facteurReferenceSchema,
+  GRANDEURS_AGREGEES,
+  qAgregatsSchema,
   qAmorceSchema,
   reglageSchema,
   retraitFacteurSchema,
@@ -2243,6 +2245,43 @@ registry.registerPath({
   security: SECURISE,
   request: { params: pScenario },
   responses: { 204: { description: 'Scénario retiré.' }, ...REPONSES_COMMUNES },
+});
+
+// Lot W5 : les agrégats nationaux. Ni rang, ni ligne par commune.
+const AgregatWapla = z.object({
+  communes_etayees: z.number().int().openapi({ description: 'N : les communes dont le bilan de l’exercice est étayé.' }),
+  communes: z.number().int().openapi({ description: 'M : les communes réelles du territoire, avec ou sans bilan.' }),
+  valeurs: z
+    .record(z.enum(GRANDEURS_AGREGEES), z.number())
+    .nullable()
+    .openapi({ description: 'Les sommes sur les N communes ; null quand N = 0 (jamais 0).' }),
+});
+registry.registerPath({
+  method: 'get', path: '/wapla/agregats', tags: [TAG_WAPLA],
+  summary: 'Agrégats nationaux des bilans étayés (FNCT)',
+  description:
+    'Par gouvernorat et par district, les seuls bilans calculés et étayés de l’exercice, d’une commune réelle (ni la commune de démonstration, ni une commune retirée), avec leur nombre : « N communes sur M ». Gisement, déchets mis en décharge, brûlés à l’air libre, GES (potentiel engagé), dioxines et furanes. Aucun rang, aucune ligne par commune ; les gouvernorats par ordre alphabétique, les districts dans l’ordre de la FNCT. Estimation de planification — méthode UNIDO WaPla.',
+  security: SECURISE,
+  request: { query: qAgregatsSchema },
+  responses: {
+    200: json(
+      z.object({
+        exercice: z.number().int(),
+        grandeurs: z.array(z.enum(GRANDEURS_AGREGEES)),
+        national: AgregatWapla,
+        districts: z.array(
+          AgregatWapla.extend({
+            code: z.string().nullable().openapi({ description: 'null : les gouvernorats rattachés à aucun district.' }),
+            nom: z.string().nullable(),
+            nom_ar: z.string().nullable(),
+          })
+        ),
+        gouvernorats: z.array(AgregatWapla.extend({ gouvernorat: z.string(), district: z.string().nullable() })),
+      }),
+      'Les agrégats de l’exercice.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 const TAG_SOURCES = 'Registres et lieux';
@@ -7417,7 +7456,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.39',
+      version: '0.15.40',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

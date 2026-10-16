@@ -12,6 +12,10 @@
 // LES BILANS (lot W2b) sont ceux de la commune : elle les crée, les complète,
 // les calcule ; la FNCT les lit, sauf les illustratifs. Le calcul se fait ici,
 // avec le moteur corrigé ; la base garde le résultat et sa version.
+//
+// LES AGRÉGATS NATIONAUX (lot W5) sont ceux de la FNCT : par gouvernorat et
+// par district, les seuls bilans étayés de l'exercice, « N communes sur M », sans
+// rang ni ligne par commune.
 
 import { Router } from 'express';
 import { z } from 'zod';
@@ -20,7 +24,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
 import { exportable, type JeuExport } from '../services/export.js';
-import { comparer } from './comparaison.js';
+import { comparer, indicateurs, INDICATEURS_COMPARES } from './comparaison.js';
 import { fiabilite, type EntreeBilan, type RoleEntree } from './fiabilite.js';
 import { calculerWapla, DEFAUTS_WAPLA, entreesSchema, ErreurMoteur, VERSION_MOTEUR, type ResultatWapla } from './moteur.js';
 
@@ -726,5 +730,96 @@ waplaRouter.post(
     const r = await queryOne<{ retire: boolean }>('SELECT wapla.retirer_scenario($1) AS retire', [id]);
     if (!r?.retire) throw new ApiError(404, 'Scénario introuvable.');
     res.status(204).end();
+  })
+);
+
+// ---------------------------------------------------------------------------
+// Les agrégats nationaux (lot W5 ; SPEC_wapla § 6, observatoire de la FNCT)
+// ---------------------------------------------------------------------------
+//
+// Ce qui entre dans un agrégat est tenu par la base (wapla.bilans_agregeables) :
+// calculé, étayé, d'une commune réelle. Ici, on additionne — avec la définition
+// des grandeurs de la comparaison des scénarios, pour n'en avoir qu'une.
+//
+// AUCUN CLASSEMENT : la réponse ne porte ni rang, ni ligne par commune, et les
+// territoires viennent par ordre alphabétique (les districts dans l'ordre de la
+// FNCT). Trier par valeur ferait un palmarès des gouvernorats. Un territoire sans
+// bilan étayé n'a pas de valeurs (null, jamais 0) : « 0 commune sur M ».
+
+export const qAgregatsSchema = z.object({
+  exercice: z.coerce.number().int().min(2000).max(2100),
+});
+
+export const GRANDEURS_AGREGEES = ['gisement_t', ...INDICATEURS_COMPARES] as const;
+type GrandeurAgregee = (typeof GRANDEURS_AGREGEES)[number];
+type Agregat = { communes_etayees: number; communes: number; valeurs: Record<GrandeurAgregee, number> | null };
+
+function grandeurs(r: ResultatWapla): Record<GrandeurAgregee, number> {
+  return { gisement_t: r.flux.WG ?? 0, ...indicateurs(r) };
+}
+
+function agreger(lignes: Record<GrandeurAgregee, number>[], communes: number): Agregat {
+  if (!lignes.length) return { communes_etayees: 0, communes, valeurs: null };
+  const valeurs = Object.fromEntries(
+    GRANDEURS_AGREGEES.map((k) => [k, lignes.reduce((s, l) => s + l[k], 0)])
+  ) as Record<GrandeurAgregee, number>;
+  return { communes_etayees: lignes.length, communes, valeurs };
+}
+
+waplaRouter.get(
+  '/agregats',
+  requireAuth,
+  requireRole('super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const { exercice } = qAgregatsSchema.parse(req.query);
+    if (exercice > anneeTunis()) {
+      throw new ApiError(400, `L'exercice ${exercice} n'a pas commencé : choisissez l'année en cours ou une année passée.`);
+    }
+    const [bilans, territoires, districts] = await Promise.all([
+      query<{ commune_id: string; gouvernorat: string; district: string | null; resultat: ResultatWapla }>(
+        'SELECT commune_id, gouvernorat, district, resultat FROM wapla.bilans_agregeables($1)',
+        [exercice]
+      ),
+      query<{ gouvernorat: string; district: string | null; communes: string }>(
+        'SELECT gouvernorat, district, communes FROM wapla.communes_par_gouvernorat()'
+      ),
+      query<{ code: string; nom: string; nom_ar: string | null }>('SELECT code, nom, nom_ar FROM districts_fnct ORDER BY ordre, nom'),
+    ]);
+    const parGouvernorat = new Map<string, Record<GrandeurAgregee, number>[]>();
+    for (const b of bilans) {
+      const liste = parGouvernorat.get(b.gouvernorat) ?? [];
+      liste.push(grandeurs(b.resultat));
+      parGouvernorat.set(b.gouvernorat, liste);
+    }
+    const gouvernorats = territoires
+      .map((t) => ({
+        gouvernorat: t.gouvernorat,
+        district: t.district,
+        ...agreger(parGouvernorat.get(t.gouvernorat) ?? [], Number(t.communes)),
+      }))
+      .sort((a, b) => a.gouvernorat.localeCompare(b.gouvernorat, 'fr'));
+    const duDistrict = (code: string | null) => {
+      const g = territoires.filter((t) => t.district === code);
+      return agreger(
+        g.flatMap((t) => parGouvernorat.get(t.gouvernorat) ?? []),
+        g.reduce((s, t) => s + Number(t.communes), 0)
+      );
+    };
+    // Les gouvernorats que la FNCT n'a rattachés à aucun district forment un
+    // groupe à part, nommé comme tel : les taire fausserait la somme des districts.
+    const sansDistrict = territoires.some((t) => t.district == null);
+    res.json({
+      exercice,
+      grandeurs: GRANDEURS_AGREGEES,
+      national: agreger(
+        bilans.map((b) => grandeurs(b.resultat)),
+        territoires.reduce((s, t) => s + Number(t.communes), 0)
+      ),
+      districts: [
+        ...districts.map((d) => ({ code: d.code as string | null, nom: d.nom, nom_ar: d.nom_ar, ...duDistrict(d.code) })),
+        ...(sansDistrict ? [{ code: null, nom: null, nom_ar: null, ...duDistrict(null) }] : []),
+      ],
+      gouvernorats,
+    });
   })
 );
