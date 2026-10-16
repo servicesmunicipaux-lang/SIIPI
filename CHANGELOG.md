@@ -5,6 +5,26 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.42] — 2026-10-16 — D-FNCT-4 : la campagne `purge-media` sur une base jetable
+
+D-FNCT-4 est reconfirmée le 16 octobre 2026. Les textes et métadonnées des réclamations sont conservés
+sans limite. À 36 mois, une photo est compressée (JPEG qualité 70, 500 Ko au plus) et sa version
+compressée reste en ligne sans limite. L'original part dans l'archive froide, **où il reste sans limite**
+(réponse de l'utilisateur, qui confirme celle du 9 octobre : pas d'effacement à 48 mois). La FNCT peut le
+faire restaurer sous 48 heures, et chaque geste est tracé. Le passage est mensuel. Tout cela était en
+place depuis la v0.15.23 ; ce lot change la campagne.
+
+### Changé
+- **`purge-media` ne touche plus rien de partagé** (leçon de JC-007). Elle prend une base neuve, migrée
+  et semée pour elle, une API à part (port 4005), un volume de fichiers et une archive froide dans son
+  dossier temporaire. Elle efface tout en partant. Jusqu'ici, elle écrivait sa commune, ses comptes, ses
+  fichiers et ses passages dans la base des campagnes, et ses photos dans le volume réel. Deux contrôles
+  vérifient qu'elle travaille bien à part.
+- **Le passage mensuel est éprouvé pour de bon.** Seule une base jetable permet de laisser partir un
+  passage national. Sans `SIIPI_CONSERVATION_MEDIAS=active`, l'API n'en lance aucun. Avec la variable, elle
+  l'annonce, puis le planificateur compresse de lui-même une nouvelle photo de 37 mois et archive son
+  original ; la photo de 30 mois reste entière.
+
 ## [0.15.41] — 2026-10-16 — D-FNCT-2 : les cinq districts du décret n° 2023-589
 
 Décision de la FNCT du 16 octobre 2026 : les districts sont ceux du **décret n° 2023-589 du 21 septembre
