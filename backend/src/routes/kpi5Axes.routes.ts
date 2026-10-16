@@ -92,6 +92,11 @@ kpi5AxesRouter.put(
 
 // ---------------------------------------------------------------------------
 // 2. Les districts FNCT — définis par la FNCT, jamais supposés
+//
+// Depuis D-FNCT-2 (migration 078) : les cinq districts du décret n° 2023-589 du
+// 21 septembre 2023. La FNCT peut les redéfinir ; elle cite alors sa source, et
+// chaque gouvernorat d'une commune réelle reçoit un district — un gouvernorat
+// oublié sortirait en silence de toutes les sommes par district.
 // ---------------------------------------------------------------------------
 
 kpi5AxesRouter.get(
@@ -99,7 +104,7 @@ kpi5AxesRouter.get(
   requireAuth,
   asyncHandler(async (_req, res) => {
     const [liste, rattachements, gouvernorats] = await Promise.all([
-      query('SELECT code, nom, nom_ar, ordre FROM districts_fnct ORDER BY ordre, nom'),
+      query('SELECT code, nom, nom_ar, ordre, source FROM districts_fnct ORDER BY ordre, nom'),
       query('SELECT gouvernorat, district_code FROM gouvernorats_district ORDER BY gouvernorat'),
       query<{ gouvernorat: string }>(
         'SELECT DISTINCT gouvernorat FROM communes WHERE NOT est_demo AND deleted_at IS NULL ORDER BY gouvernorat'
@@ -113,14 +118,16 @@ export const districtsSchema = z.object({
   districts: z
     .array(
       z.object({
-        code: z.string().regex(/^[a-z0-9_-]{1,40}$/, 'Code en minuscules, chiffres, tirets.'),
+        code: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/, 'Code en lettres, chiffres, tirets (D1, D2…).'),
         nom: z.string().trim().min(1).max(80),
         nom_ar: z.string().trim().max(80).nullable().optional(),
       })
     )
     .max(20),
-  // Gouvernorat → code du district ; absent ou null : non rattaché.
+  // Gouvernorat → code du district. Chaque gouvernorat d'une commune réelle doit en recevoir un.
   rattachements: z.record(z.string(), z.string().nullable()),
+  /** La pièce qui fonde le découpage : décret, décision de la FNCT. */
+  source: z.string().trim().min(5, 'Citez la source du découpage (décret, décision de la FNCT).').max(200),
 });
 
 kpi5AxesRouter.put(
@@ -140,14 +147,21 @@ kpi5AxesRouter.put(
       if (!gouvernorats.has(g)) throw new ApiError(400, `Gouvernorat inconnu : ${g}.`);
       if (code && !codes.has(code)) throw new ApiError(400, `District inconnu : ${code}.`);
     }
+    const orphelins = [...gouvernorats].filter((g) => !d.rattachements[g]).sort((a, b) => a.localeCompare(b, 'fr'));
+    if (orphelins.length) {
+      throw new ApiError(
+        400,
+        `Rattachez chaque gouvernorat à un district : ${orphelins.join(', ')} n'en a pas. Un gouvernorat sans district sortirait de toutes les sommes par district.`
+      );
+    }
     await withTransaction(async (client) => {
       await client.query('DELETE FROM gouvernorats_district');
       await client.query('DELETE FROM districts_fnct WHERE NOT (code = ANY($1::text[]))', [[...codes]]);
       for (const [i, x] of d.districts.entries()) {
         await client.query(
-          `INSERT INTO districts_fnct (code, nom, nom_ar, ordre) VALUES ($1, $2, $3, $4)
-           ON CONFLICT (code) DO UPDATE SET nom = EXCLUDED.nom, nom_ar = EXCLUDED.nom_ar, ordre = EXCLUDED.ordre`,
-          [x.code, x.nom, x.nom_ar || null, i]
+          `INSERT INTO districts_fnct (code, nom, nom_ar, ordre, source) VALUES ($1, $2, $3, $4, $5)
+           ON CONFLICT (code) DO UPDATE SET nom = EXCLUDED.nom, nom_ar = EXCLUDED.nom_ar, ordre = EXCLUDED.ordre, source = EXCLUDED.source`,
+          [x.code, x.nom, x.nom_ar || null, i + 1, d.source]
         );
       }
       for (const [g, code] of Object.entries(d.rattachements)) {

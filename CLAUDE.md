@@ -61,7 +61,7 @@ Recharts, tableau exportable, formule FR/AR, repère) ; « il manque » ouvre su
 la déclaration ou le paramètre de la commune. v0.15.30 : refonte, lot 4a — le tableau national (migration 072) :
 une saisie est le fait de la commune elle-même (`app._saisies_communales`, jamais la FNCT), déploiement mois par
 mois (`/observatoire/activite`), tonnages estimé / déclaré / mesuré / pesé jamais additionnés, répartition d'un
-indicateur avec « N communes sur M » et sans rang, contours des gouvernorats. v0.15.31 : lot 4b — la synthèse nationale s'ouvre sur le suivi du déploiement ; « Répartition » donne la carte des gouvernorats, le graphique alphabétique et le détail par commune, triable. v0.15.32 : lot 5 — « Ma commune dans SIIPI » (migration 073, `app.completude_commune`) : chaque donnée de référence et chaque registre du mois, présent ou à ajouter, avec son formulaire et les indicateurs qu'il débloque ; ni total, ni pourcentage, ni liste « toutes communes ». Le choix du formulaire qui complète une donnée vit dans un seul composant (`web/src/composants/kpi/LigneACompleter.tsx`). La refonte est close. v0.15.33 : WaPla, lot W1a — le moteur réécrit en mode fidèle (`backend/src/wapla/moteur.ts`, fonction pure, sans base) : il reproduit l'outil UNIDO défauts compris, vecteurs de l'annexe retrouvés, aucun écart avec le témoin `tests/wapla_attendus.py` sur 213 jeux ; réutilisation confirmée par l'UNIDO le 13/10/2026. v0.15.34 : W1b — le mode corrigé, par défaut (D1 à D10 corrigés ; D7 tranché le 14/10/2026 : méthane sans les résidus, curseur de dégradation séparé) ; masse conservée, chaque écart avec le mode fidèle expliqué par un défaut nommé, témoin d'accord dans douze réglages. v0.15.35 : W2a — le schéma `wapla` (migration 074) : les références tunisiennes (climat par gouvernorat, tenues par la FNCT, datées, retirées jamais effacées) et l'amorce `wapla.amorce_commune` (ce que SIIPI propose pour chaque entrée, avec sa provenance, ou ce qui manque ; droits de l'appelant). SIIPI ne dépend jamais de `wapla` : pg_depend, et le schéma supprimé le temps d'une transaction, les chiffres de SIIPI ne bougent pas. v0.15.36 : W2b — les bilans WaPla (migration 075) : un par commune et par exercice, nés de l'amorce, complétés par la commune, calculés par le moteur corrigé dans l'API, le résultat gardé avec sa version ; niveau de fiabilité (clés traitées avant le calcul ; une clé par défaut → illustratif, que la FNCT ne voit pas ; seuil de la FNCT sur 17 entrées comptées) ; une saisie rend le résultat caduc. Pas de journal d'audit de SIIPI sur la couche : une saisie WaPla ne compte pas comme activité dans SIIPI. v0.15.37 : W3 — l'écran « Bilan de planification (WaPla) » du pôle Pilotage (`web/src/composants/wapla/`) : ouverture d'un exercice depuis l'amorce, entrées de planification avec leur provenance et ce que SIIPI ne tient pas, calcul, niveau de fiabilité et son bandeau, diagramme de Sankey, GES (potentiel engagé), uPOPs, coûts, export Excel/CSV (`GET /wapla/bilans/{id}/export` : méthode, toutes les entrées et leur provenance, résultats). v0.15.38 : W4a — les scénarios (migration 076) : copie d'un bilan calculé, hypothèses de la commune, comparaison au statu quo (décharge, brûlage, GES, uPOPs, écart de coût de ce que le scénario ajoute), figement tenu par la base (`src/wapla/comparaison.ts`, fonction pure). v0.15.39 : W4b — les écrans des scénarios (`ScenarioWapla.tsx`) : création depuis un bilan calculé, hypothèses (dont les coûts d'un procédé ajouté), tableau côte à côte avec le statu quo et écart signé, figement. v0.15.40 : W5 — les agrégats nationaux (migration 077, `GET /wapla/agregats`, FNCT seule) : par gouvernorat et par district, les seuls bilans calculés et étayés d'une commune réelle (`wapla.bilans_agregeables` tient la règle), « N sur M communes », null et jamais 0 sans bilan étayé, aucun rang ni ligne par commune, ordre alphabétique. Reste W0 (vecteurs rejoués dans l'outil d'origine, normales INM).**
+indicateur avec « N communes sur M » et sans rang, contours des gouvernorats. v0.15.31 : lot 4b — la synthèse nationale s'ouvre sur le suivi du déploiement ; « Répartition » donne la carte des gouvernorats, le graphique alphabétique et le détail par commune, triable. v0.15.32 : lot 5 — « Ma commune dans SIIPI » (migration 073, `app.completude_commune`) : chaque donnée de référence et chaque registre du mois, présent ou à ajouter, avec son formulaire et les indicateurs qu'il débloque ; ni total, ni pourcentage, ni liste « toutes communes ». Le choix du formulaire qui complète une donnée vit dans un seul composant (`web/src/composants/kpi/LigneACompleter.tsx`). La refonte est close. v0.15.33 : WaPla, lot W1a — le moteur réécrit en mode fidèle (`backend/src/wapla/moteur.ts`, fonction pure, sans base) : il reproduit l'outil UNIDO défauts compris, vecteurs de l'annexe retrouvés, aucun écart avec le témoin `tests/wapla_attendus.py` sur 213 jeux ; réutilisation confirmée par l'UNIDO le 13/10/2026. v0.15.34 : W1b — le mode corrigé, par défaut (D1 à D10 corrigés ; D7 tranché le 14/10/2026 : méthane sans les résidus, curseur de dégradation séparé) ; masse conservée, chaque écart avec le mode fidèle expliqué par un défaut nommé, témoin d'accord dans douze réglages. v0.15.35 : W2a — le schéma `wapla` (migration 074) : les références tunisiennes (climat par gouvernorat, tenues par la FNCT, datées, retirées jamais effacées) et l'amorce `wapla.amorce_commune` (ce que SIIPI propose pour chaque entrée, avec sa provenance, ou ce qui manque ; droits de l'appelant). SIIPI ne dépend jamais de `wapla` : pg_depend, et le schéma supprimé le temps d'une transaction, les chiffres de SIIPI ne bougent pas. v0.15.36 : W2b — les bilans WaPla (migration 075) : un par commune et par exercice, nés de l'amorce, complétés par la commune, calculés par le moteur corrigé dans l'API, le résultat gardé avec sa version ; niveau de fiabilité (clés traitées avant le calcul ; une clé par défaut → illustratif, que la FNCT ne voit pas ; seuil de la FNCT sur 17 entrées comptées) ; une saisie rend le résultat caduc. Pas de journal d'audit de SIIPI sur la couche : une saisie WaPla ne compte pas comme activité dans SIIPI. v0.15.37 : W3 — l'écran « Bilan de planification (WaPla) » du pôle Pilotage (`web/src/composants/wapla/`) : ouverture d'un exercice depuis l'amorce, entrées de planification avec leur provenance et ce que SIIPI ne tient pas, calcul, niveau de fiabilité et son bandeau, diagramme de Sankey, GES (potentiel engagé), uPOPs, coûts, export Excel/CSV (`GET /wapla/bilans/{id}/export` : méthode, toutes les entrées et leur provenance, résultats). v0.15.38 : W4a — les scénarios (migration 076) : copie d'un bilan calculé, hypothèses de la commune, comparaison au statu quo (décharge, brûlage, GES, uPOPs, écart de coût de ce que le scénario ajoute), figement tenu par la base (`src/wapla/comparaison.ts`, fonction pure). v0.15.39 : W4b — les écrans des scénarios (`ScenarioWapla.tsx`) : création depuis un bilan calculé, hypothèses (dont les coûts d'un procédé ajouté), tableau côte à côte avec le statu quo et écart signé, figement. v0.15.40 : W5 — les agrégats nationaux (migration 077, `GET /wapla/agregats`, FNCT seule) : par gouvernorat et par district, les seuls bilans calculés et étayés d'une commune réelle (`wapla.bilans_agregeables` tient la règle), « N sur M communes », null et jamais 0 sans bilan étayé, aucun rang ni ligne par commune, ordre alphabétique. Reste W0 (vecteurs rejoués dans l'outil d'origine, normales INM). v0.15.41 : D-FNCT-2 tranchée — les cinq districts du décret n° 2023-589 du 21 septembre 2023 (migration 078, dans les tables de 050 : `districts_fnct`, `gouvernorats_district`), avec leur source ; la FNCT les redéfinit dans *Paramètres nationaux*, en citant sa source, sans laisser de gouvernorat sans district. Aucun nom de gouvernorat dans le code (campagne `districts`, `web/scripts/verifier-gouvernorats.mjs`).**
 
 ---
 
@@ -185,7 +185,7 @@ données personnelles). Jusqu'à confirmation par un juriste de la FNCT :
 ```bash
 docker compose exec -T api npm run migrate            # migrations en attente
 docker compose exec -T api npm run verifier:contrat   # toute route servie est documentée
-docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (54 au 16/10/2026)
+docker compose exec -T api npm test                   # verifier:contrat + toutes les campagnes (55 au 16/10/2026)
 docker compose exec -T api npm run test:module4       # une seule campagne
 docker compose exec -T api npm run recette:etat -- <commune>   # une commune peut-elle commencer sa recette ? (lecture seule)
 docker compose run  --rm web npx tsc --noEmit         # typage du front
@@ -206,7 +206,7 @@ docker compose run --rm web npx openapi-typescript http://api:4000/openapi.json 
 
 | Couche | Choix | Note |
 |---|---|---|
-| Base | PostgreSQL 16 + PostGIS 3.4 | 77 migrations au 16/10/2026, rejouées sur base neuve à chaque livraison |
+| Base | PostgreSQL 16 + PostGIS 3.4 | 78 migrations au 16/10/2026, rejouées sur base neuve à chaque livraison |
 | API | Node 22 + Express + TypeScript (ESM) | zod pour la validation |
 | Contrat | OpenAPI 3.1 **généré depuis les schémas zod d'exécution** | la documentation ne peut pas décrire autre chose que ce qui est contrôlé |
 | Front | React 19 + Vite + Tailwind v4 + Leaflet + Recharts | PWA (`manifest.webmanifest`, `sw.js`) |
@@ -344,11 +344,11 @@ sans erreur de :**
 
 1. **`npm run verifier:contrat`** — toute route servie est documentée ;
 2. **toutes les campagnes `backend/tests/*.sh`** — pas « celles qui concernent
-   la tâche ». Elles étaient 54 au 16/10/2026 (S0 a ajouté `assainissement`,
+   la tâche ». Elles étaient 55 au 16/10/2026 (S0 a ajouté `assainissement`,
    S1 `simulation-3mois`, 16.1 `barbechas`, 16.2 `documents`, 16.3 `exploitation`,
    16.4 `declassement`, 17.3 `parametres-nationaux`, 17.1 `parametres-communaux`,
    17.5 `cout-complet`, 18.1 `acteurs-informels`, v0.15.15 `mot-de-passe-public`,
-   v0.15.16 `recette-etat`, v0.15.23 `purge-media`, v0.15.26 `references`, v0.15.28 `series-indicateurs`, v0.15.30 `tableau-national`, v0.15.32 `completude`, v0.15.33 `wapla-moteur`, v0.15.35 `wapla`, v0.15.36 `wapla-bilans`, v0.15.38 `wapla-scenarios`, v0.15.40 `wapla-agregats`).
+   v0.15.16 `recette-etat`, v0.15.23 `purge-media`, v0.15.26 `references`, v0.15.28 `series-indicateurs`, v0.15.30 `tableau-national`, v0.15.32 `completude`, v0.15.33 `wapla-moteur`, v0.15.35 `wapla`, v0.15.36 `wapla-bilans`, v0.15.38 `wapla-scenarios`, v0.15.40 `wapla-agregats`, v0.15.41 `districts`).
 
 Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 
@@ -356,7 +356,7 @@ Les deux se lancent d'une seule commande, qui les enchaîne dans cet ordre :
 docker compose exec -T api npm test
 ```
 
-Le dossier `backend/tests/` contenait **55 fichiers `.sh`** au 16/10/2026 : 54
+Le dossier `backend/tests/` contenait **56 fichiers `.sh`** au 16/10/2026 : 55
 campagnes et `executer.sh`, le lanceur, qui n'est pas une campagne. Ces chiffres
 ne sont pas des valeurs à retenir mais à **recalculer** — un critère d'acceptation qui se
 dessèche sans bruit est pire qu'aucun :
@@ -405,7 +405,8 @@ rejouabilité des migrations. Ces deux contrôles restent des **préconditions**
    Vite : il se transpile sans vérifier, et c'est ainsi qu'un composant a planté
    au rendu sur une propriété jamais déclarée. Typage de référence : TypeScript
    **5.8.x** (la 5.9 signale à tort une erreur dans `AbonnementPush.tsx`).
-   Côté web, `npm run lint` enchaîne `scripts/verifier-ajout.mjs` : l'appel d'API qui
+   Côté web, `npm run lint` enchaîne `scripts/verifier-gouvernorats.mjs` (aucun nom de
+   gouvernorat dans le code : le découpage vit dans la base, D-FNCT-2) et `scripts/verifier-ajout.mjs` : l'appel d'API qui
    crée un objet (liste : `src/composants/ajout/appels-creation.json`) ne vit que dans
    UN formulaire du registre `src/composants/ajout/`. Un écran qui veut ajouter un
    objet ouvre ce formulaire (`useAjoutEnLigne`), il n'en écrit pas un second.
@@ -465,7 +466,7 @@ ne génère rien. Voir `FEUILLE_DE_ROUTE.md` § 6bis.
 
 ```
 backend/
-  migrations/      077 fichiers numérotés au 16/10/2026 — l'ordre fait foi, l'empreinte aussi
+  migrations/      078 fichiers numérotés au 16/10/2026 — l'ordre fait foi, l'empreinte aussi
   src/routes/      une route par domaine ; les littéraux avant /:id
   src/services/    kml.ts (imports géographiques), fichiers.ts (stockage, EXIF),
                    conservationMedias.ts (photos de 36 mois, archive froide)
@@ -473,7 +474,7 @@ backend/
                    src/wapla, seuls app.ts et le contrat l'importent, et jamais le moteur
   src/openapi/     document.ts — le contrat, généré depuis les schémas zod
   seed/            jeux réels : Dar Chaabane, Djerba (Houmt Souk, Midoun, Ajim)
-  tests/           54 campagnes au 16/10/2026, lancées par tests/executer.sh
+  tests/           55 campagnes au 16/10/2026, lancées par tests/executer.sh
 web/
   src/composants/  communal/ · national/ · prestataire/ · kpi/ · registres/
                    ajout/ — le registre des formulaires de création et le catalogue « + Ajouter »

@@ -770,9 +770,10 @@ indicateur « sans objet ».
 - **Le barème est une donnée** : la répartition des 100 points entre les 19
   indicateurs est provisoire tant que la FNCT ne l'a pas confirmée (écran
   Réglages) ; l'écran le dit.
-- **Les districts FNCT ne sont pas supposés** : la table existe, vide ; la FNCT
-  définit ses districts et y rattache les gouvernorats. D'ici là, la vue par
-  district le dit (« non rattaché »).
+- **Les districts FNCT ne sont pas supposés** : la table existait, vide ; depuis
+  D-FNCT-2 (v0.15.41, migration 078), elle porte les cinq districts du décret
+  n° 2023-589 du 21 septembre 2023, que la FNCT peut redéfinir en citant sa source.
+  Un gouvernorat qui n'en a pas reste « non rattaché » — rien n'est inventé.
 - **Les codes** : M2-3 est lu comme « Cimetières » et M3-3 comme
   « Digitalisation » (la spécification citait deux fois M3-3). À confirmer.
 - **Pas de vue matérialisée** : le calcul des 350 communes prend moins de
@@ -1499,7 +1500,7 @@ question technique.
 | Sujet | Décideur | Conséquence si rien n'est tranché |
 |---|---|---|
 | Zarzouna / El Hchachna (Bizerte) : la couche officielle et le référentiel listent des communes différentes | FNCT | ✅ **Tranchée** (D-FNCT-3, 9 octobre 2026 ; v0.15.22, migration 065) : Zarzouna est rattachée à la commune de Bizerte — retirée du référentiel, jamais effacée — et El Hchachna est une commune à part entière. La couche officielle était juste ; c'est la table des communes qui a été corrigée. 350 communes, chacune avec son contour. Source : Instance Prospective, arrêté conjoint en attente |
-| Les 5 districts FNCT : la base ne connaît que les 24 gouvernorats | FNCT | Aucune agrégation par district possible |
+| Les 5 districts FNCT : la base ne connaît que les 24 gouvernorats | FNCT | ✅ **Tranchée** (D-FNCT-2, 16 octobre 2026 ; v0.15.41, migration 078, campagne `districts`) : le découpage du décret n° 2023-589 du 21 septembre 2023 — D1 Bizerte, Béja, Jendouba, Le Kef ; D2 Tunis, Ariana, Ben Arous, Zaghouan, Manouba, Nabeul ; D3 Siliana, Sousse, Kasserine, Kairouan, Monastir, Mahdia ; D4 Gafsa, Sfax, Sidi Bouzid, Tozeur ; D5 Kébili, Gabès, Tataouine, Médenine. Dans les tables existantes, avec sa source ; modifiable par la FNCT (*Paramètres nationaux*), qui cite sa source, sans orphelin. Les indicateurs nationaux, le suivi du déploiement et les agrégats WaPla s'additionnent par district |
 | Homonymes dans la liste des communes (Ennour, Ezzouhour) | FNCT | ✅ **Tranchée** (D-FNCT-1, 9 octobre 2026 ; v0.15.21) : l'application citoyenne propose la commune qui contient la position du citoyen, qu'il confirme ; à défaut — refus, position hors de toute commune, ou « non » —, le gouvernorat puis la commune, affichée « Nom (Gouvernorat) ». Depuis D-FNCT-3 (v0.15.22), chaque commune du référentiel a son contour |
 | Affectation réelle des équipes aux 13 tournées de Dar Chaabane | Commune | 13 lignes bloquantes au panneau de cohérence (base de référence, 9 octobre 2026 ; 14 étaient annoncées, voir JC-002) — préalable de R1, recompté par `recette:etat` |
 | Purge des fichiers retirés | FNCT | ✅ **Tranchée** (D-FNCT-4, 9 octobre 2026 ; v0.15.23, migration 066, campagne `purge-media`) : rien ne se purge. Textes, dates, statuts et localisations des réclamations sont conservés sans limite, comme toutes les métadonnées. À 36 mois, une photo est recompressée (JPEG qualité 70, 500 Ko au plus) : la version compressée reste en ligne — le citoyen la consulte toujours —, l'original part dans l'archive froide, où il est conservé sans limite. La FNCT en demande la restauration, servie sous 48 heures ; la compression, la demande et la restauration sont au journal d'audit. Tâche mensuelle dans l'API (`SIIPI_CONSERVATION_MEDIAS=active`), écran *Observatoire → Conservation des photos* |

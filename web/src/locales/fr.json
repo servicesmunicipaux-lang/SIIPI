@@ -339,6 +339,30 @@
         "upops_mg_teq": "Dioxines et furanes (mg TEQ/an)"
       },
       "couvertureCourte": "{{n}} sur {{total}}"
+    },
+    "districts": {
+      "titre": "Les districts de la FNCT",
+      "aide": "Chaque gouvernorat appartient à un district : les indicateurs nationaux, le suivi du déploiement et les agrégats WaPla s’additionnent par district selon ce découpage.",
+      "source": "Source :",
+      "aucun": "Aucun district n’est défini : les sommes par district sont vides.",
+      "orphelins": "Gouvernorats sans district : {{gouvernorats}}. Leurs communes ne comptent dans aucune somme par district.",
+      "nombre": "Gouvernorats : {{n}}",
+      "modifier": "Modifier le découpage",
+      "liste": "Les districts",
+      "champs": {
+        "code": "Code",
+        "nom": "Nom (français)",
+        "nom_ar": "Nom (arabe)"
+      },
+      "retirer": "Retirer",
+      "ajouter": "Ajouter un district",
+      "rattachements": "Le district de chaque gouvernorat",
+      "choisir": "— Choisir —",
+      "sourceSaisie": "Source du nouveau découpage",
+      "sourceAide": "Le texte qui fonde le changement : décret, décision de la FNCT avec sa date.",
+      "enregistrer": "Enregistrer le découpage",
+      "annuler": "Annuler",
+      "enregistres": "Découpage enregistré."
     }
   },
   "commun": {
@@ -2643,14 +2667,7 @@
         "maintenance_min": "Plans d'entretien à jour minimal (%)",
         "dma_en_vigueur": "Le décret sur le tri à la source est en vigueur"
       },
-      "seuilsEnregistres": "Seuils enregistrés.",
-      "districts": "Districts FNCT",
-      "districtsAide": "La plateforme ne suppose aucun découpage : définissez les districts et rattachez-y les gouvernorats.",
-      "code": "Code",
-      "nom": "Nom",
-      "retirer": "Retirer",
-      "ajouterDistrict": "Ajouter un district",
-      "districtsEnregistres": "Districts enregistrés."
+      "seuilsEnregistres": "Seuils enregistrés."
     },
     "axeNomme": "Axe {{n}} — {{nom}}",
     "parAxe": "Les indicateurs, par axe",

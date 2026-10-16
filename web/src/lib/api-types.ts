@@ -4039,7 +4039,7 @@ export interface paths {
         };
         /**
          * Les districts FNCT et le rattachement des gouvernorats
-         * @description Vides tant que la FNCT ne les a pas définis : aucune liste n’est supposée.
+         * @description Les cinq districts du décret n° 2023-589 du 21 septembre 2023 (D-FNCT-2, migration 078), ou ceux que la FNCT a définis depuis, avec leur source ; le district de chaque gouvernorat ; les gouvernorats des communes réelles.
          */
         get: {
             parameters: {
@@ -4057,7 +4057,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            [key: string]: unknown;
+                            districts: {
+                                code: string;
+                                nom: string;
+                                nom_ar: string | null;
+                                ordre: number;
+                                source: string | null;
+                            }[];
+                            rattachements: {
+                                gouvernorat: string;
+                                district_code: string;
+                            }[];
+                            gouvernorats: string[];
                         };
                     };
                 };
@@ -4072,7 +4083,10 @@ export interface paths {
                 };
             };
         };
-        /** Définir les districts FNCT (FNCT) */
+        /**
+         * Définir les districts FNCT (FNCT)
+         * @description Remplace le découpage : chaque gouvernorat d’une commune réelle reçoit un district (sinon 400, avec la liste des oubliés), et la source du découpage est citée.
+         */
         put: {
             parameters: {
                 query?: never;
@@ -4091,6 +4105,7 @@ export interface paths {
                         rattachements: {
                             [key: string]: string | null;
                         };
+                        source: string;
                     };
                 };
             };

@@ -1597,13 +1597,28 @@ registry.registerPath({
 registry.registerPath({
   method: 'get', path: '/kpi/districts', tags: [TAG_KPI],
   summary: 'Les districts FNCT et le rattachement des gouvernorats',
-  description: 'Vides tant que la FNCT ne les a pas définis : aucune liste n’est supposée.',
+  description:
+    'Les cinq districts du décret n° 2023-589 du 21 septembre 2023 (D-FNCT-2, migration 078), ou ceux que la FNCT a définis depuis, avec leur source ; le district de chaque gouvernorat ; les gouvernorats des communes réelles.',
   security: SECURISE,
-  responses: { 200: json(z.record(z.string(), z.any()), 'Districts.'), 401: REPONSES_COMMUNES[401] },
+  responses: {
+    200: json(
+      z.object({
+        districts: z.array(
+          z.object({ code: z.string(), nom: z.string(), nom_ar: z.string().nullable(), ordre: z.number().int(), source: z.string().nullable() })
+        ),
+        rattachements: z.array(z.object({ gouvernorat: z.string(), district_code: z.string() })),
+        gouvernorats: z.array(z.string()),
+      }),
+      'Districts.'
+    ),
+    401: REPONSES_COMMUNES[401],
+  },
 });
 registry.registerPath({
   method: 'put', path: '/kpi/districts', tags: [TAG_KPI],
   summary: 'Définir les districts FNCT (FNCT)',
+  description:
+    'Remplace le découpage : chaque gouvernorat d’une commune réelle reçoit un district (sinon 400, avec la liste des oubliés), et la source du découpage est citée.',
   security: SECURISE,
   request: { body: { content: { 'application/json': { schema: districtsSchema } } } },
   responses: { 200: json(z.object({ districts: z.number().int(), rattaches: z.number().int() }), 'Districts enregistrés.'), ...REPONSES_COMMUNES },
@@ -7456,7 +7471,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.40',
+      version: '0.15.41',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
