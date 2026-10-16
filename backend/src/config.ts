@@ -39,6 +39,20 @@ export const config = {
   // n'a de valeur que si sa clé est hors de la base — ici, dans
   // l'environnement, jamais en base ni dans le dépôt.
   secretIdentites: process.env.SIIPI_SECRET_IDENTITES ?? 'dev_only_secret_identites_a_remplacer',
+  // Le courriel (décision du 16/10/2026 : « courriel d'abord »). Un serveur
+  // SMTP que l'exploitant désigne ; sans SMTP_HOST, rien ne part et la
+  // plateforme le dit (« non configuré ») — jamais un envoi supposé réussi.
+  courriel: {
+    hote: process.env.SMTP_HOST ?? '',
+    port: Number(process.env.SMTP_PORT ?? 587),
+    /** starttls (587), tls (465) ou aucune (un relais local, ou le banc d'essai). */
+    securite: (process.env.SMTP_SECURITE ?? 'starttls') as 'starttls' | 'tls' | 'aucune',
+    utilisateur: process.env.SMTP_UTILISATEUR ?? '',
+    motDePasse: process.env.SMTP_MOT_DE_PASSE ?? '',
+    expediteur: process.env.COURRIEL_EXPEDITEUR ?? 'SIIPI <ne-pas-repondre@siipi.tn>',
+    /** L'adresse du portail, citée dans les courriels (« connectez-vous sur … »). */
+    portail: process.env.COURRIEL_URL_PORTAIL ?? process.env.CORS_ORIGIN ?? 'http://localhost:3000',
+  },
 };
 
 if (config.isProduction && config.jwtSecret.startsWith('dev_only')) {

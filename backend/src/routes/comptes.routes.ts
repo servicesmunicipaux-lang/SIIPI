@@ -5,11 +5,15 @@
 // accès tenu par des développeurs est faux le lendemain de la livraison. Ces
 // routes lui donnent la main.
 //
+// Le mot de passe provisoire part par courriel à la personne (B1.2, v0.15.47)
+// quand un serveur SMTP est désigné, et n'est alors PAS rendu à l'écran : le
+// cadre n'a pas à le connaître. Un courriel n'est pas un coffre-fort, et c'est
+// pourquoi un mot de passe provisoire n'ouvre que son propre remplacement
+// (v0.15.24) : intercepté, il ne donne accès à rien d'autre qu'à ce geste, que
+// la personne verra échouer. Sans serveur, ou si l'envoi échoue, il s'affiche
+// une fois, comme avant, et le cadre le transmet de vive voix.
+//
 // Ce qu'elles ne font délibérément pas :
-//   - envoyer le mot de passe par courriel. Le serveur de messagerie n'est pas
-//     encore décidé, et un mot de passe qui voyage en clair dans un courriel
-//     est un mot de passe public. Il s'affiche une fois à l'écran, au cadre,
-//     qui le transmet de vive voix.
 //   - permettre de LIRE un mot de passe existant. Aucun n'est stocké en clair,
 //     et c'est voulu : on réinitialise, on ne consulte pas.
 // ---------------------------------------------------------------------------
@@ -22,6 +26,8 @@ import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole, signToken } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
+import { config } from '../config.js';
+import { envoyerCourriel } from '../services/courriel.js';
 import { completer, fusionner, preferencesSchema } from '../preferences.js';
 
 export const comptesRouter = Router();
@@ -57,6 +63,37 @@ comptesRouter.get(
     res.json(lignes);
   })
 );
+
+// --- Le courriel du mot de passe provisoire ------------------------------------
+
+/**
+ * Envoie le mot de passe provisoire à son titulaire. Rend ce que la réponse
+ * HTTP dit au cadre : le statut de l'envoi, et le mot de passe SEULEMENT s'il
+ * n'est pas parti — il faut bien que quelqu'un puisse le transmettre.
+ */
+async function transmettreProvisoire(
+  adresse: string, nom: string, provisoire: string, nouveau: boolean
+): Promise<{ courriel: { statut: 'envoye' | 'echec' | 'non_configure'; erreur?: string }; motDePasseProvisoire?: string }> {
+  const portail = config.courriel.portail.replace(/\/$/, '');
+  const texte = [
+    `Bonjour ${nom},`,
+    '',
+    nouveau
+      ? 'Un compte SIIPI vient d’être ouvert à votre nom par votre commune.'
+      : 'Le mot de passe de votre compte SIIPI vient d’être réinitialisé par votre commune.',
+    '',
+    `Adresse de connexion : ${portail}`,
+    `Identifiant : ${adresse}`,
+    `Mot de passe provisoire : ${provisoire}`,
+    '',
+    'Ce mot de passe ne sert qu’à une chose : choisir le vôtre, à la première connexion.',
+    'Si vous n’attendiez pas ce message, prévenez le service propreté de votre commune.',
+  ].join('\n');
+  const r = await envoyerCourriel(adresse, nouveau ? 'Votre compte SIIPI' : 'Votre nouveau mot de passe SIIPI', texte);
+  return r.statut === 'envoye'
+    ? { courriel: { statut: 'envoye' } }
+    : { courriel: r, motDePasseProvisoire: provisoire };
+}
 
 // --- Création ---------------------------------------------------------------
 
@@ -98,9 +135,10 @@ comptesRouter.post(
     );
 
     const compte = await queryOne(`${COMPTE_SELECT} WHERE u.id = $1`, [cree!.id]);
-    // Le mot de passe n'apparaît QUE dans cette réponse : il n'est stocké nulle
-    // part en clair et ne pourra pas être relu.
-    res.status(201).json({ ...(compte as object), motDePasseProvisoire: provisoire });
+    // Le mot de passe part par courriel ; s'il n'est pas parti, il n'apparaît
+    // QUE dans cette réponse : il n'est stocké nulle part en clair et ne pourra
+    // pas être relu.
+    res.status(201).json({ ...(compte as object), ...(await transmettreProvisoire(d.email.toLowerCase(), d.fullName, provisoire, true)) });
   })
 );
 
@@ -244,13 +282,16 @@ comptesRouter.post(
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
     const provisoire = motDePasseProvisoire();
-    const modifie = await queryOne<{ id: string; full_name: string }>(
+    const modifie = await queryOne<{ id: string; full_name: string; email: string }>(
       `UPDATE users SET password_hash = $1, mot_de_passe_provisoire = true, updated_at = now()
-        WHERE id = $2 AND deleted_at IS NULL RETURNING id, full_name`,
+        WHERE id = $2 AND deleted_at IS NULL RETURNING id, full_name, email`,
       [await bcrypt.hash(provisoire, 12), req.params.id]
     );
     if (!modifie) throw new ApiError(404, 'Compte introuvable.');
-    res.json({ id: modifie.id, full_name: modifie.full_name, motDePasseProvisoire: provisoire });
+    res.json({
+      id: modifie.id, full_name: modifie.full_name,
+      ...(await transmettreProvisoire(modifie.email, modifie.full_name, provisoire, false)),
+    });
   })
 );
 

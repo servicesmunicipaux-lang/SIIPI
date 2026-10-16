@@ -120,6 +120,15 @@ export function IndicateursCommunication({ communeId }: { communeId: string }) {
                   ),
                 })}
               />
+              <Carte
+                titre={t('communal.communication.indicateurs.courriels')}
+                valeur={n(donnees.volumetrie.courriels.total)}
+                detail={t('communal.communication.indicateurs.courrielsDetail', {
+                  envoyes: n(donnees.volumetrie.courriels.envoye),
+                  echecs: n(donnees.volumetrie.courriels.echec),
+                  nonConfigure: n(donnees.volumetrie.courriels.non_configure),
+                })}
+              />
               <Carte titre={t('communal.communication.indicateurs.suggestions')} valeur={n(donnees.volumetrie.suggestions_recues)} />
               <Carte titre={t('communal.communication.indicateurs.repondants')} valeur={n(donnees.volumetrie.repondants_sondage)} />
             </div>

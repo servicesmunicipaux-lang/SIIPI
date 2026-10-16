@@ -397,6 +397,27 @@
         "mesure": "mesure",
         "inconnue": "provenance inconnue"
       }
+    },
+    "courriel": {
+      "titre": "Serveur de courriel",
+      "intro": "SIIPI envoie par courriel le mot de passe provisoire d’un compte, et les notifications aux citoyens qui l’ont demandé. Le serveur se désigne dans la configuration du serveur (variables SMTP_*), jamais dans cet écran.",
+      "nonConfigure": "Aucun serveur de courriel n’est désigné : rien ne part. Les mots de passe provisoires s’affichent au cadre, et les courriels demandés par les citoyens sont comptés « non partis ».",
+      "serveur": "Serveur",
+      "securite": "Sécurité",
+      "securites": {
+        "starttls": "STARTTLS",
+        "tls": "TLS dès la connexion",
+        "aucune": "Aucune (réseau interne seulement)"
+      },
+      "authentification": "Authentification",
+      "authentifie": "Par identifiant et mot de passe",
+      "sansAuthentification": "Sans authentification",
+      "expediteur": "Expéditeur",
+      "essai": "Envoyer un courriel d’essai à mon adresse",
+      "essaiEnCours": "Envoi…",
+      "essaiEnvoye": "Accepté par le serveur, à destination de {{adresse}}. Vérifiez qu’il est arrivé.",
+      "essaiEchec": "Le serveur a refusé : {{erreur}}",
+      "essaiNonConfigure": "Rien n’est parti : aucun serveur n’est désigné."
     }
   },
   "commun": {
@@ -639,7 +660,7 @@
     },
     "preferences": {
       "titre": "Préférences de notification",
-      "explication": "Choisissez ce que vous voulez recevoir, par type de notification. Un canal grisé n’est pas encore disponible.",
+      "explication": "Choisissez ce que vous voulez recevoir, par type de notification. Le SMS n’est pas encore disponible.",
       "canaux": {
         "push": "Notifications push",
         "sms": "SMS",
@@ -648,7 +669,8 @@
       "bientotDisponible": "Bientôt disponible",
       "enregistrer": "Enregistrer",
       "enregistrementEnCours": "Enregistrement…",
-      "enregistre": "Préférences enregistrées"
+      "enregistre": "Préférences enregistrées",
+      "courrielSurDemande": "Le courriel est sur demande : vous ne recevez un courriel que pour les types que vous cochez, à l’adresse de votre compte."
     },
     "statutsEnlevement": {
       "recue": "Reçue",
@@ -1106,7 +1128,11 @@
         "admin_commune": "Accès complet au portail de la commune : constats, circuits, réclamations, comptes.",
         "gestionnaire_prestataire": "Ne voit que les circuits qui lui sont confiés, et déclare ses passages.",
         "citoyen": "Application citoyenne : horaires, signalements, demandes d’enlèvement."
-      }
+      },
+      "courrielEnvoye": "Identifiants envoyés par courriel",
+      "courrielEnvoyeAide": "Le mot de passe provisoire est parti à {{email}}. Vous n’avez pas à le connaître : {{nom}} le remplacera à sa première connexion. S’il ne lui parvient pas, réinitialisez-le.",
+      "courrielNonConfigure": "Aucun serveur de courriel n’est désigné : transmettez-les vous-même, de vive voix.",
+      "courrielEchec": "Le courriel n’est pas parti ({{erreur}}) : transmettez-les vous-même, de vive voix."
     },
     "parc": {
       "titre": "Parc matériel",
@@ -1441,7 +1467,9 @@
           "participation_sondages": "aucun sondage envoyé"
         },
         "sur": "{{n}} sur {{d}}",
-        "note": "Livraison : livrées sur livrées et en échec. Portée : destinataires joints sur ceux du périmètre (joints, sans adresse, désabonnés). Participation : répondants distincts sur les foyers invités par le plus grand envoi de chaque sondage. Aucun citoyen n’est nommé : seulement des comptes."
+        "note": "Livraison : livrées sur livrées et en échec. Portée : destinataires joints sur ceux du périmètre (joints, sans adresse, désabonnés). Participation : répondants distincts sur les foyers invités par le plus grand envoi de chaque sondage. Aucun citoyen n’est nommé : seulement des comptes.",
+        "courriels": "Courriels",
+        "courrielsDetail": "{{envoyes}} acceptés par le serveur · {{echecs}} en échec · {{nonConfigure}} non partis (aucun serveur désigné) — aux seuls citoyens qui l’ont demandé"
       }
     },
     "rapportsEtudes": {

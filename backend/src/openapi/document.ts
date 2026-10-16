@@ -542,6 +542,10 @@ const Incoherence = registry.register(
   })
 );
 
+const EnvoiCourriel = z.object({ statut: z.enum(['envoye', 'echec', 'non_configure']), erreur: z.string().optional() }).openapi({
+  description: 'Issue de l’envoi : « envoye » (accepté par le serveur SMTP), « echec » (avec le message du serveur), « non_configure » (aucun serveur désigné : rien n’est parti).',
+});
+
 const REPONSES_COMMUNES = {
   400: json(Erreur, 'Requête invalide — le détail indique les champs en cause.'),
   401: json(Erreur, 'Authentification requise, ou jeton expiré.'),
@@ -3893,11 +3897,11 @@ registry.registerPath({
   tags: ['Comptes et accès'],
   summary: 'Ouvrir un compte',
   description:
-    "Le mot de passe provisoire figure dans la réponse et nulle part ailleurs : il n'est stocké qu'en empreinte et ne pourra pas être relu. Son porteur doit le remplacer à la première connexion.",
+    "Le mot de passe provisoire part par courriel à son titulaire quand un serveur SMTP est désigné (`courriel.statut = envoye`), et n'est alors PAS dans la réponse. Sinon (`non_configure`, `echec`), il figure dans la réponse et nulle part ailleurs : il n'est stocké qu'en empreinte et ne pourra pas être relu. Il n'ouvre que son propre remplacement, à la première connexion.",
   security: SECURISE,
   request: { body: { content: { 'application/json': { schema: compteCreateSchema } } } },
   responses: {
-    201: json(Compte.extend({ motDePasseProvisoire: z.string() }), 'Compte ouvert.'),
+    201: json(Compte.extend({ courriel: EnvoiCourriel, motDePasseProvisoire: z.string().optional() }), 'Compte ouvert.'),
     ...REPONSES_COMMUNES,
   },
 });
@@ -3927,6 +3931,41 @@ registry.registerPath({
 });
 
 registry.registerPath({
+  method: 'get',
+  path: '/courriel/etat',
+  tags: ['Paramètres nationaux'],
+  summary: 'État du serveur de courriel',
+  description: 'Réservé à la FNCT. Le serveur SMTP désigné par l’exploitant (variables SMTP_*), sa sécurité, s’il est authentifié, l’expéditeur — jamais le mot de passe.',
+  security: SECURISE,
+  responses: {
+    200: json(
+      z.object({
+        configure: z.boolean(),
+        serveur: z.string().nullable(),
+        securite: z.enum(['starttls', 'tls', 'aucune']),
+        authentifie: z.boolean(),
+        expediteur: z.string(),
+      }),
+      'État du serveur de courriel.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/courriel/essai',
+  tags: ['Paramètres nationaux'],
+  summary: 'Envoyer un courriel d’essai',
+  description: 'Réservé à la FNCT. Le courriel part à l’adresse du compte qui le demande, et à nulle autre : SIIPI n’est pas un relais.',
+  security: SECURISE,
+  responses: {
+    200: json(EnvoiCourriel.extend({ destinataire: z.string() }), 'Issue de l’essai.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
   method: 'post',
   path: '/comptes/{id}/mot-de-passe',
   tags: ['Comptes et accès'],
@@ -3935,8 +3974,10 @@ registry.registerPath({
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: {
     200: json(
-      z.object({ id: z.string().uuid(), full_name: z.string(), motDePasseProvisoire: z.string() }),
-      'Nouveau mot de passe provisoire, affiché une seule fois.'
+      z.object({
+        id: z.string().uuid(), full_name: z.string(), courriel: EnvoiCourriel, motDePasseProvisoire: z.string().optional(),
+      }),
+      'Nouveau mot de passe provisoire : envoyé par courriel, ou affiché une seule fois s’il n’est pas parti.'
     ),
     ...REPONSES_COMMUNES,
   },
@@ -4712,6 +4753,9 @@ registry.registerPath({
           envois_individuels: z.object({
             total: z.number().int(), livre: z.number().int(), echec: z.number().int(), non_abonne: z.number().int(),
             non_souhaite: z.number().int(), sans_souscription: z.number().int(),
+          }),
+          courriels: z.object({
+            total: z.number().int(), envoye: z.number().int(), echec: z.number().int(), non_configure: z.number().int(),
           }),
           suggestions_recues: z.number().int(),
           repondants_sondage: z.number().int(),
@@ -6320,7 +6364,7 @@ registry.registerPath({
   tags: ['Espace citoyen'],
   summary: 'Mes préférences de notification',
   description:
-    'Une combinaison canal × type absente de la base vaut « activé » (table creuse, voir migration 044) : cette route complète toujours les 9 combinaisons, jamais un sous-ensemble.',
+    'Une combinaison canal × type absente de la base vaut « activé » pour le push, « désactivé » pour le courriel (sur demande, migration 081) et pour le SMS (non émis) : cette route complète toujours les 9 combinaisons, jamais un sous-ensemble.',
   security: SECURISE,
   responses: { 200: json(z.array(PreferenceNotification), 'Préférences effectives.'), ...REPONSES_COMMUNES },
 });
@@ -7636,7 +7680,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.46',
+      version: '0.15.47',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

@@ -5,6 +5,63 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.47] — 2026-10-16 — Le courriel : mot de passe provisoire et notifications sur demande
+
+Décision du 16 octobre 2026 (`docs/specs_metier/DECISIONS_2026-10-16.md`) : courriel d'abord, SMS plus
+tard. Réponse du même jour : les notifications par courriel sont **sur demande**.
+
+### Ajouté
+- **`services/courriel.ts`** : l'envoi par un serveur SMTP que désigne l'exploitant (`SMTP_HOST`,
+  `SMTP_PORT`, `SMTP_SECURITE`, `SMTP_UTILISATEUR`, `SMTP_MOT_DE_PASSE`, `COURRIEL_EXPEDITEUR`,
+  `COURRIEL_URL_PORTAIL` ; `docker-compose.yml`, `backend/.env.example`). SIIPI ne s'abonne à aucun service
+  d'envoi.
+  - Sans serveur, rien ne part, et le résultat le dit : « non_configure », jamais un envoi supposé réussi.
+  - Une seule tentative, comme le push. « Envoyé » veut dire « accepté par le serveur SMTP ».
+  - Le corps d'un courriel n'est jamais journalisé.
+- **B1.2 — le mot de passe provisoire part par courriel** à son titulaire, à l'ouverture d'un compte et à
+  une réinitialisation, avec l'adresse du portail.
+  - Envoyé, il n'est **plus dans la réponse** : le cadre n'a pas à le connaître.
+  - Sans serveur, ou si l'envoi échoue, il s'affiche une fois au cadre, comme avant, avec la raison.
+  - Il n'ouvre que son propre remplacement (v0.15.24) : intercepté, il ne donne accès à rien d'autre.
+- **Migration 081 — les notifications par courriel, sur demande** :
+  - pour le canal courriel, une préférence absente vaut « désactivé » : brancher le courriel ne déclenche
+    aucune vague d'envois ;
+  - `notifications_citoyen` accepte le canal `email` et le statut `non_configure` ; une ligne qui
+    prétendrait un SMS parti reste refusée ;
+  - `app.courriels_publication` et `app.courriel_citoyen` (SECURITY DEFINER, appelées par le seul service
+    d'envoi, jamais par une route) rendent les citoyens qui l'ont demandé et leur adresse ;
+  - `app.indicateurs_communication` compte le push et le courriel à part : un courriel ne fausse ni la
+    livraison ni la lecture du push.
+- **Les envois** : une publication envoyée part en push et, aux citoyens qui l'ont demandé, par courriel ;
+  une décision sur une réclamation aussi. Chaque courriel tenté est consigné (`livre`, `echec`,
+  `non_configure`). L'historique « Mes notifications » et le statut affiché sur un ticket restent ceux du
+  push.
+- **`GET /courriel/etat`** et **`POST /courriel/essai`**, réservés à la FNCT :
+  - l'état dit le serveur, sa sécurité, s'il est authentifié, l'expéditeur — jamais le mot de passe ;
+  - l'essai part à l'adresse du compte qui le demande, à nulle autre : SIIPI n'est pas un relais.
+- **Écrans** :
+  - *Paramètres nationaux → Serveur de courriel* : l'état, et l'essai ;
+  - préférences du citoyen : la colonne « Courriel » devient modifiable, décochée tant qu'il ne l'a pas
+    demandée ; le SMS reste grisé ;
+  - *Comptes et accès* : « identifiants envoyés par courriel », ou le mot de passe à transmettre et pourquoi ;
+  - *Communication → Indicateurs* : une carte « Courriels » (acceptés, en échec, non partis).
+- **Campagne `courriel`** (base, API et serveur SMTP jetables ; `tests/outils/serveur_smtp.py` ne relaie
+  rien) :
+  - ce qui est refusé : état et essai hors FNCT, SMS prétendu, statut inventé, courriel par défaut ;
+  - aucun serveur : rien ne part, le mot de passe revient au cadre, la ligne dit « non_configure » ;
+  - un serveur : le mot de passe arrive dans le courriel, ouvre le compte, et n'est ni dans la réponse,
+    ni dans le journal, ni dans la base ; le courriel va au seul citoyen qui l'a demandé, le push n'est pas
+    remplacé, l'historique reste celui du push ; un citoyen qui retire sa demande ne reçoit plus rien ;
+  - un serveur injoignable : l'échec est dit, le compte s'ouvre quand même, le mot de passe revient au
+    cadre.
+
+### Modifié
+- `notifications-citoyen` : les préférences par défaut sont désormais push activé, courriel et SMS
+  désactivés. `communication-indicateurs` : le jeu porte 10 courriels, comptés à part, et le témoin les
+  suit.
+- `@types/nodemailer` est pris en 6.4 : la 7 ajoutait, en dépendance, le SDK d'un service d'envoi en ligne
+  dont SIIPI ne se sert pas.
+
 ## [0.15.46] — 2026-10-16 — 16.2 : les gabarits des documents scellés, « modèle provisoire »
 
 Décision du 16 octobre 2026 (`docs/specs_metier/DECISIONS_2026-10-16.md`) : construire maintenant les quatre

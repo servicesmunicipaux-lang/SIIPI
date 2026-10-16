@@ -117,13 +117,18 @@ echo "3. Le jeu d'essai : chaque indicateur est celui du témoin"
 python3 "$JEU" sql "$TC" "$PREFIXE" > "$T/jeu.sql"
 python3 "$JEU" attendus > "$T/attendus.json"
 $PSQL -v ON_ERROR_STOP=1 -f "$T/jeu.sql" >/dev/null 2>"$T/jeu.err"
-chk "le jeu est bâti (6 publications, 5 envois, 54 envois individuels, 4 réponses, 6 points)" "6|5|54|4|6" \
+chk "le jeu est bâti (6 publications, 5 envois, 54 envois push, 10 courriels, 4 réponses, 6 points)" "6|5|54|10|4|6" \
     "$(sql "SELECT (SELECT count(*) FROM publications WHERE commune_id = '$TC') || '|' || (SELECT count(*) FROM envois_notification WHERE commune_id = '$TC')
-              || '|' || (SELECT count(*) FROM notifications_citoyen WHERE commune_id = '$TC')
+              || '|' || (SELECT count(*) FROM notifications_citoyen WHERE commune_id = '$TC' AND canal = 'push')
+              || '|' || (SELECT count(*) FROM notifications_citoyen WHERE commune_id = '$TC' AND canal = 'email')
               || '|' || (SELECT count(*) FROM sondage_reponses r JOIN publications p ON p.id = r.publication_id WHERE p.commune_id = '$TC')
               || '|' || (SELECT count(*) FROM points_suggeres WHERE commune_id = '$TC')")"
 chk "le directeur : 200" 200 "$(req "$I$P")"
 chk "la volumétrie est celle du témoin" True "$(py "d['volumetrie'] == A['volumetrie']")"
+chk "les courriels sont comptés à part : 7 dans la période, dont 4 acceptés, 1 en échec, 2 non partis" "7|4|1|2" \
+    "$(py "'|'.join(str(d['volumetrie']['courriels'][k]) for k in ('total', 'envoye', 'echec', 'non_configure'))")"
+chk "… et ne comptent pas parmi les envois push (44 dans la période, 30 livrés)" "44|30" \
+    "$(py "f\"{d['volumetrie']['envois_individuels']['total']}|{d['volumetrie']['envois_individuels']['livre']}\"")"
 chk "… dont la publication de 23 h 30 le 30 juin, et pas celle de 0 h 30 le 1er juillet (heure de Tunis)" 1 \
     "$(py "d['volumetrie']['publications']['projet']")"
 chk "le délai médian de décision sur un point proposé : 48 h, sur 3 décisions" "48.0|3" \

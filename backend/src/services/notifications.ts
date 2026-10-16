@@ -1,10 +1,12 @@
 // Service d'émission des notifications (Jalon 2 : lot 1 + M6).
 //
-// UN SEUL CANAL, POUR L'INSTANT : le push web (Web Push API + VAPID), sur
-// décision de l'utilisateur (feuille de route § 7.2) — aucun fournisseur
-// externe à payer ni à choisir. Le SMS et le courriel restent ouverts dans le
-// modèle de données (`canal`, `preferences_notification`) mais ne sont pas
-// câblés ici.
+// DEUX CANAUX. Le push web (Web Push API + VAPID) est le canal immédiat. Le
+// courriel s'y ajoute depuis la v0.15.47 (décision du 16 octobre 2026 :
+// « courriel d'abord, SMS plus tard ») — SUR DEMANDE : un citoyen ne reçoit un
+// courriel que pour un type qu'il a activé (migration 081 ; une préférence
+// absente vaut « désactivé »). Les citoyens qui ne l'ont pas demandé ne
+// laissent donc aucune ligne « courriel » : il n'y a eu ni envoi ni refus.
+// Le SMS reste hors du code (aucun fournisseur choisi).
 //
 // UNE SEULE TENTATIVE AUTOMATIQUE. Pas de reprise automatique : un échec est
 // consigné dans `notifications_citoyen` immédiatement, jamais réessayé en
@@ -27,6 +29,7 @@ import webpush from 'web-push';
 import { config } from '../config.js';
 import { query, queryOne } from '../db.js';
 import { ApiError } from '../middleware/errorHandler.js';
+import { envoyerCourriel } from './courriel.js';
 
 let vapidConfigure = false;
 if (config.vapidPublicKey && config.vapidPrivateKey) {
@@ -39,7 +42,8 @@ if (config.vapidPublicKey && config.vapidPrivateKey) {
 }
 
 type TypeNotification = 'decision_reclamation' | 'invitation_sondage' | 'notification_ciblee';
-type Statut = 'livre' | 'echec' | 'non_abonne' | 'non_souhaite' | 'sans_souscription';
+type Statut = 'livre' | 'echec' | 'non_abonne' | 'non_souhaite' | 'sans_souscription' | 'non_configure';
+type Canal = 'push' | 'email';
 
 interface Souscription {
   endpoint: string;
@@ -56,14 +60,42 @@ async function consigner(
   corps: string,
   metadata: Record<string, unknown> | null,
   statut: Statut,
-  erreur?: string
+  erreur?: string,
+  canal: Canal = 'push'
 ): Promise<void> {
+  // Un courriel est consigné LU : il ne figure pas dans l'historique « Mes
+  // notifications » (canal push), et ne doit pas gonfler un compteur de non-lus
+  // que le citoyen n'aurait aucun moyen de faire baisser.
   await query(
     `INSERT INTO notifications_citoyen
-       (commune_id, citoyen_id, type, reference_id, titre, corps, metadata, statut, erreur)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-    [communeId, citoyenId, type, referenceId, titre, corps, metadata ? JSON.stringify(metadata) : null, statut, erreur ?? null]
+       (commune_id, citoyen_id, type, reference_id, titre, corps, metadata, statut, erreur, canal, lu)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [communeId, citoyenId, type, referenceId, titre, corps, metadata ? JSON.stringify(metadata) : null, statut, erreur ?? null,
+     canal, canal === 'email']
   );
+}
+
+/**
+ * Un courriel vers une adresse déjà résolue par la base (citoyen qui l'a
+ * demandé), puis la ligne du journal. « livre » veut dire : accepté par le
+ * serveur SMTP.
+ */
+async function envoyerEtConsignerCourriel(
+  communeId: string,
+  citoyenId: string,
+  adresse: string,
+  type: TypeNotification,
+  referenceId: string,
+  titre: string,
+  corps: string,
+  metadata: { lien: string }
+): Promise<void> {
+  const texte = `${corps}\n\n${config.courriel.portail.replace(/\/$/, '')}${metadata.lien}\n\n`
+    + 'Vous recevez ce courriel parce que vous l\'avez demandé dans vos préférences de notification SIIPI.\n'
+    + 'Pour ne plus le recevoir, désactivez le courriel dans « Mes notifications ».';
+  const r = await envoyerCourriel(adresse, titre, texte);
+  const statut: Statut = r.statut === 'envoye' ? 'livre' : r.statut;
+  await consigner(communeId, citoyenId, type, referenceId, titre, corps, metadata, statut, r.erreur, 'email');
 }
 
 /**
@@ -110,6 +142,8 @@ export async function notifierDecisionReclamation(
     : `La commune a refusé votre signalement. Motif : ${motif ?? 'non précisé'}.`;
   const metadata = { lien: `/reclamations/${ticketId}` };
 
+  await courrielDecisionReclamation(communeId, citoyenId, ticketId, titre, corps, metadata);
+
   const [ligne] = await query<{
     abonne: boolean; souhaite: boolean; endpoint: string | null; p256dh: string | null; auth: string | null;
   }>('SELECT * FROM app.souscriptions_citoyen($1, $2)', [citoyenId, 'decision_reclamation']);
@@ -134,6 +168,20 @@ export async function notifierDecisionReclamation(
 }
 
 /**
+ * Le courriel de la décision, pour le citoyen qui l'a demandé — indépendant
+ * du push : un citoyen sans navigateur abonné peut vouloir le courriel seul.
+ */
+async function courrielDecisionReclamation(
+  communeId: string, citoyenId: string, ticketId: string, titre: string, corps: string, metadata: { lien: string }
+): Promise<void> {
+  const ligne = await queryOne<{ adresse: string | null }>(
+    'SELECT app.courriel_citoyen($1, $2) AS adresse', [citoyenId, 'decision_reclamation']
+  );
+  if (!ligne?.adresse) return;
+  await envoyerEtConsignerCourriel(communeId, citoyenId, ligne.adresse, 'decision_reclamation', ticketId, titre, corps, metadata);
+}
+
+/**
  * B5.2.3 / B5.4.3 — pousser une publication (sondage ou notification ciblée)
  * vers chaque citoyen de son périmètre.
  *
@@ -148,14 +196,26 @@ export async function notifierPublication(
   publicationId: string,
   type: Extract<TypeNotification, 'invitation_sondage' | 'notification_ciblee'>,
   titre: string,
-  corps: string
+  corps: string,
+  canaux: { push: boolean; courriel: boolean } = { push: true, courriel: true }
 ): Promise<void> {
+  const metadata = { lien: `/publications/${publicationId}` };
+
+  if (canaux.courriel) {
+    const destinataires = await query<{ citoyen_id: string; courriel: string }>(
+      'SELECT citoyen_id, courriel FROM app.courriels_publication($1, $2)', [publicationId, type]
+    );
+    for (const d of destinataires) {
+      await envoyerEtConsignerCourriel(communeId, d.citoyen_id, d.courriel, type, publicationId, titre, corps, metadata);
+    }
+  }
+  if (!canaux.push) return;
+
   const lignes = await query<{
     citoyen_id: string; abonne: boolean; souhaite: boolean;
     endpoint: string | null; p256dh: string | null; auth: string | null;
   }>('SELECT * FROM app.souscriptions_publication($1, $2)', [publicationId, type]);
 
-  const metadata = { lien: `/publications/${publicationId}` };
   const payload = JSON.stringify({ titre, corps, lien: metadata.lien });
 
   // Un citoyen abonné avec plusieurs navigateurs apparaît sur plusieurs
@@ -194,7 +254,7 @@ export async function renvoyerNotification(id: string): Promise<void> {
   const notif = await queryOne<{
     id: string; citoyen_id: string | null; type: TypeNotification; titre: string; corps: string;
     metadata: { lien?: string } | null; statut: string;
-  }>('SELECT id, citoyen_id, type, titre, corps, metadata, statut FROM notifications_citoyen WHERE id = $1', [id]);
+  }>("SELECT id, citoyen_id, type, titre, corps, metadata, statut FROM notifications_citoyen WHERE id = $1 AND canal = 'push'", [id]);
   if (!notif) throw new ApiError(404, 'Notification introuvable.');
   if (notif.statut !== 'echec') {
     throw new ApiError(400, `Cette notification n'est pas en échec (statut actuel : « ${notif.statut} »).`);

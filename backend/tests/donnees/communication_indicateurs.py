@@ -52,6 +52,15 @@ INDIVIDUELS = [
     ('2026-02-01 09:05', 'sans_souscription', False, 4),
     ('2025-12-15 09:05', 'livre', True, 10),
 ]
+# Courriels (081) : (le, statut, nombre). Consignés lus, comme le fait le service
+# d'envoi : s'ils étaient comptés avec le push, ils fausseraient la livraison ET
+# la lecture — c'est ce que ces lignes éprouvent.
+COURRIELS = [
+    ('2026-02-01 09:06', 'livre', 4),
+    ('2026-02-01 09:06', 'echec', 1),
+    ('2026-02-01 09:06', 'non_configure', 2),
+    ('2025-12-15 09:06', 'livre', 3),
+]
 # Réponses au sondage S1 : (citoyen, le)
 REPONSES = [(1, '2026-03-02 10:00'), (2, '2026-03-02 11:00'), (3, '2026-03-03 10:00'), (4, '2026-07-05 10:00')]
 CITOYENS = 4
@@ -82,6 +91,9 @@ def sql(commune, prefixe):
     for le, statut, lu, n in INDIVIDUELS:
         l.append(f"INSERT INTO notifications_citoyen (commune_id, type, canal, titre, corps, statut, lu, date_envoi) "
                  f"SELECT {q(commune)}, 'notification_ciblee', 'push', {q(prefixe)}, {q(prefixe)}, {q(statut)}, {str(lu).lower()}, {ts(le)} FROM generate_series(1, {n});")
+    for le, statut, n in COURRIELS:
+        l.append(f"INSERT INTO notifications_citoyen (commune_id, type, canal, titre, corps, statut, lu, date_envoi) "
+                 f"SELECT {q(commune)}, 'notification_ciblee', 'email', {q(prefixe)}, {q(prefixe)}, {q(statut)}, true, {ts(le)} FROM generate_series(1, {n});")
     for i in range(1, CITOYENS + 1):
         courriel = f'{prefixe.lower()}-citoyen-{i}@example.test'
         l.append(f"INSERT INTO users (email, password_hash, full_name, role) VALUES ({q(courriel)}, 'x', {q(prefixe + ' citoyen ' + str(i))}, 'citoyen');")
@@ -111,6 +123,8 @@ def attendus():
     compte = lambda s: sum(n for le, st, lu, n in ind if st == s)
     livre, echec = compte('livre'), compte('echec')
     lu = sum(n for le, st, l_, n in ind if st == 'livre' and l_)
+    cou = [x for x in COURRIELS if dans(x[0])]
+    compte_c = lambda s: sum(n for le, st, n in cou if st == s)
     recues = [s for s in SUGGESTIONS if not s[4] and dans(s[1])]
     decidees = [s for s in SUGGESTIONS if not s[4] and s[3] and s[2] in ('valide', 'refuse') and dans(s[3])]
     heures = [(datetime.fromisoformat(s[3]) - datetime.fromisoformat(s[1])).total_seconds() / 3600 for s in decidees]
@@ -125,6 +139,8 @@ def attendus():
             'envois_individuels': {'total': sum(x[3] for x in ind), 'livre': livre, 'echec': echec,
                                    'non_abonne': compte('non_abonne'), 'non_souhaite': compte('non_souhaite'),
                                    'sans_souscription': compte('sans_souscription')},
+            'courriels': {'total': sum(x[2] for x in cou), 'envoye': compte_c('livre'), 'echec': compte_c('echec'),
+                          'non_configure': compte_c('non_configure')},
             'suggestions_recues': len(recues),
             'repondants_sondage': len({c for c, le in REPONSES if dans(le)}),
         },

@@ -366,7 +366,7 @@ citoyenRouter.get(
     const lignes = await query(
       `SELECT id, type, canal, titre, corps, metadata, lu, statut, date_envoi
          FROM notifications_citoyen
-        WHERE ($1::boolean IS FALSE OR NOT lu)
+        WHERE canal = 'push' AND ($1::boolean IS FALSE OR NOT lu)
         ORDER BY date_envoi DESC
         LIMIT 200`,
       [nonLues]
@@ -410,14 +410,16 @@ citoyenRouter.get(
       'SELECT canal, type, active FROM preferences_notification'
     );
     // Table creuse (voir migration 044) : une combinaison absente vaut
-    // « activé ». On complète ici pour que l'écran Préférences n'ait jamais à
-    // deviner un défaut lui-même.
+    // « activé » pour le push, « désactivé » pour le courriel (081 : le
+    // citoyen le demande, type par type) et pour le SMS (non émis). On
+    // complète ici pour que l'écran Préférences n'ait jamais à deviner un
+    // défaut lui-même.
     const connues = new Map(lignes.map((l) => [`${l.canal}:${l.type}`, l.active]));
     const preferences = CANAUX.flatMap((canal) =>
       TYPES_NOTIFICATION.map((type) => ({
         canal,
         type,
-        active: connues.get(`${canal}:${type}`) ?? true,
+        active: connues.get(`${canal}:${type}`) ?? canal === 'push',
       }))
     );
     res.json(preferences);

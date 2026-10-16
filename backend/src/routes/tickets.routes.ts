@@ -19,7 +19,7 @@ const TICKET_SELECT = `
     LEFT JOIN LATERAL (
       SELECT nc.id, nc.statut
         FROM notifications_citoyen nc
-       WHERE nc.reference_id = t.id AND nc.type = 'decision_reclamation'
+       WHERE nc.reference_id = t.id AND nc.type = 'decision_reclamation' AND nc.canal = 'push'
        ORDER BY nc.date_envoi DESC
        LIMIT 1
     ) n ON true
@@ -331,7 +331,7 @@ ticketsRouter.patch(
 
     const notif = await queryOne<{ id: string }>(
       `SELECT id FROM notifications_citoyen
-        WHERE reference_id = $1 AND type = 'decision_reclamation'
+        WHERE reference_id = $1 AND type = 'decision_reclamation' AND canal = 'push'
         ORDER BY date_envoi DESC LIMIT 1`,
       [req.params.id]
     );

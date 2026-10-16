@@ -69,6 +69,15 @@ services:
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-BOM754xPkQeWDMf-RTg7bZ8cACy-SlN2yEO54w-W-lHpT0hlkpkY6BHD1UO7fufpFf0UqOEamqWzL5r1qSrKvOM}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-z55dT82Eu7bdDSK7kLCLM-4wccgUi2I-CF0xaVF1cN8}
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:contact@fnct.tn}
+      # Le courriel (v0.15.47) : le serveur SMTP que désigne l'exploitant. Vide,
+      # rien ne part, et l'écran le dit (backend/.env.example).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURITE: ${SMTP_SECURITE:-starttls}
+      SMTP_UTILISATEUR: ${SMTP_UTILISATEUR:-}
+      SMTP_MOT_DE_PASSE: ${SMTP_MOT_DE_PASSE:-}
+      COURRIEL_EXPEDITEUR: ${COURRIEL_EXPEDITEUR:-SIIPI <ne-pas-repondre@siipi.tn>}
+      COURRIEL_URL_PORTAIL: ${COURRIEL_URL_PORTAIL:-http://localhost:3000}
     volumes:
       - ./backend:/app
       - api_node_modules:/app/node_modules
