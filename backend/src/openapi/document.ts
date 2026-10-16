@@ -2706,12 +2706,63 @@ registry.registerPath({
 
 registry.registerPath({
   method: 'get',
+  path: '/documents/gabarits',
+  tags: ['Documents'],
+  summary: 'Les gabarits des quatre documents (lot 16.2)',
+  description:
+    'Pour chaque type : titres FR/AR, référence, champs (clé, libellés, nature, obligatoire, unité), signatures, et statut — « provisoire » jusqu’à la validation par un chef de dépôt (décision du 16/10/2026). Le contenu d’un document émis doit suivre son gabarit.',
+  security: SECURISE,
+  responses: {
+    200: json(
+      z.array(
+        z.object({
+          type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne']),
+          statut: z.enum(['provisoire', 'valide']),
+          fr: z.string(),
+          ar: z.string(),
+          reference: z.object({ fr: z.string(), ar: z.string() }),
+          champs: z.array(
+            z.object({
+              cle: z.string(),
+              fr: z.string(),
+              ar: z.string(),
+              nature: z.enum(['texte', 'texte_long', 'date', 'nombre', 'oui_non']),
+              requis: z.boolean().optional(),
+              unite: z.string().optional(),
+            })
+          ),
+          signatures: z.array(z.object({ fr: z.string(), ar: z.string() })),
+        })
+      ),
+      'Les gabarits.'
+    ),
+    401: REPONSES_COMMUNES[401],
+  },
+});
+
+registry.registerPath({
+  method: 'get',
   path: '/documents/{id}',
   tags: ['Documents'],
   summary: 'Un document émis',
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: { 200: json(DocumentEmis, 'Document.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/documents/{id}/impression',
+  tags: ['Documents'],
+  summary: 'Imprimer un document : page A4 bilingue (HTML)',
+  description:
+    'En-tête de l’État, du gouvernorat et de la commune ; numéro d’ordre ; référence ; champs du gabarit (un champ vide reste vide) ; signatures ; mention d’édition (heure de Tunis, auteur) et empreinte du contenu. Bandeau « modèle provisoire » tant que le gabarit n’est pas validé ; un document annulé s’imprime barré, avec son motif.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { description: 'La page imprimable.', content: { 'text/html': { schema: z.string() } } },
+    ...REPONSES_COMMUNES,
+  },
 });
 
 registry.registerPath({
@@ -7585,7 +7636,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.45',
+      version: '0.15.46',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

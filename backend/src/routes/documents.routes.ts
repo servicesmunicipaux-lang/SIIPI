@@ -8,15 +8,19 @@
 // reste. Il n'y a ni PUT ni DELETE : un document émis ne se modifie pas et ne
 // s'efface pas.
 //
-// La mise en page (PDF bilingue) attend les gabarits validés par un chef de
-// dépôt (SPEC_v0.16 § 6) ; le contenu est conservé tel qu'émis pour qu'elle le
-// relise le jour venu.
+// LES GABARITS (src/documents/gabarits.ts) sont construits depuis la décision du
+// 16 octobre 2026 et s'impriment « modèle provisoire » jusqu'à leur validation
+// par un chef de dépôt. Ils sont aussi le contrat du contenu : l'émission refuse
+// un champ obligatoire absent et un champ que le gabarit ne sait pas imprimer —
+// le contenu est figé dès l'émission, une erreur ne se rattrape plus.
 import { Router } from 'express';
 import { z } from 'zod';
 import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
+import { champsManquants, GABARITS, schemaContenu, type TypeDocument } from '../documents/gabarits.js';
+import { rendreDocument, type DocumentAImprimer } from '../documents/impression.js';
 
 export const documentsRouter = Router();
 
@@ -49,7 +53,16 @@ documentsRouter.get(
   })
 );
 
-// Littéral avant /:id.
+// Littéraux avant /:id.
+documentsRouter.get(
+  '/gabarits',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  asyncHandler(async (_req, res) => {
+    res.json(Object.values(GABARITS));
+  })
+);
+
 documentsRouter.get(
   '/trous',
   requireAuth,
@@ -69,6 +82,34 @@ documentsRouter.get(
     const doc = await queryOne('SELECT * FROM documents_emis WHERE id = $1', [req.params.id]);
     if (!doc) throw new ApiError(404, 'Document introuvable.');
     res.json(doc);
+  })
+);
+
+// L'impression : une page A4 bilingue (src/documents/impression.ts). La ligne
+// est lue sous les règles de lecture du registre : un document d'une autre
+// commune est introuvable.
+documentsRouter.get(
+  '/:id/impression',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new ApiError(404, 'Document introuvable.');
+    const doc = await queryOne<DocumentAImprimer & { commune: string; commune_ar: string | null; gouvernorat: string; gouvernorat_ar: string | null }>(
+      `SELECT d.type_document, d.numero_affiche, d.exercice, d.statut, d.contenu, d.motif_annulation, d.empreinte_contenu,
+              to_char(d.emis_le AT TIME ZONE 'Africa/Tunis', 'YYYY-MM-DD') AS emis_le,
+              c.name AS commune, c.name_ar AS commune_ar, c.gouvernorat, g.nom_ar AS gouvernorat_ar
+         FROM documents_emis d
+         JOIN communes c ON c.id = d.commune_id
+         LEFT JOIN gouvernorats_noms g ON g.gouvernorat = c.gouvernorat
+        WHERE d.id = $1`,
+      [req.params.id]
+    );
+    if (!doc) throw new ApiError(404, 'Document introuvable.');
+    const auteur = await queryOne<{ full_name: string | null }>('SELECT full_name FROM users WHERE id = $1', [req.user?.sub ?? null]);
+    res
+      .type('html')
+      .set('Cache-Control', 'no-store')
+      .send(rendreDocument(doc, doc, auteur?.full_name ?? '—'));
   })
 );
 
@@ -106,6 +147,18 @@ documentsRouter.post(
     const d = emissionSchema.parse(req.body);
     const communeId = communeDemandee(req);
     if (!communeId) throw new ApiError(400, 'Commune requise (paramètre communeId).');
+    const manquants = champsManquants(d.type as TypeDocument, d.contenu);
+    if (manquants.length) throw new ApiError(400, `Champ(s) obligatoire(s) du ${GABARITS[d.type as TypeDocument].fr.toLowerCase()} : ${manquants.join(', ')}.`);
+    const verifie = schemaContenu(d.type as TypeDocument).safeParse(d.contenu);
+    if (!verifie.success) {
+      const inconnus = Object.keys(d.contenu).filter((k) => !GABARITS[d.type as TypeDocument].champs.some((c) => c.cle === k));
+      throw new ApiError(
+        400,
+        inconnus.length
+          ? `Champ(s) que le gabarit n'imprime pas : ${inconnus.join(', ')}. Le contenu d'un document est figé à l'émission : il doit suivre son gabarit.`
+          : `Contenu non conforme au gabarit : ${verifie.error.issues.map((i) => i.message).join(' ; ')}`
+      );
+    }
     if (d.objet) {
       // Nom de table issu d'une liste fixe ci-dessus, jamais de la requête.
       const objet = await queryOne(
@@ -117,7 +170,8 @@ documentsRouter.post(
     const doc = await queryOne('SELECT * FROM app.emettre_document($1, $2, $3::jsonb, $4, $5)', [
       communeId,
       d.type,
-      JSON.stringify(d.contenu),
+      // Le contenu vérifié (textes rognés), celui qui sera figé.
+      JSON.stringify(verifie.data),
       d.objet?.type ?? null,
       d.objet?.id ?? null,
     ]);

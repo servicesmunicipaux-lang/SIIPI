@@ -10343,6 +10343,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/documents/gabarits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les gabarits des quatre documents (lot 16.2)
+         * @description Pour chaque type : titres FR/AR, référence, champs (clé, libellés, nature, obligatoire, unité), signatures, et statut — « provisoire » jusqu’à la validation par un chef de dépôt (décision du 16/10/2026). Le contenu d’un document émis doit suivre son gabarit.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les gabarits. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            type: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne";
+                            /** @enum {string} */
+                            statut: "provisoire" | "valide";
+                            fr: string;
+                            ar: string;
+                            reference: {
+                                fr: string;
+                                ar: string;
+                            };
+                            champs: {
+                                cle: string;
+                                fr: string;
+                                ar: string;
+                                /** @enum {string} */
+                                nature: "texte" | "texte_long" | "date" | "nombre" | "oui_non";
+                                requis?: boolean;
+                                unite?: string;
+                            }[];
+                            signatures: {
+                                fr: string;
+                                ar: string;
+                            }[];
+                        }[];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/documents/{id}": {
         parameters: {
             query?: never;
@@ -10369,6 +10441,83 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["DocumentEmis"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/documents/{id}/impression": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Imprimer un document : page A4 bilingue (HTML)
+         * @description En-tête de l’État, du gouvernorat et de la commune ; numéro d’ordre ; référence ; champs du gabarit (un champ vide reste vide) ; signatures ; mention d’édition (heure de Tunis, auteur) et empreinte du contenu. Bandeau « modèle provisoire » tant que le gabarit n’est pas validé ; un document annulé s’imprime barré, avec son motif.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La page imprimable. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/html": string;
                     };
                 };
                 /** @description Requête invalide — le détail indique les champs en cause. */

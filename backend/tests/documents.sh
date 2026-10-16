@@ -69,7 +69,15 @@ $PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALU
           INSERT INTO vehicules (id, registration, commune_id, type) VALUES ('test-doc-162-v1', 'TEST 162 001', '$TC', 'camion');" >/dev/null
 T_A=$(tok "$DIR_A"); T_B=$(tok "$DIR_B")
 Q="?communeId=$TC"
-emettre() { appel POST "/documents$Q" "$T_A" "{\"type\":\"$1\",\"contenu\":{\"test\":\"TEST-16.2\",\"rang\":\"$2\"}}"; }
+# Un contenu conforme au gabarit de chaque type (lot 16.2) : le contenu est
+# figé à l'émission, et l'émission refuse ce que le gabarit ne sait pas imprimer.
+contenu() {
+  case "$1" in
+    bon_carburant) echo "{\"engin\":\"TEST 162 001\",\"date\":\"2026-10-16\",\"carburant\":\"gasoil\",\"litres\":10,\"observations\":\"TEST-16.2 rang $2\"}" ;;
+    ordre_mission) echo "{\"agent\":\"TEST agent\",\"destination\":\"TEST Tunis\",\"objet\":\"TEST-16.2\",\"date_debut\":\"2026-10-16\",\"observations\":\"TEST-16.2 rang $2\"}" ;;
+  esac
+}
+emettre() { appel POST "/documents$Q" "$T_A" "{\"type\":\"$1\",\"contenu\":$(contenu "$1" "$2")}"; }
 
 # -----------------------------------------------------------------------------
 echo
@@ -80,7 +88,7 @@ CODE=$(appel POST "/documents$Q" "$T_A" '{"type":"bon_carburant","contenu":{}}')
 chk "un document sans contenu : refusé" 400 "$CODE"
 CODE=$(appel POST "/documents$Q" "$T_A" '{"type":"facture","contenu":{"test":"TEST-16.2"}}')
 chk "un type de document inconnu : refusé" 400 "$CODE"
-CODE=$(appel POST "/documents$Q" "$T_A" '{"type":"ordre_mission","contenu":{"test":"TEST-16.2"},"objet":{"type":"vehicule","id":"dcef-inexistant"}}')
+CODE=$(appel POST "/documents$Q" "$T_A" "{\"type\":\"ordre_mission\",\"contenu\":$(contenu ordre_mission 0),\"objet\":{\"type\":\"vehicule\",\"id\":\"dcef-inexistant\"}}")
 chk "un ordre de mission pour un engin qui n'est pas de la commune : refusé" 400 "$CODE"
 CODE=$(emettre bon_carburant 1)
 chk "l'admin de la commune émet un bon de carburant" "201|BC-$(date +%Y)-00001" "$CODE|$(val "d['numero_affiche']")"
@@ -126,7 +134,7 @@ CODE=$(emettre bon_carburant 12)
 chk "une émission ratée en base ne consomme pas de numéro : la suivante reçoit le 12" "201|12" "$CODE|$(val "d['numero']")"
 CODE=$(emettre ordre_mission 1)
 chk "chaque type a son propre registre : premier ordre de mission n° 1" "201|OM-$(date +%Y)-00001" "$CODE|$(val "d['numero_affiche']")"
-CODE=$(appel POST "/documents$Q" "$T_A" '{"type":"ordre_mission","contenu":{"test":"TEST-16.2","chauffeur":"TEST"},"objet":{"type":"vehicule","id":"test-doc-162-v1"}}')
+CODE=$(appel POST "/documents$Q" "$T_A" "{\"type\":\"ordre_mission\",\"contenu\":$(contenu ordre_mission 1),\"objet\":{\"type\":\"vehicule\",\"id\":\"test-doc-162-v1\"}}")
 chk "un ordre de mission rattaché à un engin de la commune" "201|vehicule|test-doc-162-v1" "$CODE|$(val "d['objet_type']")|$(val "d['objet_id']")"
 chk "le contenu porte son empreinte SHA-256" 1 \
     "$(sql "SELECT count(*) FROM documents_emis WHERE id='$DOC1' AND empreinte_contenu = encode(digest(contenu::text,'sha256'),'hex')")"
@@ -138,7 +146,7 @@ echo
 echo "3. L'annulation garde le numéro"
 CODE=$(appel POST "/documents/$DOC1/annuler" "$T_A" '{"motif":"TEST — bon émis par erreur de saisie"}')
 chk "l'admin annule, avec un motif" "200|annule|TEST — bon émis par erreur de saisie" "$CODE|$(val "d['statut']")|$(val "d['motif_annulation']")"
-chk "le numéro reste au registre, le contenu reste lisible" "BC-$(date +%Y)-00001|TEST-16.2" "$(val "d['numero_affiche']")|$(val "d['contenu']['test']")"
+chk "le numéro reste au registre, le contenu reste lisible" "BC-$(date +%Y)-00001|TEST-16.2" "$(val "d['numero_affiche']")|$(val "d['contenu']['observations'].split()[0]")"
 CODE=$(appel POST "/documents/$DOC1/annuler" "$T_A" '{"motif":"TEST seconde annulation"}')
 chk "annuler deux fois : refusé (409)" 409 "$CODE"
 chk "… et refusé par la base" 1 "$(refus "UPDATE documents_emis SET motif_annulation='autre motif bis' WHERE id = '$DOC1';" DOCUMENT_SCELLE)"
@@ -156,6 +164,43 @@ $PSQL -c "BEGIN; ALTER TABLE documents_emis DISABLE TRIGGER trg_proteger_documen
 appel GET "/documents/trous$Q" "$T_A" >/dev/null
 chk "le n° 5 arraché du registre est signalé" "1|bon_carburant|5" "$(val "len(d)")|$(val "d[0]['type_document']")|$(val "d[0]['numero_manquant']")"
 chk "le scellement est bien rétabli après la manipulation" 1 "$(refus "DELETE FROM documents_emis WHERE id = '$DOC1';" DOCUMENT_SCELLE)"
+
+# -----------------------------------------------------------------------------
+echo
+echo "5. Les gabarits (décision du 16/10/2026) et l'impression"
+appel GET "/documents/gabarits" "$T_A" >/dev/null
+chk "quatre gabarits, tous « provisoires » jusqu'à la validation du chef de dépôt" "4|4" \
+    "$(val "len(d)")|$(val "sum(1 for g in d if g['statut'] == 'provisoire')")"
+CODE=$(appel POST "/documents$Q" "$T_A" '{"type":"bon_travail","contenu":{"engin":"TEST 162 001","nature":"TEST vidange"}}')
+chk "un champ obligatoire manque : 400, et la réponse le nomme" "400|True" \
+    "$CODE|$(val "'Travaux demandés' in d['error'] and 'Date d’entrée' in d['error']")"
+CODE=$(appel POST "/documents$Q" "$T_A" "{\"type\":\"ordre_mission\",\"contenu\":$(contenu ordre_mission 2 | sed 's/}$/,"prime":"500"}/')}")
+chk "un champ que le gabarit n'imprime pas : 400, nommé" "400|True" "$CODE|$(val "'prime' in d['error']")"
+CODE=$(appel POST "/documents$Q" "$T_A" '{"type":"declaration_panne","contenu":{"engin":"TEST 162 001","date_panne":"16/10/2026","description":"TEST"}}')
+chk "une date mal écrite : 400" 400 "$CODE"
+CODE=$(appel POST "/documents$Q" "$T_A" '{"type":"declaration_panne","contenu":{"engin":"TEST 162 001","date_panne":"2026-10-16","description":"TEST frein <script>alert(1)</script>","immobilise":true}}')
+chk "une déclaration de panne conforme : émise (DP-…-00001)" "201|DP-$(date +%Y)-00001" "$CODE|$(val "d['numero_affiche']")"
+DP=$(val "d['id']"); EMPREINTE=$(val "d['empreinte_contenu'][:16]")
+imprimer() { curl -s -o "$T/page.html" -w '%{http_code}' -H "Authorization: Bearer $2" "$API/documents/$1/impression"; }
+chk "elle s'imprime : 200, en HTML" "200|t" "$(imprimer "$DP" "$T_A")|$(grep -q '<!doctype html>' "$T/page.html" && echo t || echo f)"
+chk "… avec son numéro, son titre bilingue et le bandeau « modèle provisoire »" "t|t|t" \
+    "$(grep -q "DP-$(date +%Y)-00001" "$T/page.html" && echo t || echo f)|$(grep -q 'بطاقة التصريح بعطب' "$T/page.html" && echo t || echo f)|$(grep -q 'MODÈLE PROVISOIRE' "$T/page.html" && echo t || echo f)"
+chk "… le texte saisi est échappé, jamais interprété" "f|t" \
+    "$(grep -q '<script>alert' "$T/page.html" && echo t || echo f)|$(grep -q '&lt;script&gt;alert' "$T/page.html" && echo t || echo f)"
+chk "… un champ vide reste vide : ni tiret ni zéro dans la case du lieu" "t" \
+    "$(python3 -c "
+import re
+h = open('$T/page.html', encoding='utf-8').read()
+m = re.search(r'Lieu<span class=\"ar\">[^<]*</span></th><td>(.*?)</td>', h)
+print('t' if m and m.group(1) == '' else 'f')")"
+chk "… l'empreinte du contenu imprimée est celle du registre" t "$(grep -q "$EMPREINTE" "$T/page.html" && echo t || echo f)"
+chk "… la mention d'édition est là" t "$(grep -q 'heure de Tunis' "$T/page.html" && echo t || echo f)"
+chk "le directeur d'une autre commune : introuvable (404)" 404 "$(imprimer "$DP" "$(tok "$DIR_B")")"
+chk "sans compte : 401" 401 "$(curl -s -o /dev/null -w '%{http_code}' "$API/documents/$DP/impression")"
+chk "un document annulé s'imprime encore, marqué « ANNULÉ » avec son motif" "200|t|t" \
+    "$(imprimer "$DOC1" "$T_A")|$(grep -q 'ANNULÉ' "$T/page.html" && echo t || echo f)|$(grep -q 'bon émis par erreur de saisie' "$T/page.html" && echo t || echo f)"
+chk "le bon carburant émis depuis l'écran générique s'imprime avec ses champs" "t|t" \
+    "$(grep -q 'TEST 162 001' "$T/page.html" && echo t || echo f)|$(grep -q '10 L' "$T/page.html" && echo t || echo f)"
 
 nettoyer
 chk "la commune de test et ses documents sont retirés" "0|0" \

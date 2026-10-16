@@ -294,7 +294,7 @@ points limitrophes, questions D-1 à D-7) — proposition à valider par la FNCT
 | ~~`earnings_this_month_tnd` : supprimé ou agrégé ?~~ — **levé le 02/10 (D8)** : supprimé, agrégat seuillé | 16.1 | Nacer |
 | Confirmation juridique : responsable du traitement, déclaration ou autorisation (photos), texte à citer (loi organique 2004-63) | 16.1, 18 | Juriste FNCT |
 | Hébergement accrédité pour les identités nominatives : où, et quand | 16.1, 18 | FNCT / ANGeD |
-| Gabarits des 4 documents à faire valider par un chef de dépôt en exercice | 16.2 | Commune de recette |
+| Gabarits des 4 documents à faire valider par un chef de dépôt en exercice | 16.2 | Commune de recette — gabarits construits (v0.15.46, décision du 16/10/2026), imprimés « modèle provisoire » jusqu'à cette validation |
 | Articles 4 et 13 du projet, date de départ de la période transitoire, sens exact du dernier alinéa arabe de l'article 13.1 (voir `02-…` § 5) | 18.2, 18.3 | FNCT / ministères |
 | Barème ANGeD en vigueur et sa date d'effet | 17.3, coût complet | ANGeD |
 | Documentation des API GPS (Orange, Ooredoo, prestataires locaux) | 17.4 | Opérateurs |

@@ -199,6 +199,8 @@ export type SortieCarnet = Reponse<'/exploitation/carnets', 'get'>[number];
 export type Consommation = Reponse<'/exploitation/consommation', 'get'>;
 export type QuotaCarburant = Reponse<'/exploitation/quotas', 'get'>[number];
 export type DocumentEmis = Reponse<'/documents', 'get'>[number];
+export type GabaritDocument = Reponse<'/documents/gabarits', 'get'>[number];
+export type TrouDocument = Reponse<'/documents/trous', 'get'>[number];
 // --- Lot 16.4 : dossier de déclassement --------------------------------------
 export type ConstatDeclassement = Reponse<'/declassement/constat', 'get'>;
 export type ConstatEngin = ConstatDeclassement['engins'][number];
@@ -912,6 +914,12 @@ export const api = {
     requete<DocumentEmis[]>(`/documents?communeId=${encodeURIComponent(communeId)}&type=bon_carburant`),
   annulerDocument: (id: string, motif: string) =>
     requete<DocumentEmis>(`/documents/${id}/annuler`, { method: 'POST', body: JSON.stringify({ motif }) }),
+  // --- Lot 16.2 : les gabarits et le registre des documents -------------------
+  gabaritsDocuments: () => requete<GabaritDocument[]>('/documents/gabarits'),
+  documentsEmis: (communeId: string) => requete<DocumentEmis[]>(`/documents?communeId=${encodeURIComponent(communeId)}`),
+  trousDocuments: (communeId: string) => requete<TrouDocument[]>(`/documents/trous?communeId=${encodeURIComponent(communeId)}`),
+  emettreDocument: (communeId: string, corps: Corps<'/documents', 'post'>) =>
+    requete<DocumentEmis>(`/documents?communeId=${encodeURIComponent(communeId)}`, { method: 'POST', body: JSON.stringify(corps) }),
   // --- Lot 16.4 : dossier de déclassement -------------------------------------
   //
   // Les pièces se déposent d'abord par deposerFichier (usage « declassement »),
@@ -1518,3 +1526,38 @@ export const api = {
       body: JSON.stringify(saisie),
     }),
 };
+
+/**
+ * Imprime un document scellé (lot 16.2) : la page A4 bilingue que rend l'API.
+ * Elle est chargée avec le jeton de la session, puis imprimée depuis un cadre
+ * invisible de la page même : une fenêtre surgissante serait bloquée par le
+ * navigateur (et l'est toujours dans certains postes administratifs).
+ */
+export async function imprimerDocument(id: string): Promise<void> {
+  const jeton = lireJeton();
+  const chemin = `/documents/${encodeURIComponent(id)}/impression`;
+  const reponse = await fetch(`${BASE}${chemin}`, { headers: jeton ? { Authorization: `Bearer ${jeton}` } : {} });
+  if (!reponse.ok) {
+    constaterSession(reponse, jeton, chemin);
+    let message = `Erreur ${reponse.status}`;
+    try {
+      const corps = await reponse.json();
+      if (corps?.error) message = corps.error;
+    } catch {
+      /* réponse non JSON */
+    }
+    throw new ErreurApi(reponse.status, message);
+  }
+  const page = await reponse.text();
+  document.getElementById('siipi-impression')?.remove();
+  const cadre = document.createElement('iframe');
+  cadre.id = 'siipi-impression';
+  cadre.setAttribute('aria-hidden', 'true');
+  cadre.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0;';
+  cadre.onload = () => {
+    cadre.contentWindow?.focus();
+    cadre.contentWindow?.print();
+  };
+  cadre.srcdoc = page;
+  document.body.appendChild(cadre);
+}

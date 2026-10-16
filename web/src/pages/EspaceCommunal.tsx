@@ -24,6 +24,7 @@ import { CarteCommunale } from '../composants/communal/CarteCommunale';
 import { Comptes } from '../composants/communal/Comptes';
 import { CarnetCarburant } from '../composants/communal/CarnetCarburant';
 import { Declassement } from '../composants/communal/Declassement';
+import { RegistreDocuments } from '../composants/communal/RegistreDocuments';
 import { Parc } from '../composants/communal/Parc';
 import { Personnel } from '../composants/communal/Personnel';
 import { Communication } from '../composants/communal/Communication';
@@ -44,7 +45,7 @@ import { MaCommune } from '../composants/communal/MaCommune';
 import { EcranWapla } from '../composants/wapla/EcranWapla';
 import type { EcranAjout } from '../composants/ajout/registre';
 
-type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
+type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -76,6 +77,8 @@ const ENTREES: EntreeNavigation<Onglet>[] = [
   { cle: 'parc',          pole: 'flotte' },
   { cle: 'carburant',     pole: 'flotte' },
   { cle: 'declassement',  pole: 'flotte' },
+  // Le registre des documents à numérotation scellée (lot 16.2) : imprimer, annuler, voir les trous.
+  { cle: 'documents',     pole: 'flotte' },
   { cle: 'registres',     pole: 'flotte' },
   { cle: 'personnel',     pole: 'flotte' },
 
@@ -309,6 +312,7 @@ export function EspaceCommunal({
         {onglet === 'parc' && <Parc communeId={communeId} />}
         {onglet === 'carburant' && <CarnetCarburant communeId={communeId} />}
         {onglet === 'declassement' && <Declassement communeId={communeId} />}
+        {onglet === 'documents' && <RegistreDocuments communeId={communeId} />}
         {onglet === 'personnel' && <Personnel communeId={communeId} />}
         {onglet === 'pesees' && <Pesees communeId={communeId} />}
         {onglet === 'communication' && <Communication communeId={communeId} />}
