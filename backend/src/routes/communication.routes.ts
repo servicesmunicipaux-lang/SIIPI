@@ -137,6 +137,44 @@ communicationRouter.get(
   })
 );
 
+// --- Indicateurs de communication (B5.5.4) --------------------------------
+//
+// Délai, volumétrie, taux, sur une période (dates de Tunis). Le calcul vit
+// dans la base (app.indicateurs_communication, migration 079) : il lit des
+// envois individuels que la commune ne voit pas, et n'en rend que des totaux.
+// Un taux sans dénominateur est null, jamais 0.
+
+const dateIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.');
+export const qIndicateursCommunicationSchema = z.object({
+  communeId: z.string().min(1).optional(),
+  debut: dateIso,
+  fin: dateIso,
+});
+
+communicationRouter.get(
+  '/indicateurs',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const q = qIndicateursCommunicationSchema.parse(req.query);
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise (paramètre communeId).');
+    if (q.debut > q.fin) throw new ApiError(400, 'Le début de la période doit précéder sa fin.');
+    try {
+      const ligne = await queryOne<{ indicateurs: unknown }>(
+        'SELECT app.indicateurs_communication($1, $2::date, $3::date) AS indicateurs',
+        [communeId, q.debut, q.fin]
+      );
+      res.json(ligne?.indicateurs);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '';
+      if (message.startsWith('COMMUNICATION_INTROUVABLE')) throw new ApiError(404, 'Commune introuvable.');
+      if (message.startsWith('COMMUNICATION_BORNES')) throw new ApiError(400, 'Le début de la période doit précéder sa fin.');
+      throw err;
+    }
+  })
+);
+
 communicationRouter.get(
   '/coherence',
   requireAuth,

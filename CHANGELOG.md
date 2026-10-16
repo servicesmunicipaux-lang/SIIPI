@@ -5,6 +5,49 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.44] — 2026-10-16 — B5.5.4 : les indicateurs de communication
+
+La dernière fonctionnalité « à faire » de la rubrique 5.5 du cahier des charges, qui demande délai,
+volumétrie et taux. Une commune qui écrit à ses habitants doit savoir quatre choses :
+- si ses messages arrivent ;
+- s'ils sont lus ;
+- combien d'habitants elle ne peut pas joindre ;
+- en combien de temps elle répond aux points que les citoyens lui proposent.
+
+### Ajouté
+- **Migration 079 — `app.indicateurs_communication(commune, début, fin)`.** Les calculs lisent ce que la
+  plateforme consigne déjà : publications, envois, tentatives individuelles, réponses aux sondages, points
+  proposés. La période est en dates de Tunis, bornes comprises.
+  - **Volumétrie** : publications publiées par type, envois, destinataires joints et non joints (sans
+    adresse, désabonnés), envois individuels par issue, points proposés reçus, répondants aux sondages.
+  - **Délais** : délai médian de décision sur un point proposé (heures, avec le nombre de décisions) ;
+    points encore en attente et l'ancienneté du plus ancien.
+  - **Taux**, chacun avec son numérateur et son dénominateur :
+    - livraison (livrées sur livrées et en échec) ;
+    - lecture (lues sur livrées) ;
+    - portée (joints sur joints, sans adresse et désabonnés) ;
+    - validation des points proposés ;
+    - participation aux sondages (répondants distincts sur les foyers invités par le plus grand envoi de
+      chaque sondage).
+  - **Un taux sans dénominateur est `null`, jamais 0** (règle d'or 1.1).
+  - Les contenus marqués « exemple » et les points retirés n'entrent pas dans les calculs.
+  - **Que des totaux** : la fonction lit des envois individuels que la commune ne voit pas (044) et n'en rend
+    que des comptes (loi organique n° 2004-63). Directeur de la commune ou FNCT ; sinon « introuvable »,
+    aussi en SQL direct.
+- **`GET /communication/indicateurs?communeId&debut&fin`**, décrite dans le contrat.
+- **Écran** *Communication → Indicateurs*. On choisit la période (un an glissant par défaut). L'écran
+  affiche les trois familles en cartes, chaque taux avec ce sur quoi il porte (« 30 sur 35 ») ou ce qui lui
+  manque. FR/AR.
+- **Campagne `communication-indicateurs`** :
+  - elle commence par les refus : sans compte, citoyen, prestataire, autre commune (aussi en SQL direct),
+    période mal formée ;
+  - sur une période vide, les comptes valent 0 et les taux `null` ;
+  - sur un jeu complet, chaque indicateur est égal à celui d'un témoin
+    (`tests/donnees/communication_indicateurs.py`) qui ne lit que le jeu et la définition ;
+  - le jeu place une publication à 23 h 30 le 30 juin et une à 0 h 30 le 1er juillet : un calcul en dates
+    UTC les compterait toutes les deux ;
+  - aucune donnée nominative dans la réponse.
+
 ## [0.15.43] — 2026-10-16 — S0 : la carte du conseiller SIG
 
 Le dernier point de S0. Le conseiller SIG a livré une carte web (Leaflet) des 350 communes. SIIPI en reprend

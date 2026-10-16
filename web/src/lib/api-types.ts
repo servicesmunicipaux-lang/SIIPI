@@ -15699,6 +15699,154 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/communication/indicateurs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Indicateurs de communication : délai, volumétrie, taux (B5.5.4)
+         * @description Sur une période en dates de Tunis : publications publiées, envois, destinataires joints et non joints, envois individuels par issue, points proposés, répondants ; délai médian de décision sur un point proposé et points en attente ; taux de livraison, de lecture, de portée, de validation des points proposés, de participation aux sondages. Que des totaux, jamais une ligne par citoyen (loi organique n° 2004-63). Un taux sans dénominateur est null, jamais 0. Directeur de la commune ou FNCT ; une commune hors périmètre est introuvable.
+         */
+        get: {
+            parameters: {
+                query: {
+                    communeId?: string;
+                    debut: string;
+                    fin: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les indicateurs de la période. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            commune_id: string;
+                            periode: {
+                                debut: string;
+                                fin: string;
+                            };
+                            volumetrie: {
+                                publications: {
+                                    notification: number;
+                                    sondage: number;
+                                    projet: number;
+                                };
+                                envois: number;
+                                destinataires: number;
+                                sans_adresse: number;
+                                desabonnes: number;
+                                envois_individuels: {
+                                    total: number;
+                                    livre: number;
+                                    echec: number;
+                                    non_abonne: number;
+                                    non_souhaite: number;
+                                    sans_souscription: number;
+                                };
+                                suggestions_recues: number;
+                                repondants_sondage: number;
+                            };
+                            delais: {
+                                decision_suggestion_h: {
+                                    mediane: number | null;
+                                    decisions: number;
+                                };
+                                suggestions_en_attente: {
+                                    nombre: number;
+                                    plus_ancienne_jours: number | null;
+                                };
+                            };
+                            taux: {
+                                livraison: {
+                                    numerateur: number;
+                                    denominateur: number;
+                                    /** @description Entre 0 et 1 ; null sans dénominateur, jamais 0. */
+                                    valeur: number | null;
+                                };
+                                lecture: {
+                                    numerateur: number;
+                                    denominateur: number;
+                                    /** @description Entre 0 et 1 ; null sans dénominateur, jamais 0. */
+                                    valeur: number | null;
+                                };
+                                portee: {
+                                    numerateur: number;
+                                    denominateur: number;
+                                    /** @description Entre 0 et 1 ; null sans dénominateur, jamais 0. */
+                                    valeur: number | null;
+                                };
+                                validation_suggestions: {
+                                    numerateur: number;
+                                    denominateur: number;
+                                    /** @description Entre 0 et 1 ; null sans dénominateur, jamais 0. */
+                                    valeur: number | null;
+                                };
+                                participation_sondages: {
+                                    numerateur: number;
+                                    denominateur: number;
+                                    /** @description Entre 0 et 1 ; null sans dénominateur, jamais 0. */
+                                    valeur: number | null;
+                                };
+                            };
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/communication/coherence": {
         parameters: {
             query?: never;
