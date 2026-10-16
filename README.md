@@ -19,6 +19,15 @@ Une instance SIIPI est de l'une de trois natures. **La base la retient** : la
 première fois qu'elle est servie en production ou en formation, elle le devient
 pour toujours (décision FNCT D-FNCT-5).
 
+> **Une base devient production définitivement. Vérifiez la variable avant de
+> démarrer.** Une base neuve est en développement. Servie une seule fois avec
+> `PRODUCTION=true` (ou l'image de production), elle reste une base de
+> production : relancée ensuite avec une configuration de développement, elle
+> refuse les comptes de démonstration ; une base de formation refuse de même de
+> devenir production. Il n'y a pas de retour en arrière. Ne démarrez jamais une
+> API de production ou de formation sur une base de développement ou d'essai que
+> vous voulez garder telle.
+
 | Nature | Comment | Comptes de démonstration (`Siipi2026!`) |
 |---|---|---|
 | Développement | `docker-compose.yml`, `DEMARRER.bat` | Ouverts |

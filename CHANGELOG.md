@@ -5,6 +5,44 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.40] — 2026-10-16 — WaPla, lot W5 : les agrégats nationaux des bilans étayés
+
+L'observatoire de la FNCT additionne les bilans WaPla par territoire
+(`docs/specs_metier/SPEC_wapla_couche_planification.md` § 6, précisé au lot W5).
+
+### Ce qui entre dans un agrégat (migration 077)
+- **`wapla.bilans_agregeables(exercice)`** tient la règle en base : un bilan **calculé**, **étayé**, non
+  retiré, d'une commune **réelle**. N'y entrent ni un bilan indicatif ou illustratif, ni un brouillon, ni
+  la commune de démonstration, ni une commune retirée du référentiel. Réservée à la FNCT, aussi en SQL
+  direct (`AGREGAT_FNCT`).
+- **`wapla.communes_par_gouvernorat()`** : le « M », les communes réelles de chaque gouvernorat, avec ou
+  sans bilan, et leur district FNCT.
+
+### `GET /wapla/agregats?exercice=` (FNCT)
+- National, par district (les gouvernorats sans district en un groupe nommé) et par gouvernorat :
+  **« N sur M communes »**, puis le gisement, les déchets mis en décharge, brûlés à l'air libre, les GES
+  (potentiel engagé), les dioxines et furanes — avec la définition de la comparaison des scénarios.
+- Un territoire sans bilan étayé n'a **pas de chiffre** (`null`, jamais 0).
+- **Aucun classement** : ni rang, ni ligne par commune ; ordre alphabétique (districts : ordre de la FNCT).
+
+### L'écran
+« **Bilans WaPla étayés** » (observatoire, pôle Performance & déploiement) : l'exercice, l'ensemble des
+communes, puis le tableau par gouvernorat ou par district, sans tri par valeur ; FR/AR, téléphone.
+
+### Campagne `wapla-agregats`
+Elle bâtit un gouvernorat d'essai de 31 communes, dont 12 avec un bilan étayé, et autour d'elles tout ce
+qui ne doit pas compter (un indicatif, un illustratif, un brouillon, un étayé retiré, un étayé d'un autre
+exercice, une commune retirée et la commune de démonstration avec chacune un bilan étayé). Test de sortie :
+« 12 sur 31 », la commune de démonstration absente, les sommes égales à celles d'un témoin qui ne lit que
+les résultats du moteur, aucune clé ni route de rang ou de classement dans le contrat.
+
+### CLAUDE.md et README
+- CLAUDE.md : `ON CONFLICT … DO UPDATE` sur une table RLS exige une politique `UPDATE` (leçon de la
+  v0.4.0) ; une colonne `GENERATED` n'est pas calculée dans un déclencheur `BEFORE` (leçon du lot 16.2) ;
+  une campagne restaure toute donnée réelle qu'elle modifie, ou travaille sur une base jetable (JC-007,
+  `mot-de-passe-public`).
+- README : « Une base devient production définitivement. Vérifiez la variable avant de démarrer. »
+
 ## [0.15.39] — 2026-10-14 — WaPla, lot W4b : les écrans des scénarios
 
 Les écrans des scénarios du PCGD (`docs/specs_metier/SPEC_wapla_couche_planification.md` § 6, point 3),

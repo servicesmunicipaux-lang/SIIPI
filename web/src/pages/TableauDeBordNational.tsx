@@ -12,6 +12,7 @@ import { KpiNational } from '../composants/national/KpiNational';
 import { ModeDemo } from '../composants/national/ModeDemo';
 import { ConservationPhotos } from '../composants/national/ConservationPhotos';
 import { ParametresNationaux } from '../composants/national/ParametresNationaux';
+import { AgregatsWapla } from '../composants/national/AgregatsWapla';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 import {
@@ -82,13 +83,15 @@ function sansAccent(texte: string): string {
 // performance, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
 // bas. Même défaut que les dix-sept onglets du portail communal — ce qu'on ne
 // voit pas, on ne sait pas que ça existe — et même remède : la barre latérale.
-type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'parametres' | 'conservation' | 'demo';
+type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'wapla' | 'parametres' | 'conservation' | 'demo';
 
 const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   { cle: 'synthese',    pole: 'cockpit' },
   { cle: 'communes',    pole: 'terrain' },
   { cle: 'performance', pole: 'pilotage' },
   { cle: 'deploiement', pole: 'pilotage' },
+  // Les bilans WaPla étayés, additionnés par territoire (lot W5) : sans rang.
+  { cle: 'wapla',       pole: 'pilotage' },
   // Le jumeau numérique (lot S1) : un outil de la FNCT, pas une donnée nationale.
   // Les paramètres nationaux datés (lot 17.3) : redevance ANGeD, en-têtes.
   { cle: 'parametres',  pole: 'administration' },
@@ -323,6 +326,7 @@ export function TableauDeBordNational() {
       {onglet === 'performance' && <KpiNational onOuvrirCommune={setCommuneKpi} />}
       {onglet === 'demo' && <ModeDemo />}
       {onglet === 'parametres' && <ParametresNationaux />}
+      {onglet === 'wapla' && <AgregatsWapla />}
       {onglet === 'conservation' && <ConservationPhotos />}
 
       {onglet === 'deploiement' && (
