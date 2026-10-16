@@ -12,7 +12,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, useMap } from 'react-leaflet';
+import { FondsDeCarte } from '../carte/FondsDeCarte';
 import type { Layer, Map as CarteLeaflet } from 'leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -250,10 +251,7 @@ export function DecoupageCommunal({
             carteRef.current = c;
           }}
         >
-          <TileLayer
-            attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <FondsDeCarte />
           <EditeurFrontiere
             geometrie={geometrie}
             actif={edition}

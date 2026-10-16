@@ -7,7 +7,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapContainer, TileLayer, GeoJSON, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, GeoJSON, CircleMarker, useMap, useMapEvents } from 'react-leaflet';
+import { FondsDeCarte } from '../carte/FondsDeCarte';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { api, type CollectionFrontieres } from '../../lib/api';
@@ -56,7 +57,7 @@ export function ChoixPosition({
       <p className="text-xs text-ardoise-600">{t('ajout.position.aide')}</p>
       <div className="h-64 overflow-hidden rounded-xl border border-ardoise-200 sm:h-72">
         <MapContainer center={[34, 9.6]} zoom={7} scrollWheelZoom className="size-full cursor-crosshair">
-          <TileLayer attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <FondsDeCarte />
           <Cadrer frontiere={frontiere} />
           {frontiere && (
             <GeoJSON

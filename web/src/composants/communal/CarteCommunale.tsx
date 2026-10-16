@@ -15,7 +15,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapContainer, TileLayer, GeoJSON, CircleMarker, Popup, Tooltip } from 'react-leaflet';
+import { MapContainer, GeoJSON, CircleMarker, Popup, Tooltip } from 'react-leaflet';
+import { FondsDeCarte } from '../carte/FondsDeCarte';
 import 'leaflet/dist/leaflet.css';
 import { api, ErreurApi, type CollectionFrontieres } from '../../lib/api';
 import { useFormats } from '../../lib/formats';
@@ -264,10 +265,7 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
         <div className="flex flex-col gap-3 lg:flex-row">
         <div className="h-[60dvh] flex-1 overflow-hidden rounded-xl border border-ardoise-200">
           <MapContainer center={centre} zoom={13} scrollWheelZoom className="size-full">
-            <TileLayer
-              attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            <FondsDeCarte />
 
             {/* La limite communale est toujours dessinée : c'est le cadre de
                 lecture de tout le reste. Elle n'est pas une couche qu'on
@@ -460,7 +458,7 @@ export function CarteCommunale({ communeId }: { communeId: string }) {
                 attributionControl={false}
                 className="size-full"
               >
-                <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <FondsDeCarte choix={false} />
                 <GeoJSON
                   key="limite-seule"
                   data={frontiere as never}

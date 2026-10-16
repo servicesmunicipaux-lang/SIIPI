@@ -164,6 +164,63 @@ observatoireRouter.get(
   })
 );
 
+// GET /observatoire/carte-communes — la carte des communes (lot S0 : carte du
+// conseiller SIG, 16 octobre 2026).
+//
+// Les 350 communes réelles, leur contour simplifié et leur fiche : nom en
+// français et en arabe, gouvernorat, district, type, population (avec sa
+// provenance : une estimation ne se lit pas comme un recensement), superficie,
+// secteurs, code. La superficie est celle du contour officiel, calculée sur
+// l'ellipsoïde : la carte du conseiller donnait l'aire en projection Web
+// Mercator, gonflée de 39 % au sud à 58 % au nord, et des densités d'autant
+// trop basses. Gardée en mémoire tant que le découpage et ses districts ne
+// changent pas.
+let carteEnCache: { signature: string; geojson: unknown } | null = null;
+
+observatoireRouter.get(
+  '/carte-communes',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    const [sig] = await query<{ signature: string }>(
+      `SELECT (SELECT count(*) || '|' || COALESCE(max(updated_at)::text, '') || '|' || count(*) FILTER (WHERE deleted_at IS NOT NULL)
+                 FROM communes WHERE boundary_geom IS NOT NULL AND NOT est_demo)
+              || '|' || (SELECT count(*) || '|' || COALESCE(max(updated_at)::text, '') FROM gouvernorats_district) AS signature`
+    );
+    if (!carteEnCache || carteEnCache.signature !== sig.signature) {
+      const lignes = await query<{
+        id: string; nom: string; nom_ar: string | null; gouvernorat: string; district: string | null; type: string | null;
+        population: number | null; provenance: string | null; superficie_km2: string | null; secteurs: number | null;
+        code: number | null; geojson: string;
+      }>(
+        `SELECT c.id, c.name AS nom, c.name_ar AS nom_ar, c.gouvernorat, gd.district_code AS district, c.type_commune AS type,
+                -- La colonne vaut 0 par défaut (schéma d'origine) : 0 habitant est une
+                -- population jamais saisie, pas une commune vide (règle d'or 1.1).
+                NULLIF(c.population, 0) AS population,
+                CASE WHEN NULLIF(c.population, 0) IS NULL THEN NULL ELSE c.donnees_source END AS provenance,
+                round((ST_Area(c.boundary_geom::geography) / 1e6)::numeric, 2) AS superficie_km2,
+                c.nb_secteurs AS secteurs, c.code_municipalite AS code,
+                ST_AsGeoJSON(ST_SimplifyPreserveTopology(c.boundary_geom, 0.001), 5) AS geojson
+           FROM communes c
+           LEFT JOIN gouvernorats_district gd ON gd.gouvernorat = c.gouvernorat
+          WHERE c.boundary_geom IS NOT NULL AND NOT c.est_demo AND c.deleted_at IS NULL
+          ORDER BY c.gouvernorat, c.name`
+      );
+      carteEnCache = {
+        signature: sig.signature,
+        geojson: {
+          type: 'FeatureCollection',
+          features: lignes.map(({ geojson, superficie_km2, ...p }) => ({
+            type: 'Feature',
+            properties: { ...p, superficie_km2: superficie_km2 == null ? null : Number(superficie_km2) },
+            geometry: JSON.parse(geojson),
+          })),
+        },
+      };
+    }
+    res.json(carteEnCache.geojson);
+  })
+);
+
 // PATCH /observatoire/communes/:id/provenance — qualifier la provenance des
 // données d'une commune. Réservé à la FNCT : c'est elle qui atteste qu'une
 // valeur cesse d'être une estimation.

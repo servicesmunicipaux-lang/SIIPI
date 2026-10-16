@@ -9588,6 +9588,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/observatoire/carte-communes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La carte des communes (contours et fiches)
+         * @description Les communes réelles (ni la commune de démonstration, ni une commune retirée), leur contour officiel simplifié et leur fiche : noms FR/AR, gouvernorat, district FNCT, type, population et sa provenance, superficie calculée sur l’ellipsoïde à partir du contour, secteurs, code. Une valeur absente est null, jamais 0.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les communes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            type: "FeatureCollection";
+                            features: {
+                                /** @enum {string} */
+                                type: "Feature";
+                                properties: {
+                                    id: string;
+                                    nom: string;
+                                    nom_ar: string | null;
+                                    gouvernorat: string;
+                                    district: string | null;
+                                    type: string | null;
+                                    population: number | null;
+                                    /** @description Provenance de la population : estime, declare, mesure… */
+                                    provenance: string | null;
+                                    superficie_km2: number | null;
+                                    secteurs: number | null;
+                                    code: number | null;
+                                };
+                                geometry: {
+                                    [key: string]: unknown;
+                                };
+                            }[];
+                        };
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/observatoire/deploiement": {
         parameters: {
             query?: never;

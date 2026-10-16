@@ -5,6 +5,46 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.43] — 2026-10-16 — S0 : la carte du conseiller SIG
+
+Le dernier point de S0. Le conseiller SIG a livré une carte web (Leaflet) des 350 communes. SIIPI en reprend
+les usages, sur son propre référentiel : les contours du conseiller sont ceux de SIIPI, à 2 % près pour les 350
+communes.
+
+### Ajouté
+- **Un sélecteur de fonds pour toutes les cartes** (`web/src/composants/carte/FondsDeCarte.tsx`) : le plan
+  OpenStreetMap (par défaut) ou l'imagerie satellite d'Esri, avec leurs attributions. Les huit cartes de
+  SIIPI l'utilisent. L'aperçu de la limite communale et la carte de répartition, qui doivent rester lisibles,
+  gardent le plan seul. **Pas de tuiles Google** : appelées hors de leur API, elles enfreignent les conditions
+  de Google (feuille de route, S0) ; la carte du conseiller en chargeait. `npm run lint` le vérifie
+  (`scripts/verifier-fonds-de-carte.mjs`) : aucune adresse de tuiles hors de ce composant, aucune tuile Google.
+- **`GET /observatoire/carte-communes`** : les communes réelles (ni démonstration, ni commune retirée), leur
+  contour officiel simplifié (722 Ko, contre 8,6 Mo pour le fichier du conseiller) et leur fiche : noms FR/AR,
+  gouvernorat, district, type, population **avec sa provenance**, superficie **calculée sur l'ellipsoïde**
+  à partir du contour, secteurs, code. Une population jamais saisie (0 dans la colonne d'origine) sort `null`,
+  jamais 0. La réponse est gardée en mémoire tant que le découpage et ses districts ne changent pas.
+- **L'écran** *Observatoire → Carte des communes* : choix du fond, couche des communes affichable ou masquable,
+  filtre par gouvernorat, recherche « nom — gouvernorat » (deux Ennour, deux Ezzouhour), fiche de chaque
+  commune. Le total des habitants s'écrit avec sa provenance. FR/AR.
+- **Campagne `carte-communes`** : sans compte, refusé ; ni la commune de démonstration ni une commune retirée.
+  Un témoin recalcule sur la sphère l'aire de chaque contour rendu, et celle d'un carré connu : la superficie
+  s'accorde à 5 % (contour simplifié), ce qui écarte l'aire en Web Mercator (39 % de trop au moins). Absent :
+  `null`. Chaque commune réelle porte son district.
+- **Les écarts du fichier du conseiller**, constatés sans rien corriger (règle d'or 1.5), dans
+  `docs/specs_metier/sources/sig/` (rapport et CSV, 901 lignes) :
+  - ses superficies sont des aires en Web Mercator, 1,39 à 1,58 fois trop grandes, donc ses densités trop basses ;
+  - 5 gouvernorats sont orthographiés autrement ;
+  - 256 populations diffèrent (11 021 199 habitants chez lui contre 12 221 221 dans SIIPI, toutes estimées). La
+    source qui fait foi reste à trancher par la FNCT ;
+  - 189 noms français et 44 noms arabes diffèrent. Parmi ces derniers, le nom arabe de Tazarka dans SIIPI
+    (« تزغران ») paraît être celui de Tazghrane : c'est à vérifier par la FNCT.
+
+### Corrigé
+- Les contrôles `verifier-gouvernorats.mjs` et `districts` retiraient les commentaires en coupant à la
+  première paire `//` : une adresse (`https://…`) était coupée avec, et ce qu'elle contenait échappait au
+  contrôle. Ils ne retirent plus que les vrais commentaires. Les deux contrôles du front ont été éprouvés sur un
+  fichier fautif.
+
 ## [0.15.42] — 2026-10-16 — D-FNCT-4 : la campagne `purge-media` sur une base jetable
 
 D-FNCT-4 est reconfirmée le 16 octobre 2026. Les textes et métadonnées des réclamations sont conservés

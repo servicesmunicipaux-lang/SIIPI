@@ -13,7 +13,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { GeoJSON, MapContainer, TileLayer } from 'react-leaflet';
+import { GeoJSON, MapContainer } from 'react-leaflet';
+import { FondsDeCarte } from '../carte/FondsDeCarte';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -168,7 +169,7 @@ export function RepartitionIndicateur({ annee, onOuvrirCommune }: { annee: numbe
               <div className="h-[28rem] overflow-hidden rounded-xl border border-ardoise-200 bg-white">
                 {contours && cadre ? (
                   <MapContainer bounds={cadre} scrollWheelZoom={false} className="size-full">
-                    <TileLayer attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" opacity={0.4} />
+                    <FondsDeCarte choix={false} opacite={0.4} />
                     <GeoJSON
                       key={`${code}-${niveau}-${annee}-${districtDe.size}`}
                       data={contours as unknown as GeoJSON.GeoJsonObject}

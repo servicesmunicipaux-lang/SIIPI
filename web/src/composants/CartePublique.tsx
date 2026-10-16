@@ -11,7 +11,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapContainer, TileLayer, CircleMarker, Popup, GeoJSON, useMap } from 'react-leaflet';
+import { MapContainer, CircleMarker, Popup, GeoJSON, useMap } from 'react-leaflet';
+import { FondsDeCarte } from './carte/FondsDeCarte';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { api, ErreurApi, type LieuPublic, type PointCarte } from '../lib/api';
@@ -183,10 +184,7 @@ export function CartePublique({ communeId }: { communeId?: string }) {
           scrollWheelZoom={false}
           className="size-full"
         >
-          <TileLayer
-            attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <FondsDeCarte />
           <CadrerSurCommune limite={limite} />
           {limite && (
             <GeoJSON

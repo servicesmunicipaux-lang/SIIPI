@@ -10,7 +10,8 @@
 
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MapContainer, TileLayer, Polyline, CircleMarker, Tooltip, Popup, useMap } from 'react-leaflet';
+import { MapContainer, Polyline, CircleMarker, Tooltip, Popup, useMap } from 'react-leaflet';
+import { FondsDeCarte } from '../carte/FondsDeCarte';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { PointCollecte } from '../../lib/api';
@@ -109,10 +110,7 @@ export function CircuitCarte({
         scrollWheelZoom={false}
         className="size-full"
       >
-        <TileLayer
-          attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <FondsDeCarte />
         <Cadrer points={visibles} trace={tracePoints} />
 
         {/* Le tracé relevé, en fond et en gris : c'est un repère, pas une

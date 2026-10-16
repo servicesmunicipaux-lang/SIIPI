@@ -13,6 +13,7 @@ import { ModeDemo } from '../composants/national/ModeDemo';
 import { ConservationPhotos } from '../composants/national/ConservationPhotos';
 import { ParametresNationaux } from '../composants/national/ParametresNationaux';
 import { AgregatsWapla } from '../composants/national/AgregatsWapla';
+import { CarteCommunes } from '../composants/national/CarteCommunes';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 import {
@@ -83,11 +84,13 @@ function sansAccent(texte: string): string {
 // performance, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
 // bas. Même défaut que les dix-sept onglets du portail communal — ce qu'on ne
 // voit pas, on ne sait pas que ça existe — et même remède : la barre latérale.
-type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'wapla' | 'parametres' | 'conservation' | 'demo';
+type OngletNational = 'synthese' | 'communes' | 'carte' | 'performance' | 'deploiement' | 'wapla' | 'parametres' | 'conservation' | 'demo';
 
 const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   { cle: 'synthese',    pole: 'cockpit' },
   { cle: 'communes',    pole: 'terrain' },
+  // La carte des communes (lot S0 : carte du conseiller SIG) : fonds, gouvernorat, recherche, fiche.
+  { cle: 'carte',       pole: 'terrain' },
   { cle: 'performance', pole: 'pilotage' },
   { cle: 'deploiement', pole: 'pilotage' },
   // Les bilans WaPla étayés, additionnés par territoire (lot W5) : sans rang.
@@ -327,6 +330,7 @@ export function TableauDeBordNational() {
       {onglet === 'demo' && <ModeDemo />}
       {onglet === 'parametres' && <ParametresNationaux />}
       {onglet === 'wapla' && <AgregatsWapla />}
+      {onglet === 'carte' && <CarteCommunes />}
       {onglet === 'conservation' && <ConservationPhotos />}
 
       {onglet === 'deploiement' && (
