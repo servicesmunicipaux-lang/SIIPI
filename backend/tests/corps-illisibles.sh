@@ -4,7 +4,7 @@
 #
 # Un JSON mal formé, un corps trop gros, un jeu de caractères ou une
 # compression que l'API ne lit pas : c'est la requête qui est en faute. Jusqu'à
-# la v0.15.49 l'API répondait « Erreur interne du serveur » (500) — le client
+# la v0.15.48 l'API répondait « Erreur interne du serveur » (500) — le client
 # croyait à une panne et réessayait, et le journal se remplissait de fausses
 # erreurs internes. Elle répond désormais 400, 413 ou 415, en disant quoi
 # corriger.

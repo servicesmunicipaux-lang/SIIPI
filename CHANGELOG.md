@@ -5,6 +5,41 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.50] — 2026-10-16 — JC-009 : la campagne `citoyen` ne touche à aucune commune réelle
+
+### Corrigé
+- **JC-009** (`docs/recette/JOURNAL_DES_CORRECTIONS.md`). La campagne `citoyen` posait ses secteurs, ses
+  circuits, ses annonces et son signalement d'essai dans Houmt Souk, commune réelle, avec les comptes de
+  démonstration de la commune.
+  - **Constat plus grave en la corrigeant** : un secteur posé par la FNCT passe par une correction directe du
+    découpage, qui fige l'état présent en « version 1 » quand la commune n'en a aucune. La campagne effaçait en
+    partant les versions qui citaient ses secteurs, pas cette version 1. Chaque base où `npm test` a tourné
+    garde donc, dans l'historique du découpage de Houmt Souk, une version 1 validée qui annonce une première
+    modification qui n'a jamais eu lieu. Reproduit sur la pile d'essai ; la base du dossier principal n'en
+    porte aucune.
+  - **Elle n'est pas la seule** : dans un `npm test` complet, `suppression` fige déjà cette version 1 (à Houmt
+    Souk et à Midoun), et `decoupage` laisse à Midoun une version 2 « Périmètre corrigé directement par la
+    FNCT ». Consigné en **JC-010, ouverte** : cette correction-ci ne suffit pas, à elle seule, à empêcher une
+    version fantôme de naître pendant `npm test`.
+  - La campagne travaille désormais dans sa commune de test (`test_citoyen`), avec un directeur temporaire. Les
+    comptes de démonstration n'y servent plus qu'à des refus, sans rien écrire.
+  - Son nettoyage est borné à sa commune de test : une ligne égarée dans une commune réelle y reste, et les
+    contrôles la voient.
+  - Une version 1 déjà laissée par un passage antérieur n'est pas retirée : sur une base réelle, c'est une
+    décision de la FNCT (le journal dit comment la reconnaître).
+
+### Ajouté
+- **Onze contrôles dans la campagne `citoyen`** :
+  - la commune de test porte bien les lignes de la campagne (2 annonces, 2 secteurs, 2 circuits, 1
+    signalement, des versions) ;
+  - pendant que la campagne a ses lignes en base, puis en partant : aucune **annonce**, aucun **secteur**,
+    aucun **circuit**, aucune **version de découpage** ni aucun **signalement** ajouté, modifié ou retiré hors
+    de sa commune de test (empreinte de chaque table prise avant le premier geste).
+- **Éprouvé par trois mutants**, qui refont dans Houmt Souk un geste de l'ancienne campagne :
+  - une annonce : 2 contrôles échouent (les annonces, pendant et en partant) ;
+  - un secteur : 4 (les secteurs et les versions du découpage) ;
+  - un circuit : 2 (les circuits).
+
 ## [0.15.49] — 2026-10-16 — JC-006 : un corps illisible reçoit 400, jamais 500
 
 ### Corrigé
