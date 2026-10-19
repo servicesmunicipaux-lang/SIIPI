@@ -54,20 +54,24 @@ acces() {
 ACCES_AVANT=$(acces)
 directeur_temporaire "$COMMUNE"
 
-# Le prestataire de démonstration n'est rattaché que le temps de la campagne,
-# et seulement si le rattachement n'existait pas : on ne retire en partant que
-# ce que la campagne a posé.
-PREST_EMAIL=$(sql "SELECT email FROM users WHERE role='gestionnaire_prestataire' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
+# Le prestataire n'est rattaché que le temps de la campagne : on ne retire en
+# partant que ce que la campagne a posé.
+# Un prestataire temporaire, rattaché à la commune éprouvée le temps de la
+# campagne (JC-011) : la campagne empruntait le premier prestataire de la base.
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+compte_temporaire gestionnaire_prestataire "$COMMUNE" "Prestataire de la campagne module2"
+PREST_EMAIL=$COMPTE_EMAIL; PREST_MDP=$COMPTE_MDP
 PREST_ID=$(sql "SELECT id FROM users WHERE email='$PREST_EMAIL'")
 PREST_RATTACHE=$($PSQL -c "INSERT INTO utilisateur_communes (user_id, commune_id) VALUES ('$PREST_ID','$COMMUNE') ON CONFLICT DO NOTHING RETURNING 1;" 2>/dev/null | head -1)
 fin() {
   [ "${PREST_RATTACHE:-}" = 1 ] && $PSQL -c "DELETE FROM utilisateur_communes WHERE user_id='$PREST_ID' AND commune_id='$COMMUNE';" >/dev/null 2>&1
   retirer_directeur_temporaire
+  retirer_comptes_temporaires
 }
 trap fin EXIT
 
 T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
-T_PREST=$(tok "$PREST_EMAIL")
+T_PREST=$(tok "$PREST_EMAIL" "$PREST_MDP")
 [ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
 nettoyer() {

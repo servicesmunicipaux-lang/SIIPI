@@ -45,6 +45,14 @@ compte_temporaire() {  # $1 = rôle, $2 = commune (ou vide pour la FNCT), $3 = l
   COMPTES_TEMPORAIRES="$COMPTES_TEMPORAIRES '$COMPTE_EMAIL'"
 }
 
+# Ajoute une commande à ce que la campagne fait déjà en sortant, APRÈS elle : les
+# lignes qu'un compte a posées s'effacent avant le compte qui les tient.
+ajouter_a_la_sortie() {  # $1 = commande
+  local actuel
+  actuel=$(trap -p EXIT | sed -E "s/^trap -- '(.*)' EXIT$/\1/")
+  trap "${actuel:+$actuel; }$1" EXIT
+}
+
 retirer_comptes_temporaires() {
   [ -n "$COMPTES_TEMPORAIRES" ] && $PSQL -c "DELETE FROM users WHERE email IN ($(echo $COMPTES_TEMPORAIRES | tr ' ' ','));" >/dev/null 2>&1
   return 0

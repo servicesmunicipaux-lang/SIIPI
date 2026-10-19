@@ -19,6 +19,13 @@
 # Données fictives : une commune de test, effacée en partant ; le paramètre
 # national est rétabli dans l'état trouvé.
 #
+# ELLE N'EMPRUNTE AUCUN COMPTE (JC-011). Jusqu'à la v0.15.53, elle prenait « le
+# premier directeur rattaché à une commune » de la base — sur la pile d'essai,
+# un compte de démonstration ; sur une base réelle, le plus ancien directeur
+# réel — et le rattachait le temps de la campagne à sa commune de test ; son
+# « autre directeur » était emprunté de même. Ce sont désormais des directeurs
+# temporaires (tests/outils/comptes_temporaires.sh), effacés en partant.
+#
 #   docker compose exec -T api npm run test:acteurs-informels
 # =============================================================================
 
@@ -48,7 +55,14 @@ appel() { # méthode chemin jeton [corps] -> code HTTP, corps dans $T/r.json
 
 T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-DIR_A=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire AND commune_id IS NOT NULL ORDER BY created_at LIMIT 1")
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+releve_base_reelle
+trap retirer_comptes_temporaires EXIT
+# Un directeur temporaire, sans commune principale : la campagne le rattache,
+# comme avant, à sa commune de test.
+compte_temporaire admin_commune "" "Directeur A de la campagne"
+DIR_A=$COMPTE_EMAIL; MDP_A=$COMPTE_MDP
 ID_A=$(sql "SELECT id FROM users WHERE email='$DIR_A'")
 TC=test_acteurs_181
 
@@ -68,9 +82,12 @@ nettoyer
 $PSQL -c "UPDATE parametres_nationaux SET valeur='false', reference=NULL WHERE cle='cadre_secteur_informel_actif';
           INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$TC', 'TEST acteurs informels', 'TEST', 'TEST', 8000);
           INSERT INTO utilisateur_communes (user_id, commune_id) VALUES ('$ID_A', '$TC');" >/dev/null
-T_A=$(tok "$DIR_A")
-DIR_B=$(sql "SELECT u.email FROM users u WHERE u.role='admin_commune' AND u.deleted_at IS NULL AND u.is_active AND NOT u.mot_de_passe_provisoire AND u.email <> '$DIR_A' AND u.commune_id <> '$TC' AND NOT EXISTS (SELECT 1 FROM utilisateur_communes x WHERE x.user_id = u.id AND x.commune_id = '$TC') ORDER BY u.created_at LIMIT 1")
-T_B=$(tok "$DIR_B")
+T_A=$(tok "$DIR_A" "$MDP_A")
+# L'autre directeur est un directeur temporaire, sans commune principale ni
+# rattachement à la commune de test.
+compte_temporaire admin_commune "" "Directeur B de la campagne"
+DIR_B=$COMPTE_EMAIL; MDP_B=$COMPTE_MDP
+T_B=$(tok "$DIR_B" "$MDP_B")
 [ -n "$T_B" ] || { echo "Il faut un second admin communal hors de la commune de test." >&2; retablir; nettoyer; exit 1; }
 J=$(sql "SELECT (now() AT TIME ZONE 'Africa/Tunis')::date")
 jour() { sql "SELECT ((now() AT TIME ZONE 'Africa/Tunis')::date + $1)::text"; }
@@ -264,6 +281,10 @@ chk "la commune de test, ses acteurs et leurs démarches sont retirés" "0|0|0" 
     "$(sql "SELECT (SELECT count(*) FROM communes WHERE id='$TC')||'|'||(SELECT count(*) FROM barbechas WHERE commune_id='$TC' OR id_precollecteur LIKE 'TEST-ACT-%')||'|'||(SELECT count(*) FROM demarches_formalisation WHERE commune_id='$TC')")"
 chk "le cadre est rendu dans l'état trouvé" "$CADRE_AVANT" \
     "$($PSQL -c "SELECT valeur||'|'||COALESCE(reference,'') FROM parametres_nationaux WHERE cle='cadre_secteur_informel_actif'")"
+
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
 
 echo
 if [ "$fail" -eq 0 ]; then

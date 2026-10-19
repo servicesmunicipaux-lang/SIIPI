@@ -29,6 +29,23 @@ if [ ! -f "$fichier" ]; then
   exit 2
 fi
 
+# --- Aucun compte emprunté (JC-011) ------------------------------------------
+#
+# Vingt-sept campagnes prenaient « le premier » compte d'un rôle — le premier
+# directeur, le premier prestataire, le premier agent de la FNCT de la base —
+# et écrivaient avec lui : sur la pile d'essai, un compte de démonstration ; sur
+# une base réelle, le plus ancien compte réel, dans sa propre commune. Une
+# campagne bâtit ses comptes (tests/outils/comptes_temporaires.sh) ; celle qui
+# contient encore ce choix ne tourne pas. Les commentaires ne comptent pas :
+# l'en-tête d'une campagne peut raconter ce qu'elle faisait.
+emprunts=$(grep -nE "FROM users( [a-z]+)? WHERE ([a-z]+\.)?role ?= ?'[a-z_]+'.*LIMIT 1" "$fichier" | grep -vE '^[0-9]+:[[:space:]]*#')
+if [ -n "$emprunts" ]; then
+  echo "[tests] $campagne emprunte « le premier » compte d'un rôle de la base (JC-011) :" >&2
+  echo "$emprunts" | cut -c1-160 >&2
+  echo "[tests] Créez un compte temporaire (tests/outils/comptes_temporaires.sh), dans une commune de test." >&2
+  exit 4
+fi
+
 manquants=''
 command -v bash   >/dev/null 2>&1 || manquants="$manquants bash"
 command -v psql   >/dev/null 2>&1 || manquants="$manquants postgresql-client"

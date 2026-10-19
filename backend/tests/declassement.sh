@@ -19,6 +19,13 @@
 # passées, elles donnent les mêmes chiffres quel que soit le jour du passage.
 # La campagne travaille dans deux communes de test qu'elle crée et efface.
 #
+# ELLE N'EMPRUNTE AUCUN COMPTE (JC-011). Jusqu'à la v0.15.53, elle prenait « le
+# premier directeur rattaché à une commune » de la base — sur la pile d'essai,
+# un compte de démonstration ; sur une base réelle, le plus ancien directeur
+# réel — et le rattachait le temps de la campagne à sa commune de test ; son
+# « autre directeur » était emprunté de même. Ce sont désormais des directeurs
+# temporaires (tests/outils/comptes_temporaires.sh), effacés en partant.
+#
 #   docker compose exec -T api npm run test:declassement
 # =============================================================================
 
@@ -51,7 +58,14 @@ appel() { # méthode chemin jeton [corps] -> code HTTP, corps dans $T/r.json
 
 T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-DIR_A=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire AND commune_id IS NOT NULL ORDER BY created_at LIMIT 1")
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+releve_base_reelle
+trap retirer_comptes_temporaires EXIT
+# Un directeur temporaire, sans commune principale : la campagne le rattache,
+# comme avant, à sa commune de test.
+compte_temporaire admin_commune "" "Directeur A de la campagne"
+DIR_A=$COMPTE_EMAIL; MDP_A=$COMPTE_MDP
 ID_A=$(sql "SELECT id FROM users WHERE email='$DIR_A'")
 TC=test_declassement_164      # la commune de test, rattachée à l'admin
 TX=test_declassement_164_x    # une autre commune, que l'admin ne voit pas
@@ -79,7 +93,7 @@ $PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALU
             ('test-164-v5', 'TEST 164 005', '$TC', 'camion', 'poids_lourd', 30000, '2000-01-01', 'reforme'),
             ('test-164-v6', 'TEST 164 006', '$TC', 'camion', 'poids_lourd', 100000, '2020-01-01', 'en_service'),
             ('test-164-vx', 'TEST 164 099', '$TX', 'camion', 'poids_lourd', 40000, '2012-01-01', 'en_service');" >/dev/null
-T_A=$(tok "$DIR_A")
+T_A=$(tok "$DIR_A" "$MDP_A")
 Q="?communeId=$TC"
 constat() { # annee -> réponse dans $T/r.json
   appel GET "/declassement/constat$Q&annee=$1" "$T_A"
@@ -301,6 +315,10 @@ chk "… et absent de la liste de l'admin" 0 "$(appel GET "/declassement/dossier
 nettoyer
 chk "les communes de test et leurs dossiers sont retirés" "0|0" \
     "$(sql "SELECT (SELECT count(*) FROM communes WHERE id IN ('$TC','$TX'))||'|'||(SELECT count(*) FROM dossiers_declassement WHERE commune_id IN ('$TC','$TX'))")"
+
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
 
 echo
 if [ "$fail" -eq 0 ]; then

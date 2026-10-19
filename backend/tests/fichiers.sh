@@ -219,11 +219,17 @@ chk "un identifiant mal formé rend 400, pas 500" 400 \
 
 # Un administrateur d'une autre commune, en lecture seulement. S'il n'y en a
 # pas, le contrôle ÉCHOUE : une campagne ne saute pas un contrôle en silence.
-AUTRE_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id <> '$COMMUNE_DIR' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_AUTRE=$([ -n "$AUTRE_EMAIL" ] && tok "$AUTRE_EMAIL")
+# Il est temporaire, dans une seconde commune de test (JC-011) : la campagne
+# empruntait le premier directeur d'une autre commune.
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+commune_essai "${TC}_b" "TEST autre commune des fichiers"
+compte_temporaire admin_commune "${TC}_b" "Directeur de l'autre commune"
+ajouter_a_la_sortie "retirer_comptes_temporaires; effacer_communes_essai \"'${TC}_b'\""
+T_AUTRE=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
 # INTROUVABLE et non « refusé » : un refus renseignerait sur son existence.
 chk "l'administrateur d'une autre commune ne la trouve pas" 404 \
-    "$([ -n "$T_AUTRE" ] && code -H "Authorization: Bearer $T_AUTRE" "$API/fichiers/$FICHIER" || echo "aucun administrateur d'une autre commune")"
+    "$(code -H "Authorization: Bearer $T_AUTRE" "$API/fichiers/$FICHIER")"
 
 # -----------------------------------------------------------------------------
 echo

@@ -293,12 +293,22 @@ chk "les vues nationales et les alertes sont à la FNCT" "403|403" \
     "$(req GET "/kpi/national?annee=$AN")|$(req GET "/kpi/alertes?annee=$AN")"
 chk "la FNCT ouvre les indicateurs et les déclarations de n'importe quelle commune (A2.3)" "200|200" \
     "$(req GET "/kpi/5-axes?communeId=$TC&annee=$AN" "" "$T_FNCT")|$(req GET "$DECL" "" "$T_FNCT")"
-PREST=$(tok "$(sql "SELECT email FROM users WHERE role='gestionnaire_prestataire' AND deleted_at IS NULL AND is_active ORDER BY created_at LIMIT 1")")
-if [ -n "$PREST" ]; then
-  chk "le prestataire a son tableau restreint, sur ses seules lignes (B7.4)" "200|1" \
-      "$(req GET /kpi/prestataire "" "$PREST")|$(val "1 if all(l['prestataire_id']=='$(sql "SELECT id FROM users WHERE role='gestionnaire_prestataire' AND deleted_at IS NULL AND is_active ORDER BY created_at LIMIT 1")' for l in d['lignes']) else 0")"
-  chk "et rien des indicateurs de la commune" 403 "$(req GET "/kpi/5-axes?communeId=$TC" "" "$PREST")"
-fi
+# Un prestataire temporaire de la commune de test (JC-011) : la campagne
+# empruntait le premier prestataire de la base, et sautait ce contrôle sans lui.
+. tests/outils/comptes_temporaires.sh
+compte_temporaire gestionnaire_prestataire "$TC" "Prestataire des indicateurs"
+PREST=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); PREST_ID=$COMPTE_ID
+compte_temporaire gestionnaire_prestataire "$TC" "Autre prestataire des indicateurs"; AUTRE_PREST_ID=$COMPTE_ID
+# Un circuit confié à chacun : sans ligne à lui, « ses seules lignes » se
+# vérifierait sur une liste vide, donc sur rien.
+$PSQL -c "INSERT INTO circuits (commune_id, nom, prestataire_id) VALUES
+            ('$TC', 'TEST circuit du prestataire', '$PREST_ID'),
+            ('$TC', 'TEST circuit de l''autre prestataire', '$AUTRE_PREST_ID');" >/dev/null
+ajouter_a_la_sortie "\$PSQL -c \"DELETE FROM circuits WHERE commune_id = '$TC' AND nom LIKE 'TEST circuit %prestataire';\" >/dev/null 2>&1; retirer_comptes_temporaires"
+chk "le prestataire temporaire se connecte" t "$([ -n "$PREST" ] && echo t || echo f)"
+chk "le prestataire a son tableau restreint : sa ligne, aucune de l'autre prestataire (B7.4)" "200|1|0" \
+    "$(req GET /kpi/prestataire "" "$PREST")|$(val "sum(1 for l in d['lignes'] if l['prestataire_id']=='$PREST_ID')")|$(val "sum(1 for l in d['lignes'] if l['prestataire_id']!='$PREST_ID')")"
+chk "et rien des indicateurs de la commune" 403 "$(req GET "/kpi/5-axes?communeId=$TC" "" "$PREST")"
 
 # -----------------------------------------------------------------------------
 echo
