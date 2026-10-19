@@ -59,6 +59,12 @@ T_FNCT=$(tok admin.national@siipi.tn)
 . "$(dirname "$0")/outils/base_reelle.sh"
 releve_base_reelle
 trap retirer_comptes_temporaires EXIT
+# Le cadre du secteur informel est mis en vigueur pendant la campagne. La campagne rend la
+# valeur ; la ligne entière, date et auteur compris, est gardée ici et rendue en
+# partant (JC-013, tests/outils/tables_nationales.sh).
+. "$(dirname "$0")/outils/tables_nationales.sh"
+garder_tables_nationales parametres_nationaux
+rendre_tables_nationales_en_sortie
 # Un directeur temporaire, sans commune principale : la campagne le rattache,
 # comme avant, à sa commune de test.
 compte_temporaire admin_commune "" "Directeur A de la campagne"
@@ -285,6 +291,11 @@ chk "le cadre est rendu dans l'état trouvé" "$CADRE_AVANT" \
 echo
 echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
 base_reelle_intacte "pendant la campagne"
+
+echo
+echo "Les tables nationales rendues ligne pour ligne, dates comprises (JC-013)"
+rendre_tables_nationales
+tables_nationales_rendues "en partant"
 
 echo
 if [ "$fail" -eq 0 ]; then

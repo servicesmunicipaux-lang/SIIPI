@@ -72,6 +72,11 @@ fin() {
   $PSQL -c "DELETE FROM communes WHERE id = '$TC';" >/dev/null 2>&1
   rm -rf "$T"
 }
+# Le seuil de résolution est réglé par la FNCT pendant la campagne. La campagne rend la
+# valeur ; la ligne entière, date et auteur compris, est gardée ici et rendue en
+# partant (JC-013, tests/outils/tables_nationales.sh).
+. "$(dirname "$0")/outils/tables_nationales.sh"
+garder_tables_nationales parametres_kpi districts_fnct gouvernorats_district
 nettoyer
 $PSQL -c "DELETE FROM communes WHERE id = '$TC';" >/dev/null 2>&1
 $PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$TC', 'TEST commune des indicateurs', 'TEST', 'TEST', 10000);" >/dev/null
@@ -305,6 +310,7 @@ $PSQL -c "INSERT INTO circuits (commune_id, nom, prestataire_id) VALUES
             ('$TC', 'TEST circuit du prestataire', '$PREST_ID'),
             ('$TC', 'TEST circuit de l''autre prestataire', '$AUTRE_PREST_ID');" >/dev/null
 ajouter_a_la_sortie "\$PSQL -c \"DELETE FROM circuits WHERE commune_id = '$TC' AND nom LIKE 'TEST circuit %prestataire';\" >/dev/null 2>&1; retirer_comptes_temporaires"
+rendre_tables_nationales_en_sortie
 chk "le prestataire temporaire se connecte" t "$([ -n "$PREST" ] && echo t || echo f)"
 chk "le prestataire a son tableau restreint : sa ligne, aucune de l'autre prestataire (B7.4)" "200|1|0" \
     "$(req GET /kpi/prestataire "" "$PREST")|$(val "sum(1 for l in d['lignes'] if l['prestataire_id']=='$PREST_ID')")|$(val "sum(1 for l in d['lignes'] if l['prestataire_id']!='$PREST_ID')")"
@@ -321,6 +327,11 @@ chk "plus aucun « concours » dans le code de l'API, ses migrations nouvelles e
 chk "ni dans le contrat d'API servi" 0 "$(curl -s "$API/openapi.json" | grep -ci concours)"
 chk "le catalogue ne connaît plus que des indicateurs, sans points" "dma,donnee,indicateur|0" \
     "$(req GET /kpi/indicateurs >/dev/null; val "','.join(sorted({i['famille'] for i in d['indicateurs']}))")|$(val "sum(1 for i in d['indicateurs'] if 'points' in i)")"
+
+echo
+echo "Les tables nationales rendues ligne pour ligne, dates comprises (JC-013)"
+rendre_tables_nationales
+tables_nationales_rendues "en partant"
 
 echo
 echo "----------------------------------------------------------------"

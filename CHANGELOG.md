@@ -5,6 +5,23 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.56] — 2026-10-19 — JC-013 : les tables nationales rendues ligne entière, dates comprises
+
+### Corrigé
+- **JC-013 : des campagnes rendaient la valeur, pas la date.** Mesuré sur la v0.15.55, chaque campagne entre deux
+  empreintes de la base, dates comprises : celles qui travaillaient dans des communes réelles en sont sorties aux
+  lots A à C ; il en restait six, toutes sur une table nationale. `kpi-5-axes` (`parametres_kpi`), `barbechas` et
+  `acteurs-informels` (`parametres_nationaux`), `wapla-bilans` et `wapla-scenarios` (`wapla.reglages`),
+  `districts` (`districts_fnct`, `gouvernorats_district`) rendaient la valeur trouvée. La date restait celle des
+  campagnes, et l'auteur, le compte temporaire de la FNCT, était vide une fois ce compte effacé.
+
+### Ajouté
+- `tests/outils/tables_nationales.sh` : les lignes entières d'une table nationale, gardées avant le premier geste
+  et rendues en partant par leur clé primaire. Une ligne ajoutée est retirée, une ligne retirée revient, chaque
+  colonne reprend sa valeur. Le retour se fait une dernière fois après tout ce que la campagne fait déjà en
+  sortant. Un contrôle « en partant » dans les six campagnes compare chaque table, ligne pour ligne. Éprouvé par
+  trois mutants privés du retour : chacun échoue en nommant ses tables.
+
 ## [0.15.55] — 2026-10-19 — JC-014 (lot C) : plus aucune campagne n'écrit dans une commune réelle avec un compte de démonstration
 
 ### Corrigé

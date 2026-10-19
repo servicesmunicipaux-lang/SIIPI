@@ -78,6 +78,12 @@ T_DIR=$(tok directeur.marsa@siipi.tn)
 T_CIT=$(tok citoyen.demo@siipi.tn)
 [ -n "$T_FNCT" ] && [ -n "$T_DIR" ] && [ -n "$T_CIT" ] || { echo "API injoignable sur $API, ou compte d'essai absent" >&2; exit 1; }
 
+# Les districts sont redéfinis par la FNCT pendant la campagne, puis recréés. La campagne rend la
+# valeur ; la ligne entière, date et auteur compris, est gardée ici et rendue en
+# partant (JC-013, tests/outils/tables_nationales.sh).
+. "$(dirname "$0")/outils/tables_nationales.sh"
+garder_tables_nationales districts_fnct gouvernorats_district
+
 # Le relevé du découpage en entrant, et son rétablissement en partant.
 req GET /kpi/districts >/dev/null
 cp "$T/r.json" "$T/releve.json"
@@ -97,6 +103,7 @@ PYEOF
 }
 fin() { retablir; rm -rf "$T"; }
 trap fin EXIT
+rendre_tables_nationales_en_sortie
 
 # -----------------------------------------------------------------------------
 echo
@@ -206,6 +213,11 @@ print(' '.join(trouves))
 PYEOF
 )"
 chk "… et la recherche a bien lu le code : elle trouve « Africa/Tunis », qui n'est pas un gouvernorat" t     "$(grep -rqF "'Africa/Tunis'" src && echo t || echo f)"
+
+echo
+echo "Les tables nationales rendues ligne pour ligne, dates comprises (JC-013)"
+rendre_tables_nationales
+tables_nationales_rendues "en partant"
 
 echo
 echo "----------------------------------------------------------------"

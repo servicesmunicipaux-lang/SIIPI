@@ -65,11 +65,17 @@ fin() {
   $PSQL -c "DELETE FROM audit_log WHERE commune_id = '$TC';" -c "DELETE FROM communes WHERE id = '$TC';" >/dev/null 2>&1
   rm -rf "$T"
 }
+# Le seuil des valeurs par défaut est réglé par la FNCT pendant la campagne. La campagne rend la
+# valeur ; la ligne entière, date et auteur compris, est gardée ici et rendue en
+# partant (JC-013, tests/outils/tables_nationales.sh).
+. "$(dirname "$0")/outils/tables_nationales.sh"
+garder_tables_nationales wapla.reglages
 nettoyer
 $PSQL -c "DELETE FROM communes WHERE id = '$TC';" >/dev/null 2>&1
 $PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$TC', 'TEST commune scénarios WaPla', 'TEST', '$GV', 0);" >/dev/null
 directeur_temporaire "$TC"
 trap fin EXIT
+rendre_tables_nationales_en_sortie
 T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
 T_FNCT=$(tok admin.national@siipi.tn)
 T_PREST=$(tok prestataire.marsa@siipi.tn)
@@ -231,6 +237,11 @@ chk "le bilan 2024 est illustratif" illustratif "$(val "d['niveau']")"
 chk "la commune y crée un scénario ; la FNCT ne le voit pas (404), ni dans la liste" "201|404|404" \
     "$(req POST "/wapla/bilans/$B24/scenarios" '{"nom":"TEST illustratif"}')|$(req GET "$S/$(val "d['id']")" "" "$T_FNCT")|$(req GET "/wapla/bilans/$B24/scenarios" "" "$T_FNCT")"
 chk "rien de ce que la commune a fait dans la couche ne compte comme saisie dans SIIPI" "$SAISIES_AVANT" "$(sql "$SAISIES")"
+
+echo
+echo "Les tables nationales rendues ligne pour ligne, dates comprises (JC-013)"
+rendre_tables_nationales
+tables_nationales_rendues "en partant"
 
 echo
 echo "----------------------------------------------------------------"
