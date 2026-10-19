@@ -5,6 +5,43 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.51] — 2026-10-19 — JC-010 : plus aucune version fantôme du découpage pendant les campagnes
+
+### Corrigé
+- **JC-010** (`docs/recette/JOURNAL_DES_CORRECTIONS.md`). Toute correction directe de la FNCT (un secteur
+  posé ou retiré, une limite redessinée) fige l'état présent en « version 1 » du découpage, puis inscrit la
+  correction en version suivante. Deux campagnes faisaient ce geste dans des communes réelles :
+  - `suppression` posait et retirait ses secteurs dans Houmt Souk et Midoun. Elle y laissait une version 1
+    « initiale », et un « Secteur temporaire » supprimé de plus à chaque passage, visible dans la liste de ce
+    que ces communes ont retiré ;
+  - `decoupage` corrigeait la limite de Midoun, puis rejouait l'import officiel. La limite revenait, mais une
+    version 2 « Périmètre corrigé directement par la FNCT » restait dans l'historique de Midoun.
+- `suppression` travaille désormais dans deux communes de test, chacune avec son directeur temporaire.
+- `decoupage` lit toujours le référentiel réel. Toutes ses écritures de limite se font sur une commune de test
+  qui porte une copie de la limite de Midoun, avec un directeur temporaire. Elle n'a plus à rejouer l'import
+  officiel pour rendre Midoun (JC-007) : Midoun n'est plus touchée.
+
+### Ajouté
+- **`tests/outils/communes_reelles.sh`** relève, hors des communes de test, les secteurs (retirés compris),
+  les versions du découpage et la limite de chaque commune (tracé, provenance, superficie, date). Il les
+  compare pendant que la campagne a ses lignes en base, puis en partant. Ce sont six contrôles dans
+  `suppression` et six dans `decoupage`, plus, dans chacune, un contrôle que la commune de test porte bien les
+  gestes de la campagne.
+- **Éprouvé par deux mutants**, qui refont l'ancien geste dans une commune réelle :
+  - un secteur posé par la FNCT à Houmt Souk : 4 contrôles de `suppression` échouent (secteurs et versions,
+    pendant et en partant) ;
+  - la limite de Midoun corrigée par la FNCT : 5 contrôles de `decoupage` échouent (versions et limites,
+    pendant et en partant, et la limite officielle de Midoun).
+- **Inventaire des versions fantômes**, en lecture seule. L'heure qui fait foi est l'insertion de la version au
+  journal d'audit ; la signature est un geste d'essai à 60 s près dans la même commune. Résultat :
+  - la base du dossier principal ne porte aucune version ;
+  - la pile d'essai en porte trois, toutes fantômes ;
+  - l'ancien volume `nacer_siipi_postgres_data`, arrêté à la migration 012, n'a pas d'historique du
+    découpage. Il a été inspecté sur une copie, retirée ensuite.
+
+  Le retrait des versions déjà laissées reste une décision de la FNCT.
+- `CLAUDE.md` § 7 : une correction de la FNCT, dans une campagne, se fait dans une commune de test.
+
 ## [0.15.50] — 2026-10-16 — JC-009 : la campagne `citoyen` ne touche à aucune commune réelle
 
 ### Corrigé

@@ -13,6 +13,18 @@
 #
 #   docker compose run --rm api npm run test:decoupage
 #
+# ELLE NE REDESSINE AUCUNE LIMITE RÉELLE (JC-010). Jusqu'à la v0.15.50, elle
+# corrigeait la limite de Midoun avec le compte de la FNCT, puis rejouait
+# l'import officiel pour la rendre (JC-007) : la limite revenait, mais
+# l'historique du découpage de Midoun gardait une version 1 « initiale » et une
+# version 2 « Périmètre corrigé directement par la FNCT » qui n'avaient jamais
+# eu lieu. Les lectures (sections 1 et 2, 7) portent toujours sur le
+# référentiel réel ; tout ce qui écrit une limite (sections 3 à 6) se fait sur
+# une commune de test qui porte une copie de la limite de Midoun, avec un
+# directeur temporaire. Elle prouve, pendant qu'elle a sa commune de test puis
+# en la retirant, que le découpage des communes réelles n'a pas bougé
+# (tests/outils/communes_reelles.sh).
+#
 # Note : l'API limite les connexions à 20 par quart d'heure et par adresse IP.
 # Pour enchaîner les campagnes, démarrer l'API avec AUTH_RATE_LIMIT_MAX=200.
 # =============================================================================
@@ -24,7 +36,7 @@ pass=0; fail=0
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"Siipi2026!\"}" \
+    -d "{\"email\":\"$1\",\"password\":\"${2:-Siipi2026!}\"}" \
     | python3 -c "import sys,json;print(json.load(sys.stdin).get('token',''))" 2>/dev/null
 }
 sql()  { $PSQL -c "$1" 2>/dev/null | tr -d ' '; }
@@ -40,7 +52,21 @@ T_HS=$(tok directeur.houmtsouk@siipi.tn)
 T_CIT=$(tok citoyen.demo@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
+# Midoun pour les lectures ; la commune de test pour tout ce qui écrit une limite.
 COMMUNE=medenine_djerba_midoun
+ESSAI=test_decoupage
+COMMUNES_ESSAI="'$ESSAI'"
+COMMUNE_DIR="$ESSAI"
+. "$(dirname "$0")/outils/directeur_temporaire.sh"
+. "$(dirname "$0")/outils/communes_reelles.sh"
+nettoyer() {
+  $PSQL -c "DELETE FROM versions_decoupage WHERE commune_id = '$ESSAI';" \
+        -c "DELETE FROM audit_log WHERE commune_id = '$ESSAI';" >/dev/null 2>&1
+  retirer_directeur_temporaire
+  $PSQL -c "DELETE FROM communes WHERE id = '$ESSAI';" >/dev/null 2>&1
+}
+nettoyer
+trap nettoyer EXIT
 
 echo
 echo "1. Le référentiel est en place"
@@ -85,79 +111,90 @@ chk "la version simplifiée est nettement plus légère" "t" \
 
 echo
 echo "3. Qui peut déplacer une limite"
-SURFACE_AVANT=$(sql "SELECT area_km2 FROM communes WHERE id='$COMMUNE'")
+# Le découpage réel, relevé avant le premier geste ; puis la commune de test,
+# qui porte une copie de la limite de Midoun et son directeur.
+releve_communes_reelles
+$PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population, boundary_geom, geom, area_km2, boundary_source)
+          SELECT '$ESSAI', 'TEST commune du découpage', 'TEST', 'TEST', 5000, boundary_geom, geom, area_km2, 'officiel'
+            FROM communes WHERE id = '$COMMUNE';" >/dev/null
+directeur_temporaire "$ESSAI"
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
+chk "la commune de test porte la limite de Midoun et son directeur se connecte" "t|t" \
+    "$(sql "SELECT (boundary_geom IS NOT NULL AND area_km2 = (SELECT area_km2 FROM communes WHERE id = '$COMMUNE')) FROM communes WHERE id = '$ESSAI'")|$([ -n "$T_DIR" ] && echo t || echo f)"
+SURFACE_AVANT=$(sql "SELECT area_km2 FROM communes WHERE id='$ESSAI'")
 CARRE='{"geometry":{"type":"Polygon","coordinates":[[[10.90,33.75],[11.00,33.75],[11.00,33.85],[10.90,33.85],[10.90,33.75]]]}}'
 
-CODE=$(code -X PUT "$API/communes/$COMMUNE/frontiere" -H "Authorization: Bearer $T_HS" \
+CODE=$(code -X PUT "$API/communes/$ESSAI/frontiere" -H "Authorization: Bearer $T_DIR" \
   -H 'Content-Type: application/json' -d "$CARRE")
 chk "la commune ne redessine pas sa propre limite" 403 "$CODE"
-CODE=$(code -X PUT "$API/communes/$COMMUNE/frontiere" -H "Authorization: Bearer $T_CIT" \
+CODE=$(code -X PUT "$API/communes/$ESSAI/frontiere" -H "Authorization: Bearer $T_CIT" \
   -H 'Content-Type: application/json' -d "$CARRE")
 chk "un citoyen non plus" 403 "$CODE"
-chk "et la limite n'a pas bougé" "$SURFACE_AVANT" "$(sql "SELECT area_km2 FROM communes WHERE id='$COMMUNE'")"
+chk "et la limite n'a pas bougé" "$SURFACE_AVANT" "$(sql "SELECT area_km2 FROM communes WHERE id='$ESSAI'")"
 
 # Le garde-fou doit tenir même sans passer par l'API : c'est un déclencheur en
 # base, pas un contrôle applicatif contournable par une autre requête.
 chk "même en SQL direct, la commune est refusée" "t" \
-    "$($PSQL <<'SQL' 2>&1 | grep -q 'FRONTIERE_RESERVEE_FNCT' && echo t || echo f
+    "$($PSQL <<SQL 2>&1 | grep -q 'FRONTIERE_RESERVEE_FNCT' && echo t || echo f
 BEGIN;
 SELECT set_config('app.role','admin_commune',true),
-       set_config('app.commune_id','medenine_djerba_midoun',true),
-       set_config('app.user_id',(SELECT id::text FROM users WHERE email='directeur.midoun@siipi.tn'),true);
+       set_config('app.commune_id','$ESSAI',true),
+       set_config('app.user_id','$DIR_ID',true);
 UPDATE communes SET boundary_geom = ST_Multi(ST_Buffer(boundary_geom, 0.01))
- WHERE id = 'medenine_djerba_midoun';
+ WHERE id = '$ESSAI';
 COMMIT;
 SQL
 )"
 
 echo
 echo "4. Un tracé absurde est refusé avant d'entrer en base"
-CODE=$(code -X PUT "$API/communes/$COMMUNE/frontiere" -H "Authorization: Bearer $T_FNCT" \
+CODE=$(code -X PUT "$API/communes/$ESSAI/frontiere" -H "Authorization: Bearer $T_FNCT" \
   -H 'Content-Type: application/json' \
   -d '{"geometry":{"type":"Polygon","coordinates":[[[2.0,48.0],[2.1,48.0],[2.1,48.1],[2.0,48.1],[2.0,48.0]]]}}')
 chk "un tracé hors de Tunisie est refusé" 400 "$CODE"
-CODE=$(code -X PUT "$API/communes/$COMMUNE/frontiere" -H "Authorization: Bearer $T_FNCT" \
+CODE=$(code -X PUT "$API/communes/$ESSAI/frontiere" -H "Authorization: Bearer $T_FNCT" \
   -H 'Content-Type: application/json' \
   -d '{"geometry":{"type":"Polygon","coordinates":[[[10.90,33.75],[10.9001,33.75],[10.9001,33.7501],[10.90,33.7501],[10.90,33.75]]]}}')
 chk "un tracé minuscule est refusé" 400 "$CODE"
-CODE=$(code -X PUT "$API/communes/$COMMUNE/frontiere" -H "Authorization: Bearer $T_FNCT" \
+CODE=$(code -X PUT "$API/communes/$ESSAI/frontiere" -H "Authorization: Bearer $T_FNCT" \
   -H 'Content-Type: application/json' -d '{"geometry":{"type":"Point","coordinates":[10.9,33.8]}}')
 chk "une géométrie qui n'est pas une surface est refusée" 400 "$CODE"
 
 echo
 echo "5. La FNCT rectifie, la base tient les comptes"
-CODE=$(code -X PUT "$API/communes/$COMMUNE/frontiere" -H "Authorization: Bearer $T_FNCT" \
+CODE=$(code -X PUT "$API/communes/$ESSAI/frontiere" -H "Authorization: Bearer $T_FNCT" \
   -H 'Content-Type: application/json' -d "$CARRE")
 chk "la FNCT enregistre un tracé valide" 200 "$CODE"
 chk "la provenance passe à « corrigé FNCT »" "corrige_fnct" \
-    "$(sql "SELECT boundary_source FROM communes WHERE id='$COMMUNE'")"
+    "$(sql "SELECT boundary_source FROM communes WHERE id='$ESSAI'")"
 chk "la date de modification est posée par la base" "t" \
-    "$([ -n "$(sql "SELECT boundary_maj_le FROM communes WHERE id='$COMMUNE' AND boundary_maj_le IS NOT NULL")" ] && echo t || echo f)"
+    "$([ -n "$(sql "SELECT boundary_maj_le FROM communes WHERE id='$ESSAI' AND boundary_maj_le IS NOT NULL")" ] && echo t || echo f)"
 chk "l'auteur de la rectification est enregistré" "t" \
-    "$([ -n "$(sql "SELECT boundary_maj_par FROM communes WHERE id='$COMMUNE' AND boundary_maj_par IS NOT NULL")" ] && echo t || echo f)"
+    "$([ -n "$(sql "SELECT boundary_maj_par FROM communes WHERE id='$ESSAI' AND boundary_maj_par IS NOT NULL")" ] && echo t || echo f)"
 # Le carré de 0,1° sur 0,1° fait environ 103 km² à cette latitude : la
 # superficie doit suivre le tracé, sans quoi les ratios au km² mentiraient.
 chk "la superficie est recalculée depuis le tracé" "t" \
     "$(python3 -c "
-s = float('$(sql "SELECT area_km2 FROM communes WHERE id='$COMMUNE'")')
+s = float('$(sql "SELECT area_km2 FROM communes WHERE id='$ESSAI'")')
 print('t' if 95 < s < 115 else 'f')" 2>/dev/null)"
 chk "et elle a bien changé" "f" \
-    "$([ "$SURFACE_AVANT" = "$(sql "SELECT area_km2 FROM communes WHERE id='$COMMUNE'")" ] && echo t || echo f)"
+    "$([ "$SURFACE_AVANT" = "$(sql "SELECT area_km2 FROM communes WHERE id='$ESSAI'")" ] && echo t || echo f)"
 
 echo
-echo "6. Remise en état"
-# Un banc d'essai ne doit pas laisser derrière lui un référentiel national faux.
-# Cette section effaçait la limite de Midoun et demandait de relancer l'import
-# à la main : faute de quoi Midoun restait sans territoire après chaque
-# `npm test` — sur toute base où les campagnes tournent (JC-007). On rejoue
-# l'import officiel : c'est la limite de référence, et l'outil qui la pose.
-( cd "$(dirname "$0")/.." && npm run -s import:decoupage >/tmp/siipi_d_import.log 2>&1 )
-chk "la limite officielle de Midoun est rendue, telle que l'import la pose" "officiel|t" \
+echo "6. Remise en état : la commune de test se retire, Midoun n'a jamais bougé (JC-007, JC-010)"
+# La limite corrigée l'a été sur la commune de test : il n'y a plus de limite
+# réelle à rendre, ni d'import à rejouer. Ce qu'il faut prouver, c'est que rien
+# n'a bougé ailleurs — pendant que la commune de test porte la correction, puis
+# une fois retirée.
+chk "la correction d'essai est bien inscrite dans l'historique de la commune de test" "t" \
+    "$([ "$(sql "SELECT count(*) FROM versions_decoupage WHERE commune_id = '$ESSAI' AND origine = 'correction_fnct'")" -ge 1 ] && echo t || echo f)"
+communes_reelles_intactes "pendant la campagne"
+chk "Midoun garde sa limite officielle" "officiel|t" \
     "$(sql "SELECT boundary_source FROM communes WHERE id='$COMMUNE'")|$(sql "SELECT (boundary_geom IS NOT NULL) FROM communes WHERE id='$COMMUNE'")"
-chk "et sa superficie n'est plus celle du tracé d'essai" "f" \
-    "$(python3 -c "
-s = float('$(sql "SELECT area_km2 FROM communes WHERE id='$COMMUNE'")' or 0)
-print('t' if 95 < s < 115 else 'f')" 2>/dev/null)"
+nettoyer
+chk "la commune de test, ses versions et son directeur sont effacés" "0|0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id = '$ESSAI'")|$(sql "SELECT count(*) FROM versions_decoupage WHERE commune_id = '$ESSAI'")|$(sql "SELECT count(*) FROM users WHERE email = '$DIR_EMAIL'")"
+communes_reelles_intactes "en partant"
 
 echo
 echo "7. Zarzouna rattachée à Bizerte, El Hchachna commune à part entière (D-FNCT-3)"
