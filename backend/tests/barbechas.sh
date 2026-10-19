@@ -61,6 +61,12 @@ ESSAI_C="'$A','$B'"
 . "$(dirname "$0")/outils/comptes_temporaires.sh"
 . "$(dirname "$0")/outils/communes_essai.sh"
 . "$(dirname "$0")/outils/base_reelle.sh"
+# L'accréditation de l'hébergement est réglée pendant la campagne. La campagne rend la
+# valeur ; la ligne entière, date et auteur compris, est gardée ici et rendue en
+# partant (JC-013, tests/outils/tables_nationales.sh).
+. "$(dirname "$0")/outils/tables_nationales.sh"
+garder_tables_nationales parametres_nationaux
+rendre_tables_nationales_en_sortie
 nettoyer_c() {
   effacer_communes_essai "$ESSAI_C"
   retirer_comptes_temporaires
@@ -242,6 +248,11 @@ nettoyer_c
 chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
     "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI_C)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
 base_reelle_intacte "en partant"
+
+echo
+echo "Les tables nationales rendues ligne pour ligne, dates comprises (JC-013)"
+rendre_tables_nationales
+tables_nationales_rendues "en partant"
 
 echo
 if [ "$fail" -eq 0 ]; then
