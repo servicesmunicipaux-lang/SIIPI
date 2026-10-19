@@ -5,6 +5,57 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.52] — 2026-10-19 — JC-012 et JC-011 (lot A) : cinq campagnes quittent La Marsa
+
+### Corrigé
+- **JC-012** (`docs/recette/JOURNAL_DES_CORRECTIONS.md`). Cinq campagnes laissaient des lignes à La Marsa,
+  commune réelle, à chaque passage. Ces lignes entraient pour partie dans les indicateurs de la commune.
+  - `cloisonnement` : une réclamation résolue, sa notification, une ligne de score, et les notes de la fiche
+    réécrites.
+  - `audit` : une réclamation, l'engin `trk-02` déplacé, et le taux de recouvrement de la TCL réécrit (63,5).
+  - `notifications`, `notifications-citoyen` : trois notifications chacune, orphelines. Elles effaçaient par
+    leur titre, et une notification de décision ne porte pas le leur.
+  - `kpi-sources` : une ligne de paramètres créée pour la commune.
+
+  Les cinq campagnes travaillent désormais dans leurs communes de test, et leur nettoyage est borné à ces
+  communes :
+  - `cloisonnement` en bâtit trois : deux engins, un conteneur, deux secteurs, deux directeurs, deux
+    prestataires, un citoyen ;
+  - `audit` en bâtit deux ;
+  - `notifications` et `notifications-citoyen` une chacune ;
+  - `kpi-sources` deux.
+- **`observatoire` bâtit l'activité qu'elle contrôle.** « Les communes où l'on a travaillé sont actives » se
+  vérifiait sur n'importe quelle commune active, en pratique La Marsa. Or c'étaient les écritures des autres
+  campagnes avec son directeur de démonstration qui la rendaient active. La campagne bâtit désormais deux
+  communes de test :
+  - une où son directeur temporaire écrit : elle doit être « active » ;
+  - une où seule la FNCT écrit : elle doit rester « incomplete ».
+
+  La provenance des données se qualifie sur la première, plus sur La Marsa. Sur toute base où les anciennes
+  campagnes ont tourné, La Marsa paraît déployée au tableau national, car le journal d'audit est en ajout seul
+  (JC-012).
+- **JC-011, en partie** : `notifications`, `notifications-citoyen` et `kpi-sources` ne prennent plus « le
+  premier directeur de la base ». Les douze autres campagnes suivent au lot B.
+
+### Ajouté
+- **`tests/outils/comptes_temporaires.sh`** : des comptes de tout rôle (directeur, prestataire, FNCT) le temps
+  d'une campagne, effacés en partant.
+- **`tests/outils/base_reelle.sh`** relève, sur les seules lignes des communes réelles, chaque table qui porte
+  `commune_id` (66 sur la pile d'essai) et la fiche de chaque commune réelle, dates comprises. Il les compare
+  pendant que la campagne a ses lignes en base, puis en partant, et le contrôle nomme les tables qui ont bougé.
+  Cela fait deux contrôles dans chacune des cinq campagnes, plus un contrôle que la commune de test porte bien
+  les gestes de la campagne.
+- `observatoire` reçoit aussi les deux contrôles des communes réelles.
+- **Éprouvé par cinq mutants**, qui refont l'ancien geste à La Marsa : une réclamation, le taux de la TCL, une
+  notification pour chacune des deux campagnes de notifications, un paramètre. Chacun fait échouer exactement
+  les deux contrôles, en nommant la table touchée.
+- `CLAUDE.md` § 7 : aucune ligne d'une commune réelle ne bouge pendant une campagne.
+
+### Constaté
+- La revue des campagnes ne voyait les modifications de la fiche de La Marsa qu'en date. Relancée sur une
+  pile où la valeur était déjà écrite, une campagne ne change plus que `updated_at`. Une relance ne montre pas
+  ce que le premier passage a déjà changé.
+
 ## [0.15.51] — 2026-10-19 — JC-010 : plus aucune version fantôme du découpage pendant les campagnes
 
 ### Corrigé

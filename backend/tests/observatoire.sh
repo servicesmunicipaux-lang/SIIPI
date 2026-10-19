@@ -6,6 +6,16 @@
 # l'usage réel et non l'installation, et que les moyennes sont bien pondérées
 # par la population.
 #
+# ELLE BÂTIT L'ACTIVITÉ QU'ELLE CONTRÔLE (JC-012). Jusqu'à la v0.15.51, « les
+# communes où l'on a travaillé sont actives » se vérifiait sur n'importe quelle
+# commune active — en pratique La Marsa, rendue active par les écritures que
+# d'autres campagnes y faisaient avec son compte de démonstration ; et la
+# provenance des données se qualifiait sur la fiche de La Marsa. Elle bâtit
+# désormais deux communes de test : l'une où son directeur temporaire écrit
+# (elle doit être active), l'autre où seule la FNCT écrit (elle ne doit pas
+# l'être). Elle prouve, pendant qu'elle a ses lignes en base puis en partant,
+# qu'aucune commune réelle n'a reçu de ligne (tests/outils/base_reelle.sh).
+#
 #   docker compose run --rm api npm run test:observatoire
 #
 # Note : l'API limite les connexions à 20 par quart d'heure et par adresse IP.
@@ -19,7 +29,7 @@ pass=0; fail=0
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"Siipi2026!\"}" \
+    -d "{\"email\":\"$1\",\"password\":\"${2:-Siipi2026!}\"}" \
     | python3 -c "import sys,json;print(json.load(sys.stdin).get('token',''))" 2>/dev/null
 }
 sql() { $PSQL -c "$1" 2>/dev/null | tr -d ' '; }
@@ -29,12 +39,29 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
+ACTIVE=test_observatoire_active
+FNCT_SEULE=test_observatoire_fnct
+ESSAI="'$ACTIVE','$FNCT_SEULE'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+nettoyer() {
+  $PSQL -c "DELETE FROM audit_log WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM access_log WHERE commune_id IN ($ESSAI);" >/dev/null 2>&1
+  retirer_comptes_temporaires
+  $PSQL -c "DELETE FROM communes WHERE id IN ($ESSAI);" >/dev/null 2>&1
+}
+nettoyer
+trap nettoyer EXIT
+releve_base_reelle
+
 T_FNCT=$(tok admin.national@siipi.tn)
-T_MARSA=$(tok directeur.marsa@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
+# Les agrégats nationaux sont lus AVANT que la campagne ne pose ses communes de
+# test : ce sont ceux des 350 communes réelles.
 curl -s "$API/observatoire/gouvernorats" -H "Authorization: Bearer $T_FNCT" -o /tmp/siipi_gouv.json
 curl -s "$API/observatoire/deploiement"  -H "Authorization: Bearer $T_FNCT" -o /tmp/siipi_depl.json
+N_COMMUNES=$(sql "SELECT count(*) FROM communes WHERE deleted_at IS NULL")
 
 echo
 echo "1. Agrégats par gouvernorat"
@@ -70,33 +97,60 @@ chk "les 350 communes ont un statut" 350 \
     "$(py "import json;print(len(json.load(open('/tmp/siipi_depl.json'))))")"
 chk "l'installation ne rend pas toutes les communes actives" "t" \
     "$(py "import json;d=json.load(open('/tmp/siipi_depl.json'));print('t' if sum(1 for c in d if c['statut']=='active') < 350 else 'f')")"
-chk "les communes où l'on a travaillé sont actives" "t" \
-    "$(py "import json;d=json.load(open('/tmp/siipi_depl.json'));print('t' if any(c['statut']=='active' for c in d) else 'f')")"
 chk "le total des statuts par gouvernorat retombe sur 350" 350 \
     "$(py "import json;d=json.load(open('/tmp/siipi_gouv.json'));print(sum(g['communes_actives']+g['communes_incompletes']+g['communes_desactivees'] for g in d))")"
+chk "toutes les communes sont « estimé » par défaut" "$N_COMMUNES" \
+    "$(py "import json;print(sum(g['communes_donnees_estimees'] for g in json.load(open('/tmp/siipi_gouv.json'))))")"
+
+# Les deux communes de test : l'une où sa commune écrit, l'autre où seule la FNCT écrit.
+$PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES
+            ('$ACTIVE', 'TEST commune active de l''observatoire', 'TEST', 'TEST', 5000),
+            ('$FNCT_SEULE', 'TEST commune de l''observatoire, FNCT seule', 'TEST', 'TEST', 5000);" >/dev/null
+compte_temporaire admin_commune "$ACTIVE" "Directeur de l'observatoire"
+T_DIR=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
+[ -n "$T_DIR" ] || { echo "Le directeur temporaire ne se connecte pas." >&2; exit 1; }
+statut() { curl -s "$API/observatoire/deploiement" -H "Authorization: Bearer $T_FNCT" \
+             | python3 -c "import sys,json;print(next((c['statut'] for c in json.load(sys.stdin) if c.get('id', c.get('commune_id'))=='$1'), 'absente'))" 2>/dev/null; }
+
+echo
+echo "3 bis. Le statut suit l'usage réel, bâti par la campagne"
+chk "avant toute écriture, les deux communes de test sont « incomplete »" "incomplete|incomplete" "$(statut "$ACTIVE")|$(statut "$FNCT_SEULE")"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$API/communes/$ACTIVE" -H "Authorization: Bearer $T_DIR" \
+  -H 'Content-Type: application/json' -d '{"notes":"TEST saisie de la commune"}')
+chk "la commune écrit sur sa fiche" 200 "$CODE"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$API/communes/$FNCT_SEULE" -H "Authorization: Bearer $T_FNCT" \
+  -H 'Content-Type: application/json' -d '{"notes":"TEST saisie de la FNCT"}')
+chk "la FNCT écrit sur la fiche de l'autre" 200 "$CODE"
+chk "la commune où l'on a travaillé est active" "active" "$(statut "$ACTIVE")"
+chk "une écriture de la FNCT ne rend pas une commune active" "incomplete" "$(statut "$FNCT_SEULE")"
 
 echo
 echo "4. Provenance des données"
-chk "toutes les communes sont « estimé » par défaut" "$(sql "SELECT count(*) FROM communes WHERE deleted_at IS NULL")" \
-    "$(py "import json;print(sum(g['communes_donnees_estimees'] for g in json.load(open('/tmp/siipi_gouv.json'))))")"
-CODE=$(curl -s -o /tmp/b.json -w '%{http_code}' -X PATCH "$API/observatoire/communes/tunis_la_marsa/provenance" \
+CODE=$(curl -s -o /tmp/b.json -w '%{http_code}' -X PATCH "$API/observatoire/communes/$ACTIVE/provenance" \
   -H "Authorization: Bearer $T_FNCT" -H 'Content-Type: application/json' -d '{"donneesSource":"declare"}')
 chk "la FNCT peut qualifier la provenance d'une commune" 200 "$CODE"
-chk "la qualification est enregistrée" "declare" "$(sql "SELECT donnees_source FROM communes WHERE id='tunis_la_marsa'")"
+chk "la qualification est enregistrée" "declare" "$(sql "SELECT donnees_source FROM communes WHERE id='$ACTIVE'")"
 chk "l'auteur de la qualification est tracé" "t" \
-    "$(sql "SELECT donnees_qualifiees_par IS NOT NULL FROM communes WHERE id='tunis_la_marsa'")"
-CODE=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$API/observatoire/communes/sfax_sfax_ville_medina/provenance" \
-  -H "Authorization: Bearer $T_MARSA" -H 'Content-Type: application/json' -d '{"donneesSource":"mesure"}')
+    "$(sql "SELECT donnees_qualifiees_par IS NOT NULL FROM communes WHERE id='$ACTIVE'")"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "$API/observatoire/communes/$FNCT_SEULE/provenance" \
+  -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' -d '{"donneesSource":"mesure"}')
 chk "une commune ne peut pas qualifier les données d'une autre" "t" \
     "$([ "$CODE" != "200" ] && echo t || echo f)"
-$PSQL -c "UPDATE communes SET donnees_source='estime', donnees_qualifiees_le=NULL, donnees_qualifiees_par=NULL WHERE id='tunis_la_marsa'" >/dev/null 2>&1
 
 echo
 echo "5. Accès"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' "$API/observatoire/gouvernorats")
 chk "le tableau de bord est refusé sans jeton" 401 "$CODE"
-CODE=$(curl -s -o /dev/null -w '%{http_code}' "$API/observatoire/gouvernorats" -H "Authorization: Bearer $T_MARSA")
+CODE=$(curl -s -o /dev/null -w '%{http_code}' "$API/observatoire/gouvernorats" -H "Authorization: Bearer $T_DIR")
 chk "une commune peut comparer les gouvernorats (émulation)" 200 "$CODE"
+
+echo
+echo "6. Aucune commune réelle n'a reçu de ligne (JC-012)"
+base_reelle_intacte "pendant la campagne"
+nettoyer
+chk "ses communes de test et son directeur sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 
 echo
 if [ "$fail" -eq 0 ]; then
