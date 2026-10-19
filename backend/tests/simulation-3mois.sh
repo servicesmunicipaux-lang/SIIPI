@@ -28,7 +28,7 @@ set -u
 API="${API_URL:-http://localhost:4000}"
 PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 pass=0; fail=0
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+T=$(mktemp -d)
 RACINE="$(cd "$(dirname "$0")/.." && pwd)"
 JEU="$RACINE/seed/data/jumeau_3mois.json"
 
@@ -54,8 +54,25 @@ appel() { # méthode chemin jeton [corps] -> code HTTP, corps dans $T/r.json
 
 T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_DIR=$(tok "$DIR_EMAIL")
+# Le compte communal du refus est un directeur temporaire, dans une commune de
+# test (JC-011) : la campagne prenait « le premier directeur de la base ». La
+# commune réelle éprouvée (REELLE) reste le sujet du test : elle doit en sortir
+# intacte, ce que la campagne vérifie.
+COMMUNE_ESSAI=test_simulation_3mois
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+nettoyer_essai() {
+  effacer_communes_essai "'$COMMUNE_ESSAI'"
+  retirer_comptes_temporaires
+}
+nettoyer_essai
+trap 'nettoyer_essai; rm -rf "$T"' EXIT
+releve_base_reelle
+commune_essai "$COMMUNE_ESSAI" "TEST commune de la simulation"
+compte_temporaire admin_commune "$COMMUNE_ESSAI" "Directeur de la simulation"
+T_DIR=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
+[ -n "$T_DIR" ] || { echo "Le directeur temporaire ne se connecte pas." >&2; exit 1; }
 DEMO=$(jeu "j['commune']['id']")
 REELLE=$(sql "SELECT id FROM communes WHERE id LIKE '%dar_chaabane%' AND NOT est_demo LIMIT 1")
 [ -n "$REELLE" ] || REELLE=$(sql "SELECT id FROM communes WHERE NOT est_demo ORDER BY id LIMIT 1")
@@ -79,7 +96,8 @@ empreinte_jeu() {
 appel POST /demo/retirer "$T_FNCT" '{}' >/dev/null
 AVANT_REELLE=$(empreinte_reelle)
 # Les communes réelles du référentiel : une commune retirée (D-FNCT-3) reste en
-# base, mais aucune route ne la rend.
+# base, mais aucune route ne la rend. La commune de test de la campagne y est
+# comptée, comme l'API la compte : elle n'est pas de démonstration.
 NB_REELLES=$(sql "SELECT count(*) FROM communes WHERE NOT est_demo AND deleted_at IS NULL")
 
 # -----------------------------------------------------------------------------
@@ -234,6 +252,14 @@ appel GET /demo "$T_FNCT" >/dev/null
 chk "l'écran du mode démo la dit « non chargée »" "False" "$(val "d['chargee']")"
 CODE=$(appel POST /demo/retirer "$T_FNCT" '{}')
 chk "retirer ce qui n'est plus là ne fait rien, sans erreur" "200|0" "$CODE|$(val "d['lignesEffacees']")"
+
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_essai
+chk "sa commune de test et son directeur sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id = '$COMMUNE_ESSAI'")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 
 echo
 if [ "$fail" -eq 0 ]; then

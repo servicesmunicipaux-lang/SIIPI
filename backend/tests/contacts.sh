@@ -6,6 +6,17 @@
 # Cette campagne vérifie d'abord ce qui ne doit PAS se voir — ni d'une autre
 # commune, ni du prestataire rattaché — puis le CRUD et le retrait logique.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-011). Jusqu'à la v0.15.52, elle
+# prenait « le premier directeur de la base » — sur la pile d'essai, le compte
+# de démonstration de La Marsa ; sur une base portant de vrais directeurs, le
+# plus ancien d'entre eux — et écrivait dans sa commune ; son cloisonnement
+# empruntait de même le premier directeur d'une autre commune, ou le premier
+# prestataire de la base. Elle travaille désormais dans deux communes de test,
+# avec des comptes temporaires (tests/outils/comptes_temporaires.sh), efface
+# en partant tout ce qu'elles portent (tests/outils/communes_essai.sh), et
+# prouve, pendant qu'elle a ses lignes en base puis en partant, qu'aucune
+# commune réelle n'a reçu de ligne (tests/outils/base_reelle.sh).
+#
 #   docker compose exec -T api npm run test:contacts
 # =============================================================================
 
@@ -13,7 +24,7 @@ set -u
 API="${API_URL:-http://localhost:4000}"
 PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 pass=0; fail=0
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+T=$(mktemp -d)
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
@@ -31,13 +42,34 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_DIR=$(tok "$DIR_EMAIL")
-[ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
+COMMUNE=test_contacts
+AUTRE_COMMUNE=test_contacts_b
+ESSAI="'$COMMUNE','$AUTRE_COMMUNE'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
 
 nettoyer() { $PSQL -c "DELETE FROM contacts WHERE nom_complet LIKE 'TEST-C%';" >/dev/null 2>&1; }
 nettoyer
+# Son nettoyage d'origine, puis tout ce que portent ses communes de test.
+nettoyer_essai() {
+  nettoyer
+  effacer_communes_essai "$ESSAI"
+  retirer_comptes_temporaires
+}
+nettoyer_essai
+trap 'nettoyer_essai; rm -rf "$T"' EXIT
+releve_base_reelle
+commune_essai "$COMMUNE" "TEST commune de la campagne contacts"
+commune_essai "$AUTRE_COMMUNE" "TEST autre commune de la campagne contacts"
+compte_temporaire admin_commune "$COMMUNE" "Directeur de la campagne"
+DIR_EMAIL=$COMPTE_EMAIL; DIR_MDP=$COMPTE_MDP; DIR_ID=$COMPTE_ID
+compte_temporaire admin_commune "$AUTRE_COMMUNE" "Directeur de l'autre commune"
+AUTRE_EMAIL=$COMPTE_EMAIL; AUTRE_MDP=$COMPTE_MDP
+compte_temporaire gestionnaire_prestataire "$COMMUNE" "Prestataire de la campagne"
+PREST_EMAIL=$COMPTE_EMAIL; PREST_MDP=$COMPTE_MDP; PREST_USER=$COMPTE_ID
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
+[ -n "$T_DIR" ] || { echo "API injoignable sur $API, ou directeur de test non créé" >&2; exit 1; }
 
 post() { code -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' -d "$1" "$API/contacts?communeId=$COMMUNE"; }
 patch() { code -X PATCH -H "Authorization: Bearer ${3:-$T_DIR}" -H 'Content-Type: application/json' -d "$2" "$API/contacts/$1"; }
@@ -77,25 +109,23 @@ chk "la modification est au journal d'audit" 1 \
 
 echo
 echo "4. Cloisonnement : données personnelles de tiers"
-AUTRE_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id <> '$COMMUNE' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-if [ -n "$AUTRE_EMAIL" ]; then
-  T_AUTRE=$(tok "$AUTRE_EMAIL")
-  code -H "Authorization: Bearer $T_AUTRE" "$API/contacts?communeId=$COMMUNE" >/dev/null
-  chk "une autre commune qui demande cette commune ne voit rien" 0 "$(compte "$C1")"
-  chk "ni ne peut modifier la fiche" 404 "$(patch "$C1" '{"fonction":"Pirate"}' "$T_AUTRE")"
-  chk "ni la retirer" 404 "$(code -X DELETE -H "Authorization: Bearer $T_AUTRE" "$API/contacts/$C1")"
-fi
-PREST_USER=$(sql "SELECT id FROM users WHERE role='gestionnaire_prestataire' AND deleted_at IS NULL ORDER BY created_at LIMIT 1")
-if [ -n "$PREST_USER" ]; then
-  # Émulé comme rattaché à CETTE commune : c'est le cas qui compte — un
-  # prestataire qui lit les circuits de la commune ne lit pas son annuaire.
-  # « 1| » : l'émulation lui ouvre bien la lecture de la commune (témoin) ;
-  # « |0 » : l'annuaire, lui, reste fermé.
-  chk "un prestataire rattaché lit la commune, mais pas son annuaire (RLS)" "1|0" \
-      "$(sql "BEGIN; INSERT INTO utilisateur_communes (user_id, commune_id) VALUES ('$PREST_USER', '$COMMUNE') ON CONFLICT DO NOTHING; SET LOCAL ROLE siipi_app; SET LOCAL app.role='gestionnaire_prestataire'; SET LOCAL app.user_id='$PREST_USER'; SELECT app.can_read_commune('$COMMUNE')::int || '|' || (SELECT count(*) FROM contacts WHERE id='$C1'); ROLLBACK;" | tail -1)"
-  T_PREST=$(tok "$(sql "SELECT email FROM users WHERE id='$PREST_USER'")")
-  chk "et la route le refuse d'emblée" 403 "$(code -H "Authorization: Bearer $T_PREST" "$API/contacts?communeId=$COMMUNE")"
-fi
+# L'autre commune est la commune de test B, avec son directeur temporaire.
+# Le compte est bâti par la campagne : le contrôle ne dépend plus de sa présence.
+T_AUTRE=$(tok "$AUTRE_EMAIL" "$AUTRE_MDP")
+code -H "Authorization: Bearer $T_AUTRE" "$API/contacts?communeId=$COMMUNE" >/dev/null
+chk "une autre commune qui demande cette commune ne voit rien" 0 "$(compte "$C1")"
+chk "ni ne peut modifier la fiche" 404 "$(patch "$C1" '{"fonction":"Pirate"}' "$T_AUTRE")"
+chk "ni la retirer" 404 "$(code -X DELETE -H "Authorization: Bearer $T_AUTRE" "$API/contacts/$C1")"
+# Le prestataire est le prestataire temporaire de la commune de test.
+# Le compte est bâti par la campagne : le contrôle ne dépend plus de sa présence.
+# Émulé comme rattaché à CETTE commune : c'est le cas qui compte — un
+# prestataire qui lit les circuits de la commune ne lit pas son annuaire.
+# « 1| » : l'émulation lui ouvre bien la lecture de la commune (témoin) ;
+# « |0 » : l'annuaire, lui, reste fermé.
+chk "un prestataire rattaché lit la commune, mais pas son annuaire (RLS)" "1|0" \
+    "$(sql "BEGIN; INSERT INTO utilisateur_communes (user_id, commune_id) VALUES ('$PREST_USER', '$COMMUNE') ON CONFLICT DO NOTHING; SET LOCAL ROLE siipi_app; SET LOCAL app.role='gestionnaire_prestataire'; SET LOCAL app.user_id='$PREST_USER'; SELECT app.can_read_commune('$COMMUNE')::int || '|' || (SELECT count(*) FROM contacts WHERE id='$C1'); ROLLBACK;" | tail -1)"
+T_PREST=$(tok "$PREST_EMAIL" "$PREST_MDP")
+chk "et la route le refuse d'emblée" 403 "$(code -H "Authorization: Bearer $T_PREST" "$API/contacts?communeId=$COMMUNE")"
 chk "sans jeton, rien" 401 "$(code "$API/contacts?communeId=$COMMUNE")"
 
 echo
@@ -107,7 +137,13 @@ chk "mais reste en base, datée et imputée" 1 \
     "$(sql "SELECT count(*) FROM contacts WHERE id='$C2' AND deleted_at IS NOT NULL AND deleted_by IS NOT NULL")"
 chk "une fiche retirée ne se modifie plus" 404 "$(patch "$C2" '{"fonction":"X"}')"
 
-nettoyer
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_essai
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 echo
 echo "----------------------------------------------------------------"
 printf '  %s réussis, %s échecs\n' "$pass" "$fail"

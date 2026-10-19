@@ -13,6 +13,17 @@
 #     d'entretien par défaut s'applique au plan suivant.
 #   - Les seuils ne se règlent que par la commune et la FNCT.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-011). Jusqu'à la v0.15.52, elle
+# prenait « le premier directeur de la base » — sur la pile d'essai, le compte
+# de démonstration de La Marsa ; sur une base portant de vrais directeurs, le
+# plus ancien d'entre eux — et écrivait dans sa commune ; son cloisonnement
+# empruntait de même le premier directeur d'une autre commune, ou le premier
+# prestataire de la base. Elle travaille désormais dans deux communes de test,
+# avec des comptes temporaires (tests/outils/comptes_temporaires.sh), efface
+# en partant tout ce qu'elles portent (tests/outils/communes_essai.sh), et
+# prouve, pendant qu'elle a ses lignes en base puis en partant, qu'aucune
+# commune réelle n'a reçu de ligne (tests/outils/base_reelle.sh).
+#
 #   docker compose exec -T api npm run test:parametres
 # =============================================================================
 
@@ -20,7 +31,7 @@ set -u
 API="${API_URL:-http://localhost:4000}"
 PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 pass=0; fail=0
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+T=$(mktemp -d)
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
@@ -41,14 +52,21 @@ jour() { date -u -d "$1 days" +%Y-%m-%d; }
 # Les avis « À vérifier » d'un domaine, pour la commune.
 avis() { req GET "/communes/$COMMUNE/coherence" >/dev/null; val "[e['$2'] for e in d if e['domaine']=='$1']"; }
 
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_DIR=$(tok "$DIR_EMAIL")
-[ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
+COMMUNE=test_parametres
+AUTRE_COMMUNE=test_parametres_b
+ESSAI="'$COMMUNE','$AUTRE_COMMUNE'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
 T_FNCT=$(tok admin.national@siipi.tn)
+# Un citoyen à soi : la campagne réglait jusqu'ici les préférences du compte de
+# démonstration, et les remettait à vide au lieu de les rendre.
+CIT_EMAIL="test-parametres-citoyen@example.test"
+CIT_MDP="TEST-Citoyen-$$"
 
 nettoyer() {
-  $PSQL -c "UPDATE users SET preferences = '{}'::jsonb WHERE email IN ('$DIR_EMAIL', 'citoyen.demo@siipi.tn');" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email = '$CIT_EMAIL');" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM users WHERE email = '$CIT_EMAIL';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM parametres_commune WHERE commune_id = '$COMMUNE';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM tickets WHERE title LIKE 'TEST-J7%';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM actions_planifiees WHERE titre LIKE 'TEST-J7%';" >/dev/null 2>&1
@@ -56,6 +74,25 @@ nettoyer() {
   $PSQL -c "DELETE FROM vehicules WHERE registration LIKE 'TEST-J7%';" >/dev/null 2>&1
 }
 nettoyer
+# Son nettoyage d'origine, puis tout ce que portent ses communes de test.
+nettoyer_essai() {
+  nettoyer
+  effacer_communes_essai "$ESSAI"
+  retirer_comptes_temporaires
+}
+nettoyer_essai
+trap 'nettoyer_essai; rm -rf "$T"' EXIT
+releve_base_reelle
+commune_essai "$COMMUNE" "TEST commune de la campagne parametres"
+commune_essai "$AUTRE_COMMUNE" "TEST autre commune de la campagne parametres"
+compte_temporaire admin_commune "$COMMUNE" "Directeur de la campagne"
+DIR_EMAIL=$COMPTE_EMAIL; DIR_MDP=$COMPTE_MDP; DIR_ID=$COMPTE_ID
+compte_temporaire admin_commune "$AUTRE_COMMUNE" "Directeur de l'autre commune"
+AUTRE_EMAIL=$COMPTE_EMAIL; AUTRE_MDP=$COMPTE_MDP
+compte_temporaire gestionnaire_prestataire "$COMMUNE" "Prestataire de la campagne"
+PREST_EMAIL=$COMPTE_EMAIL; PREST_MDP=$COMPTE_MDP; PREST_USER=$COMPTE_ID
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
+[ -n "$T_DIR" ] || { echo "API injoignable sur $API, ou directeur de test non créé" >&2; exit 1; }
 
 # -----------------------------------------------------------------------------
 echo
@@ -73,14 +110,15 @@ req PUT /comptes/moi/preferences '{"langue":"ar","alertes":{"domainesMasques":["
 chk "la reprise de session les rend" "aaaa-mm-jj|ar|pesees" \
     "$(req GET /auth/me >/dev/null; val "d['preferences']['formatDate']")|$(val "d['preferences']['langue']")|$(val "','.join(d['preferences']['alertes']['domainesMasques'])")"
 chk "la connexion aussi" "kg" \
-    "$(curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"email\":\"$DIR_EMAIL\",\"password\":\"Siipi2026!\"}" \
+    "$(curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' -d "{\"email\":\"$DIR_EMAIL\",\"password\":\"$DIR_MDP\"}" \
        | python3 -c "import sys,json;print(json.load(sys.stdin)['user']['preferences']['unites']['masse'])" 2>/dev/null)"
-T_CIT=$(tok citoyen.demo@siipi.tn)
-if [ -n "$T_CIT" ]; then
-  chk "un citoyen règle les siennes" "200|jj mois aaaa" \
-      "$(req PUT /comptes/moi/preferences '{"formatDate":"jj mois aaaa"}' "$T_CIT")|$(val "d['formatDate']")"
-  chk "sans toucher à celles du cadre" "aaaa-mm-jj" "$(req GET /comptes/moi/preferences >/dev/null; val "d['formatDate']")"
-fi
+curl -s -o /dev/null -X POST "$API/citizens/register" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$CIT_EMAIL\",\"password\":\"$CIT_MDP\",\"fullName\":\"TEST Citoyen des paramètres\"}"
+T_CIT=$(tok "$CIT_EMAIL" "$CIT_MDP")
+chk "le citoyen d'essai se connecte" t "$([ -n "$T_CIT" ] && echo t || echo f)"
+chk "un citoyen règle les siennes" "200|jj mois aaaa" \
+    "$(req PUT /comptes/moi/preferences '{"formatDate":"jj mois aaaa"}' "$T_CIT")|$(val "d['formatDate']")"
+chk "sans toucher à celles du cadre" "aaaa-mm-jj" "$(req GET /comptes/moi/preferences >/dev/null; val "d['formatDate']")"
 
 echo
 echo "2. Les seuils de la commune"
@@ -93,11 +131,11 @@ chk "délai à 3 jours, préavis à 2 500 km" "200|3|2500|30|False" \
 chk "qui et quand sont gardés" "1|1" "$(val "1 if d['auteur'] else 0")|$(val "1 if d['updated_at'] else 0")"
 chk "le changement entre au journal d'audit" 1 \
     "$(sql "SELECT count(*) > 0 FROM audit_log WHERE table_name='parametres_commune' AND commune_id='$COMMUNE'" | sed 's/t/1/;s/f/0/')"
-AUTRE_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id <> '$COMMUNE' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-[ -n "$AUTRE_EMAIL" ] && chk "une autre commune ne les lit ni ne les change" "403|403" \
-    "$(req GET "/communes/$COMMUNE/parametres" "" "$(tok "$AUTRE_EMAIL")")|$(req PUT "/communes/$COMMUNE/parametres" '{"delaiReclamationJours":30}' "$(tok "$AUTRE_EMAIL")")"
-PREST_EMAIL=$(sql "SELECT email FROM users WHERE role='gestionnaire_prestataire' AND deleted_at IS NULL AND is_active ORDER BY created_at LIMIT 1")
-[ -n "$PREST_EMAIL" ] && chk "un prestataire non plus" 403 "$(req GET "/communes/$COMMUNE/parametres" "" "$(tok "$PREST_EMAIL")")"
+# L'autre commune est la commune de test B, avec son directeur temporaire.
+chk "une autre commune ne les lit ni ne les change" "403|403" \
+    "$(req GET "/communes/$COMMUNE/parametres" "" "$(tok "$AUTRE_EMAIL" "$AUTRE_MDP")")|$(req PUT "/communes/$COMMUNE/parametres" '{"delaiReclamationJours":30}' "$(tok "$AUTRE_EMAIL" "$AUTRE_MDP")")"
+# Le prestataire est le prestataire temporaire de la commune de test.
+chk "un prestataire non plus" 403 "$(req GET "/communes/$COMMUNE/parametres" "" "$(tok "$PREST_EMAIL" "$PREST_MDP")")"
 chk "la FNCT, si" 200 "$(req GET "/communes/$COMMUNE/parametres" "" "$T_FNCT")"
 
 echo
@@ -129,7 +167,13 @@ chk "un préavis précisé reste le sien" "201|500" \
 chk "l'entretien en retard remonte au constat du matin" 1 \
     "$(avis parc constat | grep -c 'TEST-J7 001')"
 
-nettoyer
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_essai
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 echo
 echo "----------------------------------------------------------------"
 printf '  %s réussis, %s échecs\n' "$pass" "$fail"

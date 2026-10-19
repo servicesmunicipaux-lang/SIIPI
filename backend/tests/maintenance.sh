@@ -9,6 +9,17 @@
 # présentée comme « à jour », une panne inscrite sur l'engin d'une autre
 # commune.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-011). Jusqu'à la v0.15.52, elle
+# prenait « le premier directeur de la base » — sur la pile d'essai, le compte
+# de démonstration de La Marsa ; sur une base portant de vrais directeurs, le
+# plus ancien d'entre eux — et écrivait dans sa commune ; son cloisonnement
+# empruntait de même le premier directeur d'une autre commune, ou le premier
+# prestataire de la base. Elle travaille désormais dans deux communes de test,
+# avec des comptes temporaires (tests/outils/comptes_temporaires.sh), efface
+# en partant tout ce qu'elles portent (tests/outils/communes_essai.sh), et
+# prouve, pendant qu'elle a ses lignes en base puis en partant, qu'aucune
+# commune réelle n'a reçu de ligne (tests/outils/base_reelle.sh).
+#
 #   docker compose exec -T api npm run test:maintenance
 # =============================================================================
 
@@ -16,7 +27,7 @@ set -u
 API="${API_URL:-http://localhost:4000}"
 PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 pass=0; fail=0
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+T=$(mktemp -d)
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
@@ -39,10 +50,12 @@ jour() { date -u -d "$1 days" +%Y-%m-%d; }
 statut() { req GET "/maintenance/echeances?communeId=$COMMUNE" >/dev/null; val "next((e['statut'] for e in d if e['plan_id']=='$1'), 'absent')"; }
 echeance() { req GET "/maintenance/echeances?communeId=$COMMUNE" >/dev/null; val "next((e['$2'] for e in d if e['plan_id']=='$1'), 'absent')"; }
 
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_DIR=$(tok "$DIR_EMAIL")
-[ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
+COMMUNE=test_maintenance
+AUTRE_COMMUNE=test_maintenance_b
+ESSAI="'$COMMUNE','$AUTRE_COMMUNE'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
 
 nettoyer() {
   $PSQL -c "DELETE FROM interventions_maintenance WHERE vehicule_id IN (SELECT id FROM vehicules WHERE registration LIKE 'TEST-M%');" >/dev/null 2>&1
@@ -50,6 +63,25 @@ nettoyer() {
   $PSQL -c "DELETE FROM vehicules WHERE registration LIKE 'TEST-M%';" >/dev/null 2>&1
 }
 nettoyer
+# Son nettoyage d'origine, puis tout ce que portent ses communes de test.
+nettoyer_essai() {
+  nettoyer
+  effacer_communes_essai "$ESSAI"
+  retirer_comptes_temporaires
+}
+nettoyer_essai
+trap 'nettoyer_essai; rm -rf "$T"' EXIT
+releve_base_reelle
+commune_essai "$COMMUNE" "TEST commune de la campagne maintenance"
+commune_essai "$AUTRE_COMMUNE" "TEST autre commune de la campagne maintenance"
+compte_temporaire admin_commune "$COMMUNE" "Directeur de la campagne"
+DIR_EMAIL=$COMPTE_EMAIL; DIR_MDP=$COMPTE_MDP; DIR_ID=$COMPTE_ID
+compte_temporaire admin_commune "$AUTRE_COMMUNE" "Directeur de l'autre commune"
+AUTRE_EMAIL=$COMPTE_EMAIL; AUTRE_MDP=$COMPTE_MDP
+compte_temporaire gestionnaire_prestataire "$COMMUNE" "Prestataire de la campagne"
+PREST_EMAIL=$COMPTE_EMAIL; PREST_MDP=$COMPTE_MDP; PREST_USER=$COMPTE_ID
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
+[ -n "$T_DIR" ] || { echo "API injoignable sur $API, ou directeur de test non créé" >&2; exit 1; }
 
 req POST "/trucks?communeId=$COMMUNE" '{"registration":"TEST-M 001","type":"benne_tasseuse","etat":"en_service"}' >/dev/null
 V1=$(val "d['id']")
@@ -143,22 +175,21 @@ chk "le compteur, lui, ne recule pas" 101000 "$(sql "SELECT kilometrage FROM veh
 
 echo
 echo "8. Cloisonnement : des coûts et des pannes"
-AUTRE_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id <> '$COMMUNE' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-if [ -n "$AUTRE_EMAIL" ]; then
-  T_AUTRE=$(tok "$AUTRE_EMAIL")
-  AUTRE_COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$AUTRE_EMAIL'")
-  req GET "/maintenance/echeances?communeId=$COMMUNE" "" "$T_AUTRE" >/dev/null
-  chk "une autre commune ne voit pas ces échéances" 0 "$(val "sum(1 for e in d if e['vehicule_id']=='$V1')")"
-  chk "ni ne peut inscrire une intervention sur cet engin (introuvable, pas « interdit »)" 404 \
-      "$(req POST /maintenance/interventions "{\"vehiculeId\":\"$V1\",\"dateIntervention\":\"$(jour 0)\",\"type\":\"vidange\"}" "$T_AUTRE")"
-  chk "ni relever son compteur" 404 "$(req PUT "/maintenance/engins/$V1/kilometrage" '{"kilometrage":999999}' "$T_AUTRE")"
-  chk "ni retirer un plan" 404 "$(req DELETE "/maintenance/plans/$P_VIDANGE" "" "$T_AUTRE")"
-  chk "même en SQL direct, la base refuse une panne rattachée à une autre commune" 1 \
-      "$($PSQL -c "INSERT INTO interventions_maintenance (commune_id, vehicule_id, date_intervention, type) VALUES ('$AUTRE_COMMUNE', '$V1', CURRENT_DATE, 'vidange')" 2>&1 | grep -c ENGIN_AUTRE_COMMUNE)"
-fi
-PREST_EMAIL=$(sql "SELECT email FROM users WHERE role='gestionnaire_prestataire' AND deleted_at IS NULL AND is_active ORDER BY created_at LIMIT 1")
-[ -n "$PREST_EMAIL" ] && chk "un prestataire n'accède pas au carnet d'entretien" 403 \
-    "$(req GET "/maintenance/interventions?communeId=$COMMUNE" "" "$(tok "$PREST_EMAIL")")"
+# L'autre commune est la commune de test B, avec son directeur temporaire.
+# Le compte est bâti par la campagne : le contrôle ne dépend plus de sa présence.
+T_AUTRE=$(tok "$AUTRE_EMAIL" "$AUTRE_MDP")
+AUTRE_COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$AUTRE_EMAIL'")
+req GET "/maintenance/echeances?communeId=$COMMUNE" "" "$T_AUTRE" >/dev/null
+chk "une autre commune ne voit pas ces échéances" 0 "$(val "sum(1 for e in d if e['vehicule_id']=='$V1')")"
+chk "ni ne peut inscrire une intervention sur cet engin (introuvable, pas « interdit »)" 404 \
+    "$(req POST /maintenance/interventions "{\"vehiculeId\":\"$V1\",\"dateIntervention\":\"$(jour 0)\",\"type\":\"vidange\"}" "$T_AUTRE")"
+chk "ni relever son compteur" 404 "$(req PUT "/maintenance/engins/$V1/kilometrage" '{"kilometrage":999999}' "$T_AUTRE")"
+chk "ni retirer un plan" 404 "$(req DELETE "/maintenance/plans/$P_VIDANGE" "" "$T_AUTRE")"
+chk "même en SQL direct, la base refuse une panne rattachée à une autre commune" 1 \
+    "$($PSQL -c "INSERT INTO interventions_maintenance (commune_id, vehicule_id, date_intervention, type) VALUES ('$AUTRE_COMMUNE', '$V1', CURRENT_DATE, 'vidange')" 2>&1 | grep -c ENGIN_AUTRE_COMMUNE)"
+# Le prestataire est le prestataire temporaire de la commune de test.
+chk "un prestataire n'accède pas au carnet d'entretien" 403 \
+    "$(req GET "/maintenance/interventions?communeId=$COMMUNE" "" "$(tok "$PREST_EMAIL" "$PREST_MDP")")"
 chk "sans jeton, rien" 401 "$(curl -s -o /dev/null -w '%{http_code}' "$API/maintenance/echeances?communeId=$COMMUNE")"
 
 echo
@@ -175,7 +206,13 @@ curl -s -o "$T/i.csv" -H "Authorization: Bearer $T_DIR" "$API/maintenance/interv
 chk "le carnet s'exporte en CSV, libellés et virgule décimale" 1 \
     "$(python3 -c "t=open('$T/i.csv',encoding='utf-8-sig').read();print(1 if 'Pneumatiques' in t and '2400' in t and 'Freinage' in t else 0)")"
 
-nettoyer
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_essai
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 echo
 echo "----------------------------------------------------------------"
 printf '  %s réussis, %s échecs\n' "$pass" "$fail"

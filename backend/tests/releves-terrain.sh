@@ -12,6 +12,17 @@
 #
 # Aperçu seulement : rien n'est écrit, sinon le circuit d'essai, retiré à la fin.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-011). Jusqu'à la v0.15.52, elle
+# prenait « le premier directeur de la base » — sur la pile d'essai, le compte
+# de démonstration de La Marsa ; sur une base portant de vrais directeurs, le
+# plus ancien d'entre eux — et écrivait dans sa commune ; son cloisonnement
+# empruntait de même le premier directeur d'une autre commune, ou le premier
+# prestataire de la base. Elle travaille désormais dans deux communes de test,
+# avec des comptes temporaires (tests/outils/comptes_temporaires.sh), efface
+# en partant tout ce qu'elles portent (tests/outils/communes_essai.sh), et
+# prouve, pendant qu'elle a ses lignes en base puis en partant, qu'aucune
+# commune réelle n'a reçu de ligne (tests/outils/base_reelle.sh).
+#
 #   docker compose exec -T api npm run test:releves-terrain
 # =============================================================================
 
@@ -19,7 +30,7 @@ set -u
 API="${API_URL:-http://localhost:4000}"
 PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 pass=0; fail=0
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+T=$(mktemp -d)
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
@@ -32,13 +43,34 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_DIR=$(tok "$DIR_EMAIL")
-[ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
+COMMUNE=test_releves_terrain
+AUTRE_COMMUNE=test_releves_terrain_b
+ESSAI="'$COMMUNE','$AUTRE_COMMUNE'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
 
 nettoyer() { $PSQL -c "DELETE FROM circuits WHERE code = 'TEST-RELEVES';" >/dev/null 2>&1; }
 nettoyer
+# Son nettoyage d'origine, puis tout ce que portent ses communes de test.
+nettoyer_essai() {
+  nettoyer
+  effacer_communes_essai "$ESSAI"
+  retirer_comptes_temporaires
+}
+nettoyer_essai
+trap 'nettoyer_essai; rm -rf "$T"' EXIT
+releve_base_reelle
+commune_essai "$COMMUNE" "TEST commune de la campagne releves-terrain"
+commune_essai "$AUTRE_COMMUNE" "TEST autre commune de la campagne releves-terrain"
+compte_temporaire admin_commune "$COMMUNE" "Directeur de la campagne"
+DIR_EMAIL=$COMPTE_EMAIL; DIR_MDP=$COMPTE_MDP; DIR_ID=$COMPTE_ID
+compte_temporaire admin_commune "$AUTRE_COMMUNE" "Directeur de l'autre commune"
+AUTRE_EMAIL=$COMPTE_EMAIL; AUTRE_MDP=$COMPTE_MDP
+compte_temporaire gestionnaire_prestataire "$COMMUNE" "Prestataire de la campagne"
+PREST_EMAIL=$COMPTE_EMAIL; PREST_MDP=$COMPTE_MDP; PREST_USER=$COMPTE_ID
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
+[ -n "$T_DIR" ] || { echo "API injoignable sur $API, ou directeur de test non créé" >&2; exit 1; }
 CIRCUIT=$(sql "INSERT INTO circuits (commune_id, nom, code) VALUES ('$COMMUNE', 'Essai relevés', 'TEST-RELEVES') RETURNING id")
 
 # Un relevé « GPS Waypoints » : nom de l'arrêt → étiquettes saisies par l'agent.
@@ -164,14 +196,21 @@ chk "geojson : l'heure relevée revient avec l'arrêt" "08:00:00" \
 
 echo
 echo "8. Cloisonnement du fichier"
-T_AUTRE=$(tok "$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id <> '$COMMUNE' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")")
+# L'autre commune est la commune de test B, avec son directeur temporaire.
+T_AUTRE=$(tok "$AUTRE_EMAIL" "$AUTRE_MDP")
 chk "une autre commune ne télécharge pas ce circuit (404)" 404 \
     "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $T_AUTRE" "$API/circuits/$CIRCUIT/fichier?format=gpx")"
 chk "un format inconnu est refusé (400)" 400 \
     "$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $T_DIR" "$API/circuits/$CIRCUIT/fichier?format=shp")"
 
 nettoyer_bis
-nettoyer
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_essai
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 echo
 if [ "$fail" -eq 0 ]; then
   printf '\033[32m%s tests réussis, aucun échec.\033[0m\n\n' "$pass"; exit 0
