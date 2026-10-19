@@ -15,12 +15,23 @@
 #   docker compose run --rm api npm run test:citoyen
 #
 # ELLE NE TOUCHE QU'À SES CITOYENS (JC-005, docs/recette/JOURNAL_DES_CORRECTIONS.md).
-# Jusqu'à la v0.15.48, elle remettait à zéro l'adresse de TOUS les citoyens de
+# Jusqu'à la v0.15.47, elle remettait à zéro l'adresse de TOUS les citoyens de
 # la base, au début et à la fin : sur une base portant de vrais habitants,
 # chaque passage leur aurait retiré leurs horaires de collecte et le ciblage
 # des notifications. Elle crée désormais son citoyen d'essai, et un citoyen
 # « témoin » domicilié qu'elle ne doit pas toucher ; elle vérifie en partant
 # que le témoin et tous les autres citoyens sont tels qu'elle les a trouvés.
+#
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-009). Jusqu'à la v0.15.49, elle
+# posait ses secteurs, ses circuits, ses annonces et ses signalements d'essai
+# dans Houmt Souk, avec les comptes de démonstration de la commune ; et chaque
+# secteur posé par la FNCT y figeait une version du découpage, dont la
+# « version 1 » restait après elle dans l'historique de la commune. Elle
+# travaille désormais dans sa commune de test, avec un directeur temporaire
+# (tests/outils/directeur_temporaire.sh), et vérifie — pendant qu'elle a des
+# lignes en base, puis en partant — qu'aucune annonce, aucun secteur, aucun
+# circuit, aucune version de découpage ni aucun signalement n'a été ajouté,
+# modifié ou retiré dans une autre commune.
 #
 # Note : l'API limite les connexions à 20 par quart d'heure et par adresse IP.
 # Pour enchaîner les campagnes, démarrer l'API avec AUTH_RATE_LIMIT_MAX=200.
@@ -52,15 +63,17 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-T_HS=$(tok directeur.houmtsouk@siipi.tn)
+# Les comptes de démonstration ne servent plus qu'à des REFUS (une autre
+# commune, un prestataire) : ils n'écrivent rien. La FNCT pose les secteurs
+# (le découpage se valide par elle depuis le Jalon 7), dans la commune de test.
 T_MARSA=$(tok directeur.marsa@siipi.tn)
 T_PREST=$(tok prestataire.houmtsouk@siipi.tn)
-# Le découpage se valide par la FNCT depuis le Jalon 7 : c'est elle qui pose
-# les secteurs du décor.
 T_FNCT=$(tok admin.national@siipi.tn)
-[ -n "$T_HS" ] || { echo "API injoignable sur $API" >&2; exit 1; }
+[ -n "$T_FNCT" ] && [ -n "$T_MARSA" ] && [ -n "$T_PREST" ] || { echo "API injoignable sur $API, ou compte de démonstration absent" >&2; exit 1; }
 
-COMMUNE=medenine_djerba_houmt_souk
+COMMUNE=test_citoyen
+COMMUNE_DIR="$COMMUNE"
+. "$(dirname "$0")/outils/directeur_temporaire.sh"
 AUJOURDHUI=$(date -u +%F)
 JOUR_SEMAINE=$(date -u +%u)          # 1 = lundi … 7 = dimanche
 DANS_2J=$(date -u -d '+2 days' +%F)
@@ -82,19 +95,60 @@ etat_citoyens() {  # $1 = filtre SQL sur u.email
          FROM citoyens c JOIN users u ON u.id = c.user_id WHERE $1"
 }
 
-# Nettoyage : ses lignes TEST et ses deux citoyens, rien d'autre. Une campagne
-# interrompue laisse ses données derrière elle et fausserait la suivante.
+# Nettoyage : sa commune de test et tout ce qu'elle porte, ses deux citoyens,
+# son directeur — rien d'autre. Chaque suppression est bornée à la commune de
+# test : une ligne d'essai égarée dans une commune réelle reste où elle est, et
+# les contrôles de la fin la voient. Un -c par ordre, dans l'ordre des clés
+# étrangères, pour qu'un refus n'emporte pas les suivants.
 nettoyer() {
-  $PSQL -c "DELETE FROM annonces_collecte WHERE message_fr LIKE 'TEST %';
-            DELETE FROM tickets WHERE title LIKE 'TEST signalement%';
-            DELETE FROM circuits WHERE nom LIKE 'TEST circuit citoyen%';
-            DELETE FROM zones_collecte WHERE name LIKE 'TEST zone citoyen%';
-            DELETE FROM versions_decoupage WHERE zones::text LIKE '%TEST zone citoyen%' OR note LIKE '%TEST zone citoyen%';
-            DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email IN ($NOS_CITOYENS));
-            DELETE FROM users WHERE email IN ($NOS_CITOYENS);" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM annonces_collecte WHERE commune_id = '$COMMUNE';" \
+        -c "DELETE FROM tickets WHERE commune_id = '$COMMUNE';" \
+        -c "DELETE FROM circuits WHERE commune_id = '$COMMUNE';" \
+        -c "DELETE FROM zones_collecte WHERE commune_id = '$COMMUNE';" \
+        -c "DELETE FROM versions_decoupage WHERE commune_id = '$COMMUNE';" \
+        -c "DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email IN ($NOS_CITOYENS));" \
+        -c "DELETE FROM users WHERE email IN ($NOS_CITOYENS);" \
+        -c "DELETE FROM audit_log WHERE commune_id = '$COMMUNE';" >/dev/null 2>&1
+  retirer_directeur_temporaire
+  $PSQL -c "DELETE FROM communes WHERE id = '$COMMUNE';" >/dev/null 2>&1
 }
 nettoyer
 trap nettoyer EXIT
+
+# Ce que la campagne écrit, table par table, et l'empreinte de ces tables HORS
+# de sa commune de test : les identifiants de toutes les lignes, avec ce qui
+# change quand une ligne est modifiée. Une ligne ajoutée, modifiée ou retirée
+# dans une commune réelle change l'empreinte — même effacée ensuite, puisque le
+# premier contrôle tombe pendant que la campagne a ses lignes en base.
+TABLES_ECRITES="annonces_collecte tickets circuits zones_collecte versions_decoupage"
+empreinte_reelles() {  # $1 = table
+  case "$1" in
+    annonces_collecte) cols="id::text||coalesce(message_fr,'')||coalesce(date_debut::text,'')||coalesce(type,'')" ;;
+    tickets)           cols="id::text||coalesce(status,'')||coalesce(title,'')" ;;
+    circuits)          cols="id::text||coalesce(nom,'')||coalesce(zone_id::text,'')" ;;
+    zones_collecte)    cols="id::text||coalesce(name,'')||coalesce(ST_AsText(geom),'')" ;;
+    versions_decoupage) cols="id::text||coalesce(numero::text,'')||statut" ;;
+  esac
+  sql "SELECT count(*)||':'||coalesce(md5(string_agg($cols, ',' ORDER BY id)), '-') FROM $1 WHERE commune_id <> '$COMMUNE'"
+}
+declare -A REELLES_AVANT
+for t in $TABLES_ECRITES; do REELLES_AVANT[$t]=$(empreinte_reelles "$t"); done
+# Les libellés des contrôles, l'annonce en tête : c'est elle que le citoyen lit.
+declare -A LIBELLE=([annonces_collecte]="aucune annonce ajoutée, modifiée ou retirée"
+                    [zones_collecte]="aucun secteur ajouté, modifié ou retiré"
+                    [circuits]="aucun circuit ajouté, modifié ou retiré"
+                    [versions_decoupage]="aucune version de découpage ajoutée, modifiée ou retirée"
+                    [tickets]="aucun signalement ajouté, modifié ou retiré")
+communes_reelles_intactes() {  # $1 = moment
+  for t in annonces_collecte zones_collecte circuits versions_decoupage tickets; do
+    chk "$1 : ${LIBELLE[$t]} hors de la commune de test" "${REELLES_AVANT[$t]}" "$(empreinte_reelles "$t")"
+  done
+}
+
+$PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$COMMUNE', 'TEST commune de l''espace citoyen', 'TEST', 'TEST', 5000);" >/dev/null
+directeur_temporaire "$COMMUNE"
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
+[ -n "$T_DIR" ] || { echo "Le directeur temporaire ne se connecte pas." >&2; exit 1; }
 
 # L'état de tous les AUTRES citoyens, avant que la campagne ne commence.
 AUTRES_AVANT=$(etat_citoyens "u.email NOT IN ($NOS_CITOYENS)")
@@ -122,11 +176,11 @@ CODE=$(code -X POST "$API/zones" -H "Authorization: Bearer $T_FNCT" -H 'Content-
   -d "{\"communeId\":\"$COMMUNE\",\"name\":\"TEST zone citoyen B\",\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[10.70,33.60],[10.72,33.60],[10.72,33.62],[10.70,33.62],[10.70,33.60]]]}}")
 ZONE_B=$(jq_ "d['id']")
 
-CODE=$(code -X POST "$API/circuits" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
+CODE=$(code -X POST "$API/circuits" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
   -d "{\"communeId\":\"$COMMUNE\",\"nom\":\"TEST circuit citoyen A\",\"zoneId\":\"$ZONE_A\",\"joursPassage\":[$JOUR_SEMAINE],\"typeDechet\":\"menager\"}")
 chk "un circuit hebdomadaire sur le secteur A" 201 "$CODE"
 CIRCUIT_A=$(jq_ "d['id']")
-code -X POST "$API/circuits" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
+code -X POST "$API/circuits" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
   -d "{\"communeId\":\"$COMMUNE\",\"nom\":\"TEST circuit citoyen B\",\"zoneId\":\"$ZONE_B\",\"joursPassage\":[$JOUR_SEMAINE]}" >/dev/null
 CIRCUIT_B=$(jq_ "d['id']")
 
@@ -147,7 +201,7 @@ CODE=$(code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_CIT" -H 
   -d '{"communeId":"commune_qui_nexiste_pas","adresse":"nulle part","lat":33.6,"lng":10.6}')
 chk "une commune inconnue est refusée" 404 "$CODE"
 
-CODE=$(code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
+CODE=$(code -X POST "$API/citoyen/adresse" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
   -d "{\"communeId\":\"$COMMUNE\",\"adresse\":\"la mairie\"}")
 chk "un directeur de propreté n'a pas d'adresse citoyenne" 403 "$CODE"
 
@@ -183,11 +237,11 @@ CODE=$(code -X POST "$API/citoyen/annonces" -H "Authorization: Bearer $T_MARSA" 
   -d "{\"communeId\":\"$COMMUNE\",\"type\":\"information\",\"dateDebut\":\"$AUJOURDHUI\",\"dateFin\":\"$AUJOURDHUI\",\"messageFr\":\"TEST intrusion commune voisine\"}")
 chk "une autre commune non plus (refus de la base, pas panne)" 403 "$CODE"
 
-CODE=$(code -X POST "$API/citoyen/annonces" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
+CODE=$(code -X POST "$API/citoyen/annonces" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
   -d "{\"communeId\":\"$COMMUNE\",\"type\":\"report\",\"dateDebut\":\"$AUJOURDHUI\",\"dateFin\":\"$AUJOURDHUI\",\"messageFr\":\"TEST report sans date\"}")
 chk "un report sans date de report est refusé" 400 "$CODE"
 
-CODE=$(code -X POST "$API/citoyen/annonces" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
+CODE=$(code -X POST "$API/citoyen/annonces" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
   -d "{\"communeId\":\"$COMMUNE\",\"circuitId\":\"$CIRCUIT_A\",\"type\":\"suppression\",\"dateDebut\":\"$AUJOURDHUI\",\"dateFin\":\"$AUJOURDHUI\",\"messageFr\":\"TEST jour férié, pas de collecte\",\"messageAr\":\"اختبار\"}")
 chk "la commune annonce une suppression" 201 "$CODE"
 ANNONCE=$(jq_ "d['id']")
@@ -197,7 +251,7 @@ chk "le passage supprimé disparaît du calendrier" "$DANS_7J" "$(jq_ "d[0]['pro
 chk "et le citoyen voit pourquoi" "suppression" "$(jq_ "d[0]['annonce_type']")"
 chk "le message lui est remonté" "TEST jour férié, pas de collecte" "$(jq_ "d[0]['annonce_message']")"
 
-CODE=$(code -X PATCH "$API/citoyen/annonces/$ANNONCE" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
+CODE=$(code -X PATCH "$API/citoyen/annonces/$ANNONCE" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
   -d "{\"type\":\"report\",\"dateReport\":\"$DANS_2J\",\"messageFr\":\"TEST collecte reportée\"}")
 chk "la commune corrige : ce n'est pas supprimé, c'est reporté" 200 "$CODE"
 CODE=$(code "$API/citoyen/horaires" -H "Authorization: Bearer $T_CIT")
@@ -205,11 +259,11 @@ chk "le passage réapparaît à la date de report" "$DANS_2J" "$(jq_ "d[0]['proc
 
 echo
 echo "7. Un brouillon reste chez la commune"
-CODE=$(code -X POST "$API/citoyen/annonces" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
+CODE=$(code -X POST "$API/citoyen/annonces" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
   -d "{\"communeId\":\"$COMMUNE\",\"type\":\"information\",\"dateDebut\":\"$AUJOURDHUI\",\"dateFin\":\"$DANS_7J\",\"messageFr\":\"TEST brouillon non publié\",\"publiee\":false}")
 chk "la commune rédige un brouillon" 201 "$CODE"
 BROUILLON=$(jq_ "d['id']")
-CODE=$(code "$API/citoyen/annonces?communeId=$COMMUNE" -H "Authorization: Bearer $T_HS")
+CODE=$(code "$API/citoyen/annonces?communeId=$COMMUNE" -H "Authorization: Bearer $T_DIR")
 chk "elle le voit" "t" "$(jq_ "'t' if any(x['id']=='$BROUILLON' for x in d) else 'f'")"
 CODE=$(code "$API/citoyen/annonces?communeId=$COMMUNE" -H "Authorization: Bearer $T_CIT")
 chk "le citoyen ne le voit pas" "f" "$(jq_ "'t' if any(x['id']=='$BROUILLON' for x in d) else 'f'")"
@@ -237,7 +291,7 @@ CODE=$(code -X PATCH "$API/citoyen/signalements/$TICKET/photo" -H "Authorization
   -H 'Content-Type: application/json' -d '{"photoPublique":true}')
 chk "le citoyen ne publie pas sa photo lui-même" 403 "$CODE"
 
-CODE=$(code -X PATCH "$API/citoyen/signalements/$TICKET/photo" -H "Authorization: Bearer $T_HS" \
+CODE=$(code -X PATCH "$API/citoyen/signalements/$TICKET/photo" -H "Authorization: Bearer $T_DIR" \
   -H 'Content-Type: application/json' -d '{"photoPublique":true}')
 chk "la commune valide la photo" 200 "$CODE"
 CODE=$(code "$API/citoyen/carte?communeId=$COMMUNE")
@@ -246,7 +300,7 @@ chk "elle apparaît alors sur la carte" "https://exemple.tn/photo.jpg" \
 chk "la validation est datée et signée" 1 \
     "$(sql "SELECT count(*) FROM tickets WHERE id='$TICKET' AND photo_validee_par IS NOT NULL AND photo_validee_le IS NOT NULL")"
 
-CODE=$(code -X PATCH "$API/citoyen/signalements/$TICKET/photo" -H "Authorization: Bearer $T_HS" \
+CODE=$(code -X PATCH "$API/citoyen/signalements/$TICKET/photo" -H "Authorization: Bearer $T_DIR" \
   -H 'Content-Type: application/json' -d '{"photoPublique":false}')
 CODE=$(code "$API/citoyen/carte?communeId=$COMMUNE")
 chk "la commune peut la dépublier" "None" \
@@ -254,11 +308,17 @@ chk "la commune peut la dépublier" "None" \
 
 echo
 echo "9. Suppression logique d'une annonce"
-CODE=$(code -X DELETE "$API/citoyen/annonces/$BROUILLON" -H "Authorization: Bearer $T_HS")
+CODE=$(code -X DELETE "$API/citoyen/annonces/$BROUILLON" -H "Authorization: Bearer $T_DIR")
 chk "l'annonce est retirée" 204 "$CODE"
 chk "elle reste en base" 1 "$(sql "SELECT count(*) FROM annonces_collecte WHERE id='$BROUILLON'")"
 chk "et au journal d'audit" "t" \
     "$([ "$(sql "SELECT count(*) FROM audit_log WHERE record_id='$BROUILLON'")" -ge 1 ] && echo t || echo f)"
+
+echo
+echo "9 bis. Pendant qu'elle a ses lignes en base, aucune commune réelle n'en a reçu (JC-009)"
+chk "la commune de test porte bien les lignes de la campagne (2 annonces, 2 secteurs, 2 circuits, 1 signalement, des versions)" "2|2|2|1|t" \
+    "$(sql "SELECT count(*) FROM annonces_collecte WHERE commune_id = '$COMMUNE'")|$(sql "SELECT count(*) FROM zones_collecte WHERE commune_id = '$COMMUNE'")|$(sql "SELECT count(*) FROM circuits WHERE commune_id = '$COMMUNE'")|$(sql "SELECT count(*) FROM tickets WHERE commune_id = '$COMMUNE'")|$([ "$(sql "SELECT count(*) FROM versions_decoupage WHERE commune_id = '$COMMUNE'")" -ge 1 ] && echo t || echo f)"
+communes_reelles_intactes "pendant la campagne"
 
 echo
 echo "10. Trouver sa commune : la position d'abord, le choix en deux étapes à défaut (D-FNCT-1)"
@@ -292,8 +352,9 @@ chk "la position n'est écrite nulle part : ni au journal, ni sur la fiche du ci
 
 # Le choix manuel : gouvernorat, puis commune, affichée « Nom (Gouvernorat) ».
 code "$API/communes" -H "Authorization: Bearer $T_CIT" >/dev/null
+# La commune de test de la campagne figure dans la liste ; elle n'est pas un gouvernorat.
 chk "les 24 gouvernorats sont proposés à la première étape" 24 \
-    "$(jq_ "len({c['gouvernorat'] for c in d if c.get('gouvernorat')})")"
+    "$(jq_ "len({c['gouvernorat'] for c in d if c.get('gouvernorat') and c['id'] != '$COMMUNE'})")"
 chk "deux noms au moins sont portés par deux communes (Ennour, Ezzouhour)…" "Ennour,Ezzouhour" \
     "$(jq_ "','.join(sorted(n for n in {c['name'] for c in d} if sum(1 for x in d if x['name']==n) > 1))")"
 chk "… mais « Nom (Gouvernorat) » n'est jamais porté deux fois" 0 \
@@ -307,14 +368,15 @@ code "$API/citoyen/adresse" -H "Authorization: Bearer $T_CIT" >/dev/null
 chk "le choix manuel est enregistré : l'Ennour de Kasserine, pas celle de Sfax" "200|kasserine_ennour" "$CODE|$(jq_ "d['commune_id']")"
 
 echo
-echo "11. En partant, elle n'a touché qu'à son citoyen d'essai (JC-005)"
+echo "11. En partant, elle n'a touché qu'à ses citoyens et à sa commune de test (JC-005, JC-009)"
 chk "le citoyen témoin garde sa commune, son adresse, sa position et son secteur" "$TEMOIN_AVANT" \
     "$(etat_citoyens "u.email = '$TEM_EMAIL'")"
 nettoyer
-chk "ses deux citoyens et ses lignes TEST sont effacés" "0|0|0" \
-    "$(sql "SELECT count(*) FROM users WHERE email IN ($NOS_CITOYENS)")|$(sql "SELECT count(*) FROM tickets WHERE title LIKE 'TEST signalement%'")|$(sql "SELECT count(*) FROM circuits WHERE nom LIKE 'TEST circuit citoyen%'")"
+chk "sa commune de test, ses deux citoyens et son directeur sont effacés" "0|0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id = '$COMMUNE'")|$(sql "SELECT count(*) FROM users WHERE email IN ($NOS_CITOYENS)")|$(sql "SELECT count(*) FROM users WHERE email = '$DIR_EMAIL'")"
 chk "tous les autres citoyens de la base sont tels qu'elle les a trouvés" "$AUTRES_AVANT" \
     "$(etat_citoyens "u.email NOT IN ($NOS_CITOYENS)")"
+communes_reelles_intactes "en partant"
 
 echo
 if [ "$fail" -eq 0 ]; then
