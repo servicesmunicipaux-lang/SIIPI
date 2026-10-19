@@ -38,7 +38,21 @@ fi
 # campagne bâtit ses comptes (tests/outils/comptes_temporaires.sh) ; celle qui
 # contient encore ce choix ne tourne pas. Les commentaires ne comptent pas :
 # l'en-tête d'une campagne peut raconter ce qu'elle faisait.
-emprunts=$(grep -nE "FROM users( [a-z]+)? WHERE ([a-z]+\.)?role ?= ?'[a-z_]+'.*LIMIT 1" "$fichier" | grep -vE '^[0-9]+:[[:space:]]*#')
+# Le même choix écrit sur plusieurs lignes ($(sql "… FROM users … role … LIMIT
+# n") sur trois lignes) : `barbechas` y échappait (JC-014). La requête est
+# recollée avant d'être lue.
+emprunts=$( { grep -nE "FROM users( [a-z]+)? WHERE ([a-z]+\.)?role ?= ?'[a-z_]+'.*LIMIT 1" "$fichier"
+              awk '
+                /\$\(sql "/ && !/"\)/ { tampon = $0; debut = NR; dedans = 1; next }
+                dedans {
+                  tampon = tampon " " $0
+                  if ($0 ~ /"\)/) {
+                    dedans = 0
+                    if (tampon ~ /FROM users/ && tampon ~ /role ?= ?\047[a-z_]+\047/ && tampon ~ /LIMIT [0-9]/)
+                      print debut ":" tampon
+                  }
+                }' "$fichier"
+            } | grep -vE '^[0-9]+:[[:space:]]*#')
 if [ -n "$emprunts" ]; then
   echo "[tests] $campagne emprunte « le premier » compte d'un rôle de la base (JC-011) :" >&2
   echo "$emprunts" | cut -c1-160 >&2

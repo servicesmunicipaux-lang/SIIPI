@@ -10,6 +10,15 @@
 # Vérifie aussi qu'un prestataire sous contrat avec plusieurs communes accède
 # à chacune avec un seul compte, et à aucune autre.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-014). Jusqu'à la v0.15.54, elle
+# écrivait avec les comptes de démonstration (directeur.marsa, directeur.sfax, prestataire.marsa) dans leurs
+# communes réelles (La Marsa, Sfax, Midoun), puis effaçait ses lignes : rien ne restait
+# dans les tables, mais le journal d'audit gardait les écritures de la
+# commune, et cela suffisait à la faire paraître « active » au tableau
+# national. Elle travaille désormais dans des communes de test qui en tiennent
+# le rôle, avec des comptes temporaires, et prouve, pendant qu'elle a ses
+# lignes en base puis en partant, qu'aucune commune réelle n'a reçu de ligne.
+#
 #   docker compose run --rm api npm run test:prestataires
 #
 # Note : l'API limite les connexions à 20 par quart d'heure et par adresse IP.
@@ -23,7 +32,7 @@ pass=0; fail=0
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"Siipi2026!\"}" \
+    -d "{\"email\":\"$1\",\"password\":\"${2:-Siipi2026!}\"}" \
     | python3 -c "import sys,json;print(json.load(sys.stdin).get('token',''))" 2>/dev/null
 }
 sql()  { $PSQL -c "$1" 2>/dev/null | tr -d ' '; }
@@ -35,12 +44,33 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-T_MARSA=$(tok directeur.marsa@siipi.tn)
-T_SFAX=$(tok directeur.sfax@siipi.tn)
-T_PREST=$(tok prestataire.marsa@siipi.tn)
+# Les communes de test qui tiennent le rôle des communes réelles, et leurs
+# comptes temporaires (JC-014).
+ESSAI_C="'test_prestataires_marsa','test_prestataires_sfax','test_prestataires_midoun'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+nettoyer_c() {
+  effacer_communes_essai "$ESSAI_C"
+  retirer_comptes_temporaires
+  effacer_communes_essai "$ESSAI_C"
+}
+nettoyer_c
+trap nettoyer_c EXIT
+releve_base_reelle
+commune_essai "test_prestataires_marsa" "TEST commune La Marsa de la campagne prestataires"
+commune_essai "test_prestataires_sfax" "TEST commune Sfax de la campagne prestataires"
+commune_essai "test_prestataires_midoun" "TEST commune Midoun de la campagne prestataires"
+compte_temporaire admin_commune "test_prestataires_marsa" "DIR_MARSA de la campagne"; EM_DIR_MARSA=$COMPTE_EMAIL; MDP_DIR_MARSA=$COMPTE_MDP
+compte_temporaire admin_commune "test_prestataires_sfax" "DIR_SFAX de la campagne"; EM_DIR_SFAX=$COMPTE_EMAIL; MDP_DIR_SFAX=$COMPTE_MDP
+compte_temporaire gestionnaire_prestataire "test_prestataires_marsa" "PREST_MARSA de la campagne"; EM_PREST_MARSA=$COMPTE_EMAIL; MDP_PREST_MARSA=$COMPTE_MDP
+
+T_MARSA=$(tok "$EM_DIR_MARSA" "$MDP_DIR_MARSA")
+T_SFAX=$(tok "$EM_DIR_SFAX" "$MDP_DIR_SFAX")
+T_PREST=$(tok "$EM_PREST_MARSA" "$MDP_PREST_MARSA")
 [ -n "$T_MARSA" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
-PRESTATAIRE=$(sql "SELECT id FROM users WHERE email='prestataire.marsa@siipi.tn'")
+PRESTATAIRE=$(sql "SELECT id FROM users WHERE email='$EM_PREST_MARSA'")
 
 # Nettoyage préalable : une campagne interrompue en cours de route laisse ses
 # données derrière elle et fausse la suivante. On repart d'un état connu plutôt
@@ -52,7 +82,7 @@ $PSQL -c "DELETE FROM incidents WHERE circuit_id IN (SELECT id FROM circuits WHE
 
 # Circuit de test : lundi à samedi, confié au prestataire de La Marsa.
 code -X POST "$API/circuits" -H "Authorization: Bearer $T_MARSA" -H 'Content-Type: application/json' \
-  -d "{\"communeId\":\"tunis_la_marsa\",\"nom\":\"Circuit test passages\",\"prestataireId\":\"$PRESTATAIRE\",\"joursPassage\":[1,2,3,4,5,6],\"dateDebut\":\"2026-09-01\"}" >/dev/null
+  -d "{\"communeId\":\"test_prestataires_marsa\",\"nom\":\"Circuit test passages\",\"prestataireId\":\"$PRESTATAIRE\",\"joursPassage\":[1,2,3,4,5,6],\"dateDebut\":\"2026-09-01\"}" >/dev/null
 CIRCUIT=$(val "['id']")
 [ -n "$CIRCUIT" ] || { echo "Impossible de créer le circuit de test." >&2; exit 1; }
 
@@ -89,14 +119,14 @@ echo "3. Confrontation"
 # horodatage, elles glissent d'un jour sur un serveur à l'heure de Tunis.
 chk "une date de passage reste une date, pas un horodatage" "2026-09-01" \
     "$(sql "SELECT date_passage FROM declarations_passage WHERE circuit_id='$CIRCUIT' AND date_passage='2026-09-01'")"
-CODE=$(code "$API/passages?communeId=tunis_la_marsa&depuis=2026-09-01" -H "Authorization: Bearer $T_MARSA")
+CODE=$(code "$API/passages?communeId=test_prestataires_marsa&depuis=2026-09-01" -H "Authorization: Bearer $T_MARSA")
 chk "l'API renvoie la date sans décalage" "2026-09-01" \
     "$(python3 -c "
 import json
 d=[l for l in json.load(open('/tmp/siipi_p.json')) if l['circuit_id']=='$CIRCUIT' and l['date_passage'].startswith('2026-09-01')]
 print(d[0]['date_passage'] if d else 'absent')" 2>/dev/null)"
 
-CODE=$(code "$API/passages/confrontation?communeId=tunis_la_marsa&depuis=2026-09-01&jusqua=2026-09-05" \
+CODE=$(code "$API/passages/confrontation?communeId=test_prestataires_marsa&depuis=2026-09-01&jusqua=2026-09-05" \
   -H "Authorization: Bearer $T_MARSA")
 chk "la confrontation répond" 200 "$CODE"
 CONC=$(python3 -c "
@@ -118,10 +148,10 @@ chk "passage prévu dont personne ne parle = silence" "silence" "$SIL"
 echo
 echo "4. Incidents"
 CODE=$(code -X POST "$API/passages/incidents" -H "Authorization: Bearer $T_PREST" -H 'Content-Type: application/json' \
-  -d "{\"communeId\":\"tunis_la_marsa\",\"circuitId\":\"$CIRCUIT\",\"dateIncident\":\"2026-09-02\",\"type\":\"acces_bloque\",\"description\":\"rue barrée par des travaux\"}")
+  -d "{\"communeId\":\"test_prestataires_marsa\",\"circuitId\":\"$CIRCUIT\",\"dateIncident\":\"2026-09-02\",\"type\":\"acces_bloque\",\"description\":\"rue barrée par des travaux\"}")
 chk "le prestataire signale un incident" 201 "$CODE"
 INCIDENT=$(val "['id']")
-CODE=$(code "$API/passages/confrontation?communeId=tunis_la_marsa&depuis=2026-09-02&jusqua=2026-09-02" \
+CODE=$(code "$API/passages/confrontation?communeId=test_prestataires_marsa&depuis=2026-09-02&jusqua=2026-09-02" \
   -H "Authorization: Bearer $T_MARSA")
 chk "l'incident apparaît face au constat du même jour" "acces_bloque" \
     "$(python3 -c "
@@ -137,24 +167,24 @@ chk "la commune prend l'incident en charge" 200 "$CODE"
 
 echo
 echo "5. Cloisonnement"
-CODE=$(code "$API/passages?communeId=tunis_la_marsa" -H "Authorization: Bearer $T_SFAX")
+CODE=$(code "$API/passages?communeId=test_prestataires_marsa" -H "Authorization: Bearer $T_SFAX")
 chk "une autre commune ne voit aucune déclaration de La Marsa" 0 "$(len)"
-CODE=$(code "$API/passages/incidents?communeId=tunis_la_marsa" -H "Authorization: Bearer $T_SFAX")
+CODE=$(code "$API/passages/incidents?communeId=test_prestataires_marsa" -H "Authorization: Bearer $T_SFAX")
 chk "une autre commune ne voit aucun incident de La Marsa" 0 "$(len)"
-CODE=$(code "$API/passages?communeId=tunis_la_marsa" -H "Authorization: Bearer $T_PREST")
+CODE=$(code "$API/passages?communeId=test_prestataires_marsa" -H "Authorization: Bearer $T_PREST")
 chk "le prestataire voit ses propres déclarations" 2 "$(len)"
 
 echo
 echo "6. Un compte, plusieurs communes"
 chk "le rattachement existant a été repris" 1 \
-    "$(sql "SELECT count(*) FROM utilisateur_communes WHERE user_id='$PRESTATAIRE' AND commune_id='tunis_la_marsa'")"
-$PSQL -c "INSERT INTO utilisateur_communes (user_id, commune_id, contrat_reference) VALUES ('$PRESTATAIRE','sfax_sfax_ville_medina','CT-2026-07') ON CONFLICT DO NOTHING;" >/dev/null 2>&1
-T_PREST=$(tok prestataire.marsa@siipi.tn)
+    "$(sql "SELECT count(*) FROM utilisateur_communes WHERE user_id='$PRESTATAIRE' AND commune_id='test_prestataires_marsa'")"
+$PSQL -c "INSERT INTO utilisateur_communes (user_id, commune_id, contrat_reference) VALUES ('$PRESTATAIRE','test_prestataires_sfax','CT-2026-07') ON CONFLICT DO NOTHING;" >/dev/null 2>&1
+T_PREST=$(tok "$EM_PREST_MARSA" "$MDP_PREST_MARSA")
 CODE=$(code "$API/passages/mes-contrats" -H "Authorization: Bearer $T_PREST")
 chk "il voit ses deux communes sous contrat" 2 "$(len)"
-CODE=$(code "$API/containers?communeId=sfax_sfax_ville_medina" -H "Authorization: Bearer $T_PREST")
+CODE=$(code "$API/containers?communeId=test_prestataires_sfax" -H "Authorization: Bearer $T_PREST")
 chk "il accède à la seconde commune avec le même compte" 200 "$CODE"
-CODE=$(code "$API/containers?communeId=medenine_djerba_midoun" -H "Authorization: Bearer $T_PREST")
+CODE=$(code "$API/containers?communeId=test_prestataires_midoun" -H "Authorization: Bearer $T_PREST")
 chk "il n'accède à aucune commune hors contrat" 0 "$(len)"
 
 # Sans commune précisée, l'API retombait sur users.commune_id — le rattachement
@@ -162,7 +192,7 @@ chk "il n'accède à aucune commune hors contrat" 0 "$(len)"
 # la première, et son écran de tournée cachait silencieusement les autres.
 # C'est désormais le cloisonnement en base qui décide (app.mes_communes()).
 CIRCUIT_SFAX=$($PSQL -tAc "INSERT INTO circuits (commune_id, nom, prestataire_id, jours_passage)
-                           VALUES ('sfax_sfax_ville_medina', 'Circuit test Sfax', '$PRESTATAIRE', ARRAY[1,2,3,4,5,6,7]::smallint[])
+                           VALUES ('test_prestataires_sfax', 'Circuit test Sfax', '$PRESTATAIRE', ARRAY[1,2,3,4,5,6,7]::smallint[])
                            RETURNING id" 2>/dev/null | tr -d ' ')
 CODE=$(code "$API/circuits" -H "Authorization: Bearer $T_PREST")
 chk "sans commune précisée, il voit les circuits de TOUTES ses communes" "t" \
@@ -170,23 +200,31 @@ chk "sans commune précisée, il voit les circuits de TOUTES ses communes" "t" \
 import json
 d = json.load(open('/tmp/siipi_p.json'))
 communes = {x['commune_id'] for x in d}
-print('t' if {'tunis_la_marsa', 'sfax_sfax_ville_medina'} <= communes else 'f')" 2>/dev/null)"
+print('t' if {'test_prestataires_marsa', 'test_prestataires_sfax'} <= communes else 'f')" 2>/dev/null)"
 chk "et le nom de la commune, pas son identifiant technique" "t" \
     "$(python3 -c "
 import json
 d = json.load(open('/tmp/siipi_p.json'))
 print('t' if d and all(x.get('commune_nom') for x in d) else 'f')" 2>/dev/null)"
 $PSQL -c "DELETE FROM circuits WHERE id='$CIRCUIT_SFAX'" >/dev/null 2>&1
-$PSQL -c "UPDATE utilisateur_communes SET date_fin='2026-01-01' WHERE user_id='$PRESTATAIRE' AND commune_id='sfax_sfax_ville_medina';" >/dev/null 2>&1
-T_PREST=$(tok prestataire.marsa@siipi.tn)
-CODE=$(code "$API/containers?communeId=sfax_sfax_ville_medina" -H "Authorization: Bearer $T_PREST")
+$PSQL -c "UPDATE utilisateur_communes SET date_fin='2026-01-01' WHERE user_id='$PRESTATAIRE' AND commune_id='test_prestataires_sfax';" >/dev/null 2>&1
+T_PREST=$(tok "$EM_PREST_MARSA" "$MDP_PREST_MARSA")
+CODE=$(code "$API/containers?communeId=test_prestataires_sfax" -H "Authorization: Bearer $T_PREST")
 chk "un contrat échu ne donne plus accès à rien" 0 "$(len)"
 
-$PSQL -c "DELETE FROM utilisateur_communes WHERE user_id='$PRESTATAIRE' AND commune_id='sfax_sfax_ville_medina';
+$PSQL -c "DELETE FROM utilisateur_communes WHERE user_id='$PRESTATAIRE' AND commune_id='test_prestataires_sfax';
           DELETE FROM incidents WHERE circuit_id='$CIRCUIT';
           DELETE FROM declarations_passage WHERE circuit_id='$CIRCUIT';
           DELETE FROM controles_terrain WHERE circuit_id='$CIRCUIT';
           DELETE FROM circuits WHERE id='$CIRCUIT';" >/dev/null 2>&1
+
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-014)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_c
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI_C)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 
 echo
 if [ "$fail" -eq 0 ]; then

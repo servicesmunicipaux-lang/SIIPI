@@ -16,6 +16,16 @@
 # pré-collecteurs TEST-BARB-…, nettoyés en fin de campagne ; les paramètres
 # national et communaux touchés sont rétablis.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-014). Jusqu'à la v0.15.54, elle
+# prenait « le premier directeur » des deux premières communes de la base —
+# sur la pile d'essai, les comptes de démonstration d'Ajim et de Houmt Souk —
+# et y posait ses pré-collecteurs d'essai et un récépissé de l'INPDP, qu'elle
+# effaçait ou rendait en partant ; le journal d'audit gardait les écritures de
+# ces communes, et cela suffisait à les faire paraître « actives ». Elle
+# travaille désormais dans deux communes de test, avec deux directeurs
+# temporaires, et prouve, pendant qu'elle a ses lignes en base puis en
+# partant, qu'aucune commune réelle n'a reçu de ligne.
+#
 #   docker compose exec -T api npm run test:barbechas
 # =============================================================================
 
@@ -23,7 +33,7 @@ set -u
 API="${API_URL:-http://localhost:4000}"
 PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 pass=0; fail=0
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+T=$(mktemp -d); trap 'nettoyer_c 2>/dev/null; rm -rf "$T"' EXIT
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
@@ -44,15 +54,25 @@ appel() { # méthode chemin jeton [corps] -> code HTTP, corps dans $T/r.json
 
 T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-# Deux admins de deux communes différentes, au mot de passe définitif.
-DIRS=$(sql "SELECT string_agg(email, ',') FROM (SELECT DISTINCT ON (commune_id) email FROM users
-             WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire AND commune_id IS NOT NULL
-             ORDER BY commune_id, created_at LIMIT 2) x")
-DIR_A=${DIRS%%,*}; DIR_B=${DIRS##*,}
-T_A=$(tok "$DIR_A"); T_B=$(tok "$DIR_B")
-A=$(sql "SELECT commune_id FROM users WHERE email='$DIR_A'")
-B=$(sql "SELECT commune_id FROM users WHERE email='$DIR_B'")
-[ "$A" != "$B" ] || { echo "Il faut deux admins de communes différentes." >&2; exit 1; }
+# Deux communes de test et leurs directeurs temporaires (JC-014).
+A=test_barbechas_a
+B=test_barbechas_b
+ESSAI_C="'$A','$B'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+nettoyer_c() {
+  effacer_communes_essai "$ESSAI_C"
+  retirer_comptes_temporaires
+  effacer_communes_essai "$ESSAI_C"
+}
+nettoyer_c
+releve_base_reelle
+commune_essai "$A" "TEST commune A des pré-collecteurs"
+commune_essai "$B" "TEST commune B des pré-collecteurs"
+compte_temporaire admin_commune "$A" "Directeur A des pré-collecteurs"; DIR_A=$COMPTE_EMAIL; T_A=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
+compte_temporaire admin_commune "$B" "Directeur B des pré-collecteurs"; DIR_B=$COMPTE_EMAIL; T_B=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
+[ -n "$T_A" ] && [ -n "$T_B" ] || { echo "Les directeurs temporaires ne se connectent pas." >&2; exit 1; }
 
 # L'état à rétablir en partant.
 HEB_AVANT=$($PSQL -c "SELECT valeur||'|'||COALESCE(reference,'') FROM parametres_nationaux WHERE cle='hebergement_pii_accredite'")
@@ -214,6 +234,14 @@ nettoyer
 retablir
 chk "état d'origine rétabli (hébergement, récépissés)" "$HEB_AVANT|$REC_A|$REC_B" \
     "$($PSQL -c "SELECT valeur||'|'||COALESCE(reference,'') FROM parametres_nationaux WHERE cle='hebergement_pii_accredite'")|$(recepisse "$A")|$(recepisse "$B")"
+
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-014)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_c
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI_C)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 
 echo
 if [ "$fail" -eq 0 ]; then

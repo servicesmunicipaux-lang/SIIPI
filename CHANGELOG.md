@@ -5,6 +5,31 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.55] — 2026-10-19 — JC-014 (lot C) : plus aucune campagne n'écrit dans une commune réelle avec un compte de démonstration
+
+### Corrigé
+- **JC-014 : huit campagnes écrivaient dans des communes réelles, puis effaçaient leurs lignes.** Le journal
+  d'audit, en ajout seul, gardait leurs écritures, et suffisait à faire paraître ces communes « actives » au
+  tableau national.
+  - `circuits`, `periode`, `prestataires`, `intercommunal`, `enlevements` et `versions-decoupage` se
+    connectaient avec les comptes de démonstration nommés (directeurs de La Marsa, Sfax, Houmt Souk, Midoun ;
+    prestataires de La Marsa et Houmt Souk ; `citoyen.demo`). Elles travaillent dans des communes de test aux
+    identifiants fixes qui en tiennent le rôle, avec des comptes temporaires du même rôle et un citoyen d'essai.
+  - `barbechas` et `documents` prenaient le premier directeur des deux premières communes par une requête
+    écrite sur trois lignes. Elles ont deux directeurs temporaires, chacun dans sa commune de test ; `documents`
+    rattache le sien à sa commune des documents, comme avant.
+  - `versions-decoupage` bâtit dans sa commune de test le secteur en vigueur qu'elle trouvait à Houmt Souk :
+    `scripts/skills/audit-blocs.py` avait nommé ses trois contrôles « renommer, recolorer, retirer un secteur »,
+    posés sous condition de le trouver, qui ne tournaient plus. Ils tournent toujours.
+
+  Mesuré sur base neuve après le `npm test` complet : les écritures d'un directeur ou d'un prestataire ne
+  touchent plus que Dar Chaabane (`module2` à `module6`, JC-001) ; aucune à La Marsa, Houmt Souk ni Ajim.
+
+### Ajouté
+- La garde du lanceur (`tests/executer.sh`) recolle une requête `$(sql "…")` écrite sur plusieurs lignes avant
+  de la lire. Sur l'état précédent, elle arrête `barbechas` et `documents`.
+- Le contrôle des communes réelles (`tests/outils/base_reelle.sh`) dans les huit campagnes.
+
 ## [0.15.54] — 2026-10-19 — JC-011 (lot B2) : plus aucune campagne n'emprunte de compte, et le lanceur y veille
 
 ### Corrigé
