@@ -11,6 +11,15 @@
 # identifiants des secteurs et circuits rattachés compris. Enfin la FNCT
 # restaure directement l'état initial.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-014). Jusqu'à la v0.15.54, elle
+# écrivait avec les comptes de démonstration (directeur.houmtsouk, directeur.midoun, prestataire.houmtsouk) dans leurs
+# communes réelles (Houmt Souk, Midoun), puis effaçait ses lignes : rien ne restait
+# dans les tables, mais le journal d'audit gardait les écritures de la
+# commune, et cela suffisait à la faire paraître « active » au tableau
+# national. Elle travaille désormais dans des communes de test qui en tiennent
+# le rôle, avec des comptes temporaires, et prouve, pendant qu'elle a ses
+# lignes en base puis en partant, qu'aucune commune réelle n'a reçu de ligne.
+#
 #   docker compose exec -T api npm run test:versions-decoupage
 # =============================================================================
 
@@ -41,10 +50,36 @@ rect() { echo "{\"type\":\"Polygon\",\"coordinates\":[[[$1,$2],[$3,$2],[$3,$4],[
 secteurs() { $PSQL -c "SELECT string_agg(name, ',' ORDER BY name) FROM zones_collecte WHERE commune_id='$COMMUNE' AND deleted_at IS NULL AND name LIKE 'TEST-J7%'" 2>/dev/null; }
 id_secteur() { sql "SELECT id FROM zones_collecte WHERE commune_id='$COMMUNE' AND name='$1' ORDER BY created_at DESC LIMIT 1"; }
 
-COMMUNE=medenine_djerba_houmt_souk
-T_HS=$(tok directeur.houmtsouk@siipi.tn)
+COMMUNE=test_versions_decoupage_hs
+# Les communes de test qui tiennent le rôle des communes réelles, et leurs
+# comptes temporaires (JC-014).
+ESSAI_C="'test_versions_decoupage_hs','test_versions_decoupage_midoun'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+nettoyer_c() {
+  effacer_communes_essai "$ESSAI_C"
+  retirer_comptes_temporaires
+  effacer_communes_essai "$ESSAI_C"
+}
+nettoyer_c
+trap nettoyer_c EXIT
+releve_base_reelle
+commune_essai "test_versions_decoupage_hs" "TEST commune Houmt Souk de la campagne versions-decoupage"
+commune_essai "test_versions_decoupage_midoun" "TEST commune Midoun de la campagne versions-decoupage"
+# Le secteur en vigueur que la campagne trouvait à Houmt Souk : sa commune de
+# test le porte, sans quoi « renommer, recolorer, retirer un secteur » ne
+# s'éprouveraient sur rien (JC-014). Posé en base, comme un découpage importé.
+ZONE_EXISTANTE=$(sql "INSERT INTO zones_collecte (commune_id, name, geom)
+                      VALUES ('test_versions_decoupage_hs', 'TEST secteur en vigueur', ST_Multi(ST_MakeEnvelope(10.84, 33.75, 10.85, 33.76, 4326))) RETURNING id")
+[ -n "$ZONE_EXISTANTE" ] || { echo "Le secteur en vigueur de la commune de test n'a pas pu être posé." >&2; exit 1; }
+compte_temporaire admin_commune "test_versions_decoupage_hs" "DIR_HS de la campagne"; EM_DIR_HS=$COMPTE_EMAIL; MDP_DIR_HS=$COMPTE_MDP
+compte_temporaire admin_commune "test_versions_decoupage_midoun" "DIR_MIDOUN de la campagne"; EM_DIR_MIDOUN=$COMPTE_EMAIL; MDP_DIR_MIDOUN=$COMPTE_MDP
+compte_temporaire gestionnaire_prestataire "test_versions_decoupage_hs" "PREST_HS de la campagne"; EM_PREST_HS=$COMPTE_EMAIL; MDP_PREST_HS=$COMPTE_MDP
+
+T_HS=$(tok "$EM_DIR_HS" "$MDP_DIR_HS")
 T_FNCT=$(tok admin.national@siipi.tn)
-T_MIDOUN=$(tok directeur.midoun@siipi.tn)
+T_MIDOUN=$(tok "$EM_DIR_MIDOUN" "$MDP_DIR_MIDOUN")
 [ -n "$T_HS" ] && [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
 # L'état de départ, pour le rendre à la fin : le périmètre, les secteurs, les
@@ -74,15 +109,12 @@ echo "1. La commune ne modifie plus son découpage directement"
 chk "créer un secteur : refusé" 403 \
     "$(req POST /zones "{\"communeId\":\"$COMMUNE\",\"name\":\"TEST-J7 direct\",\"geometry\":$NORD}")"
 chk "et la raison renvoie à la proposition" 1 "$(val "1 if 'proposition' in d['error'] else 0")"
-ZONE_EXISTANTE=$(sql "SELECT id FROM zones_collecte WHERE commune_id='$COMMUNE' AND deleted_at IS NULL LIMIT 1")
-if [ -n "$ZONE_EXISTANTE" ]; then
-  chk "renommer ou redessiner un secteur : refusé" "403|403" \
-      "$(req PATCH "/zones/$ZONE_EXISTANTE" '{"name":"TEST-J7 renommé"}')|$(req PATCH "/zones/$ZONE_EXISTANTE" "{\"geometry\":$NORD}")"
-  COULEUR=$(sql "SELECT color FROM zones_collecte WHERE id='$ZONE_EXISTANTE'")
-  chk "changer sa couleur de service : permis" 200 "$(req PATCH "/zones/$ZONE_EXISTANTE" '{"color":"#123456"}')"
-  req PATCH "/zones/$ZONE_EXISTANTE" "{\"color\":\"$COULEUR\"}" >/dev/null
-  chk "le retirer : refusé" 403 "$(req DELETE "/zones/$ZONE_EXISTANTE")"
-fi
+chk "renommer ou redessiner un secteur : refusé" "403|403" \
+    "$(req PATCH "/zones/$ZONE_EXISTANTE" '{"name":"TEST-J7 renommé"}')|$(req PATCH "/zones/$ZONE_EXISTANTE" "{\"geometry\":$NORD}")"
+COULEUR=$(sql "SELECT color FROM zones_collecte WHERE id='$ZONE_EXISTANTE'")
+chk "changer sa couleur de service : permis" 200 "$(req PATCH "/zones/$ZONE_EXISTANTE" '{"color":"#123456"}')"
+req PATCH "/zones/$ZONE_EXISTANTE" "{\"color\":\"$COULEUR\"}" >/dev/null
+chk "le retirer : refusé" 403 "$(req DELETE "/zones/$ZONE_EXISTANTE")"
 
 echo
 echo "2. La proposition"
@@ -112,7 +144,7 @@ chk "même en SQL direct" 1 \
     "$($PSQL 2>&1 <<EOF | grep -c VALIDATION_RESERVEE_FNCT
 BEGIN;
 SELECT set_config('app.role','admin_commune',true), set_config('app.commune_id','$COMMUNE',true),
-       set_config('app.user_id',(SELECT id::text FROM users WHERE email='directeur.houmtsouk@siipi.tn'),true);
+       set_config('app.user_id',(SELECT id::text FROM users WHERE email='$EM_DIR_HS'),true);
 SET LOCAL ROLE siipi_app;
 SELECT app.valider_version_decoupage('$V1');
 ROLLBACK;
@@ -187,7 +219,7 @@ V5=$(val "d['id']")
 chk "une autre commune ne voit pas ces versions" "404|0" \
     "$(req GET "/decoupage/versions/$V5" "" "$T_MIDOUN")|$(req GET "/decoupage/versions?communeId=$COMMUNE" "" "$T_MIDOUN" >/dev/null; val "sum(1 for v in d if v['commune_id']=='$COMMUNE')")"
 chk "ni ne retire leur proposition" 404 "$(req POST "/decoupage/versions/$V5/retirer" "" "$T_MIDOUN")"
-PREST=$(tok prestataire.houmtsouk@siipi.tn)
+PREST=$(tok "$EM_PREST_HS" "$MDP_PREST_HS")
 [ -n "$PREST" ] && chk "un prestataire ne voit ni propositions ni historique" 403 "$(req GET "/decoupage/versions?communeId=$COMMUNE" "" "$PREST")"
 chk "la commune retire sa proposition" "200|retiree" "$(req POST "/decoupage/versions/$V5/retirer")|$(val "d['statut']")"
 chk "une version validée ne se retire pas" 409 "$(req POST "/decoupage/versions/$V2/retirer")"
@@ -196,6 +228,14 @@ chk "une version validée ne se retire pas" 409 "$(req POST "/decoupage/versions
 nettoyer
 $PSQL -c "DELETE FROM versions_decoupage WHERE commune_id='$COMMUNE' AND id::text NOT IN (SELECT unnest(string_to_array('$(tr '\n' ',' < "$T/versions-avant")', ',')));" >/dev/null 2>&1
 $PSQL -c "DELETE FROM zones_collecte WHERE commune_id='$COMMUNE' AND name LIKE 'TEST-J7%';" >/dev/null 2>&1
+
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-014)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_c
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI_C)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 
 echo
 echo "----------------------------------------------------------------"

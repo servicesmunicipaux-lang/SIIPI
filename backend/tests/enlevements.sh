@@ -9,6 +9,15 @@
 # une commune qui n'a pas encore fait son annuaire — et ensuite seulement que
 # le cloisonnement des demandes tient.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-014). Jusqu'à la v0.15.54, elle
+# écrivait avec les comptes de démonstration (directeur.marsa, directeur.houmtsouk, prestataire.houmtsouk, citoyen.demo) dans leurs
+# communes réelles (Houmt Souk, La Marsa), puis effaçait ses lignes : rien ne restait
+# dans les tables, mais le journal d'audit gardait les écritures de la
+# commune, et cela suffisait à la faire paraître « active » au tableau
+# national. Elle travaille désormais dans des communes de test qui en tiennent
+# le rôle, avec des comptes temporaires, et prouve, pendant qu'elle a ses
+# lignes en base puis en partant, qu'aucune commune réelle n'a reçu de ligne.
+#
 #   docker compose run --rm api npm run test:enlevements
 #
 # Note : l'API limite les connexions à 20 par quart d'heure et par adresse IP.
@@ -22,7 +31,7 @@ pass=0; fail=0
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"Siipi2026!\"}" \
+    -d "{\"email\":\"$1\",\"password\":\"${2:-Siipi2026!}\"}" \
     | python3 -c "import sys,json;print(json.load(sys.stdin).get('token',''))" 2>/dev/null
 }
 sql()  { $PSQL -c "$1" 2>/dev/null | tr -d ' '; }
@@ -41,13 +50,38 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-T_HS=$(tok directeur.houmtsouk@siipi.tn)
-T_MARSA=$(tok directeur.marsa@siipi.tn)
-T_CIT=$(tok citoyen.demo@siipi.tn)
-T_PREST=$(tok prestataire.houmtsouk@siipi.tn)
+# Les communes de test qui tiennent le rôle des communes réelles, et leurs
+# comptes temporaires (JC-014).
+ESSAI_C="'test_enlevements_hs','test_enlevements_marsa'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+EM_CITOYEN="test-enlevements-citoyen@example.test"; MDP_CITOYEN="TEST-Citoyen-$$"
+nettoyer_c() {
+  $PSQL -c "DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email = '$EM_CITOYEN');" >/dev/null 2>&1
+  effacer_communes_essai "$ESSAI_C"
+  $PSQL -c "DELETE FROM users WHERE email = '$EM_CITOYEN';" >/dev/null 2>&1
+  retirer_comptes_temporaires
+  effacer_communes_essai "$ESSAI_C"
+}
+nettoyer_c
+trap nettoyer_c EXIT
+releve_base_reelle
+commune_essai "test_enlevements_hs" "TEST commune Houmt Souk de la campagne enlevements"
+commune_essai "test_enlevements_marsa" "TEST commune La Marsa de la campagne enlevements"
+compte_temporaire admin_commune "test_enlevements_marsa" "DIR_MARSA de la campagne"; EM_DIR_MARSA=$COMPTE_EMAIL; MDP_DIR_MARSA=$COMPTE_MDP
+compte_temporaire admin_commune "test_enlevements_hs" "DIR_HS de la campagne"; EM_DIR_HS=$COMPTE_EMAIL; MDP_DIR_HS=$COMPTE_MDP
+compte_temporaire gestionnaire_prestataire "test_enlevements_hs" "PREST_HS de la campagne"; EM_PREST_HS=$COMPTE_EMAIL; MDP_PREST_HS=$COMPTE_MDP
+curl -s -o /dev/null -X POST "$API/citizens/register" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"$EM_CITOYEN\",\"password\":\"$MDP_CITOYEN\",\"fullName\":\"TEST Citoyen de la campagne\"}"
+
+T_HS=$(tok "$EM_DIR_HS" "$MDP_DIR_HS")
+T_MARSA=$(tok "$EM_DIR_MARSA" "$MDP_DIR_MARSA")
+T_CIT=$(tok "$EM_CITOYEN" "$MDP_CITOYEN")
+T_PREST=$(tok "$EM_PREST_HS" "$MDP_PREST_HS")
 [ -n "$T_HS" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
-COMMUNE=medenine_djerba_houmt_souk
+COMMUNE=test_enlevements_hs
 DANS_3J=$(date -u -d '+3 days' +%F)
 
 $PSQL -c "DELETE FROM demandes_enlevement WHERE description LIKE 'TEST %';
@@ -57,23 +91,23 @@ $PSQL -c "DELETE FROM demandes_enlevement WHERE description LIKE 'TEST %';
 echo
 echo "1. L'annuaire des collecteurs agréés"
 CODE=$(code -X POST "$API/enlevements/collecteurs" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
-  -d '{"communeId":"medenine_djerba_houmt_souk","raisonSociale":"TEST Verts de Djerba","agrementAnged":"ANGeD-2026-014","typesDechets":["vert"],"telephone":"75123456"}')
+  -d '{"communeId":"test_enlevements_hs","raisonSociale":"TEST Verts de Djerba","agrementAnged":"ANGeD-2026-014","typesDechets":["vert"],"telephone":"75123456"}')
 chk "la commune inscrit un collecteur de déchets verts" 201 "$CODE"
 COLL_VERT=$(jq_ "d['id']")
 CODE=$(code -X POST "$API/enlevements/collecteurs" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
-  -d '{"communeId":"medenine_djerba_houmt_souk","raisonSociale":"TEST DDC Sud","typesDechets":["ddc","metal"],"telephone":"75987654"}')
+  -d '{"communeId":"test_enlevements_hs","raisonSociale":"TEST DDC Sud","typesDechets":["ddc","metal"],"telephone":"75987654"}')
 chk "et un collecteur de DDC" 201 "$CODE"
 chk "un collecteur sans numéro d'agrément est accepté" "None" "$(jq_ "d['agrement_anged']")"
 
 CODE=$(code -X POST "$API/enlevements/collecteurs" -H "Authorization: Bearer $T_PREST" -H 'Content-Type: application/json' \
-  -d '{"communeId":"medenine_djerba_houmt_souk","raisonSociale":"TEST intrusion","typesDechets":["vert"]}')
+  -d '{"communeId":"test_enlevements_hs","raisonSociale":"TEST intrusion","typesDechets":["vert"]}')
 chk "un prestataire n'inscrit personne" 403 "$CODE"
 CODE=$(code -X POST "$API/enlevements/collecteurs" -H "Authorization: Bearer $T_MARSA" -H 'Content-Type: application/json' \
-  -d '{"communeId":"medenine_djerba_houmt_souk","raisonSociale":"TEST commune voisine","typesDechets":["vert"]}')
+  -d '{"communeId":"test_enlevements_hs","raisonSociale":"TEST commune voisine","typesDechets":["vert"]}')
 chk "une autre commune non plus" 403 "$CODE"
 
 CODE=$(code -X POST "$API/enlevements/collecteurs" -H "Authorization: Bearer $T_HS" -H 'Content-Type: application/json' \
-  -d '{"communeId":"medenine_djerba_houmt_souk","raisonSociale":"TEST type inventé","typesDechets":["nucleaire"]}')
+  -d '{"communeId":"test_enlevements_hs","raisonSociale":"TEST type inventé","typesDechets":["nucleaire"]}')
 chk "un type de déchet hors nomenclature est refusé" 400 "$CODE"
 
 echo
@@ -188,6 +222,14 @@ chk "il disparaît de l'annuaire citoyen" 1 "$(lenTest raison_sociale)"
 $PSQL -c "DELETE FROM demandes_enlevement WHERE description LIKE 'TEST %';
           DELETE FROM collecteurs_agrees WHERE raison_sociale LIKE 'TEST %';
           UPDATE citoyens SET commune_id = NULL, adresse = NULL, position = NULL, zone_id = NULL;" >/dev/null 2>&1
+
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-014)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_c
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI_C)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 
 echo
 if [ "$fail" -eq 0 ]; then

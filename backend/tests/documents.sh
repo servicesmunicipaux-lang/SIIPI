@@ -15,6 +15,12 @@
 # laquelle elle rattache un admin le temps des contrôles, et qu'elle efface en
 # partant — seule opération où le scellement est levé, sur ses seules lignes.
 #
+# Cet admin n'est plus « le premier directeur » de la base (JC-014) : jusqu'à
+# la v0.15.54, elle prenait celui des deux premières communes — sur une base
+# réelle, deux directeurs réels — par une requête sur plusieurs lignes que la
+# garde du lanceur ne voyait pas. Ce sont deux directeurs temporaires, chacun
+# dans sa commune de test.
+#
 #   docker compose exec -T api npm run test:documents
 # =============================================================================
 
@@ -43,12 +49,19 @@ appel() { # méthode chemin jeton [corps] -> code HTTP, corps dans $T/r.json
 
 T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-DIRS=$(sql "SELECT string_agg(email, ',') FROM (SELECT DISTINCT ON (commune_id) email FROM users
-             WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire AND commune_id IS NOT NULL
-             ORDER BY commune_id, created_at LIMIT 2) x")
-DIR_A=${DIRS%%,*}; DIR_B=${DIRS##*,}
-[ "$DIR_A" != "$DIR_B" ] || { echo "Il faut deux admins de communes différentes." >&2; exit 1; }
-ID_A=$(sql "SELECT id FROM users WHERE email='$DIR_A'")
+# Deux directeurs temporaires, chacun dans sa commune de test (JC-014) : le
+# premier est rattaché à la commune des documents, comme avant ; le second est
+# « le directeur d'une autre commune ».
+ESSAI_C="'test_documents_a','test_documents_b'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+effacer_communes_essai "$ESSAI_C"
+releve_base_reelle
+commune_essai test_documents_a "TEST commune A des documents"
+commune_essai test_documents_b "TEST commune B des documents"
+compte_temporaire admin_commune test_documents_a "Directeur A des documents"; DIR_A=$COMPTE_EMAIL; MDP_A=$COMPTE_MDP; ID_A=$COMPTE_ID
+compte_temporaire admin_commune test_documents_b "Directeur B des documents"; DIR_B=$COMPTE_EMAIL; MDP_B=$COMPTE_MDP
 TC=test_documents_162
 
 # Effacer la commune de test : le seul endroit où le scellement est levé, le
@@ -63,11 +76,18 @@ nettoyer() {
             DELETE FROM communes WHERE id = '$TC';
             COMMIT;" >/dev/null 2>&1
 }
+nettoyer_c() {
+  nettoyer
+  retirer_comptes_temporaires
+  effacer_communes_essai "$ESSAI_C"
+}
+trap 'nettoyer_c 2>/dev/null; rm -rf "$T"' EXIT
 nettoyer
 $PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$TC', 'TEST commune documents', 'TEST', 'TEST', 1);
           INSERT INTO utilisateur_communes (user_id, commune_id) VALUES ('$ID_A', '$TC');
           INSERT INTO vehicules (id, registration, commune_id, type) VALUES ('test-doc-162-v1', 'TEST 162 001', '$TC', 'camion');" >/dev/null
-T_A=$(tok "$DIR_A"); T_B=$(tok "$DIR_B")
+T_A=$(tok "$DIR_A" "$MDP_A"); T_B=$(tok "$DIR_B" "$MDP_B")
+[ -n "$T_A" ] && [ -n "$T_B" ] || { echo "Les directeurs temporaires ne se connectent pas." >&2; exit 1; }
 Q="?communeId=$TC"
 # Un contenu conforme au gabarit de chaque type (lot 16.2) : le contenu est
 # figé à l'émission, et l'émission refuse ce que le gabarit ne sait pas imprimer.
@@ -195,14 +215,20 @@ m = re.search(r'Lieu<span class=\"ar\">[^<]*</span></th><td>(.*?)</td>', h)
 print('t' if m and m.group(1) == '' else 'f')")"
 chk "… l'empreinte du contenu imprimée est celle du registre" t "$(grep -q "$EMPREINTE" "$T/page.html" && echo t || echo f)"
 chk "… la mention d'édition est là" t "$(grep -q 'heure de Tunis' "$T/page.html" && echo t || echo f)"
-chk "le directeur d'une autre commune : introuvable (404)" 404 "$(imprimer "$DP" "$(tok "$DIR_B")")"
+chk "le directeur d'une autre commune : introuvable (404)" 404 "$(imprimer "$DP" "$T_B")"
 chk "sans compte : 401" 401 "$(curl -s -o /dev/null -w '%{http_code}' "$API/documents/$DP/impression")"
 chk "un document annulé s'imprime encore, marqué « ANNULÉ » avec son motif" "200|t|t" \
     "$(imprimer "$DOC1" "$T_A")|$(grep -q 'ANNULÉ' "$T/page.html" && echo t || echo f)|$(grep -q 'bon émis par erreur de saisie' "$T/page.html" && echo t || echo f)"
 chk "le bon carburant émis depuis l'écran générique s'imprime avec ses champs" "t|t" \
     "$(grep -q 'TEST 162 001' "$T/page.html" && echo t || echo f)|$(grep -q '10 L' "$T/page.html" && echo t || echo f)"
 
-nettoyer
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-014)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_c
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI_C)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 chk "la commune de test et ses documents sont retirés" "0|0" \
     "$(sql "SELECT (SELECT count(*) FROM communes WHERE id='$TC')||'|'||(SELECT count(*) FROM documents_emis WHERE commune_id='$TC')")"
 

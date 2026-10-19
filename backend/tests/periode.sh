@@ -13,6 +13,15 @@
 #   2. Un prestataire voyait — et se voyait imputer — les circuits de la régie
 #      communale et de ses confrères dans la même commune.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-014). Jusqu'à la v0.15.54, elle
+# écrivait avec les comptes de démonstration (directeur.marsa, prestataire.marsa) dans leurs
+# communes réelles (La Marsa), puis effaçait ses lignes : rien ne restait
+# dans les tables, mais le journal d'audit gardait les écritures de la
+# commune, et cela suffisait à la faire paraître « active » au tableau
+# national. Elle travaille désormais dans des communes de test qui en tiennent
+# le rôle, avec des comptes temporaires, et prouve, pendant qu'elle a ses
+# lignes en base puis en partant, qu'aucune commune réelle n'a reçu de ligne.
+#
 #   docker compose run --rm api npm run test:periode
 # =============================================================================
 
@@ -23,7 +32,7 @@ pass=0; fail=0
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"$1\",\"password\":\"Siipi2026!\"}" \
+    -d "{\"email\":\"$1\",\"password\":\"${2:-Siipi2026!}\"}" \
     | python3 -c "import sys,json;print(json.load(sys.stdin).get('token',''))" 2>/dev/null
 }
 sql()  { $PSQL -c "$1" 2>/dev/null | tr -d ' '; }
@@ -35,17 +44,35 @@ chk() {
 }
 # Nombre de jours confrontés pour un circuit donné, vu par un utilisateur donné.
 jours() {
-  curl -s "$API/passages/confrontation?communeId=tunis_la_marsa" -H "Authorization: Bearer $1" \
+  curl -s "$API/passages/confrontation?communeId=test_periode_marsa" -H "Authorization: Bearer $1" \
     | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
 print(sum(1 for x in d if x.get('circuit_nom') == '$2'))" 2>/dev/null || echo erreur
 }
 
-T_MARSA=$(tok directeur.marsa@siipi.tn)
-T_PREST=$(tok prestataire.marsa@siipi.tn)
+# Les communes de test qui tiennent le rôle des communes réelles, et leurs
+# comptes temporaires (JC-014).
+ESSAI_C="'test_periode_marsa'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+nettoyer_c() {
+  effacer_communes_essai "$ESSAI_C"
+  retirer_comptes_temporaires
+  effacer_communes_essai "$ESSAI_C"
+}
+nettoyer_c
+trap nettoyer_c EXIT
+releve_base_reelle
+commune_essai "test_periode_marsa" "TEST commune La Marsa de la campagne periode"
+compte_temporaire admin_commune "test_periode_marsa" "DIR_MARSA de la campagne"; EM_DIR_MARSA=$COMPTE_EMAIL; MDP_DIR_MARSA=$COMPTE_MDP
+compte_temporaire gestionnaire_prestataire "test_periode_marsa" "PREST_MARSA de la campagne"; EM_PREST_MARSA=$COMPTE_EMAIL; MDP_PREST_MARSA=$COMPTE_MDP
+
+T_MARSA=$(tok "$EM_DIR_MARSA" "$MDP_DIR_MARSA")
+T_PREST=$(tok "$EM_PREST_MARSA" "$MDP_PREST_MARSA")
 [ -n "$T_MARSA" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-PRESTATAIRE=$(sql "SELECT id FROM users WHERE email='prestataire.marsa@siipi.tn'")
+PRESTATAIRE=$(sql "SELECT id FROM users WHERE email='$EM_PREST_MARSA'")
 
 nettoyer() {
   $PSQL -c "DELETE FROM controles_terrain WHERE circuit_id IN (SELECT id FROM circuits WHERE nom LIKE 'TEST periode%');
@@ -59,7 +86,7 @@ echo "1. Un circuit créé aujourd'hui n'a pas de passé"
 # Tous les jours de la semaine : sans borne, la confrontation sur 30 jours
 # rendrait 31 lignes. Avec la borne, elle en rend une : aujourd'hui.
 CODE=$(code -X POST "$API/circuits" -H "Authorization: Bearer $T_MARSA" -H 'Content-Type: application/json' \
-  -d "{\"communeId\":\"tunis_la_marsa\",\"nom\":\"TEST periode neuf\",\"prestataireId\":\"$PRESTATAIRE\",\"joursPassage\":[1,2,3,4,5,6,7]}")
+  -d "{\"communeId\":\"test_periode_marsa\",\"nom\":\"TEST periode neuf\",\"prestataireId\":\"$PRESTATAIRE\",\"joursPassage\":[1,2,3,4,5,6,7]}")
 chk "le circuit est créé" 201 "$CODE"
 C_NEUF=$(val "['id']")
 chk "sa date de début est aujourd'hui" "$(date +%F)" "$(val "['date_debut']" | cut -c1-10)"
@@ -69,7 +96,7 @@ echo
 echo "2. Une tournée déjà en service se saisit avec sa vraie date de début"
 DEBUT=$(date -d '-10 days' +%F 2>/dev/null || date -v-10d +%F)
 code -X POST "$API/circuits" -H "Authorization: Bearer $T_MARSA" -H 'Content-Type: application/json' \
-  -d "{\"communeId\":\"tunis_la_marsa\",\"nom\":\"TEST periode ancien\",\"prestataireId\":\"$PRESTATAIRE\",\"joursPassage\":[1,2,3,4,5,6,7],\"dateDebut\":\"$DEBUT\"}" >/dev/null
+  -d "{\"communeId\":\"test_periode_marsa\",\"nom\":\"TEST periode ancien\",\"prestataireId\":\"$PRESTATAIRE\",\"joursPassage\":[1,2,3,4,5,6,7],\"dateDebut\":\"$DEBUT\"}" >/dev/null
 C_ANCIEN=$(val "['id']")
 chk "onze jours sont attendus, du début à aujourd'hui" 11 "$(jours "$T_MARSA" 'TEST periode ancien')"
 
@@ -84,7 +111,7 @@ chk "six jours restent attendus, plus aucun après" 6 "$(jours "$T_MARSA" 'TEST 
 echo
 echo "4. Le prestataire ne répond que de ses propres circuits"
 code -X POST "$API/circuits" -H "Authorization: Bearer $T_MARSA" -H 'Content-Type: application/json' \
-  -d "{\"communeId\":\"tunis_la_marsa\",\"nom\":\"TEST periode regie\",\"joursPassage\":[1,2,3,4,5,6,7]}" >/dev/null
+  -d "{\"communeId\":\"test_periode_marsa\",\"nom\":\"TEST periode regie\",\"joursPassage\":[1,2,3,4,5,6,7]}" >/dev/null
 chk "la commune voit le circuit de sa régie" 1 "$(jours "$T_MARSA" 'TEST periode regie')"
 # Le défaut d'origine : can_read_commune ouvrait au prestataire tous les
 # circuits des communes où il est sous contrat, régie comprise.
@@ -93,7 +120,7 @@ chk "il voit bien le sien" 1 "$(jours "$T_PREST" 'TEST periode neuf')"
 
 echo
 echo "5. La performance contractuelle compte les mêmes passages"
-ATTENDUS=$(curl -s "$API/circuits/performance?communeId=tunis_la_marsa" -H "Authorization: Bearer $T_MARSA" \
+ATTENDUS=$(curl -s "$API/circuits/performance?communeId=test_periode_marsa" -H "Authorization: Bearer $T_MARSA" \
   | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
@@ -102,6 +129,14 @@ print(sum(x['passages_attendus'] for x in d if x['prestataire_nom']))" 2>/dev/nu
 chk "les passages attendus sont bornés comme la confrontation" 7 "$ATTENDUS"
 
 nettoyer
+
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-014)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_c
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI_C)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 
 echo
 if [ "$fail" -eq 0 ]; then
