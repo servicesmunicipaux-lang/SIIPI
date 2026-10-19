@@ -191,3 +191,31 @@ montre un (loi organique n° 2004-63). Un engin se désigne par son identifiant 
 | **Gravité** | Bloquant (une campagne choisit implicitement le compte et la commune où elle écrit) |
 | **Correction** | **Ouverte.** Proposée : chaque campagne bâtit sa commune de test et son directeur temporaire (`tests/outils/directeur_temporaire.sh`), comme `module2` à `module6` depuis JC-001 ; quand elle doit éprouver un jeu réel, elle le nomme et le restaure, avec un contrôle en partant ; et une garde dans le lanceur (`tests/executer.sh`) ou dans un contrôle commun, qui fasse échouer une campagne contenant encore le choix « premier directeur de la base ». |
 | **Contrôle ajouté** | Aucun encore. |
+
+### JC-012
+
+| Champ | |
+|---|---|
+| **Date** | 19 octobre 2026 |
+| **Trouvé par** | Revue empirique des 60 campagnes sur la pile d'essai : base neuve chargée dans l'ordre de référence, puis chaque campagne de la chaîne `npm test` entre deux empreintes de la base, prises hors des communes de test et de démonstration ; les modifications détaillées colonne par colonne en relançant les campagnes en cause |
+| **Où** | Campagnes `cloisonnement`, `audit`, `notifications`, `notifications-citoyen`, `kpi-sources` ; commune de La Marsa |
+| **Constat** | Ces campagnes laissent des lignes dans La Marsa, commune réelle, à chaque passage : `cloisonnement`, une réclamation « Test automatise de cloisonnement » résolue, sa notification de décision et une ligne de `five_axis_scores` ; `audit`, une réclamation « Test audit », et l'engin `trk-02` (210 TU 9832) laissé à une autre position et une autre vitesse ; `notifications` et `notifications-citoyen`, trois notifications de citoyen chacune, dont la réclamation a été effacée ; `kpi-sources`, une ligne de `parametres_commune` créée pour La Marsa (valeurs remises à vide, signée du directeur de démonstration). Après un seul `npm test` complet, la pile d'essai porte à La Marsa 4 réclamations d'essai, 2 lignes de score et 9 notifications orphelines. |
+| **Cause** | Ces campagnes écrivent avec des comptes de démonstration dans une commune réelle (JC-011 pour trois d'entre elles) et ne nettoient pas tout ce qu'elles posent. |
+| **Portée** | Toute base sur laquelle `npm test` a tourné : les lignes s'y cumulent à chaque passage. Une réclamation résolue et une ligne de score entrent dans les indicateurs de La Marsa ; les notifications orphelines dans son historique de communication. La base du dossier principal n'a pas été mesurée ici ; aucune campagne n'y tourne en principe (`CLAUDE.md` § 9). Le journal des accès aux données personnelles (`access_log`) reçoit aussi les lectures de ces campagnes : ce journal, en ajout seul comme le journal d'audit, consigne des lectures qui ont eu lieu ; il n'est pas retenu comme défaut. |
+| **Gravité** | Bloquant (fausse les indicateurs d'une commune réelle) |
+| **Correction** | **Ouverte.** Proposée : ces campagnes travaillent dans une commune de test avec un directeur temporaire, et prouvent, pendant qu'elles ont leurs lignes en base puis en partant, qu'aucune commune réelle n'a reçu de ligne ; avec un mutant pour chacune. Traitée avec JC-011. |
+| **Contrôle ajouté** | Aucun encore. |
+
+### JC-013
+
+| Champ | |
+|---|---|
+| **Date** | 19 octobre 2026 |
+| **Trouvé par** | Même revue empirique que JC-012 |
+| **Où** | `versions-decoupage`, `imports`, `districts`, `wapla-bilans`, `wapla-scenarios`, `observatoire`, `cloisonnement`, `audit`, `kpi-5-axes`, `kpi-sources`, `barbechas`, `acteurs-informels`, `enlevements` |
+| **Constat** | Ces campagnes rendent les valeurs qu'elles ont modifiées, mais laissent une date fausse. Certaines dates disent quelque chose à l'écran : la date de modification de la limite de Houmt Souk (`communes.boundary_maj_le`, `versions-decoupage`) ; la date d'import des points de deux circuits de Dar Chaabane (`circuits.points_importes_le`, `imports`) ; les cinq districts recréés et les 24 gouvernorats touchés (`created_at`, `updated_at`, `districts`) ; la date de modification du réglage WaPla (`wapla.reglages.modifie_le`). Les autres ne portent qu'un `updated_at` (La Marsa dans `communes`, paramètres nationaux, paramètres des indicateurs, paramètres de La Marsa) ou l'`adresse_maj` du citoyen de démonstration. |
+| **Cause** | Restaurer une valeur par une écriture déclenche les horodatages de la table ; les campagnes ne restaurent pas la date. |
+| **Portée** | Toute base sur laquelle `npm test` a tourné : une limite paraît modifiée, des points paraissent importés, des districts paraissent redéfinis le jour des campagnes. Aucune valeur métier n'est fausse. |
+| **Gravité** | Gênant |
+| **Correction** | **Ouverte.** Proposée : selon la campagne, travailler dans une commune de test, ou restaurer aussi la date ; avec un contrôle en partant qui compare la ligne entière, dates comprises. |
+| **Contrôle ajouté** | Aucun encore. |
