@@ -7,6 +7,16 @@
 # et qu'une commune ne voit jamais QUI a reçu quoi — seul l'agrégat de
 # envois_notification lui reste ouvert (campagne module5).
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-011, JC-012). Jusqu'à la v0.15.51,
+# elle prenait « le premier directeur de la base » — sur la pile d'essai, le
+# compte de démonstration de La Marsa — et y laissait, à chaque passage, les
+# notifications de décision de ses réclamations d'essai : elle les effaçait
+# par leur titre, qui n'est pas le sien (« Votre réclamation a été acceptée »).
+# Elle travaille désormais dans sa commune de test, avec un directeur
+# temporaire, efface tout ce que porte cette commune, et prouve, pendant
+# qu'elle a ses lignes en base puis en partant, qu'aucune commune réelle n'a
+# reçu de ligne (tests/outils/base_reelle.sh).
+#
 #   docker compose exec -T api npm run test:notifications
 # =============================================================================
 
@@ -14,7 +24,7 @@ set -u
 API="${API_URL:-http://localhost:4000}"
 PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 pass=0; fail=0
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+T=$(mktemp -d)
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
@@ -29,22 +39,35 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_DIR=$(tok "$DIR_EMAIL")
-[ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
-
+COMMUNE=test_notifications
 EMAIL_TEST="test-notif@example.test"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
 
+# Sa commune de test et tout ce qu'elle porte, ses citoyens, son directeur —
+# rien d'autre. Un -c par ordre, dans l'ordre des clés étrangères.
 nettoyer() {
-  $PSQL -c "DELETE FROM notifications_citoyen WHERE titre LIKE 'TEST-NOTIF%';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM tickets WHERE title LIKE 'TEST-NOTIF%';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM push_souscriptions WHERE endpoint LIKE 'https://exemple.test/%';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM publications WHERE titre_fr LIKE 'TEST-NOTIF%';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email = '$EMAIL_TEST');" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM users WHERE email = '$EMAIL_TEST';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM notifications_citoyen WHERE commune_id = '$COMMUNE';" \
+        -c "DELETE FROM envois_notification WHERE commune_id = '$COMMUNE';" \
+        -c "DELETE FROM publications WHERE commune_id = '$COMMUNE';" \
+        -c "DELETE FROM tickets WHERE commune_id = '$COMMUNE';" \
+        -c "DELETE FROM push_souscriptions WHERE citoyen_id IN (SELECT c.id FROM citoyens c JOIN users u ON u.id = c.user_id WHERE u.email IN ('$EMAIL_TEST'));" \
+        -c "DELETE FROM preferences_notification WHERE citoyen_id IN (SELECT c.id FROM citoyens c JOIN users u ON u.id = c.user_id WHERE u.email IN ('$EMAIL_TEST'));" \
+        -c "DELETE FROM notifications_citoyen WHERE citoyen_id IN (SELECT c.id FROM citoyens c JOIN users u ON u.id = c.user_id WHERE u.email IN ('$EMAIL_TEST'));" \
+        -c "DELETE FROM citoyens WHERE user_id IN (SELECT id FROM users WHERE email IN ('$EMAIL_TEST'));" \
+        -c "DELETE FROM users WHERE email IN ('$EMAIL_TEST');" \
+        -c "DELETE FROM access_log WHERE commune_id = '$COMMUNE';" \
+        -c "DELETE FROM audit_log WHERE commune_id = '$COMMUNE';" >/dev/null 2>&1
+  retirer_comptes_temporaires
+  $PSQL -c "DELETE FROM communes WHERE id = '$COMMUNE';" >/dev/null 2>&1
 }
 nettoyer
+trap 'nettoyer; rm -rf "$T"' EXIT
+releve_base_reelle
+$PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$COMMUNE', 'TEST commune des notifications', 'TEST', 'TEST', 5000);" >/dev/null
+compte_temporaire admin_commune "$COMMUNE" "Directeur des notifications"
+T_DIR=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
+[ -n "$T_DIR" ] || { echo "API injoignable sur $API, ou directeur de test non créé" >&2; exit 1; }
 
 # --- Un citoyen à soi, plutôt que d'espérer qu'un compte de démonstration --
 # rattaché à cette commune existe déjà (campagne autonome, jouable sur une
@@ -129,7 +152,15 @@ chk "le citoyen retire sa propre souscription" 204 "$CODE"
 chk "elle a disparu" 0 "$(sql "SELECT count(*) FROM push_souscriptions WHERE citoyen_id='$CIT_ID'")"
 chk "sans jeton, rien" 401 "$(code -X POST "$API/citoyen/push/souscriptions" -H 'Content-Type: application/json' -d '{}')"
 
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011, JC-012)"
+chk "la commune de test porte bien les notifications de la campagne" t \
+    "$([ "$(sql "SELECT count(*) FROM notifications_citoyen WHERE commune_id = '$COMMUNE'")" -ge 3 ] && echo t || echo f)"
+base_reelle_intacte "pendant la campagne"
 nettoyer
+chk "sa commune de test, ses lignes, ses citoyens et son directeur sont effacés" "0|0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id = '$COMMUNE'")|$(sql "SELECT count(*) FROM notifications_citoyen WHERE commune_id = '$COMMUNE'")|$(sql "SELECT count(*) FROM users WHERE email IN ('$EMAIL_TEST') OR email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 echo
 echo "----------------------------------------------------------------"
 printf '  %s réussis, %s échecs\n' "$pass" "$fail"

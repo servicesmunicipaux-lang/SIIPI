@@ -13,6 +13,15 @@
 #
 # Année d'essai : 2022, vierge, distincte de celle de la campagne kpi-5-axes.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-011, JC-012). Jusqu'à la v0.15.51,
+# elle prenait « le premier directeur de la base » — sur la pile d'essai, le
+# compte de démonstration de La Marsa — y créait ses registres d'essai et y
+# laissait une ligne de paramètres de la commune ; son cloisonnement empruntait
+# le premier directeur d'une autre commune réelle. Elle travaille désormais
+# dans deux communes de test, chacune avec son directeur temporaire, et prouve,
+# pendant qu'elle a ses lignes en base puis en partant, qu'aucune commune
+# réelle n'a reçu de ligne (tests/outils/base_reelle.sh).
+#
 #   docker compose exec -T api npm run test:kpi-sources
 # =============================================================================
 
@@ -20,7 +29,7 @@ set -u
 API="${API_URL:-http://localhost:4000}"
 PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 pass=0; fail=0
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+T=$(mktemp -d)
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
@@ -44,28 +53,43 @@ etat() { axes; val "(lambda i: f\"{i['statut']}|{i['source']}|{i['valeur']}|{Non
 # Les déclarations de la commune (refonte, lot 1 : elles remplacent la fiche d'évaluation).
 declarer() { req PUT "/kpi/declarations/$COMMUNE/$AN" "{\"valeurs\":$1}" >/dev/null; }
 
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_DIR=$(tok "$DIR_EMAIL")
-T_FNCT=$(tok admin.national@siipi.tn)
-[ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
+COMMUNE=test_kpi_sources
+B=test_kpi_sources_b
+ESSAI="'$COMMUNE','$B'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
 
+# Ses deux communes de test et tout ce qu'elles portent, ses directeurs — rien
+# d'autre. Un -c par ordre, dans l'ordre des clés étrangères.
 nettoyer() {
-  $PSQL -c "DELETE FROM declarations_indicateurs WHERE annee = $AN AND commune_id = '$COMMUNE';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM actions_planifiees WHERE titre LIKE 'TEST-SRC%';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM poi WHERE nom LIKE 'TEST-SRC%';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM fins_de_poste WHERE observation = 'TEST-SRC';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM fuel_logs WHERE vehicule_id IN (SELECT id FROM vehicules WHERE registration LIKE 'TEST-SRC%');" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM fins_de_poste WHERE vehicule_id IN (SELECT id FROM vehicules WHERE registration LIKE 'TEST-SRC%');" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM vehicules WHERE registration LIKE 'TEST-SRC%';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM dotations_epi WHERE personnel_id IN (SELECT id FROM personnel WHERE nom_complet LIKE 'TEST-SRC%');" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM incidents_travail WHERE description = 'TEST-SRC';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM personnel WHERE nom_complet LIKE 'TEST-SRC%';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM conventions_commerciales WHERE observation = 'TEST-SRC';" >/dev/null 2>&1
-  $PSQL -c "DELETE FROM commerces WHERE nom LIKE 'TEST-SRC%';" >/dev/null 2>&1
-  $PSQL -c "UPDATE parametres_commune SET objectif_balayage_ml_j = NULL WHERE commune_id = '$COMMUNE';" >/dev/null 2>&1
+  $PSQL -c "DELETE FROM declarations_indicateurs WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM actions_planifiees WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM poi WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM fuel_logs WHERE vehicule_id IN (SELECT id FROM vehicules WHERE commune_id IN ($ESSAI));" \
+        -c "DELETE FROM fins_de_poste WHERE vehicule_id IN (SELECT id FROM vehicules WHERE commune_id IN ($ESSAI));" \
+        -c "DELETE FROM fins_de_poste WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM vehicules WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM dotations_epi WHERE personnel_id IN (SELECT id FROM personnel WHERE commune_id IN ($ESSAI));" \
+        -c "DELETE FROM incidents_travail WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM personnel WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM conventions_commerciales WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM commerces WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM parametres_commune WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM access_log WHERE commune_id IN ($ESSAI);" \
+        -c "DELETE FROM audit_log WHERE commune_id IN ($ESSAI);" >/dev/null 2>&1
+  retirer_comptes_temporaires
+  $PSQL -c "DELETE FROM communes WHERE id IN ($ESSAI);" >/dev/null 2>&1
 }
 nettoyer
+trap 'nettoyer; rm -rf "$T"' EXIT
+releve_base_reelle
+$PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES
+            ('$COMMUNE', 'TEST commune des sources KPI', 'TEST', 'TEST', 5000),
+            ('$B', 'TEST autre commune des sources KPI', 'TEST', 'TEST', 5000);" >/dev/null
+compte_temporaire admin_commune "$COMMUNE" "Directeur des sources KPI"; T_DIR=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
+compte_temporaire admin_commune "$B" "Directeur de l'autre commune"; T_B=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
+T_FNCT=$(tok admin.national@siipi.tn)
+[ -n "$T_DIR" ] && [ -n "$T_B" ] && [ -n "$T_FNCT" ] || { echo "API injoignable sur $API, ou directeur de test non créé" >&2; exit 1; }
 
 # Un registre tenu ailleurs dans la commune fausserait l'année d'essai : la
 # campagne commence par vérifier qu'elle part de rien.
@@ -181,7 +205,8 @@ chk "un indicateur calculé depuis toujours est « mesuré » quand il est rense
 
 echo
 echo "8. Cloisonnement"
-T_AUTRE=$(tok "$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id <> '$COMMUNE' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")")
+# L'autre commune est la commune de test B, avec son directeur temporaire.
+T_AUTRE=$T_B
 chk "une autre commune ne voit pas ces lieux" 0 "$(req GET "/poi?communeId=$COMMUNE" "" "$T_AUTRE" >/dev/null; val "sum(1 for l in d if l['nom'].startswith('TEST-SRC'))")"
 chk "ni ne les modifie ni ne les retire (404)" "404|404" \
     "$(req PATCH "/poi/$P_MAR" '{"nom":"pirate"}' "$T_AUTRE")|$(req DELETE "/poi/$P_MAR" "" "$T_AUTRE")"
@@ -191,9 +216,17 @@ chk "ni ne saisit un plein ou une fin de poste sur ses engins" "404|404" \
     "$(req POST /registres/carburant "{\"vehiculeId\":\"$V\",\"datePlein\":\"$AN-02-01\",\"litres\":1,\"montantTnd\":1}" "$T_AUTRE")|$(req POST /registres/fins-de-poste "{\"vehiculeId\":\"$V\",\"jour\":\"$AN-02-01\",\"benneBachee\":true}" "$T_AUTRE")"
 chk "ni ne lit ses registres" 0 "$(req GET "/registres/epi?communeId=$COMMUNE" "" "$T_AUTRE" >/dev/null; val "len(d)")"
 chk "même en SQL direct, un nettoyage ne se rattache pas au lieu d'une autre commune" 1 \
-    "$($PSQL -c "INSERT INTO actions_planifiees (commune_id, titre, date_prevue, poi_id) SELECT id, 'TEST-SRC sql', '$AN-01-01', '$P_MAR' FROM communes WHERE id <> '$COMMUNE' LIMIT 1" 2>&1 | grep -c LIEU_AUTRE_COMMUNE)"
+    "$($PSQL -c "INSERT INTO actions_planifiees (commune_id, titre, date_prevue, poi_id) VALUES ('$B', 'TEST-SRC sql', '$AN-01-01', '$P_MAR')" 2>&1 | grep -c LIEU_AUTRE_COMMUNE)"
 
+echo
+echo "9. Aucune commune réelle n'a reçu de ligne (JC-011, JC-012)"
+chk "la commune de test porte bien les registres de la campagne (engins, agents, lieux, paramètres)" "t|t|t|1" \
+    "$([ "$(sql "SELECT count(*) FROM vehicules WHERE commune_id = '$COMMUNE'")" -ge 1 ] && echo t || echo f)|$([ "$(sql "SELECT count(*) FROM personnel WHERE commune_id = '$COMMUNE'")" -ge 1 ] && echo t || echo f)|$([ "$(sql "SELECT count(*) FROM poi WHERE commune_id = '$COMMUNE'")" -ge 1 ] && echo t || echo f)|$(sql "SELECT count(*) FROM parametres_commune WHERE commune_id = '$COMMUNE'")"
+base_reelle_intacte "pendant la campagne"
 nettoyer
+chk "ses communes de test, leurs registres et ses directeurs sont effacés" "0|0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI)")|$(sql "SELECT count(*) FROM vehicules WHERE commune_id IN ($ESSAI)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 echo
 echo "----------------------------------------------------------------"
 printf '  %s réussis, %s échecs\n' "$pass" "$fail"
