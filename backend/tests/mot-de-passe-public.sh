@@ -40,7 +40,12 @@ ESSAI="test.mdp.$$@siipi.tn"
 COMMUNAL="test.mdp.commune.$$@siipi.tn"
 BASE_PROD=siipi_essai_mdp_public
 . tests/outils/instance_essai.sh
-nettoyer() { $PSQL -c "DELETE FROM users WHERE email LIKE 'test.mdp.%@siipi.tn';" >/dev/null 2>&1; }
+COMMUNE=test_mot_de_passe_public
+. tests/outils/communes_essai.sh
+nettoyer() {
+  $PSQL -c "DELETE FROM users WHERE email LIKE 'test.mdp.%@siipi.tn';" >/dev/null 2>&1
+  effacer_communes_essai "'$COMMUNE'"
+}
 fin() {
   arreter_api_essai
   retirer_bases_essai
@@ -69,8 +74,9 @@ nettoyer
 CODE=$(connexion "$API" admin.national@siipi.tn "$PUBLIC")
 [ "$CODE" = 200 ] || { echo "API de développement injoignable sur $API, ou mot de passe de démonstration modifié." >&2; exit 1; }
 T_FNCT=$(val "d['token']")
-DIR=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire AND commune_id IS NOT NULL ORDER BY created_at LIMIT 1")
-COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR'")
+# Le compte ouvert par la FNCT l'est dans une commune de test (JC-011) : la
+# campagne l'ouvrait dans la commune du « premier directeur de la base ».
+commune_essai "$COMMUNE" "TEST commune du mot de passe public"
 # Le nombre de comptes du seed qui gardent le mot de passe public, calculé par
 # la base elle-même (pgcrypto lit les empreintes bcrypt) : le témoin ne doit
 # rien à l'API qu'il contrôle.

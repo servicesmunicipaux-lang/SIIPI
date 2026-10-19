@@ -15,6 +15,13 @@
 # efface en partant, avec sa commune de test. La valeur provisoire posée par
 # la migration n'est jamais touchée.
 #
+# ELLE N'EMPRUNTE AUCUN COMPTE (JC-011). Jusqu'à la v0.15.53, elle prenait « le
+# premier directeur rattaché à une commune » de la base — sur la pile d'essai,
+# un compte de démonstration ; sur une base réelle, le plus ancien directeur
+# réel — et le rattachait le temps de la campagne à sa commune de test ; son
+# « autre directeur » était emprunté de même. Ce sont désormais des directeurs
+# temporaires (tests/outils/comptes_temporaires.sh), effacés en partant.
+#
 #   docker compose exec -T api npm run test:parametres-nationaux
 # =============================================================================
 
@@ -44,7 +51,14 @@ appel() { # méthode chemin jeton [corps] -> code HTTP, corps dans $T/r.json
 
 T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-DIR_A=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire AND commune_id IS NOT NULL ORDER BY created_at LIMIT 1")
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+releve_base_reelle
+trap retirer_comptes_temporaires EXIT
+# Un directeur temporaire, sans commune principale : la campagne le rattache,
+# comme avant, à sa commune de test.
+compte_temporaire admin_commune "" "Directeur A de la campagne"
+DIR_A=$COMPTE_EMAIL; MDP_A=$COMPTE_MDP
 ID_A=$(sql "SELECT id FROM users WHERE email='$DIR_A'")
 TC=test_parametres_173
 
@@ -60,7 +74,7 @@ $PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALU
             ('$TC', '2001-03-10', 2000, 'TEST 173', 'TEST apport'),
             ('$TC', '2001-06-01', 3000, 'TEST 173', 'TEST apport'),
             ('$TC', '2001-06-20', 1500, 'TEST 173', 'TEST apport');" >/dev/null
-T_A=$(tok "$DIR_A")
+T_A=$(tok "$DIR_A" "$MDP_A")
 J=$(sql "SELECT (now() AT TIME ZONE 'Africa/Tunis')::date")
 PLUS30=$(sql "SELECT (now() AT TIME ZONE 'Africa/Tunis')::date + 30")
 valeur() { # code jeton corps
@@ -156,13 +170,20 @@ chk "le taux de juin retiré : juin repasse à 5 TND/t (22,5 TND)" "22.5|[5]" "$
 chk "la fonction de base suit la même règle" "3|10.000" \
     "$($PSQL -c "SET app.role='super_admin_fnct';" -c "SELECT mois||'|'||montant_tnd FROM app.redevance_anged('$TC', 2001) WHERE mois = 3;" 2>/dev/null)"
 # Un second admin, rattaché à une autre commune : la base ne lui rend rien.
-DIR_B=$(sql "SELECT u.email FROM users u WHERE u.role='admin_commune' AND u.deleted_at IS NULL AND u.is_active AND NOT u.mot_de_passe_provisoire AND u.email <> '$DIR_A' AND u.commune_id <> '$TC' AND NOT EXISTS (SELECT 1 FROM utilisateur_communes x WHERE x.user_id = u.id AND x.commune_id = '$TC') ORDER BY u.created_at LIMIT 1")
-CODE=$(appel GET "/pesees/redevance?communeId=$TC&annee=2001" "$(tok "$DIR_B")")
+# L'autre directeur est un directeur temporaire, sans commune principale ni
+# rattachement à la commune de test.
+compte_temporaire admin_commune "" "Directeur B de la campagne"
+DIR_B=$COMPTE_EMAIL; MDP_B=$COMPTE_MDP
+CODE=$(appel GET "/pesees/redevance?communeId=$TC&annee=2001" "$(tok "$DIR_B" "$MDP_B")")
 chk "l'admin d'une autre commune ne lit pas cette redevance : aucune ligne" "200|0" "$CODE|$(val "len(d)")"
 
 nettoyer
 chk "les valeurs de test et la commune de test sont retirées ; la valeur de référence reste" "0|0|1" \
     "$(sql "SELECT (SELECT count(*) FROM valeurs_parametres_nationaux WHERE reference LIKE 'TEST%')||'|'||(SELECT count(*) FROM communes WHERE id='$TC')||'|'||(SELECT count(*) FROM valeurs_parametres_nationaux WHERE code='redevance_anged' AND date_effet='2025-01-01' AND provisoire AND retire_le IS NULL)")"
+
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
 
 echo
 if [ "$fail" -eq 0 ]; then

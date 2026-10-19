@@ -5,6 +5,35 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.54] — 2026-10-19 — JC-011 (lot B2) : plus aucune campagne n'emprunte de compte, et le lanceur y veille
+
+### Corrigé
+- **JC-011, lot B2 : les douze dernières campagnes qui empruntaient « le premier » compte d'un rôle.**
+  - `acteurs-informels`, `cout-complet`, `declassement`, `exploitation`, `parametres-communaux` et
+    `parametres-nationaux` prenaient le premier directeur rattaché à une commune, et le rattachaient le temps
+    de la campagne à leur commune de test. C'est désormais un directeur temporaire, rattaché de même : le
+    rattachement est ce qu'elles éprouvent. Leur « autre directeur » est temporaire aussi.
+  - `module2` et `module3` ont un prestataire temporaire, rattaché le temps de la campagne à la commune
+    qu'elles éprouvent. `module3` posait ses contrôles du prestataire sous condition de le trouver : ils
+    tournent toujours.
+  - `kpi-5-axes` a deux prestataires temporaires, chacun avec un circuit. Avec le prestataire emprunté, « son
+    tableau, sur ses seules lignes » se vérifiait sur une liste vide, donc sur rien. Le contrôle exige
+    désormais sa ligne, et aucune de l'autre.
+  - `fichiers` a son « administrateur d'une autre commune » temporaire, dans une seconde commune de test.
+  - `mot-de-passe-public` ouvre son compte d'essai dans une commune de test, plus dans celle du premier
+    directeur de la base.
+
+  Les vingt-sept campagnes de JC-011 n'empruntent plus aucun compte.
+
+### Ajouté
+- **La garde du lanceur** (`tests/executer.sh`). Une campagne dont une ligne choisit un compte par
+  `FROM users WHERE role = '…' … LIMIT 1` ne tourne pas : le lanceur sort en code 4, en nommant la ligne et
+  ce qu'il faut faire. Les lignes de commentaire ne comptent pas. Éprouvée par une campagne d'essai qui contient
+  l'ancien choix : elle est arrêtée avant son premier geste.
+- `tests/outils/comptes_temporaires.sh` : `ajouter_a_la_sortie` ajoute l'effacement des comptes après ce que
+  la campagne fait déjà en sortant. Les lignes qu'un compte a posées partent avant lui.
+- Le contrôle des communes réelles dans les six campagnes au directeur rattaché.
+
 ## [0.15.53] — 2026-10-19 — JC-011 (lot B) : douze campagnes de plus quittent « le premier directeur de la base »
 
 ### Corrigé

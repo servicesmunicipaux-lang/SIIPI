@@ -46,11 +46,15 @@ fi
 # Dar Chaabane et y laissait (JC-001).
 . "$(dirname "$0")/outils/directeur_temporaire.sh"
 directeur_temporaire "$COMMUNE"
-trap retirer_directeur_temporaire EXIT
+trap 'retirer_directeur_temporaire; retirer_comptes_temporaires' EXIT
 T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
 [ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-PREST_EMAIL=$(sql "SELECT email FROM users WHERE role='gestionnaire_prestataire' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_PREST=$(tok "$PREST_EMAIL")
+# Un prestataire temporaire, rattaché à la commune éprouvée le temps de la
+# campagne (JC-011) : la campagne empruntait le premier prestataire de la base.
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+compte_temporaire gestionnaire_prestataire "$COMMUNE" "Prestataire de la campagne module3"
+PREST_EMAIL=$COMPTE_EMAIL; PREST_MDP=$COMPTE_MDP
+T_PREST=$(tok "$PREST_EMAIL" "$PREST_MDP")
 
 nettoyer() { $PSQL -c "DELETE FROM vehicules WHERE registration LIKE 'TEST-M3%';" >/dev/null 2>&1; }
 nettoyer
@@ -161,11 +165,10 @@ chk "il est en service par défaut" "en_service" "$(val "['etat']")"
 CODE=$(code -X POST "$API/trucks?communeId=$COMMUNE" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
   -d '{"registration":"TEST-M3-001","type":"camion"}')
 chk "une immatriculation en double est refusée" 409 "$CODE"
-if [ -n "$T_PREST" ]; then
-  CODE=$(code -X POST "$API/trucks?communeId=$COMMUNE" -H "Authorization: Bearer $T_PREST" -H 'Content-Type: application/json' \
-    -d '{"registration":"TEST-M3-002","type":"camion"}')
-  chk "un prestataire ne peut pas enregistrer d'engin" 403 "$CODE"
-fi
+# Le compte est bâti par la campagne : le contrôle ne dépend plus de sa présence.
+CODE=$(code -X POST "$API/trucks?communeId=$COMMUNE" -H "Authorization: Bearer $T_PREST" -H 'Content-Type: application/json' \
+  -d '{"registration":"TEST-M3-002","type":"camion"}')
+chk "un prestataire ne peut pas enregistrer d'engin" 403 "$CODE"
 # Les types du parc réel dépassent les quatre prévus avant d'avoir vu un
 # inventaire : une niveleuse n'est pas un camion de collecte mais relève du
 # même magasin et du même budget.
@@ -193,10 +196,9 @@ chk "il ne figure plus à l'inventaire" 0 \
     "$(sql "SELECT count(*) FROM vehicules WHERE id='$NOUVEAU' AND deleted_at IS NULL")"
 chk "le retirer une seconde fois rend 404" 404 \
     "$(code -X DELETE "$API/trucks/$NOUVEAU" -H "Authorization: Bearer $T_DIR")"
-if [ -n "$T_PREST" ]; then
-  chk "un prestataire ne peut retirer aucun engin" 403 \
-      "$(code -X DELETE "$API/trucks/$NOUVEAU" -H "Authorization: Bearer $T_PREST")"
-fi
+# Le compte est bâti par la campagne : le contrôle ne dépend plus de sa présence.
+chk "un prestataire ne peut retirer aucun engin" 403 \
+    "$(code -X DELETE "$API/trucks/$NOUVEAU" -H "Authorization: Bearer $T_PREST")"
 
 echo
 echo "9. Recoupement du registre des circuits et de l'inventaire du parc"

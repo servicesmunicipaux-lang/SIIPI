@@ -14,6 +14,13 @@
 # Une commune de test (recensement : 8 000 habitants), quatre mois de pesées
 # de l'an dernier ; effacée en partant.
 #
+# ELLE N'EMPRUNTE AUCUN COMPTE (JC-011). Jusqu'à la v0.15.53, elle prenait « le
+# premier directeur rattaché à une commune » de la base — sur la pile d'essai,
+# un compte de démonstration ; sur une base réelle, le plus ancien directeur
+# réel — et le rattachait le temps de la campagne à sa commune de test ; son
+# « autre directeur » était emprunté de même. Ce sont désormais des directeurs
+# temporaires (tests/outils/comptes_temporaires.sh), effacés en partant.
+#
 #   docker compose exec -T api npm run test:parametres-communaux
 # =============================================================================
 
@@ -43,7 +50,14 @@ appel() { # méthode chemin jeton [corps] -> code HTTP, corps dans $T/r.json
 
 T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-DIR_A=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire AND commune_id IS NOT NULL ORDER BY created_at LIMIT 1")
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+releve_base_reelle
+trap retirer_comptes_temporaires EXIT
+# Un directeur temporaire, sans commune principale : la campagne le rattache,
+# comme avant, à sa commune de test.
+compte_temporaire admin_commune "" "Directeur A de la campagne"
+DIR_A=$COMPTE_EMAIL; MDP_A=$COMPTE_MDP
 ID_A=$(sql "SELECT id FROM users WHERE email='$DIR_A'")
 TC=test_parametres_171
 
@@ -61,9 +75,12 @@ $PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALU
             ('$TC', '$A1-07-05', 93000, 'TEST 171', 'TEST apport'),
             ('$TC', '$A1-07-20', 93000, 'TEST 171', 'TEST apport'),
             ('$TC', '$A1-10-12', 31000, 'TEST 171', 'TEST apport');" >/dev/null
-T_A=$(tok "$DIR_A")
-DIR_B=$(sql "SELECT u.email FROM users u WHERE u.role='admin_commune' AND u.deleted_at IS NULL AND u.is_active AND NOT u.mot_de_passe_provisoire AND u.email <> '$DIR_A' AND u.commune_id <> '$TC' AND NOT EXISTS (SELECT 1 FROM utilisateur_communes x WHERE x.user_id = u.id AND x.commune_id = '$TC') ORDER BY u.created_at LIMIT 1")
-T_B=$(tok "$DIR_B")
+T_A=$(tok "$DIR_A" "$MDP_A")
+# L'autre directeur est un directeur temporaire, sans commune principale ni
+# rattachement à la commune de test.
+compte_temporaire admin_commune "" "Directeur B de la campagne"
+DIR_B=$COMPTE_EMAIL; MDP_B=$COMPTE_MDP
+T_B=$(tok "$DIR_B" "$MDP_B")
 population() { # corps JSON complet
   appel PUT "/communes/$TC/population" "${2:-$T_A}" "$1"
 }
@@ -161,6 +178,10 @@ chk "l'admin d'une autre commune ne lit rien de cette commune" "200|0" "$CODE|$(
 nettoyer
 chk "la commune de test, ses pesées et ses paramètres sont retirés" "0|0" \
     "$(sql "SELECT (SELECT count(*) FROM communes WHERE id='$TC')||'|'||(SELECT count(*) FROM parametres_commune WHERE commune_id='$TC')")"
+
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
 
 echo
 if [ "$fail" -eq 0 ]; then
