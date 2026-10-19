@@ -5,6 +5,46 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.53] — 2026-10-19 — JC-011 (lot B) : douze campagnes de plus quittent « le premier directeur de la base »
+
+### Corrigé
+- **JC-011, lot B.** Ces douze campagnes travaillent désormais dans deux communes de test, avec un
+  directeur temporaire dans chacune et un prestataire temporaire :
+  `assainissement`, `champs-points`, `contacts`, `exports`, `imports`, `maintenance`, `parametres`,
+  `rapports`, `releves-terrain`, `comptes`, `simulation-3mois`, `suggestions`.
+
+  Elles prenaient « le premier directeur de la base », c'est-à-dire La Marsa sur la pile d'essai. Leur
+  cloisonnement empruntait le premier directeur d'une autre commune ou le premier prestataire.
+  - `exports` et `imports` posent leurs points d'essai sur deux circuits de leur commune de test. Ils les
+    posaient jusqu'ici sur deux circuits réels de Dar Chaabane, ce qui réécrivait la date d'import de leurs
+    points (JC-013).
+  - `parametres` a son citoyen d'essai. Elle réglait jusqu'ici les préférences du compte de démonstration
+    citoyen, puis les remettait à vide au lieu de les rendre.
+  - `comptes` a son agent de la FNCT temporaire, au lieu du premier compte de la FNCT de la base. Son
+    contrôle de cloisonnement ne se saute plus quand une seule commune est activée.
+  - `simulation-3mois` garde sa commune réelle éprouvée : c'est le sujet du test, et elle vérifie qu'elle en
+    sort intacte. Le compte communal de son refus devient un directeur temporaire.
+  - Les contrôles posés sous condition de trouver un compte ne le sont plus : `contacts`, `rapports`,
+    `maintenance`, `champs-points`, `exports`, `imports`. Le compte est bâti par la campagne.
+
+### Ajouté
+- **`tests/outils/communes_essai.sh`** pose les communes de test et efface en partant tout ce qu'elles
+  portent. Chaque table qui porte `commune_id` est vidée de leurs lignes, en plusieurs passes pour laisser les
+  clés étrangères céder. Rien n'est effacé hors de ces communes.
+- Les deux contrôles des communes réelles (`tests/outils/base_reelle.sh`) dans chacune des douze campagnes.
+
+### Constaté
+- **Portée de JC-011 élargie.** En préparant la garde, une recherche plus large (`FROM users WHERE role = '…'
+  … LIMIT 1`) trouve douze autres campagnes qui empruntent « le premier » compte d'un rôle :
+  - le premier directeur rattaché à une commune, qu'elles rattachent le temps de la campagne à leur commune
+    de test : `acteurs-informels`, `cout-complet`, `declassement`, `exploitation`, `parametres-communaux`,
+    `parametres-nationaux`, `mot-de-passe-public` ;
+  - le premier prestataire : `module2`, `module3`, `kpi-5-axes` ;
+  - le premier directeur d'une autre commune : `fichiers`.
+
+  Elles seront traitées au lot B2, avec la garde qui fera échouer toute campagne qui contient encore ce
+  choix.
+
 ## [0.15.52] — 2026-10-19 — JC-012 et JC-011 (lot A) : cinq campagnes quittent La Marsa
 
 ### Corrigé

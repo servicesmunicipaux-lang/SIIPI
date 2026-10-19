@@ -11,6 +11,17 @@
 # l'écran (mêmes filtres, même cloisonnement), exécuter une formule glissée
 # dans un champ, ou déguiser une erreur en fichier.
 #
+# ELLE NE TOUCHE À AUCUNE COMMUNE RÉELLE (JC-011). Jusqu'à la v0.15.52, elle
+# prenait « le premier directeur de la base » — sur la pile d'essai, le compte
+# de démonstration de La Marsa ; sur une base portant de vrais directeurs, le
+# plus ancien d'entre eux — et écrivait dans sa commune ; son cloisonnement
+# empruntait de même le premier directeur d'une autre commune, ou le premier
+# prestataire de la base. Elle travaille désormais dans deux communes de test,
+# avec des comptes temporaires (tests/outils/comptes_temporaires.sh), efface
+# en partant tout ce qu'elles portent (tests/outils/communes_essai.sh), et
+# prouve, pendant qu'elle a ses lignes en base puis en partant, qu'aucune
+# commune réelle n'a reçu de ligne (tests/outils/base_reelle.sh).
+#
 #   docker compose exec -T api npm run test:exports
 # =============================================================================
 
@@ -18,7 +29,7 @@ set -u
 API="${API_URL:-http://localhost:4000}"
 PSQL="psql -q -tA -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 pass=0; fail=0
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+T=$(mktemp -d)
 
 tok() {
   curl -s -X POST "$API/auth/login" -H 'Content-Type: application/json' \
@@ -82,22 +93,45 @@ q() { python3 -c "import json;d=json.load(open('$T/l.json'));$1" 2>/dev/null || 
 
 T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-T_DIR=$(tok "$DIR_EMAIL")
-COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
+COMMUNE=test_exports
+AUTRE_COMMUNE=test_exports_b
+ESSAI="'$COMMUNE','$AUTRE_COMMUNE'"
+. "$(dirname "$0")/outils/comptes_temporaires.sh"
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
 # La commune de démonstration la mieux fournie : parc et circuits réels.
 PARC=$(sql "SELECT commune_id FROM vehicules WHERE deleted_at IS NULL AND valeur_achat_tnd IS NOT NULL GROUP BY commune_id ORDER BY count(*) DESC LIMIT 1")
-# Aucun seed ne crée de points de collecte (ils viennent d'un import KML) :
-# la campagne pose les siens, sur deux circuits d'une même commune.
-POINTS=$(sql "SELECT commune_id FROM circuits WHERE deleted_at IS NULL GROUP BY commune_id HAVING count(*) >= 2 ORDER BY count(*) DESC LIMIT 1")
-C_A=$(sql "SELECT id FROM circuits WHERE commune_id='$POINTS' AND deleted_at IS NULL ORDER BY nom LIMIT 1")
-C_B=$(sql "SELECT id FROM circuits WHERE commune_id='$POINTS' AND deleted_at IS NULL ORDER BY nom OFFSET 1 LIMIT 1")
 
 nettoyer() {
   $PSQL -c "DELETE FROM contacts WHERE nom_complet LIKE 'TEST-X%';" >/dev/null 2>&1
   $PSQL -c "DELETE FROM points_collecte WHERE nom LIKE 'TEST-X%';" >/dev/null 2>&1
 }
 nettoyer
+# Son nettoyage d'origine, puis tout ce que portent ses communes de test.
+nettoyer_essai() {
+  nettoyer
+  effacer_communes_essai "$ESSAI"
+  retirer_comptes_temporaires
+}
+nettoyer_essai
+trap 'nettoyer_essai; rm -rf "$T"' EXIT
+releve_base_reelle
+commune_essai "$COMMUNE" "TEST commune de la campagne exports"
+commune_essai "$AUTRE_COMMUNE" "TEST autre commune de la campagne exports"
+compte_temporaire admin_commune "$COMMUNE" "Directeur de la campagne"
+DIR_EMAIL=$COMPTE_EMAIL; DIR_MDP=$COMPTE_MDP; DIR_ID=$COMPTE_ID
+compte_temporaire admin_commune "$AUTRE_COMMUNE" "Directeur de l'autre commune"
+AUTRE_EMAIL=$COMPTE_EMAIL; AUTRE_MDP=$COMPTE_MDP
+compte_temporaire gestionnaire_prestataire "$COMMUNE" "Prestataire de la campagne"
+PREST_EMAIL=$COMPTE_EMAIL; PREST_MDP=$COMPTE_MDP; PREST_USER=$COMPTE_ID
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
+[ -n "$T_DIR" ] || { echo "API injoignable sur $API, ou directeur de test non créé" >&2; exit 1; }
+# Deux circuits à soi, dans la commune de test : la campagne posait jusqu'ici
+# ses points d'essai sur deux circuits réels de Dar Chaabane.
+POINTS=$COMMUNE
+C_A=$(sql "INSERT INTO circuits (commune_id, nom) VALUES ('$COMMUNE', 'TEST circuit A de la campagne exports') RETURNING id")
+C_B=$(sql "INSERT INTO circuits (commune_id, nom) VALUES ('$COMMUNE', 'TEST circuit B de la campagne exports') RETURNING id")
+[ -n "$C_A" ] && [ -n "$C_B" ] || { echo "Les circuits de test n'ont pas pu être bâtis." >&2; exit 1; }
 $PSQL -c "INSERT INTO points_collecte (circuit_id, commune_id, ordre, nom, type, geom, precision_m) VALUES
   ('$C_A','$POINTS',9001,'TEST-X نقطة اختبار','porte_a_porte', ST_SetSRID(ST_MakePoint(10.75,36.46),4326), 4.5),
   ('$C_A','$POINTS',9002,'TEST-X école','point_noir',      ST_SetSRID(ST_MakePoint(10.76,36.46),4326), 12),
@@ -188,16 +222,14 @@ echo "5. Cloisonnement : un fichier n'ouvre rien que la liste n'ouvrait pas"
 post() { curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' -d "$1" "$API/contacts?communeId=$COMMUNE"; }
 post '{"nomComplet":"TEST-X Formule","telephone":"+216 71 000 000","notes":"=HYPERLINK(\"http://exemple.test\",\"clic\")","fonction":"-2+3"}' >/dev/null
 post '{"nomComplet":"TEST-X Guillemets","email":"g@example.test","organisation":"Société \"Nour\"; filiale","notes":"ligne 1\nligne 2"}' >/dev/null
-AUTRE_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id <> '$COMMUNE' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-if [ -n "$AUTRE_EMAIL" ]; then
-  dl -H "Authorization: Bearer $(tok "$AUTRE_EMAIL")" "$API/contacts?communeId=$COMMUNE&format=csv" >/dev/null; lire csv
-  chk "une autre commune qui exporte l'annuaire de celle-ci n'obtient que l'en-tête" 0 "$(q "print(sum(1 for l in d['lignes'][1:] if l and l[0].startswith('TEST-X')))")"
-fi
-PREST_EMAIL=$(sql "SELECT email FROM users WHERE role='gestionnaire_prestataire' AND deleted_at IS NULL AND is_active ORDER BY created_at LIMIT 1")
-if [ -n "$PREST_EMAIL" ]; then
-  chk "un prestataire est refusé, en JSON — pas un fichier vide" "403|application/json" \
-      "$(dl -H "Authorization: Bearer $(tok "$PREST_EMAIL")" "$API/contacts?communeId=$COMMUNE&format=csv")|$(entete content-type | cut -d';' -f1)"
-fi
+# L'autre commune est la commune de test B, avec son directeur temporaire.
+# Le compte est bâti par la campagne : le contrôle ne dépend plus de sa présence.
+dl -H "Authorization: Bearer $(tok "$AUTRE_EMAIL" "$AUTRE_MDP")" "$API/contacts?communeId=$COMMUNE&format=csv" >/dev/null; lire csv
+chk "une autre commune qui exporte l'annuaire de celle-ci n'obtient que l'en-tête" 0 "$(q "print(sum(1 for l in d['lignes'][1:] if l and l[0].startswith('TEST-X')))")"
+# Le prestataire est le prestataire temporaire de la commune de test.
+# Le compte est bâti par la campagne : le contrôle ne dépend plus de sa présence.
+chk "un prestataire est refusé, en JSON — pas un fichier vide" "403|application/json" \
+    "$(dl -H "Authorization: Bearer $(tok "$PREST_EMAIL" "$PREST_MDP")" "$API/contacts?communeId=$COMMUNE&format=csv")|$(entete content-type | cut -d';' -f1)"
 chk "sans jeton, 401 en JSON" "401|application/json" "$(dl "$API/contacts?communeId=$COMMUNE&format=xlsx")|$(entete content-type | cut -d';' -f1)"
 chk "un format inconnu est refusé" "400|application/json" \
     "$(dl -H "Authorization: Bearer $T_DIR" "$API/contacts?communeId=$COMMUNE&format=pdf")|$(entete content-type | cut -d';' -f1)"
@@ -218,7 +250,13 @@ chk "en XLSX, aucune cellule n'est une formule" False "$(q "print(d['formule'])"
 chk "la formule y reste un texte, écrit tel quel" "inlineStr|=HYPERLINK(\"http://exemple.test\",\"clic\")" \
     "$(q "l=next(l for l in d['lignes'] if l[0]['v']=='TEST-X Formule'); print(l[6]['t']+'|'+l[6]['v'])")"
 
-nettoyer
+echo
+echo "Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
+nettoyer_essai
+chk "ses communes de test et ses comptes temporaires sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
+base_reelle_intacte "en partant"
 echo
 echo "----------------------------------------------------------------"
 printf '  %s réussis, %s échecs\n' "$pass" "$fail"

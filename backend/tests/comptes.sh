@@ -31,19 +31,35 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-COMMUNE=$(sql "SELECT id FROM communes WHERE activee ORDER BY id LIMIT 1")
-DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND commune_id='$COMMUNE' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-[ -n "$DIR_EMAIL" ] || DIR_EMAIL=$(sql "SELECT email FROM users WHERE role='admin_commune' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-COMMUNE=$(sql "SELECT commune_id FROM users WHERE email='$DIR_EMAIL'")
-FNCT_EMAIL=$(sql "SELECT email FROM users WHERE role='super_admin_fnct' AND deleted_at IS NULL AND is_active AND NOT mot_de_passe_provisoire ORDER BY created_at LIMIT 1")
-
-T_DIR=$(tok "$DIR_EMAIL" 'Siipi2026!')
-T_FNCT=$(tok "$FNCT_EMAIL" 'Siipi2026!')
-[ -n "$T_DIR" ] || { echo "API injoignable, ou mot de passe de démonstration modifié." >&2; exit 1; }
+# Ses deux communes de test, son directeur et son agent de la FNCT, temporaires
+# (JC-011) : la campagne prenait la première commune active et son directeur
+# — ou, à défaut, le premier directeur de la base —, et le premier compte de la
+# FNCT de la base. Sur une base réelle, ce seraient des personnes réelles.
+COMMUNE=test_comptes
+AUTRE=test_comptes_b
+COMMUNES_ESSAI="'$COMMUNE','$AUTRE'"
+. tests/outils/comptes_temporaires.sh
+. tests/outils/communes_essai.sh
+. tests/outils/base_reelle.sh
 
 ESSAI="test.compte.$$@siipi.tn"
-nettoyer() { $PSQL -c "DELETE FROM users WHERE email LIKE 'test.compte.%@siipi.tn' OR email='$ESSAI';" >/dev/null 2>&1; }
+nettoyer() {
+  $PSQL -c "DELETE FROM users WHERE email LIKE 'test.compte.%@siipi.tn' OR email='$ESSAI';" >/dev/null 2>&1
+  effacer_communes_essai "$COMMUNES_ESSAI"
+}
 nettoyer
+releve_base_reelle
+commune_essai "$COMMUNE" "TEST commune des comptes"
+commune_essai "$AUTRE" "TEST autre commune des comptes"
+# Les deux communes de test sont « activées » : la campagne prenait une commune active.
+$PSQL -c "UPDATE communes SET activee = true WHERE id IN ($COMMUNES_ESSAI);" >/dev/null
+compte_temporaire admin_commune "$COMMUNE" "Directeur des comptes"
+DIR_EMAIL=$COMPTE_EMAIL; DIR_MDP=$COMPTE_MDP
+compte_temporaire super_admin_fnct "" "Agent de la FNCT des comptes"
+FNCT_EMAIL=$COMPTE_EMAIL; FNCT_MDP=$COMPTE_MDP
+T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
+T_FNCT=$(tok "$FNCT_EMAIL" "$FNCT_MDP")
+[ -n "$T_DIR" ] && [ -n "$T_FNCT" ] || { echo "API injoignable, ou compte temporaire non créé." >&2; exit 1; }
 T=$(mktemp -d)
 . tests/outils/instance_essai.sh
 fin() {
@@ -130,8 +146,9 @@ ESCALADE=$($PSQL -c "
   VALUES ('test.compte.sql.$$@siipi.tn','x','Tentative SQL','super_admin_fnct','$COMMUNE');
   COMMIT;" 2>&1 | grep -c 'ROLE_RESERVE_FNCT')
 chk "et la base le refuse aussi, en SQL direct" 1 "$ESCALADE"
+# L'agent de la FNCT temporaire de la campagne est le seul compte national attendu.
 chk "aucun compte national n'a été créé" 0 \
-    "$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%' AND role='super_admin_fnct'")"
+    "$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%' AND role='super_admin_fnct' AND email <> '$FNCT_EMAIL'")"
 
 echo
 echo "5. Un compte fermé ne se connecte plus"
@@ -146,14 +163,11 @@ chk "on ne peut pas désactiver son propre compte" 400 "$CODE"
 
 echo
 echo "6. Cloisonnement : une commune ne touche pas aux comptes d'une autre"
-AUTRE=$(sql "SELECT id FROM communes WHERE activee AND id <> '$COMMUNE' ORDER BY id LIMIT 1")
-if [ -n "$AUTRE" ]; then
-  CODE=$(code -X POST "$API/comptes" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
-    -d "{\"email\":\"test.compte.ailleurs.$$@siipi.tn\",\"fullName\":\"Compte ailleurs\",\"role\":\"admin_commune\",\"communeId\":\"$AUTRE\"}")
-  chk "ouvrir un compte dans une autre commune est refusé" 403 "$CODE"
-else
-  printf '  \033[33m•\033[0m une seule commune activée : cloisonnement non vérifiable ici\n'
-fi
+# L'autre commune est la commune de test B, bâtie : le contrôle ne se saute plus
+# quand une seule commune est activée.
+CODE=$(code -X POST "$API/comptes" -H "Authorization: Bearer $T_DIR" -H 'Content-Type: application/json' \
+  -d "{\"email\":\"test.compte.ailleurs.$$@siipi.tn\",\"fullName\":\"Compte ailleurs\",\"role\":\"admin_commune\",\"communeId\":\"$AUTRE\"}")
+chk "ouvrir un compte dans une autre commune est refusé" 403 "$CODE"
 
 echo
 echo "7. Production et formation (D-FNCT-5), sur des bases d'essai à part"
@@ -243,7 +257,13 @@ retirer_bases_essai
 chk "les bases d'essai sont effacées" 0 \
     "$(psql_essai postgres "SELECT count(*) FROM pg_database WHERE datname LIKE 'siipi_essai_%'")"
 
+echo
+echo "8. Aucune commune réelle n'a reçu de ligne (JC-011)"
+base_reelle_intacte "pendant la campagne"
 nettoyer
+chk "ses communes de test et ses comptes sont effacés" "0|0" \
+    "$(sql "SELECT count(*) FROM communes WHERE id IN ($COMMUNES_ESSAI)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn' OR email = '$ESSAI'")"
+base_reelle_intacte "en partant"
 
 echo
 if [ "$fail" -eq 0 ]; then
