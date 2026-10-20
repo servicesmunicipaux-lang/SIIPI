@@ -26645,6 +26645,16 @@ export interface components {
             saisi_le: string;
             retire_le: string | null;
             motif_retrait: string | null;
+            /** @description La période des normales (« 1991-2020 ») ; vide pour une valeur saisie sans provenance de station. */
+            periode: string | null;
+            /** @enum {string|null} */
+            methode_rattachement: "station_unique" | "plus_proche_voisin" | null;
+            /** @description Les stations NOAA dont vient la valeur (« TUNIS_CARTHAGE »). */
+            stations_utilisees: string[] | null;
+            /** @description La distance à la station voisine, pour une normale estimée. */
+            distance_km: number | null;
+            /** @enum {string|null} */
+            label: "stationnaire" | "estimee" | null;
         };
         EntreeBilanWapla: {
             cle: string;

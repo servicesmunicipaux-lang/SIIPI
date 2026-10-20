@@ -111,9 +111,14 @@ export const facteurReferenceSchema = z
 
 export const retraitFacteurSchema = z.object({ motif: z.string().trim().min(1, 'Le motif du retrait est obligatoire.').max(500) }).strict();
 
-const COLONNES_FACTEUR = 'id, code, gouvernorat, valeur, source, date_effet, saisi_le, retire_le, motif_retrait';
-type LigneFacteur = { valeur: string } & Record<string, unknown>;
-const enNombre = (l: LigneFacteur) => ({ ...l, valeur: Number(l.valeur) });
+const COLONNES_FACTEUR =
+  'id, code, gouvernorat, valeur, source, date_effet, saisi_le, retire_le, motif_retrait, periode, methode_rattachement, stations_utilisees, distance_km, label';
+type LigneFacteur = { valeur: string; distance_km?: string | null } & Record<string, unknown>;
+const enNombre = (l: LigneFacteur) => ({
+  ...l,
+  valeur: Number(l.valeur),
+  distance_km: l.distance_km == null ? null : Number(l.distance_km),
+});
 
 waplaRouter.get(
   '/facteurs-reference',

@@ -3165,6 +3165,8 @@
       "titre": "Bilan {{exercice}}",
       "partDefaut": "Entrées comptées gardant la valeur par défaut : {{n}} sur {{total}} ({{part}} %) ; seuil de la FNCT : {{seuil}} %.",
       "climatManquant": "Climat non renseigné : sans précipitations ni température, le bilan ne peut pas être étayé. Saisissez la météo locale de la commune, ou attendez les normales de son gouvernorat.",
+      "normaleEstimee": "Normale estimée pour le gouvernorat de {{gouvernorat}}, dérivée de la station {{station}} (distance {{distance}} km), période {{periode}}, source INM/OMM-NOAA.",
+      "normaleStationnaire": "Normale stationnaire, station {{station}}, période {{periode}}, source INM/OMM-NOAA.",
       "version": "Calculé par le moteur {{version}}.",
       "brouillon": "Brouillon : pas encore calculé, ou une entrée a changé depuis le dernier calcul.",
       "calculer": "Calculer le bilan",

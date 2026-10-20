@@ -2041,6 +2041,11 @@ const FacteurReference = registry.register(
     saisi_le: z.string(),
     retire_le: z.string().nullable(),
     motif_retrait: z.string().nullable(),
+    periode: z.string().nullable().openapi({ description: 'La période des normales (« 1991-2020 ») ; vide pour une valeur saisie sans provenance de station.' }),
+    methode_rattachement: z.enum(['station_unique', 'plus_proche_voisin']).nullable(),
+    stations_utilisees: z.array(z.string()).nullable().openapi({ description: 'Les stations NOAA dont vient la valeur (« TUNIS_CARTHAGE »).' }),
+    distance_km: z.number().nullable().openapi({ description: 'La distance à la station voisine, pour une normale estimée.' }),
+    label: z.enum(['stationnaire', 'estimee']).nullable(),
   })
 );
 registry.registerPath({
@@ -7680,7 +7685,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.58',
+      version: '0.15.59',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

@@ -1,5 +1,7 @@
 # W0 — Validation du moteur WaPla réimplémenté contre les vecteurs de référence UNIDO
 
+> **Statut, 20/10/2026.** **W0 acté le 20/10/2026 : validation par lecture croisée**, pas un rejeu contre une exécution de l'outil UNIDO. Le moteur a été écrit d'après une lecture de `server.r` ; un second port, en Python et indépendant du code de l'application (`backend/tests/wapla_attendus.py`), a été écrit d'après la même lecture ; les deux concordent sur 213 jeux (campagne `wapla-moteur`). C'est moins fort qu'un rejeu contre exécution, et c'est assumé : aucun vecteur officiel n'existe en accès libre (ni dans l'archive de l'outil, ni dans ses manuels, ni sur les pages de TU Wien), et aucune démarche n'est engagée pour en obtenir. Le jour où des vecteurs officiels apparaissent, ils entrent dans la campagne `wapla-moteur` et W0 repasse en « validé contre exécution ». Cette fiche reste le format d'entrée de ces vecteurs, le jour venu.
+
 **Décision du 20/10/2026.** WaPla n'est pas un service externe : les méthodes de calcul de l'outil UNIDO ont
 été extraites et réimplémentées dans SIIPI (`backend/src/wapla/moteur.ts`, couche `wapla.*`). W0 vérifie que
 ce moteur produit **les mêmes résultats que l'outil d'origine** sur des vecteurs de référence. Il n'y a rien à
@@ -234,7 +236,8 @@ décharge, 0,525 au dépotoir.
 
 Le moteur n'attend que deux grandeurs climatiques : les précipitations annuelles (`APY`, mm) et la température
 moyenne annuelle (`ATY`, °C). Dans SIIPI, elles viennent de la référence par gouvernorat, saisie par la FNCT à
-partir des normales INM 1981-2010 (open data, licence OTL), que la commune peut surcharger (décision du
+partir des normales OMM 1991-2020 de la NOAA (stationnaires, ou estimées depuis la station la plus proche), que
+la commune peut surcharger (décision du
 20/10/2026, `DECISIONS_2026-10-16.md`, amendement). La classe climatique de l'outil en découle ; elle a un trou
 (ATY > 20 °C avec APY = 400 mm exactement, l'outil d'origine plante, `wapla-moteur-reference.md` § 4.2,
 défaut 6) que le mode corrigé ferme.
