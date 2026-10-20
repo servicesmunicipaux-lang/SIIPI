@@ -1,4 +1,4 @@
-jeu;tableau_wapla;ligne;attendu_affiche;attendu_exact;releve_wapla
+jeu;tableau;ligne;moteur_arrondi_outil;moteur_exact;vecteur_reference
 A;Mass flows [t/yr];WoB;200;200;
 A;Mass flows [t/yr];BR3;40;40;
 A;Mass flows [t/yr];D2;200;200;

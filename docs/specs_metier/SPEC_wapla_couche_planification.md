@@ -107,7 +107,7 @@ Le seuil de 30 % est un réglage de la FNCT, pas une constante du code.
 | Coût annuel de collecte (statu quo) | Résultat du coût complet SIIPI (`valeurs_cout_complet`) quand il existe pour l'exercice | `siipi_declare` ou `siipi_mesure`, selon sa source | Lu tel quel. WaPla **ne recalcule pas** le coût de l'existant (§ 5) |
 | Coût d'exploitation de la décharge | Redevance ANGeD en vigueur (`valeurs_parametres_nationaux`, 17.3) × tonnage mis en décharge | `siipi_declare` (« provisoire » tant que le barème manque) | Le caractère « provisoire » se propage au résultat |
 | Composition (biodéchets, papier-carton, plastiques) | `app.caracterisation_retenue(commune, date)` : étude ANGeD de la commune, puis PCGD, puis autre étude, puis moyenne nationale ANGeD (voir `SPEC_refonte_indicateurs_saisie.md`, § 2.3) | `siipi_declare`, avec le niveau de source | Une composition issue de la **moyenne nationale** compte comme une entrée non propre à la commune pour le niveau de fiabilité. Défaut UNIDO seulement si SIIPI n'a aucune caractérisation, même nationale |
-| Climat (précipitations, température moyennes) | Aucune | `reference_tunisienne` par gouvernorat, à fournir | Normales climatiques de l'INM par gouvernorat. Le climat règle la part de carbone dégradable du méthane |
+| Climat (précipitations, température moyennes) | Aucune | `reference_tunisienne` par gouvernorat ; `saisie_commune` en surcharge, facultative | **Tranché le 20/10/2026.** Maille : le gouvernorat (24 lignes), maille officielle de l'INM. Source : normales INM 1981-2010 par gouvernorat (open data, licence OTL : data.gov.tn, catalogue-data.transport.tn) ; pas de 1991-2020 tant qu'elles ne sont pas publiées en open data, pas d'achat à l'INM. Saisie : la FNCT, par `/wapla/facteurs-reference` ; les normales sont chargées en base une fois, puis versionnées par leur date d'effet — un autre historique s'ajoute sans changer les bilans existants. Ni fichier national importable côté commune, ni dépendance à une API externe à l'exécution. La commune peut saisir sa météo locale en surcharge, sans obligation. Le climat règle la part de carbone dégradable du méthane : un bilan **étayé** a un climat renseigné ; un bilan indicatif peut ne pas en avoir, et le dit |
 | Gestion de la décharge (MCF), captage du biogaz | Aucune | `saisie_commune` (FNCT pour les sites ANGeD) | Une décharge contrôlée ANGeD n'est pas une décharge « bien gérée » par défaut : c'est un choix déclaré et daté |
 | Investissements des scénarios (montant, durée, taux) | Aucune | `saisie_commune` | Propres à chaque scénario (§ 5) |
 
@@ -201,7 +201,7 @@ Comme toutes les campagnes de SIIPI, `wapla.sh` commence par les refus :
 | Bilan de masse | Σ entrées = Σ sorties + Δ stocks, à 10⁻⁶ t près, sur 100 jeux d'entrées tirés au hasard |
 | **Vecteurs de référence** | Le mode fidèle retrouve les valeurs de l'annexe (port Python **indépendant** du code de l'application). Exemple, valeurs par défaut et 1 000 t : 460 t collectées, 238,28 t en stock de décharge, 699,3 t CO₂-éq au total avant arrondi (WaPla affiche 690 après ses arrondis à deux chiffres significatifs) |
 | Mode corrigé | Chaque écart avec le mode fidèle correspond à un défaut D1 à D10, et à rien d'autre |
-| Recalcul dans l'outil d'origine (une fois, au lot W0) | Les valeurs par défaut et le scénario B, saisis dans l'application WaPla sous Windows, donnent les mêmes chiffres que le port Python. **Les vecteurs viennent d'une lecture du code, pas encore d'une exécution de WaPla : c'est ce test qui les confirme** |
+| **Vecteurs de référence UNIDO (lot W0)** | Sur chaque vecteur de référence de l'outil UNIDO original (entrées et sorties documentées), le mode fidèle redonne les sorties documentées : flux, GES, uPOPs et, s'ils sont donnés, coûts. Aucun service à lancer, aucune URL, aucune dépendance externe. **Les vecteurs de l'annexe viennent d'une lecture du code, pas d'une exécution de l'outil : ce test les confirme ou les corrige** (format attendu : `sources/wapla/W0_fiche_rejeu.md`) |
 
 ---
 
@@ -211,7 +211,7 @@ La couche ne bloque rien et n'est bloquée par aucun jalon en cours. Elle **prof
 
 | Lot | Contenu | Dépend de | Test de sortie |
 |---|---|---|---|
-| **W0** | Vecteurs de référence confirmés dans l'outil d'origine ; références tunisiennes réunies (composition, climat par gouvernorat) ; accord écrit de l'UNIDO | — | Les deux jeux saisis dans WaPla redonnent les vecteurs |
+| **W0** | Validation du moteur WaPla réimplémenté contre les vecteurs de référence UNIDO, sans dépendance externe (redéfini le 20/10/2026) ; accord écrit de l'UNIDO (obtenu le 13/10/2026) | Les vecteurs de référence | Le mode fidèle redonne les sorties de chaque vecteur ; tout écart est consigné et expliqué, jamais ajusté |
 | **W1** | Moteur pur `moteur.ts`, modes fidèle et corrigé, sans base ni écran | W0 | Vecteurs, bilan de masse, écarts expliqués |
 | **W2** | Schéma `wapla`, RLS, vues d'amorce en lecture seule, routes `/wapla/*` | W1 | Refus, séparation (`pg_depend`, suppression du schéma) |
 | **W3** | Écrans commune : amorce, bilan, Sankey, export | W2 | Recette sur le jumeau numérique, puis sur M'hamdia (le seul jeu où tonnage et coût existent ensemble) |
@@ -231,7 +231,7 @@ Chaque décision a une valeur par défaut. Sans réponse, la valeur par défaut 
 | Seuil de valeurs par défaut pour « étayé » | 30 % des 17 entrées comptées (`wapla.reglages`, réglable par la FNCT depuis le lot W2b) | FNCT |
 | Diffusion des uPOPs | Commune + FNCT ; export public seulement après validation de la FNCT | FNCT |
 | Source de la composition des déchets | Tranché : caractérisation tenue dans SIIPI, personnalisable par la commune, moyenne nationale ANGeD en repli | — |
-| Climat | Normales INM par gouvernorat | FNCT |
+| Climat | **Tranché le 20/10/2026** : référence par gouvernorat, saisie par la FNCT à partir des normales INM 1981-2010 (open data, licence OTL) ; surcharge communale facultative. *(La saisie par chaque commune, décidée le même jour, est annulée : un fardeau pour 350 communes, quand 24 gouvernorats suffisent.)* | Nacer |
 | Classe de gestion des décharges contrôlées ANGeD | Déclarée site par site, datée, par la FNCT | FNCT / ANGeD |
 | Réutilisation du code et de la méthode | **Tranché le 13/10/2026** : accord de l'UNIDO ; méthode citée, code réécrit (`backend/src/wapla/`) | FNCT |
 | Place dans la feuille de route | Jalon 15, W0 dès maintenant | Nacer |

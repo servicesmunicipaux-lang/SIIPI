@@ -1,36 +1,81 @@
-# W0 — Rejeu des vecteurs de référence dans l'outil WaPla d'origine
+# W0 — Validation du moteur WaPla réimplémenté contre les vecteurs de référence UNIDO
 
-**Objet.** Le moteur de SIIPI (`backend/src/wapla/moteur.ts`, mode fidèle) a été écrit à partir d'une
-**lecture** du code de WaPla (`server.r`), et ses vecteurs de référence viennent d'un port Python, pas d'une
-exécution de WaPla (`wapla-moteur-reference.md` § 8). W0 confirme ces vecteurs en les rejouant **dans
-l'application d'origine** (SPEC_wapla_couche_planification.md § 7 et § 8, test de sortie : « les deux jeux
-saisis dans WaPla redonnent les vecteurs »).
+**Décision du 20/10/2026.** WaPla n'est pas un service externe : les méthodes de calcul de l'outil UNIDO ont
+été extraites et réimplémentées dans SIIPI (`backend/src/wapla/moteur.ts`, couche `wapla.*`). W0 vérifie que
+ce moteur produit **les mêmes résultats que l'outil d'origine** sur des vecteurs de référence. Il n'y a rien à
+lancer ni à connecter : ni application WaPla, ni URL locale. W0 ne dépend pas des normales climatiques : un
+vecteur porte ses propres entrées, climat compris.
 
-**Ce que les manuels ne donnent pas.** Les deux manuels de l'UNIDO (versions 1 et 2) ne publient aucun
-résultat chiffré pour un jeu d'entrées connu : leurs résultats sont des captures d'écran. La confirmation
-passe donc par le rejeu.
+**Où en sont les vecteurs.** Les valeurs de l'annexe (`wapla-moteur-reference.md` § 8) viennent d'un port
+Python écrit à partir d'une **lecture** de `server.r`, pas d'une exécution de l'outil. Les deux manuels de
+l'UNIDO (versions 1 et 2) ne publient aucun résultat chiffré pour un jeu d'entrées connu, et l'archive de
+l'outil ne contient aucun projet d'exemple enregistré. Les vecteurs de référence restent donc à fournir.
 
-## 1. Lancer l'outil
+## 1. Ce qu'il faut pour le rejeu
 
-- Archive : `UNDIO_WaPla_Tool.zip` (UNIDO), dossier `Version 2/WaPla_2_20220826_1500.zip`.
-- Décompresser `WaPla_2`, puis lancer **`WaPla_msw.exe`** (l'application « MSW », déchets municipaux ; pas
-  `WaPla_pop.exe`). L'application est une application R Shiny : elle s'ouvre **dans le navigateur**, sur une
-  adresse locale (`http://127.0.0.1:<port>`).
-- Au premier lancement, le lanceur installe les paquets R manquants depuis le CRAN (`app/config.cfg`) : il
-  faut une connexion à Internet.
-- Le rejeu peut se faire dans ce navigateur, à la main, ou dans le navigateur intégré de Claude Code, sur la
-  même adresse locale.
+Un **vecteur** est un jeu d'entrées complet et les sorties que l'outil UNIDO d'origine a calculées pour lui.
 
-## 2. Jeu A — les valeurs par défaut
+### 1.1 Provenance (une ligne par vecteur)
 
-**Aucune entrée à modifier.** Les valeurs par défaut de WaPla 2 sont celles du moteur (`DEFAUTS_WAPLA`) :
+| Champ | Exemple |
+|---|---|
+| `vecteur` | identifiant court (`V1`, `trinidad`…) |
+| `source` | document UNIDO ou TU Wien (titre, page), ou exécution de l'outil (version et build, par exemple « WaPla 2, build 20220826 »), et par qui |
+| `date` | date du calcul ou de la publication |
+| `precision` | `exacte` (valeurs non arrondies) ou `affichee` (valeurs telles que l'outil les montre, avec leur arrondi) |
+
+### 1.2 Entrées
+
+Toutes les entrées du calcul, sous leur nom dans l'outil (`ui.r`) : `waste_in`, les trois procédés optionnels
+(centre de tri, compostage, incinération : actif ou non), `tc_*`, `pop_*`, `ghg_*`, `APY`, `ATY` et, si des
+coûts sont donnés en sortie, `cost_*`. Une entrée absente est lue comme **la valeur par défaut de l'outil** —
+la version de l'outil doit alors être dite, car les valeurs par défaut en dépendent.
+
+Fichier `W0_vecteurs_entrees.csv` (séparateur `;`) : `vecteur;cle;valeur`.
+
+### 1.3 Sorties à comparer
+
+| Tableau | Lignes | Unité |
+|---|---|---|
+| Flux de masse | code du flux (`W1`, `D1`, `LS1`…) | t/an |
+| Gaz à effet de serre | par procédé (collecte, décharge, dépotoir, brûlage, feux, recyclage, compostage, incinération) et total | t CO₂-éq/an |
+| uPOPs | par procédé et milieu (air, sol ou résidus, eau, produits) | mg TEQ/an |
+| Coûts (s'ils sont donnés) | par procédé et total | devise/an |
+
+Fichier `W0_vecteurs_sorties.csv` (séparateur `;`) : `vecteur;tableau;ligne;valeur;unite`. Une sortie que le
+vecteur ne donne pas n'est pas comparée ; une sortie donnée et nulle est comparée à zéro.
+
+**Formes acceptées aussi** : les tableaux téléchargés depuis l'outil (« Download table », CSV) avec le fichier
+de projet enregistré (`.RData`) qui porte les entrées ; ou un tableau d'un document de l'UNIDO, cité avec sa
+page.
+
+### 1.4 La comparaison
+
+- Le moteur tourne en **mode fidèle** (défauts de l'outil compris) sur chaque vecteur.
+- Valeurs exactes : écart relatif au plus 10⁻⁶. Valeurs affichées : le moteur est arrondi comme l'outil
+  (trois chiffres significatifs pour les flux, deux pour les GES et les uPOPs ; total des GES = somme des
+  valeurs arrondies, arrondie à nouveau, feux compris), puis comparé à l'identique.
+- Tout écart est consigné tel quel (vecteur, ligne, attendu, obtenu). Il désigne soit une lecture fautive du
+  code — le moteur fidèle et le témoin `backend/tests/wapla_attendus.py` sont alors corrigés ensemble —, soit
+  un arrondi d'affichage, qui se vérifie sur la valeur exacte. Rien n'est ajusté pour faire coïncider.
+- Les vecteurs confirmés entrent dans une campagne (`wapla-moteur`), avec leur source.
+
+## 2. Les sorties du moteur sur les vecteurs de l'annexe
+
+Ce que le moteur rend aujourd'hui, en mode fidèle, sur les deux jeux de l'annexe — arrondi comme l'outil
+l'affiche. Si un vecteur de référence porte les mêmes entrées, ses sorties se comparent directement à ces
+tableaux ; les valeurs exactes, à six décimales, sont dans `W0_valeurs_attendues.csv`.
+
+### Jeu A — les valeurs par défaut de l'outil
+
+Les valeurs par défaut de WaPla 2 (`ui.r`), reprises dans le moteur (`DEFAUTS_WAPLA`) :
 déchets produits 1 000 t/an (*Waste generated*), les trois procédés optionnels cochés, aucun déchet vers le
 centre de tri, le compostage ni l'incinération (`tc_4 = tc_5 = tc_22 = 0`), précipitations et température
-vides (pas de classe climatique), aucun coût. Appuyer sur **Calculate**.
+vides (pas de classe climatique), aucun coût. 
 
-### Flux (onglet Summary, second tableau : les flux de masse ; WaPla arrondit à trois chiffres significatifs)
+#### Flux (t/an, trois chiffres significatifs)
 
-| Ligne | Attendu (affiché) | Relevé dans WaPla |
+| Ligne | Moteur SIIPI (arrondi de l'outil) | Vecteur de référence |
 |---|---:|---:|
 | WoB | 200 | |
 | BR3 | 40 | |
@@ -69,13 +114,13 @@ vides (pas de classe climatique), aucun coût. Appuyer sur **Calculate**.
 | CU | 0 | |
 | LW | 0 | |
 
-### Gaz à effet de serre (Results → Greenhouse Gas Emissions, tableau sous le graphique ; deux chiffres significatifs, lignes nulles retirées)
+#### Gaz à effet de serre (t CO₂-éq/an, deux chiffres significatifs, lignes nulles retirées)
 
-Le total affiché par WaPla est la somme des valeurs **déjà arrondies**, arrondie à nouveau, feux compris
+Le total tel que l'outil l'affiche est la somme des valeurs **déjà arrondies**, arrondie à nouveau, feux compris
 (`wapla-moteur-reference.md` § 4.3). Le total exact, feux compris, vaut 699,3 t ; sans les feux (ce que
 calcule `TAGHG`, jamais affiché), 662,4 t.
 
-| Ligne | Attendu (affiché) | Relevé dans WaPla |
+| Ligne | Moteur SIIPI (arrondi de l'outil) | Vecteur de référence |
 |---|---:|---:|
 | Waste Collection | 2,6 | |
 | Landfill | 600 | |
@@ -85,9 +130,9 @@ calcule `TAGHG`, jamais affiché), 662,4 t.
 | Recycling | -120 | |
 | Total annual GHG emissions | 690 | |
 
-### uPOPs (Results → uPOP emissions, tableau sous le graphique ; deux chiffres significatifs, lignes nulles retirées)
+#### uPOPs (mg TEQ/an, deux chiffres significatifs, lignes nulles retirées)
 
-| Ligne | Attendu (affiché) | Relevé dans WaPla |
+| Ligne | Moteur SIIPI (arrondi de l'outil) | Vecteur de référence |
 |---|---:|---:|
 | Open Burning -> Air | 8 | |
 | Open Burning -> Land / residues | 0,2 | |
@@ -98,11 +143,11 @@ calcule `TAGHG`, jamais affiché), 662,4 t.
 | Informal Dumping -> Water | 0,01 | |
 | Informal Dumping -> Residues | 1 | |
 
-## 3. Jeu B — trois procédés, un climat, du biogaz capté
+### Jeu B — trois procédés, un climat, du biogaz capté
 
-Partir du jeu A et modifier **six entrées** :
+Le jeu A, à six entrées près :
 
-| Entrée WaPla | Où | Valeur |
+| Entrée (nom dans l'outil) | Écran de l'outil | Valeur |
 |---|---|---|
 | Average precipitation [mm/yr] (`APY`) | panneau de gauche | 350 |
 | Average temperature [C] (`ATY`) | panneau de gauche | 19 |
@@ -112,11 +157,11 @@ Partir du jeu A et modifier **six entrées** :
 | Share of landfill gas collected [%] (`ghg_19`) | Inputs → Greenhouse gas emissions → Engineered/Sanitary landfill | 30 |
 
 Classe climatique attendue : **cl_3** (10 < ATY ≤ 20, APY ≤ 400) ; part de carbone dégradable 0,5 en
-décharge, 0,525 au dépotoir. Appuyer sur **Calculate**.
+décharge, 0,525 au dépotoir. 
 
-### Flux
+#### Flux
 
-| Ligne | Attendu (affiché) | Relevé dans WaPla |
+| Ligne | Moteur SIIPI (arrondi de l'outil) | Vecteur de référence |
 |---|---:|---:|
 | WoB | 200 | |
 | BR3 | 40 | |
@@ -155,9 +200,9 @@ décharge, 0,525 au dépotoir. Appuyer sur **Calculate**.
 | CU | 0 | |
 | LW | 0 | |
 
-### Gaz à effet de serre
+#### Gaz à effet de serre
 
-| Ligne | Attendu (affiché) | Relevé dans WaPla |
+| Ligne | Moteur SIIPI (arrondi de l'outil) | Vecteur de référence |
 |---|---:|---:|
 | Waste Collection | 2,6 | |
 | Landfill | 230 | |
@@ -169,9 +214,9 @@ décharge, 0,525 au dépotoir. Appuyer sur **Calculate**.
 | Incineration | 14 | |
 | Total annual GHG emissions | 300 | |
 
-### uPOPs
+#### uPOPs
 
-| Ligne | Attendu (affiché) | Relevé dans WaPla |
+| Ligne | Moteur SIIPI (arrondi de l'outil) | Vecteur de référence |
 |---|---:|---:|
 | Open Burning -> Air | 8 | |
 | Open Burning -> Land / residues | 0,2 | |
@@ -185,34 +230,11 @@ décharge, 0,525 au dépotoir. Appuyer sur **Calculate**.
 | Incineration -> Residues | 4,1 | |
 | Composting -> Products | 0,17 | |
 
-## 4. Ce que dit le résultat
+## 3. Le climat (hors W0)
 
-- **Toutes les valeurs concordent** : les vecteurs sont confirmés par une exécution de WaPla. On l'écrit
-  dans `wapla-moteur-reference.md` § 8 (« confirmé dans WaPla 2, build 20220826, le … »), et W0 est clos
-  pour sa partie vecteurs.
-- **Une valeur diffère** : l'écart est consigné tel quel (ligne, attendu, relevé). Il désigne soit une
-  lecture fautive du code — le moteur fidèle et le témoin `backend/tests/wapla_attendus.py` sont alors
-  corrigés ensemble, avec un nouveau jeu de vecteurs —, soit une différence d'arrondi d'affichage, qui se
-  vérifie sur la valeur exacte (colonne `attendu_exact` de `W0_valeurs_attendues.csv`). Rien n'est ajusté
-  pour faire coïncider.
-- Les valeurs exactes, à six décimales, sont dans `W0_valeurs_attendues.csv` ; la colonne `releve_wapla` y
-  reçoit les relevés.
-
-## 5. Les normales climatiques de l'INM
-
-La couche WaPla lit, pour chaque gouvernorat, deux grandeurs (`wapla.facteurs_reference`, migration 074) :
-
-| Code | Grandeur WaPla | Unité | Bornes acceptées par la base |
-|---|---|---|---|
-| `precipitations_annuelles_mm` | APY, précipitations annuelles moyennes | mm/an | 0 à 3 000 |
-| `temperature_moyenne_c` | ATY, température moyenne annuelle | °C | −10 à 40 |
-
-Aujourd'hui la table est **vide** : l'amorce d'un bilan dit, pour chaque commune, « la FNCT n'a pas encore
-saisi les normales climatiques du gouvernorat ». Le gabarit `W0_normales_inm.csv` liste les 24 gouvernorats
-du référentiel ; pour chacun : les deux valeurs, la station de l'INM retenue, la période des normales
-(par exemple 1991-2020) et la source citée. Une valeur sans source n'entre pas : la base la refuse.
-
-**À surveiller.** La classe climatique de WaPla a un trou : ATY > 20 °C avec APY = 400 mm exactement ne
-correspond à aucune classe, et l'outil d'origine plante (`wapla-moteur-reference.md` § 4.2, défaut 6). Le
-mode corrigé de SIIPI ferme la borne ; une normale qui tomberait exactement sur 400 mm dans un gouvernorat
-chaud se signale à la saisie.
+Le moteur n'attend que deux grandeurs climatiques : les précipitations annuelles (`APY`, mm) et la température
+moyenne annuelle (`ATY`, °C). Dans SIIPI, elles viennent de la référence par gouvernorat, saisie par la FNCT à
+partir des normales INM 1981-2010 (open data, licence OTL), que la commune peut surcharger (décision du
+20/10/2026, `DECISIONS_2026-10-16.md`, amendement). La classe climatique de l'outil en découle ; elle a un trou
+(ATY > 20 °C avec APY = 400 mm exactement, l'outil d'origine plante, `wapla-moteur-reference.md` § 4.2,
+défaut 6) que le mode corrigé ferme.
