@@ -30,7 +30,17 @@ export type Fiabilite = {
   comptees_par_defaut: string[];
   part_par_defaut: number;
   seuil: number;
+  /** Précipitations et température présentes (normale du gouvernorat ou saisie de la commune). */
+  climat_renseigne: boolean;
 };
+
+/**
+ * Le climat règle la part de carbone dégradable du méthane : sans lui, le moteur
+ * calcule sans classe climatique. Un bilan sans climat n'est donc jamais
+ * « étayé », même sous le seuil des valeurs par défaut — au mieux « indicatif »,
+ * et il le dit (DECISIONS_2026-10-16.md, amendement du 20/10/2026).
+ */
+const CLES_CLIMAT = ['APY', 'ATY'] as const;
 
 /** Le procédé optionnel dont une clé de destination est la part. */
 const PROCEDE_DE: Record<string, 'compostage' | 'mrf' | 'incineration'> = { tc_4: 'compostage', tc_5: 'mrf', tc_22: 'incineration' };
@@ -50,12 +60,13 @@ export function fiabilite(entrees: Map<string, EntreeBilan>, roles: RoleEntree[]
   const cles_par_defaut = cles.filter((r) => entrees.get(r.cle)?.provenance === 'defaut_wapla').map((r) => r.cle);
   const comptees_par_defaut = comptees.filter((r) => parDefaut(entrees.get(r.cle))).map((r) => r.cle);
   const part = comptees.length ? comptees_par_defaut.length / comptees.length : 0;
+  const climat_renseigne = CLES_CLIMAT.every((c) => typeof entrees.get(c)?.valeur === 'number');
 
   const niveau: NiveauFiabilite | null = cles_manquantes.length
     ? null
     : cles_par_defaut.length
       ? 'illustratif'
-      : part >= seuil
+      : part >= seuil || !climat_renseigne
         ? 'indicatif'
         : 'etaye';
   return {
@@ -66,5 +77,6 @@ export function fiabilite(entrees: Map<string, EntreeBilan>, roles: RoleEntree[]
     comptees_par_defaut,
     part_par_defaut: part,
     seuil,
+    climat_renseigne,
   };
 }
