@@ -25,3 +25,8 @@
 *.jpg   binary
 *.gz    binary
 *.zip   binary
+
+# Les feuilles NOAA des normales climatiques sont contrôlées par leur empreinte
+# SHA-256 (backend/seed/data/manifest.csv) : un octet changé, et le chargement
+# les refuse. Aucune conversion de fin de ligne, ni au dépôt ni à l'extraction.
+backend/seed/data/noaa_1991_2020/*.csv  -text

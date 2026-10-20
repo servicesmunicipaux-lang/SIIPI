@@ -93,6 +93,14 @@ if errorlevel 1 (
 ) else (
   echo       3 exemples de communication, en brouillon.
 )
+echo. >> %LOG%
+echo --- seed:normales-climat --- >> %LOG%
+!DC! run --rm api npm run seed:normales-climat >> %LOG% 2>&1
+if errorlevel 1 (
+  echo   Les normales climatiques n'ont pas pu etre chargees. La suite continue. Voir migration.txt
+) else (
+  echo       Normales climatiques NOAA 1991-2020 : 24 gouvernorats.
+)
 
 echo [4/7] Redemarrage de l'API...
 echo. >> %LOG%

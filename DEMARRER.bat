@@ -156,12 +156,15 @@ echo       Territoires importes.
 REM --- 8. La commune pilote --------------------------------------------------
 REM
 REM  L'ordre est celui d'une installation reelle, et celui dans lequel les
-REM  campagnes de tests sont ecrites (CLAUDE.md, par. 7) : sans ces quatre
+REM  campagnes de tests sont ecrites (CLAUDE.md, par. 7) : sans ces cinq
 REM  chargements, TESTS.bat echouerait sur une installation pourtant saine.
+REM  Le dernier n'est pas la commune pilote : ce sont les normales climatiques
+REM  NOAA 1991-2020 des 24 gouvernorats (WaPla), relues a chaque passage sans
+REM  rien changer.
 REM  Un echec ici n'empeche pas la plateforme de tourner : on le signale a la
 REM  fin au lieu de tout arreter.
 echo [8/9] Chargement de la commune pilote Dar Chaabane El Fehri...
-for %%s in (seed:dar-chaabane seed:parc seed:personnel seed:communication) do (
+for %%s in (seed:dar-chaabane seed:parc seed:personnel seed:communication seed:normales-climat) do (
   echo. >> %LOG%
   echo --- [8] %%s --- >> %LOG%
   !DC! run --rm api npm run %%s >> %LOG% 2>&1

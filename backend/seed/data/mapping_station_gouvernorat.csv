@@ -1,0 +1,25 @@
+gouvernorat;wmo;station;methode_rattachement;distance_km;label
+Ariana;60715;TUNIS_CARTHAGE;plus_proche_voisin;16.5;estimee
+Béja;60723;BEJA;station_unique;;stationnaire
+Ben Arous;60715;TUNIS_CARTHAGE;plus_proche_voisin;22.3;estimee
+Bizerte;60714;BIZERTE;station_unique;;stationnaire
+Gabès;60765;GABES;station_unique;;stationnaire
+Gafsa;60745;GAFSA;station_unique;;stationnaire
+Jendouba;60725;JENDOUBA;station_unique;;stationnaire
+Kairouan;60735;KAIROUAN;station_unique;;stationnaire
+Kasserine;60739;KASSERINE;station_unique;;stationnaire
+Kébili;60764;KEBILI;station_unique;;stationnaire
+Le Kef;60732;LE_KEF;station_unique;;stationnaire
+Mahdia;60742;MAHDIA;station_unique;;stationnaire
+Manouba;60715;TUNIS_CARTHAGE;plus_proche_voisin;33.2;estimee
+Médenine;60770;MEDNINE;station_unique;;stationnaire
+Monastir;60740;MONASTIR;station_unique;;stationnaire
+Nabeul;60728;NABEUL;station_unique;;stationnaire
+Sfax;60750;SFAX;station_unique;;stationnaire
+Sidi Bouzid;60748;SIDI_BOU_ZID;station_unique;;stationnaire
+Siliana;60734;SILIANA;station_unique;;stationnaire
+Sousse;60740;MONASTIR;plus_proche_voisin;42.1;estimee
+Tataouine;60772;TATAOUINE;station_unique;;stationnaire
+Tozeur;60760;TOZEUR;station_unique;;stationnaire
+Tunis;60715;TUNIS_CARTHAGE;station_unique;;stationnaire
+Zaghouan;60729;ZAGHOUAN_MOGRAN;station_unique;;stationnaire
