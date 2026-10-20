@@ -1,0 +1,73 @@
+"Word Meteorological Organization Climate Normals for 1991-2020",,,,,,,,,,,,,,,,
+"Single Station Data Sheet For Oll Climatological Surface Parameters",,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+"Station Header Record",,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+"Country name",TUNISIA,,,,,,,,,,,,,,,
+Station_Name,REMADA,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+WMO_Number,Latitude,Longitude,Station_Height,,,,,,,,,,,,,
+60775,32|19|N,10|24|E,300,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+"Principal Climatological Surface Parameters",,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+Parameter_Code,Parameter_Name,Units,,,,,,,,,,,,,,
+1,Precipitation_Total,mm,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+WMO_Number,Parameter_Code,Calculation_Name,Calculation_Code,January,February,March,April,May,June,July,August,September,October,November,December,Annual
+60775, 1,Sum    , 4,    8.2,   10.6,   12.9,    6.8,    5.6,    1.0,    0.0,    2.0,    8.7,   13.3,    8.9,   11.4,   89.4
+60775,1,NOY,98,30,30,30,30,30,30,30,30,30,30,30,30,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+Parameter_Code,Parameter_Name,Units,,,,,,,,,,,,,,
+2,Number_of_Days_with_Precipitation_>=_1_mm,count,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+WMO_Number,Parameter_Code,Calculation_Name,Calculation_Code,January,February,March,April,May,June,July,August,September,October,November,December,Annual
+60775, 2,Count  , 5,    1.6,    1.5,    2.0,    1.1,    0.8,    0.2,    0.0,    0.4,    1.4,    1.5,    1.4,    1.8,   13.7
+60775,2,NOY,98,30,30,30,30,30,30,30,30,30,30,30,30,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+Parameter_Code,Parameter_Name,Units,,,,,,,,,,,,,,
+3,Daily_Maximum_Temperature,Deg_C,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+WMO_Number,Parameter_Code,Calculation_Name,Calculation_Code,January,February,March,April,May,June,July,August,September,October,November,December,Annual
+60775, 3,Mean   , 1,   16.8,   18.6,   22.6,   26.9,   31.4,   35.4,   37.8,   37.7,   34.4,   29.5,   22.9,   17.8,   27.6
+60775,3,NOY,98,30,30,30,30,29,30,30,30,30,30,29,29,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+Parameter_Code,Parameter_Name,Units,,,,,,,,,,,,,,
+4,Daily_Minimum_Temperature,Deg_C,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+WMO_Number,Parameter_Code,Calculation_Name,Calculation_Code,January,February,March,April,May,June,July,August,September,October,November,December,Annual
+60775, 4,Mean   , 1,    7.2,    7.9,   11.0,   13.9,   17.4,   20.8,   23.0,   23.6,   22.0,   18.3,   12.8,    8.5,   15.5
+60775,4,NOY,98,30,30,30,30,30,30,30,30,30,29,29,30,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+Parameter_Code,Parameter_Name,Units,,,,,,,,,,,,,,
+5,Daily_Mean_Temperature,Deg_C,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+WMO_Number,Parameter_Code,Calculation_Name,Calculation_Code,January,February,March,April,May,June,July,August,September,October,November,December,Annual
+60775, 5,Mean   , 1,   12.0,   13.2,   16.8,   20.4,   24.4,   28.1,   30.4,   30.7,   28.2,   23.9,   17.8,   13.2,   21.6
+60775,5,NOY,98,30,30,30,30,29,30,30,30,30,29,29,29,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+Parameter_Code,Parameter_Name,Units,,,,,,,,,,,,,,
+6,Mean_Sea_Level_Pressure,hpa,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+WMO_Number,Parameter_Code,Calculation_Name,Calculation_Code,January,February,March,April,May,June,July,August,September,October,November,December,Annual
+60775, 6,Mean   , 1, 1017.7, 1016.1, 1013.3, 1010.2, 1010.2, 1010.5, 1010.5, 1010.3, 1011.3, 1013.2, 1014.5, 1016.4, 1012.9
+60775,6,NOY,98,30,30,30,30,30,30,30,30,30,30,30,30,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+Parameter_Code,Parameter_Name,Units,,,,,,,,,,,,,,
+7,Mean_Vapor_Pressure,hpa,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+WMO_Number,Parameter_Code,Calculation_Name,Calculation_Code,January,February,March,April,May,June,July,August,September,October,November,December,Annual
+60775, 7,Mean   , 1,    7.2,    6.7,    7.6,    8.4,   10.1,   12.2,   13.7,   15.2,   15.5,   12.8,    9.4,    7.7,   10.5
+60775,7,NOY,98,30,30,30,30,30,30,30,30,30,29,29,30,

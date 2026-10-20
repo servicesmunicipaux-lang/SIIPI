@@ -5,6 +5,28 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.60] — 2026-10-20 — WaPla : les normales climatiques réelles des 24 gouvernorats
+
+### Ajouté
+- **Les 27 feuilles NOAA des normales OMM 1991-2020** de la Tunisie, telles que publiées par l'archive NCEI
+  (accession 0253808), dans `backend/seed/data/noaa_1991_2020/`. `.gitattributes` les garde octet pour octet : une
+  conversion de fin de ligne à l'extraction changerait leur empreinte.
+- **`backend/seed/data/manifest.csv`** : pour chaque feuille, son empreinte SHA-256, son adresse dans l'archive NCEI
+  (les 27 noms publiés correspondent nom pour nom), sa date de téléchargement, sa source, son WMO et sa station, lus
+  dans l'en-tête de la feuille.
+- **`backend/seed/data/mapping_station_gouvernorat.csv`** : les 24 gouvernorats, selon la règle décidée. 20 ont leur
+  station (normale stationnaire) ; 4 reçoivent celle de la station la plus proche (normale estimée) : Ariana
+  (16,5 km), Ben Arous (22,3 km) et Manouba (33,2 km) depuis Tunis-Carthage, Sousse (42,1 km) depuis Monastir. Ces
+  distances sont celles que le chargement calcule ; il les revérifie à 1 km près.
+
+### Modifié
+- **`seed:normales-climat` entre dans l'ordre de chargement de référence**, après `seed:communication`
+  (`DEMARRER.bat`, `MIGRER.bat`, CLAUDE.md § 7). Rejoué, il ne change rien.
+- **Campagne `normales-climat`** : une section sur les normales réelles. Un témoin indépendant, en Python, relit les 27
+  feuilles, la correspondance et les limites en base, et recalcule chaque valeur, chaque label, chaque station et
+  chaque distance ; le jeu réel, à blanc, trouve ses 48 valeurs déjà en vigueur. Un mutant qui fausse d'un degré la
+  température de Gafsa fait échouer 2 contrôles.
+
 ## [0.15.59] — 2026-10-20 — WaPla : les normales OMM 1991-2020 de la NOAA, stationnaires ou estimées
 
 Décision du 20/10/2026, complétée : la source des normales climatiques devient les normales OMM 1991-2020 publiées

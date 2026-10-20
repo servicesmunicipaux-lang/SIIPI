@@ -27,7 +27,13 @@
 # normale estimée de son gouvernorat, avec sa provenance ; la surcharge de la
 # commune l'emporte ; un bilan sans climat n'est jamais « étayé ».
 #
-# Les feuilles sont FICTIVES, au format NOAA, bâties sur la liste des
+# Elle vérifie d'abord les normales RÉELLES, chargées dans l'ordre de référence
+# (npm run seed:normales-climat) : un témoin indépendant, en Python, relit les
+# 27 feuilles NOAA, la correspondance et les limites en base, et recalcule
+# chaque valeur, chaque label et chaque distance ; il ne lit jamais le code du
+# chargement.
+#
+# Les feuilles des contrôles suivants sont FICTIVES, au format NOAA, bâties sur la liste des
 # gouvernorats de la base ; la règle de rattachement, elle, est celle qui a été
 # décidée. Date d'effet : le 1er janvier de l'année en cours. La table
 # nationale est gardée avant le premier geste et rendue ligne pour ligne en
@@ -210,6 +216,54 @@ change = dict(feuilles); change[tunis] = ('TUNIS_CARTHAGE', '60715', feuille('TU
 PYEOF
 
 echo
+echo "0. Les normales réelles (NOAA 1991-2020), chargées dans l'ordre de référence"
+REELLES="date_effet = '2021-01-01' AND retire_le IS NULL AND source LIKE 'INM/OMM-NOAA, normales 1991-2020,%'"
+[ "$(sql "SELECT count(*) FROM wapla.facteurs_reference WHERE $REELLES")" != 0 ] \
+  || { echo "Normales réelles absentes : lancer d'abord npm run seed:normales-climat (ordre de chargement de référence)." >&2; exit 1; }
+# Le témoin : les feuilles, la correspondance et les centres des gouvernorats, relus sans le code testé.
+python3 - "$T" seed/data <<'PYEOF' > "$T/reelles_attendues.txt"
+import csv, io, math, os, sys
+d, data = sys.argv[1], sys.argv[2]
+centres = {l.split(';')[0]: (float(l.split(';')[1]), float(l.split(';')[2]))
+           for l in open(f'{d}/centres.txt', encoding='utf-8').read().splitlines() if l.strip()}
+feuilles = {}
+for nom in os.listdir(f'{data}/noaa_1991_2020'):
+    lignes = list(csv.reader(io.StringIO(open(f'{data}/noaa_1991_2020/{nom}', encoding='utf-8').read())))
+    station = next(l[1].strip() for l in lignes if l and l[0] == 'Station_Name')
+    i = next(k for k, l in enumerate(lignes) if l[:2] == ['WMO_Number', 'Latitude'])
+    lat, lon = [(-1 if c.split('|')[2] in 'SW' else 1) * (int(c.split('|')[0]) + int(c.split('|')[1]) / 60) for c in lignes[i + 1][1:3]]
+    valeurs = {}
+    for k, l in enumerate(lignes[:-1]):
+        if l[:2] == ['WMO_Number', 'Parameter_Code']:
+            v = [x.strip() for x in lignes[k + 1]]
+            valeurs[(v[1], v[2])] = v[l.index('Annual')]
+    feuilles[station] = (float(valeurs[('1', 'Sum')]), float(valeurs[('5', 'Mean')]), lat, lon)
+for l in csv.DictReader(open(f'{data}/mapping_station_gouvernorat.csv', encoding='utf-8'), delimiter=';'):
+    apy, aty, lat, lon = feuilles[l['station']]
+    dist = ''
+    if l['methode_rattachement'] == 'plus_proche_voisin':
+        la1, lo1 = centres[l['gouvernorat']]
+        a = math.sin(math.radians(lat - la1) / 2) ** 2 + math.cos(math.radians(la1)) * math.cos(math.radians(lat)) * math.sin(math.radians(lon - lo1) / 2) ** 2
+        dist = f'{round(2 * 6371 * math.asin(math.sqrt(a)), 1):g}'
+    print(f"{l['gouvernorat']}|{apy:g}|{aty:g}|{l['label']}|{l['station']}|{dist}")
+PYEOF
+$PSQL -c "SELECT p.gouvernorat || '|' || trim_scale(p.valeur) || '|' || trim_scale(t.valeur) || '|' || p.label || '|' || array_to_string(p.stations_utilisees, ',')
+                 || '|' || COALESCE(trim_scale(p.distance_km)::text, '')
+            FROM wapla.facteurs_reference p
+            JOIN wapla.facteurs_reference t ON t.gouvernorat = p.gouvernorat AND t.code = 'temperature_moyenne_c'
+                                           AND t.date_effet = '2021-01-01' AND t.retire_le IS NULL
+           WHERE p.code = 'precipitations_annuelles_mm' AND p.date_effet = '2021-01-01' AND p.retire_le IS NULL
+             AND p.source LIKE 'INM/OMM-NOAA, normales 1991-2020,%'
+           ORDER BY p.gouvernorat" > "$T/reelles_chargees.txt" 2>/dev/null
+chk "chaque gouvernorat du référentiel a ses deux normales réelles" "$((2 * NB_GOUV))" "$(sql "SELECT count(*) FROM wapla.facteurs_reference WHERE $REELLES")"
+chk "valeurs, labels, stations et distances : ceux que le témoin recalcule depuis les feuilles ($NB_GOUV lignes)" \
+    "$(sort "$T/reelles_attendues.txt" | md5sum | cut -c1-32)" "$(sort "$T/reelles_chargees.txt" | md5sum | cut -c1-32)"
+chk "quatre normales estimées : Ariana, Ben Arous, Manouba depuis Tunis-Carthage, Sousse depuis Monastir" \
+    "Ariana:TUNIS_CARTHAGE|Ben Arous:TUNIS_CARTHAGE|Manouba:TUNIS_CARTHAGE|Sousse:MONASTIR" \
+    "$($PSQL -c "SELECT string_agg(gouvernorat || ':' || array_to_string(stations_utilisees, ','), '|' ORDER BY gouvernorat)
+                  FROM wapla.facteurs_reference WHERE code = 'precipitations_annuelles_mm' AND $REELLES AND label = 'estimee'" 2>/dev/null)"
+
+echo
 echo "1. Le chargement refuse, et n'écrit rien"
 AVANT=$(lignes_normales)
 refuse() {  # $1 = libellé, $2 = jeu, $3 = ce que le message doit dire
@@ -245,8 +299,10 @@ chk "une liste de stations vide : refusé" 1 "$(refus_sql "'1991-2020', 'station
 
 echo
 echo "3. Le chargement : chaque gouvernorat, sa provenance"
-chk "à blanc (--essai) : la date d'effet suit la période — 1er janvier 2021 —, et rien n'est écrit" "0|1|$AVANT" \
-    "$(charger ok --essai)|$(grep -c "ESSAI, rien n'est écrit — période 1991-2020, date d'effet 2021-01-01" "$T/charge.txt")|$(lignes_normales)"
+# Le jeu réel, à blanc et sans date d'effet : la date suit la période, et tout est déjà en vigueur.
+chk "à blanc (--essai), sur le jeu réel : la date d'effet suit la période — 1er janvier 2021 —, rien n'est écrit, tout est déjà en vigueur" \
+    "0|1|$AVANT" \
+    "$(npx tsx seed/normalesClimat.ts --essai > "$T/charge.txt" 2>&1; echo $?)|$(grep -c "ESSAI, rien n'est écrit — période 1991-2020, date d'effet 2021-01-01, 27 feuille(s), $NB_GOUV gouvernorats : 0 valeur(s) à ajouter, $((2 * NB_GOUV)) déjà en vigueur" "$T/charge.txt")|$(lignes_normales)"
 chk "le jeu fictif se charge" 0 "$(charger ok --date-effet "$DATE_FICTIVE")"
 chk "deux valeurs par gouvernorat du référentiel ($NB_GOUV)" "$((AVANT + 2 * NB_GOUV))" "$(lignes_normales)"
 chk "chaque ligne a sa période, sa méthode, ses stations et un label cohérent" 0 \
