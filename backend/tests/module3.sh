@@ -9,6 +9,15 @@
 # exactement comme celui qui repart demain, et les treize engins immobilisés
 # de Dar Chaabane disparaissaient du décompte.
 #
+# ELLE TRAVAILLE SUR UNE COPIE DE DAR CHAABANE. Jusqu'à la v0.15.56, elle
+# écrivait ses lignes d'essai dans la commune même, avec un directeur
+# temporaire, puis les effaçait : rien ne restait dans les tables, mais le
+# journal d'audit gardait les écritures d'un directeur de la commune, et Dar
+# Chaabane paraissait « active » au tableau national. Le jeu réel est copié
+# dans une commune de test (tests/outils/copie_dar_chaabane.sh) ; Dar Chaabane
+# n'est que lue, et la campagne prouve, pendant qu'elle a ses lignes en base
+# puis en partant, qu'elle n'y a rien écrit, pas même au journal d'audit.
+#
 #   docker compose run --rm api npm run test:module3
 # =============================================================================
 
@@ -30,12 +39,18 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-COMMUNE=$(sql "SELECT id FROM communes WHERE name ILIKE '%Chaâbane%' OR name ILIKE '%Chaabane%' OR id LIKE '%dar_chaabane%' ORDER BY length(name) LIMIT 1")
+# Le jeu réel de Dar Chaabane, copié dans une commune de test : la campagne
+# éprouve la copie, Dar Chaabane n'est que lue.
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+. "$(dirname "$0")/outils/copie_dar_chaabane.sh"
+releve_base_reelle
+copie_dar_chaabane test_copie_dc_module3
 if [ -z "$COMMUNE" ]; then
   echo "Dar Chaabane absente. Lancer : npm run seed && npm run seed:dar-chaabane && npm run seed:parc" >&2
   exit 1
 fi
-if [ "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE 'dcef-%'")" = "0" ]; then
+if [ "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE '%-dcef-%'")" = "0" ]; then
   echo "Parc non chargé. Lancer : npm run seed:parc" >&2
   exit 1
 fi
@@ -47,6 +62,7 @@ fi
 . "$(dirname "$0")/outils/directeur_temporaire.sh"
 directeur_temporaire "$COMMUNE"
 trap 'retirer_directeur_temporaire; retirer_comptes_temporaires' EXIT
+effacer_copie_en_sortie
 T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
 [ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 # Un prestataire temporaire, rattaché à la commune éprouvée le temps de la
@@ -62,22 +78,22 @@ nettoyer
 echo
 echo "1. L'inventaire réel est chargé tel qu'il est écrit"
 chk "vingt-neuf engins recensés" 29 \
-    "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE 'dcef-%'")"
+    "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE '%-dcef-%'")"
 chk "seize en service" 16 \
-    "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE 'dcef-%' AND etat='en_service'")"
+    "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE '%-dcef-%' AND etat='en_service'")"
 chk "dix en panne" 10 \
-    "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE 'dcef-%' AND etat='en_panne'")"
+    "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE '%-dcef-%' AND etat='en_panne'")"
 # « معطب للتفويت » n'est pas « معطب » : le premier reviendra, le second non.
 chk "trois à réformer, distingués des simples pannes" 3 \
-    "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE 'dcef-%' AND etat='a_reformer'")"
+    "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE '%-dcef-%' AND etat='a_reformer'")"
 chk "le plus ancien tracteur date de 1994" "1994-06-28" \
-    "$(sql "SELECT min(date_premiere_circulation) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE 'dcef-%'")"
+    "$(sql "SELECT min(date_premiere_circulation) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE '%-dcef-%'")"
 chk "la date d'inventaire est conservée" "2024-04-19" \
-    "$(sql "SELECT DISTINCT inventaire_le FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE 'dcef-%'")"
+    "$(sql "SELECT DISTINCT inventaire_le FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE '%-dcef-%'")"
 # Le fichier est un instantané : il ne dit jamais depuis quand un engin est en
 # panne. L'inventer fabriquerait le chiffre le plus sensible du module.
 chk "l'ancienneté des pannes n'est PAS inventée" 0 \
-    "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE 'dcef-%' AND etat_depuis IS NOT NULL")"
+    "$(sql "SELECT count(*) FROM vehicules WHERE commune_id='$COMMUNE' AND id LIKE '%-dcef-%' AND etat_depuis IS NOT NULL")"
 
 echo
 echo "2. L'état du parc, en un appel"
@@ -140,11 +156,12 @@ code -X PATCH "$API/trucks/$MUTABLE" -H "Authorization: Bearer $T_DIR" -H 'Conte
 chk "une date fournie n'est pas écrasée" "2024-04-19" "$(val "['etat_depuis']" | cut -c1-10)"
 
 echo "6. L'attelage : une remorque ne roule pas seule"
-chk "la remorque du camion est attelée" "02 216 543" \
+# Dans la copie de Dar Chaabane, les immatriculations portent le préfixe « TEST ».
+chk "la remorque du camion est attelée" "TEST 02 216 543" \
     "$(code "$API/trucks?communeId=$COMMUNE" -H "Authorization: Bearer $T_DIR" >/dev/null; python3 -c "
 import json
 d = json.load(open('/tmp/siipi_m3.json'))
-v = next((x for x in d if x['registration'] == '02 216 542'), None)
+v = next((x for x in d if x['registration'] == 'TEST 02 216 542'), None)
 print(v['attele_a_immat'] if v else 'introuvable')" 2>/dev/null)"
 # Les six autres remorques restent libres : le fichier ne dit pas à quel
 # tracteur elles vont, et le supposer serait inventer l'organisation.
@@ -232,15 +249,16 @@ d = json.load(open('/tmp/siipi_m3.json'))
 print('t' if any('02-220610' in x['constat'] for x in d) else 'f')" 2>/dev/null)"
 
 # La comparaison ignore la ponctuation : « 02-214147 », « 02 214 147 » et
-# « 02214147 » désignent le même engin, et trois services les écrivent de trois
+# « 02214147 » désignent le même engin (dans la copie, « TEST 02-214147 » et
+# « TEST02214147 »), et trois services les écrivent de trois
 # façons. Sans cela, le contrôle crierait au loup sur chaque circuit.
-$PSQL -c "UPDATE circuits SET vehicule_immat='02214147' WHERE id='$CIRCUIT';" >/dev/null 2>&1
+$PSQL -c "UPDATE circuits SET vehicule_immat='TEST02214147' WHERE id='$CIRCUIT';" >/dev/null 2>&1
 code "$API/communes/$COMMUNE/coherence" -H "Authorization: Bearer $T_DIR" >/dev/null
 chk "une immatriculation écrite autrement est reconnue" "f" \
     "$(python3 -c "
 import json
 d = json.load(open('/tmp/siipi_m3.json'))
-print('t' if any('02214147' in x['constat'] for x in d) else 'f')" 2>/dev/null)"
+print('t' if any('TEST02214147' in x['constat'] for x in d) else 'f')" 2>/dev/null)"
 $PSQL -c "UPDATE circuits SET vehicule_immat=NULL WHERE id='$CIRCUIT';" >/dev/null 2>&1
 
 # Un engin créé pour l'occasion, immobilisé et sans motif : on ne touche pas à
@@ -272,6 +290,12 @@ fi
 # été modifiée. Seuls les engins « TEST-M3… » disparaissent.
 nettoyer
 $PSQL -c "UPDATE circuits SET vehicule_id=NULL, vehicule_immat=NULL WHERE commune_id='$COMMUNE' AND code='LEVEE-1';" >/dev/null 2>&1
+
+echo
+echo "Dar Chaabane n'est que lue : la campagne travaille sur sa copie"
+base_reelle_intacte "pendant la campagne"
+dar_chaabane_intacte "pendant la campagne"
+sortir_de_la_copie
 
 echo
 if [ "$fail" -eq 0 ]; then

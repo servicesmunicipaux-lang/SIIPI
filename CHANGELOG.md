@@ -5,6 +5,24 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.57] — 2026-10-20 — JC-015 : module2 à module6 éprouvent une copie de Dar Chaabane
+
+### Corrigé
+- **JC-015 : Dar Chaabane paraissait « active » au tableau national.** Après la v0.15.55, elle était la seule
+  commune réelle à porter des écritures de directeur au journal d'audit : celles de `module2` à `module6`, qui
+  écrivaient leurs lignes d'essai dans la commune, puis les effaçaient. Aucune ligne réelle n'était modifiée,
+  mais le journal, en ajout seul, gardait chaque écriture. Les cinq campagnes éprouvent désormais une copie du
+  jeu réel, dans une commune de test ; Dar Chaabane n'est que lue.
+
+### Ajouté
+- `tests/outils/copie_dar_chaabane.sh` : la copie du jeu de Dar Chaabane dans une commune de test, en une
+  transaction, lignes retirées comprises (fiche, engins, agents, circuits et équipes, effectifs, publications et
+  questions), avec des identifiants neufs et des liens qui suivent. L'identifiant d'un engin est préfixé par la
+  commune de test, son immatriculation par « TEST ». `dar_chaabane_intacte` contrôle que le journal d'audit de la
+  commune ne reçoit aucune ligne. Un mutant de `module5` remis à écrire dans Dar Chaabane passe l'empreinte des
+  tables et échoue sur ce contrôle.
+- Le contrôle des communes réelles (`tests/outils/base_reelle.sh`) dans les cinq campagnes.
+
 ## [0.15.56] — 2026-10-19 — JC-013 : les tables nationales rendues ligne entière, dates comprises
 
 ### Corrigé

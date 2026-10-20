@@ -11,6 +11,15 @@
 # rien de tout cela ne doit pouvoir entrer, ni par une colonne, ni par une
 # route, ni par un contrat d'API (loi organique n° 2004-63).
 #
+# ELLE TRAVAILLE SUR UNE COPIE DE DAR CHAABANE. Jusqu'à la v0.15.56, elle
+# écrivait ses lignes d'essai dans la commune même, avec un directeur
+# temporaire, puis les effaçait : rien ne restait dans les tables, mais le
+# journal d'audit gardait les écritures d'un directeur de la commune, et Dar
+# Chaabane paraissait « active » au tableau national. Le jeu réel est copié
+# dans une commune de test (tests/outils/copie_dar_chaabane.sh) ; Dar Chaabane
+# n'est que lue, et la campagne prouve, pendant qu'elle a ses lignes en base
+# puis en partant, qu'elle n'y a rien écrit, pas même au journal d'audit.
+#
 #   docker compose run --rm api npm run test:module4
 # =============================================================================
 
@@ -34,7 +43,13 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-COMMUNE=$(sql "SELECT id FROM communes WHERE name ILIKE '%Chaâbane%' OR name ILIKE '%Chaabane%' OR id LIKE '%dar_chaabane%' OR id LIKE '%dar-chaabane%' ORDER BY length(name) LIMIT 1")
+# Le jeu réel de Dar Chaabane, copié dans une commune de test : la campagne
+# éprouve la copie, Dar Chaabane n'est que lue.
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+. "$(dirname "$0")/outils/copie_dar_chaabane.sh"
+releve_base_reelle
+copie_dar_chaabane test_copie_dc_module4
 if [ -z "$COMMUNE" ]; then
   echo "Dar Chaabane absente. Lancer : npm run seed && npm run seed:dar-chaabane" >&2
   exit 1
@@ -51,6 +66,7 @@ fi
 . "$(dirname "$0")/outils/directeur_temporaire.sh"
 directeur_temporaire "$COMMUNE"
 trap retirer_directeur_temporaire EXIT
+effacer_copie_en_sortie
 T_DIR=$(tok "$DIR_EMAIL" "$DIR_MDP")
 [ -n "$T_DIR" ] || { echo "API injoignable sur $API" >&2; exit 1; }
 
@@ -352,6 +368,12 @@ interdits={'salaire','remuneration','cin','telephone','adresse','prime','indemni
 print(len(interdits & set(a)))" 2>/dev/null || echo erreur)"
 
 nettoyer
+echo
+echo "Dar Chaabane n'est que lue : la campagne travaille sur sa copie"
+base_reelle_intacte "pendant la campagne"
+dar_chaabane_intacte "pendant la campagne"
+sortir_de_la_copie
+
 echo
 echo "----------------------------------------------------------------"
 printf '  %s réussis, %s échecs\n' "$pass" "$fail"
