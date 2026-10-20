@@ -12,6 +12,15 @@
 #      module en rend le nombre. La différence entre les deux est celle entre
 #      un outil de ciblage et un fichier de destinataires.
 #
+# ELLE TRAVAILLE SUR UNE COPIE DE DAR CHAABANE. Jusqu'à la v0.15.56, elle
+# écrivait ses lignes d'essai dans la commune même, avec un directeur
+# temporaire, puis les effaçait : rien ne restait dans les tables, mais le
+# journal d'audit gardait les écritures d'un directeur de la commune, et Dar
+# Chaabane paraissait « active » au tableau national. Le jeu réel est copié
+# dans une commune de test (tests/outils/copie_dar_chaabane.sh) ; Dar Chaabane
+# n'est que lue, et la campagne prouve, pendant qu'elle a ses lignes en base
+# puis en partant, qu'elle n'y a rien écrit, pas même au journal d'audit.
+#
 #   docker compose run --rm api npm run test:module5
 # =============================================================================
 
@@ -37,7 +46,13 @@ chk() {
   else printf '  \033[31m✗\033[0m %s  (attendu %s, obtenu %s)\n' "$1" "$2" "$3"; fail=$((fail+1)); fi
 }
 
-COMMUNE=$(sql "SELECT id FROM communes WHERE name ILIKE '%Chaâbane%' OR name ILIKE '%Chaabane%' OR id LIKE '%dar_chaabane%' ORDER BY length(name) LIMIT 1")
+# Le jeu réel de Dar Chaabane, copié dans une commune de test : la campagne
+# éprouve la copie, Dar Chaabane n'est que lue.
+. "$(dirname "$0")/outils/communes_essai.sh"
+. "$(dirname "$0")/outils/base_reelle.sh"
+. "$(dirname "$0")/outils/copie_dar_chaabane.sh"
+releve_base_reelle
+copie_dar_chaabane test_copie_dc_module5
 [ -n "$COMMUNE" ] || { echo "Dar Chaabane absente. Lancer : npm run seed && npm run seed:dar-chaabane" >&2; exit 1; }
 
 # Un directeur de la commune pour la durée de la campagne, effacé en partant
@@ -73,6 +88,7 @@ nettoyer() {
 }
 fin() { nettoyer; retirer_directeur_temporaire; }
 trap fin EXIT
+effacer_copie_en_sortie
 nettoyer
 $PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES ('$AUTRE', 'TEST autre commune M5', 'TEST', 'TEST', 1000);" >/dev/null
 ZONE_AUTRE=$(sql "INSERT INTO zones_collecte (commune_id, name, geom)
@@ -258,6 +274,12 @@ chk "un citoyen ne lit pas la table des publications (base)" 0 \
     "$(sql "BEGIN; SET LOCAL ROLE siipi_app; SET LOCAL app.role='citoyen'; SELECT count(*) FROM publications; ROLLBACK;" | tail -1)"
 
 nettoyer
+echo
+echo "Dar Chaabane n'est que lue : la campagne travaille sur sa copie"
+base_reelle_intacte "pendant la campagne"
+dar_chaabane_intacte "pendant la campagne"
+sortir_de_la_copie
+
 echo
 echo "----------------------------------------------------------------"
 printf '  %s réussis, %s échecs\n' "$pass" "$fail"
