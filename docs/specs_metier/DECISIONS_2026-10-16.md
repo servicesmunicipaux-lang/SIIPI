@@ -28,8 +28,7 @@ Ce registre consigne les décisions prises pour débloquer les lots en attente. 
 Ces points restent en attente d'une action extérieure. Ils ne sont pas tranchés :
 
 - Une commune disponible pour la recette terrain (R1 Dar Chaâbane, R2 M'hamdia).
-- Les vecteurs de référence de l'outil UNIDO original (entrées et sorties documentées), pour valider le moteur WaPla réimplémenté (W0).
-- Le fichier des normales climatiques INM 1981-2010 par gouvernorat, depuis data.gov.tn (open data, licence OTL), pour le lot d'import des normales (voir l'amendement du 20/10/2026).
+- Les 27 feuilles NOAA des normales OMM 1991-2020, leur manifeste (empreintes SHA-256) et la correspondance station → gouvernorat (24 lignes), pour le chargement des normales (voir l'amendement du 20/10/2026, complété).
 - Les articles 13 et 14 du décret et la date de départ de la période transitoire (jalons 18.2 et 18.3).
 - La documentation des API GPS (lot 17.4) et la matrice des densités (lot 17.2).
 
@@ -58,3 +57,21 @@ chaque commune. Elle est **annulée** : imposer une saisie météo à 350 commun
 
 Le code climat (message de l'amorce, API `/wapla/facteurs-reference`) reste tel quel jusqu'au lot d'import des
 normales.
+
+**Complément du même jour — la source des normales.** Les normales INM 1981-2010 sont remplacées par les
+**normales OMM 1991-2020 publiées par la NOAA** pour 27 stations tunisiennes : gratuites, standard OMM actuel, une
+seule période ; aucun fichier INM n'est déposé. Une feuille par station (« Single Station Data Sheet ») ; on n'en
+lit que les précipitations annuelles (paramètre 1, somme) et la température moyenne annuelle (paramètre 5,
+moyenne). Le gouvernorat qui a sa station reçoit une normale **stationnaire** ; le gouvernorat sans station, celle
+de la station la plus proche, **estimée**, avec la distance — Ariana, Ben Arous et Manouba depuis Tunis-Carthage,
+Sousse depuis Monastir. Chaque normale porte sa période, sa méthode de rattachement, ses stations, sa distance et
+son label, dans `wapla.facteurs_reference` (une seule source par donnée : pas de table nouvelle). Les feuilles sont
+contrôlées par leur empreinte SHA-256 contre un manifeste. La date d'effet est paramétrable ; par défaut, le
+1er janvier qui suit la période (2021).
+
+**Complément du même jour — W0 acté.** **W0 acté le 20/10/2026 : validation par lecture croisée**, pas un rejeu contre une exécution de l'outil UNIDO. Le moteur a été écrit d'après une lecture de `server.r` ; un second port, en Python et indépendant du code de l'application (`backend/tests/wapla_attendus.py`), a été écrit d'après la même lecture ; les deux concordent sur 213 jeux (campagne `wapla-moteur`). C'est moins fort qu'un rejeu contre exécution, et c'est assumé : aucun vecteur officiel n'existe en accès libre (ni dans l'archive de l'outil, ni dans ses manuels, ni sur les pages de TU Wien), et aucune démarche n'est engagée pour en obtenir. Le jour où des vecteurs officiels apparaissent, ils entrent dans la campagne `wapla-moteur` et W0 repasse en « validé contre exécution ». Pas de lettre, pas d'attente externe.
+
+**Complément du même jour — la distance d'une normale estimée.** Elle est la distance haversine réelle entre la
+station et le centre géométrique du gouvernorat (centroïde des limites de ses communes), calculée par le
+chargement ; jamais une valeur fictive ni recopiée. Sur les feuilles réelles : Ariana 16,5 km, Ben Arous 22,3 km
+et Manouba 33,2 km de Tunis-Carthage ; Sousse 42,1 km de Monastir.

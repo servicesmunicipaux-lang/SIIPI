@@ -288,7 +288,7 @@ export function LigneEntree({
   defautPossible = true,
 }: {
   def: EntreePlanification;
-  entree: Pick<EntreeBilanWapla, 'valeur' | 'source'> & { provenance: string } | undefined;
+  entree: Pick<EntreeBilanWapla, 'valeur' | 'source'> & { provenance: string; detail?: unknown } | undefined;
   ligne: LigneBilanWapla | undefined;
   manque: string | null;
   cle_a_traiter: boolean;
@@ -298,7 +298,7 @@ export function LigneEntree({
   /** Un scénario ne garde pas « la valeur UNIDO » exprès : il part du statu quo. */
   defautPossible?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const valeurActuelle = entree ? entree.valeur : ligne?.valeur ?? null;
   const provenance = entree ? entree.provenance : (ligne?.provenance ?? 'non_renseigne');
   const [saisie, setSaisie] = useState('');
@@ -322,6 +322,21 @@ export function LigneEntree({
   // garder exprès. Un coût n'en a pas.
   const peutGarderDefaut = defautPossible && !entree && ligne?.provenance === 'defaut_wapla';
 
+  // La normale climatique dit d'où elle vient : de la station du gouvernorat
+  // (stationnaire), ou d'une station voisine (estimée), et à quelle distance.
+  const d = (entree?.provenance === 'reference_tunisienne' ? entree.detail : null) as null | {
+    label?: string | null; gouvernorat?: string; gouvernorat_ar?: string | null; stations_utilisees?: string[] | null;
+    distance_km?: number | null; periode?: string | null;
+  };
+  const gouvernorat = i18n.language === 'ar' && d?.gouvernorat_ar ? d.gouvernorat_ar : d?.gouvernorat;
+  const station = (d?.stations_utilisees ?? []).map((s) => s.replace(/_/g, ' ')).join(', ');
+  const normale =
+    d?.label === 'estimee'
+      ? t('wapla.bilan.normaleEstimee', { gouvernorat, station, distance: formaterNombre(Number(d.distance_km), 1), periode: d.periode })
+      : d?.label === 'stationnaire'
+        ? t('wapla.bilan.normaleStationnaire', { station, periode: d.periode })
+        : null;
+
   return (
     <div className={`flex flex-wrap items-start justify-between gap-3 rounded-lg p-2 ${cle_a_traiter ? 'bg-amber-50 ring-1 ring-amber-300' : ''}`}>
       <div className="min-w-0 flex-1 space-y-1">
@@ -330,6 +345,7 @@ export function LigneEntree({
           <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${COULEURS_PROVENANCE[provenance] ?? ''}`}>{t(`wapla.provenances.${provenance}`)}</span>
         </p>
         <p className="chiffres text-sm text-ardoise-800">{sans_objet ? t('wapla.bilan.sansObjet') : affiche(valeurActuelle)}</p>
+        {normale && <p className="text-xs font-medium text-ardoise-700">{normale}</p>}
         {entree?.source && <p className="text-xs text-ardoise-500">{entree.source}</p>}
         {!entree && manque && <p className="text-xs text-ardoise-500">{t('wapla.bilan.siipiNeTientPas', { manque })}</p>}
       </div>

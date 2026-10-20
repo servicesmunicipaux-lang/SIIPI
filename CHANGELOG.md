@@ -5,6 +5,53 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.59] — 2026-10-20 — WaPla : les normales OMM 1991-2020 de la NOAA, stationnaires ou estimées
+
+Décision du 20/10/2026, complétée : la source des normales climatiques devient les normales OMM 1991-2020 publiées
+par la NOAA pour 27 stations tunisiennes. Aucun fichier INM n'est déposé ; `seed:normales-inm` (v0.15.58) est
+retiré, jamais utilisé.
+
+### Ajouté
+- **Migration 082** : `wapla.facteurs_reference` porte la provenance de chaque normale — `periode`,
+  `methode_rattachement` (`station_unique` ou `plus_proche_voisin`), `stations_utilisees`, `distance_km`, `label`
+  (`stationnaire` ou `estimee`). Pas de table nouvelle. La base refuse une provenance à moitié dite, un label
+  incohérent avec la méthode, un plus proche voisin sans distance, une liste de stations vide. L'amorce transmet
+  ces informations, et le nom arabe du gouvernorat, dans le détail de l'entrée.
+- **`npm run seed:normales-climat`** (`backend/seed/normalesClimat.ts`) : lit les feuilles NOAA « Single Station
+  Data Sheet » — précipitations annuelles (paramètre 1, somme) et température moyenne annuelle (paramètre 5,
+  moyenne) ; les autres paramètres sont ignorés. Il contrôle chaque feuille contre `manifest.csv` (empreinte
+  SHA-256, WMO, station) et la correspondance station → gouvernorat (`mapping_station_gouvernorat.csv`). L'ensemble
+  est refusé, sans rien écrire, pour une feuille modifiée ou hors manifeste, un WMO qui ne correspond pas, un bloc
+  ou une valeur annuelle absents, deux périodes mêlées, un gouvernorat absent, inconnu ou en double, une station
+  sans feuille, une méthode et un label incohérents, une distance saisie qui ne concorde pas. La date d'effet
+  par défaut suit la période (1er janvier 2021 pour 1991-2020) ; `--date-effet` la change ; `--essai` valide
+  sans écrire.
+  - **La distance d'une normale estimée est calculée**, jamais recopiée : distance haversine (6 371 km) entre la
+    station, dont les coordonnées sont dans l'en-tête de sa feuille, et le centre géométrique du gouvernorat
+    (centroïde des limites de ses communes). La colonne `distance_km` de la correspondance peut rester vide ;
+    remplie, elle doit concorder à 1 km près.
+  - Essayé à blanc sur les 27 feuilles réelles : toutes lues, 48 valeurs pour 24 gouvernorats ; Ariana 16,5 km,
+    Ben Arous 22,3 km et Manouba 33,2 km de Tunis-Carthage, Sousse 42,1 km de Monastir.
+- **Écran du bilan** (FR, AR) : sous l'entrée climat, « Normale estimée pour le gouvernorat de X, dérivée de la
+  station Y (distance Z km), période 1991-2020, source INM/OMM-NOAA », ou « Normale stationnaire, station Y,
+  période 1991-2020, source INM/OMM-NOAA ».
+- `GET /wapla/facteurs-reference` rend la provenance de chaque normale.
+
+### Modifié
+- **Campagne `normales-climat`**, réécrite sur des feuilles NOAA fictives au format réel (49 contrôles) : 14 refus
+  du chargement, 4 refus de la base, la provenance de chaque ligne, Ariana, Ben Arous et Manouba estimées depuis
+  Tunis-Carthage, Sousse depuis Monastir, les autres stationnaires, la distance haversine recalculée par un
+  témoin indépendant, la date d'effet suivant la période, la provenance transmise au bilan. Un mutant qui fait
+  d'Ariana une normale stationnaire fait échouer 3 contrôles.
+- **W0 acté en validation par lecture croisée** (spec, décisions, feuille de route) : le moteur et le port Python
+  indépendant concordent sur 213 jeux ; ce n'est pas un rejeu contre une exécution de l'outil UNIDO, et c'est
+  assumé. Des vecteurs officiels, s'ils apparaissent, entreront dans `wapla-moteur`.
+
+### Reste
+- Les 27 feuilles dans `backend/seed/data/noaa_1991_2020/`, `backend/seed/data/manifest.csv` et
+  `backend/seed/data/mapping_station_gouvernorat.csv`, à déposer ; `seed:normales-climat` entrera alors dans
+  l'ordre de chargement de référence.
+
 ## [0.15.58] — 2026-10-20 — WaPla : les normales climatiques par gouvernorat
 
 Décision du 20/10/2026 (`DECISIONS_2026-10-16.md`, amendement) : le climat de WaPla est une référence par

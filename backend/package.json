@@ -1,6 +1,6 @@
 {
   "name": "siipi-backend",
-  "version": "0.15.58",
+  "version": "0.15.59",
   "private": true,
   "type": "module",
   "description": "API REST SIIPI - Système d'Information Intelligent pour la Propreté Intercommunale (FNCT / ANGeD)",
@@ -16,7 +16,7 @@
     "seed:communication": "tsx seed/communicationDarChaabane.ts",
     "seed:djerba": "tsx seed/djerba.ts",
     "seed:jumeau": "tsx seed/jumeau.ts",
-    "seed:normales-inm": "tsx seed/normalesInm.ts",
+    "seed:normales-climat": "tsx seed/normalesClimat.ts",
     "import:boundaries": "tsx seed/importBoundaries.ts",
     "lint": "tsc --noEmit",
     "wapla:calculer": "tsx src/wapla/calculer.ts",
