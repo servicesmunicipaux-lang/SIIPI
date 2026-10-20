@@ -79,7 +79,7 @@ Aucune méthode de SIIPI ne change :
 | `siipi_mesure` | Lue dans un registre SIIPI tenu sur l'exercice (table et période enregistrées) | badge « mesuré (SIIPI) » |
 | `siipi_declare` | Lue dans une donnée déclarée de SIIPI (fiche, étude de coût du bureau d'études) | badge « déclaré » |
 | `saisie_commune` | Saisie dans la couche par la commune | badge « saisi » |
-| `reference_tunisienne` | Valeur de `wapla.facteurs_reference` à source tunisienne datée | badge « référence nationale » + source. *Mécanisme présent depuis W2a (climat par gouvernorat, saisi par la FNCT), non alimenté : depuis le 20/10/2026, le climat est saisi par la commune (`saisie_commune`)* |
+| `reference_tunisienne` | Valeur de `wapla.facteurs_reference` à source tunisienne datée | badge « référence nationale » + source |
 | `defaut_wapla` | Valeur par défaut de l'outil UNIDO (calibrée pour l'Afrique australe) | badge orange « valeur par défaut UNIDO, à remplacer » |
 
 **La règle des valeurs par défaut.** Le manuel le dit lui-même : ces valeurs sont des *placeholders*. Un bilan reçoit donc un **niveau de fiabilité** :
@@ -107,7 +107,7 @@ Le seuil de 30 % est un réglage de la FNCT, pas une constante du code.
 | Coût annuel de collecte (statu quo) | Résultat du coût complet SIIPI (`valeurs_cout_complet`) quand il existe pour l'exercice | `siipi_declare` ou `siipi_mesure`, selon sa source | Lu tel quel. WaPla **ne recalcule pas** le coût de l'existant (§ 5) |
 | Coût d'exploitation de la décharge | Redevance ANGeD en vigueur (`valeurs_parametres_nationaux`, 17.3) × tonnage mis en décharge | `siipi_declare` (« provisoire » tant que le barème manque) | Le caractère « provisoire » se propage au résultat |
 | Composition (biodéchets, papier-carton, plastiques) | `app.caracterisation_retenue(commune, date)` : étude ANGeD de la commune, puis PCGD, puis autre étude, puis moyenne nationale ANGeD (voir `SPEC_refonte_indicateurs_saisie.md`, § 2.3) | `siipi_declare`, avec le niveau de source | Une composition issue de la **moyenne nationale** compte comme une entrée non propre à la commune pour le niveau de fiabilité. Défaut UNIDO seulement si SIIPI n'a aucune caractérisation, même nationale |
-| Climat (précipitations, température moyennes) | Aucune | `saisie_commune` : la commune saisit, dans son bilan, ses précipitations annuelles (mm) et sa température moyenne (°C), à partir de sa météo locale | **Tranché le 20/10/2026** : ni fichier national de l'INM, ni flux externe, ni dépendance à l'INM pour la mise en production. Le climat règle la part de carbone dégradable du méthane ; tant qu'il n'est pas saisi, l'entrée reste vide (pas de classe climatique) et compte comme non étayée |
+| Climat (précipitations, température moyennes) | Aucune | `reference_tunisienne` par gouvernorat ; `saisie_commune` en surcharge, facultative | **Tranché le 20/10/2026.** Maille : le gouvernorat (24 lignes), maille officielle de l'INM. Source : normales INM 1981-2010 par gouvernorat (open data, licence OTL : data.gov.tn, catalogue-data.transport.tn) ; pas de 1991-2020 tant qu'elles ne sont pas publiées en open data, pas d'achat à l'INM. Saisie : la FNCT, par `/wapla/facteurs-reference` ; les normales sont chargées en base une fois, puis versionnées par leur date d'effet — un autre historique s'ajoute sans changer les bilans existants. Ni fichier national importable côté commune, ni dépendance à une API externe à l'exécution. La commune peut saisir sa météo locale en surcharge, sans obligation. Le climat règle la part de carbone dégradable du méthane : un bilan **étayé** a un climat renseigné ; un bilan indicatif peut ne pas en avoir, et le dit |
 | Gestion de la décharge (MCF), captage du biogaz | Aucune | `saisie_commune` (FNCT pour les sites ANGeD) | Une décharge contrôlée ANGeD n'est pas une décharge « bien gérée » par défaut : c'est un choix déclaré et daté |
 | Investissements des scénarios (montant, durée, taux) | Aucune | `saisie_commune` | Propres à chaque scénario (§ 5) |
 
@@ -231,7 +231,7 @@ Chaque décision a une valeur par défaut. Sans réponse, la valeur par défaut 
 | Seuil de valeurs par défaut pour « étayé » | 30 % des 17 entrées comptées (`wapla.reglages`, réglable par la FNCT depuis le lot W2b) | FNCT |
 | Diffusion des uPOPs | Commune + FNCT ; export public seulement après validation de la FNCT | FNCT |
 | Source de la composition des déchets | Tranché : caractérisation tenue dans SIIPI, personnalisable par la commune, moyenne nationale ANGeD en repli | — |
-| Climat | **Tranché le 20/10/2026** : saisi par chaque commune (météo locale), dans son bilan ; pas de fichier national de l'INM | Nacer |
+| Climat | **Tranché le 20/10/2026** : référence par gouvernorat, saisie par la FNCT à partir des normales INM 1981-2010 (open data, licence OTL) ; surcharge communale facultative. *(La saisie par chaque commune, décidée le même jour, est annulée : un fardeau pour 350 communes, quand 24 gouvernorats suffisent.)* | Nacer |
 | Classe de gestion des décharges contrôlées ANGeD | Déclarée site par site, datée, par la FNCT | FNCT / ANGeD |
 | Réutilisation du code et de la méthode | **Tranché le 13/10/2026** : accord de l'UNIDO ; méthode citée, code réécrit (`backend/src/wapla/`) | FNCT |
 | Place dans la feuille de route | Jalon 15, W0 dès maintenant | Nacer |

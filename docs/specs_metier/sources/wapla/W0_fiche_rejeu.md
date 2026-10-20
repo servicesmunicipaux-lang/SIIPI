@@ -3,8 +3,8 @@
 **Décision du 20/10/2026.** WaPla n'est pas un service externe : les méthodes de calcul de l'outil UNIDO ont
 été extraites et réimplémentées dans SIIPI (`backend/src/wapla/moteur.ts`, couche `wapla.*`). W0 vérifie que
 ce moteur produit **les mêmes résultats que l'outil d'origine** sur des vecteurs de référence. Il n'y a rien à
-lancer ni à connecter : ni application WaPla, ni URL locale, ni fichier national de l'INM. Le climat, comme
-les flux, les coûts et les scénarios, est saisi par chaque commune dans son bilan.
+lancer ni à connecter : ni application WaPla, ni URL locale. W0 ne dépend pas des normales climatiques : un
+vecteur porte ses propres entrées, climat compris.
 
 **Où en sont les vecteurs.** Les valeurs de l'annexe (`wapla-moteur-reference.md` § 8) viennent d'un port
 Python écrit à partir d'une **lecture** de `server.r`, pas d'une exécution de l'outil. Les deux manuels de
@@ -230,9 +230,11 @@ décharge, 0,525 au dépotoir.
 | Incineration -> Residues | 4,1 | |
 | Composting -> Products | 0,17 | |
 
-## 3. Le climat
+## 3. Le climat (hors W0)
 
-Chaque commune saisit, dans son bilan, ses précipitations annuelles (`APY`, mm) et sa température moyenne
-(`ATY`, °C), à partir de sa météo locale (provenance `saisie_commune`). Il n'y a pas de fichier national de
-l'INM. La classe climatique de l'outil en découle ; elle a un trou (ATY > 20 °C avec APY = 400 mm exactement,
-l'outil d'origine plante, `wapla-moteur-reference.md` § 4.2, défaut 6) que le mode corrigé ferme.
+Le moteur n'attend que deux grandeurs climatiques : les précipitations annuelles (`APY`, mm) et la température
+moyenne annuelle (`ATY`, °C). Dans SIIPI, elles viennent de la référence par gouvernorat, saisie par la FNCT à
+partir des normales INM 1981-2010 (open data, licence OTL), que la commune peut surcharger (décision du
+20/10/2026, `DECISIONS_2026-10-16.md`, amendement). La classe climatique de l'outil en découle ; elle a un trou
+(ATY > 20 °C avec APY = 400 mm exactement, l'outil d'origine plante, `wapla-moteur-reference.md` § 4.2,
+défaut 6) que le mode corrigé ferme.

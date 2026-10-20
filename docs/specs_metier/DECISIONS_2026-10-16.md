@@ -28,6 +28,33 @@ Ce registre consigne les décisions prises pour débloquer les lots en attente. 
 Ces points restent en attente d'une action extérieure. Ils ne sont pas tranchés :
 
 - Une commune disponible pour la recette terrain (R1 Dar Chaâbane, R2 M'hamdia).
-- Les vecteurs de référence de l'outil UNIDO original (entrées et sorties documentées), pour valider le moteur WaPla réimplémenté (W0). *(Le 20/10/2026, les normales de l'INM sont retirées de cette liste : il n'y a pas de fichier national, chaque commune saisit son climat dans son bilan.)*
+- Les vecteurs de référence de l'outil UNIDO original (entrées et sorties documentées), pour valider le moteur WaPla réimplémenté (W0).
+- Le fichier des normales climatiques INM 1981-2010 par gouvernorat, depuis data.gov.tn (open data, licence OTL), pour le lot d'import des normales (voir l'amendement du 20/10/2026).
 - Les articles 13 et 14 du décret et la date de départ de la période transitoire (jalons 18.2 et 18.3).
 - La documentation des API GPS (lot 17.4) et la matrice des densités (lot 17.2).
+
+---
+
+## Amendement du 20 octobre 2026 — WaPla : W0 et le climat
+
+**W0.** WaPla n'est pas un service externe : ses méthodes de calcul sont réimplémentées dans SIIPI
+(`backend/src/wapla/moteur.ts`, couche `wapla.*`). W0 devient la **validation du moteur WaPla réimplémenté contre
+les vecteurs de référence UNIDO, sans dépendance externe**. Écartés : une application WaPla à lancer, une URL
+locale, un service externe à connecter.
+
+**Climat — décision annulée le jour même.** Une première décision du 20/10/2026 confiait la saisie du climat à
+chaque commune. Elle est **annulée** : imposer une saisie météo à 350 communes est un fardeau opérationnel, quand
+24 gouvernorats suffisent et sont la maille officielle de l'INM. Est acté :
+
+- **maille** : le gouvernorat (24 lignes) ;
+- **source** : les normales climatiques INM 1981-2010, publiées en open data sous licence OTL (Open Tunisian
+  License) sur data.gov.tn et catalogue-data.transport.tn ; aucun achat à l'INM ; pas de 1991-2020 tant qu'elles
+  ne sont pas publiées en open data ;
+- **saisie** : la FNCT, par `/wapla/facteurs-reference` ; les normales sont chargées en base une fois, puis
+  versionnées par leur date d'effet ;
+- **ni** fichier national importable côté commune, **ni** dépendance à une API externe à l'exécution ;
+- la commune **peut** saisir sa météo locale en surcharge ; ce n'est pas obligatoire ;
+- un bilan **étayé** a un climat renseigné ; un bilan indicatif peut ne pas en avoir, affiché comme tel.
+
+Le code climat (message de l'amorce, API `/wapla/facteurs-reference`) reste tel quel jusqu'au lot d'import des
+normales.
