@@ -110,7 +110,11 @@ export function BilanWapla({ id, fnct, onRetour }: { id: string; fnct: boolean; 
     const e = entree(proc);
     return e ? e.valeur === true : ligne(proc)?.valeur === 1;
   };
-  const fiab = bilan.fiabilite as null | { part_par_defaut: number; seuil: number; cles_par_defaut: string[]; comptees_par_defaut: string[]; comptees: number };
+  // climat_renseigne est absent d'un bilan calculé avant la v0.15.58 : il n'est alors pas affirmé.
+  const fiab = bilan.fiabilite as null | {
+    part_par_defaut: number; seuil: number; cles_par_defaut: string[]; comptees_par_defaut: string[]; comptees: number;
+    climat_renseigne?: boolean;
+  };
   const techniques = lignes.filter((l) => l.rubrique === 'entree' && !CLES_PLANIFICATION.has(l.cle));
 
   return (
@@ -133,6 +137,7 @@ export function BilanWapla({ id, fnct, onRetour }: { id: string; fnct: boolean; 
                 })}
               </p>
             )}
+            {fiab?.climat_renseigne === false && <p className="mt-1 text-xs font-medium">{t('wapla.bilan.climatManquant')}</p>}
             <p className="mt-1 text-xs">{t('wapla.bilan.version', { version: bilan.version_moteur })}</p>
           </div>
         ) : (

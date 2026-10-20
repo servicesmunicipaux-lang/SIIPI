@@ -5,6 +5,40 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.58] — 2026-10-20 — WaPla : les normales climatiques par gouvernorat
+
+Décision du 20/10/2026 (`DECISIONS_2026-10-16.md`, amendement) : le climat de WaPla est une référence par
+gouvernorat, saisie par la FNCT à partir des normales INM 1981-2010 (open data, licence OTL), surchargeable par la
+commune sans obligation.
+
+### Ajouté
+- **`npm run seed:normales-inm`** (`backend/seed/normalesInm.ts`) : charge les normales dans
+  `wapla.facteurs_reference`, la table de la migration 074 (aucune nouvelle table : elle porte déjà le gouvernorat,
+  la valeur, la source obligatoire, la date d'effet et le retrait sans effacement). Le moteur n'attend que deux
+  grandeurs : les précipitations annuelles (mm) et la température moyenne annuelle (°C).
+  - Fichier : UTF-8, séparateur « ; », point décimal, une ligne par gouvernorat (`gouvernorat`,
+    `precipitations_annuelles_mm`, `temperature_moyenne_c`, `station`, `periode`, `source`, `licence`).
+  - Le fichier entier est refusé, sans rien écrire, s'il ne couvre pas exactement les gouvernorats du référentiel
+    (lus en base, aucun nom dans le code), s'il en porte un en double, une valeur vide, illisible, à virgule
+    décimale ou hors des bornes, une source, une station, une période ou une licence vide.
+  - Rejoué, il ne change rien. Il refuse de réécrire une normale en vigueur : on la retire d'abord, avec son motif.
+  - Date d'effet par défaut : le 1er janvier 2011 pour les normales 1981-2010 ; un autre jeu s'ajoute sous une
+    autre date, sans changer les bilans déjà ouverts.
+- **Campagne `normales-climat`** : les refus du chargement, la couverture des gouvernorats, un bilan qui reçoit les
+  normales de son gouvernorat, la surcharge de la commune qui l'emporte, un bilan sans climat jamais étayé. Sur des
+  normales fictives ; la table nationale est rendue ligne pour ligne en partant.
+
+### Modifié
+- **Un bilan sans climat n'est jamais « étayé »** (`backend/src/wapla/fiabilite.ts`) : au mieux « indicatif », même
+  sous le seuil des valeurs par défaut, et le bandeau du bilan le dit (FR et AR). Il n'entre donc pas dans les
+  agrégats de la FNCT. Un mutant privé de la règle laisse passer un bilan sans climat en « étayé » et dans les
+  agrégats : la campagne échoue.
+
+### Reste
+- Le fichier officiel des normales 1981-2010 (data.gov.tn), à déposer dans
+  `backend/seed/data/normales_inm_1981_2010.csv` ; `seed:normales-inm` entrera alors dans l'ordre de chargement de
+  référence.
+
 ## [0.15.57] — 2026-10-20 — JC-015 : module2 à module6 éprouvent une copie de Dar Chaabane
 
 ### Corrigé
