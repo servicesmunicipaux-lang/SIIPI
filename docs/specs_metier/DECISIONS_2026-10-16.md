@@ -28,6 +28,6 @@ Ce registre consigne les décisions prises pour débloquer les lots en attente. 
 Ces points restent en attente d'une action extérieure. Ils ne sont pas tranchés :
 
 - Une commune disponible pour la recette terrain (R1 Dar Chaâbane, R2 M'hamdia).
-- Les normales climatiques de l'INM et le document original UNIDO, pour rejouer les vecteurs de WaPla (W0).
+- Les vecteurs de référence de l'outil UNIDO original (entrées et sorties documentées), pour valider le moteur WaPla réimplémenté (W0). *(Le 20/10/2026, les normales de l'INM sont retirées de cette liste : il n'y a pas de fichier national, chaque commune saisit son climat dans son bilan.)*
 - Les articles 13 et 14 du décret et la date de départ de la période transitoire (jalons 18.2 et 18.3).
 - La documentation des API GPS (lot 17.4) et la matrice des densités (lot 17.2).
