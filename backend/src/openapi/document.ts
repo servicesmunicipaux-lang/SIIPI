@@ -74,6 +74,7 @@ import { valeurParametreSchema, retraitValeurSchema } from '../routes/parametres
 import { chargementEtudeSchema } from '../routes/coutComplet.routes.js';
 import { inscriptionActeurSchema, faitsActeurSchema, demarcheSchema } from '../routes/acteursInformels.routes.js';
 import { demandeRestaurationSchema, fichierDepotSchema } from '../routes/fichiers.routes.js';
+import { depotLogoSchema } from '../routes/logosCommunes.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
 import {
@@ -247,6 +248,7 @@ const Commune = registry.register(
       name: z.string().openapi({ example: 'La Marsa' }),
       name_ar: z.string().nullable().openapi({ example: 'المرسى' }),
       gouvernorat: z.string().openapi({ example: 'Tunis' }),
+      gouvernorat_ar: z.string().nullable().optional().openapi({ description: 'Le nom arabe du gouvernorat (GET /communes/{id} seulement).', example: 'تونس' }),
       population: z.number().int(),
       area_km2: z.number().nullable(),
       waste_tons_per_day: z.number().nullable(),
@@ -6686,6 +6688,89 @@ registry.registerPath({
   },
 });
 
+// --- Le logo d'une commune (jalon D, D1 ; migration 083) ----------------------
+const LogoDepose = registry.register(
+  'LogoCommuneDepose',
+  z.object({
+    id: z.string().uuid(),
+    communeId: z.string(),
+    fichierId: z.string().uuid(),
+    type: z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']),
+    tailleOctets: z.number().int(),
+    remplace: z.boolean().openapi({ description: 'Un logo était en vigueur : il est retiré, et reste dans l’historique.' }),
+  })
+);
+registry.registerPath({
+  method: 'post',
+  path: '/communes/{id}/logo',
+  tags: ['Communes'],
+  summary: 'Déposer ou remplacer le logo de la commune',
+  description: [
+    'La commune dépose son logo elle-même ; la FNCT, en secours, pour n’importe quelle commune. Le fichier voyage en base64, comme tout dépôt de l’API.',
+    '',
+    'Le type est reconnu par les OCTETS : PNG, JPEG, WebP, ou SVG statique (415 sinon). Un SVG qui contient un script, un gestionnaire d’événement (on…), une adresse javascript:, un objet étranger, une entité ou un lien extérieur est REFUSÉ, jamais réécrit. Les métadonnées des images sont retirées. 1 Mo au plus (413).',
+    '',
+    'Remplacer un logo retire l’ancien, qui reste dans l’historique (règle 1.4) ; dépôt et retrait passent au journal d’audit. Une commune hors du périmètre de l’appelant est introuvable (404).',
+  ].join('\n'),
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string() }),
+    body: { content: { 'application/json': { schema: depotLogoSchema } } },
+  },
+  responses: { 201: json(LogoDepose, 'Logo déposé.'), 413: json(Erreur, 'Plus de 1 Mo.'), 415: json(Erreur, 'Pas une image, ou un SVG actif.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/communes/{id}/logo/retrait',
+  tags: ['Communes'],
+  summary: 'Retirer le logo en vigueur',
+  description: 'Le logo cesse d’être en vigueur et reste dans l’historique ; le portail affiche alors l’emblème aux initiales. 404 sans logo en vigueur.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string() }) },
+  responses: { 204: { description: 'Retiré.' }, ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get',
+  path: '/communes/{id}/logo',
+  tags: ['Communes'],
+  summary: 'Le logo en vigueur',
+  description: 'Les octets, avec leur type réel, « nosniff », une politique de sécurité fermée (un SVG ne peut rien exécuter ni charger) et une empreinte en ETag. Lisible de tout compte : c’est l’identité de la commune. 404 sans logo : l’écran affiche l’emblème aux initiales.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: {
+      description: 'Le logo.',
+      content: {
+        'image/png': { schema: { type: 'string', format: 'binary' } as any },
+        'image/jpeg': { schema: { type: 'string', format: 'binary' } as any },
+        'image/webp': { schema: { type: 'string', format: 'binary' } as any },
+        'image/svg+xml': { schema: { type: 'string', format: 'binary' } as any },
+      },
+    },
+    304: { description: 'Inchangé depuis la dernière lecture (ETag).' },
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'get',
+  path: '/communes/{id}/logos',
+  tags: ['Communes'],
+  summary: 'L’historique des logos de la commune',
+  description: 'Chaque logo déposé, du plus récent au plus ancien, avec ses dates de dépôt et de retrait ; un seul est en vigueur.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string() }) },
+  responses: {
+    200: json(
+      z.array(z.object({
+        id: z.string().uuid(), fichier_id: z.string().uuid(), nom_original: z.string(), type_mime: z.string(),
+        taille_octets: z.number().int(), depose_le: z.string(), retire_le: z.string().nullable(), en_vigueur: z.boolean(),
+      })),
+      'L’historique.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
 const PassageConservation = registry.register(
   'PassageConservation',
   z.object({
@@ -7685,7 +7770,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.60',
+      version: '0.15.61',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

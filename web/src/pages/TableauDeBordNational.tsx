@@ -5,6 +5,7 @@ import { api, type LigneGouvernorat, type StatutCommune } from '../lib/api';
 import { useFormats } from '../lib/formats';
 import { formaterNombre } from '../i18n';
 import { BoutonExport } from '../composants/BoutonExport';
+import { FormulaireLogo } from '../composants/ajout/FormulaireLogo';
 import { DecoupageCommunal } from '../composants/national/DecoupageCommunal';
 import { PropositionsDecoupage } from '../composants/national/PropositionsDecoupage';
 import { SuiviDeploiement } from '../composants/national/SuiviDeploiement';
@@ -114,6 +115,7 @@ export function TableauDeBordNational() {
   // carte d'édition dans une fenêtre superposée se manipule mal, et l'on y
   // perd le fil de ce qu'on était en train de faire.
   const [communeADecouper, setCommuneADecouper] = useState<string | null>(null);
+  const [communeLogo, setCommuneLogo] = useState<string | null>(null);
   // A2.3 — « Visualiser » : les indicateurs d'une commune, en lecture et en
   // validation de sa fiche, sans ouvrir tout son portail.
   const [communeKpi, setCommuneKpi] = useState<string | null>(null);
@@ -536,7 +538,28 @@ export function TableauDeBordNational() {
                     >
                       {t('national.communes.modifierLimite')}
                     </button>
+                    {/* Le logo, en secours de la commune (jalon D, D1) : le même
+                        formulaire que sur son portail, ouvert sous la ligne. */}
+                    <button
+                      type="button"
+                      onClick={() => setCommuneLogo(communeLogo === c.commune_id ? null : c.commune_id)}
+                      aria-expanded={communeLogo === c.commune_id}
+                      className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-100"
+                    >
+                      {communeLogo === c.commune_id ? t('commun.annuler') : t('logo.annuaire')}
+                    </button>
                   </div>
+                  {communeLogo === c.commune_id && (
+                    <div className="basis-full">
+                      <FormulaireLogo
+                        communeId={c.commune_id}
+                        nom={c.name}
+                        nomAr={c.name_ar}
+                        onFait={() => undefined}
+                        onAnnuler={() => setCommuneLogo(null)}
+                      />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
