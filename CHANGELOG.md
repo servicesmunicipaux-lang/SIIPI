@@ -30,7 +30,7 @@ national ; le logo s'affiche en tête du portail de la commune.
   gouvernorat, en français et en arabe — le directeur ne voyait jusque-là nulle part le nom de sa commune.
 - **Un formulaire unique** (`composants/ajout/FormulaireLogo.tsx`) : aperçu, choix de l'image (1 Mo contrôlé avant
   l'envoi), historique, retrait ; ouvert depuis le bandeau du portail (directeur, FNCT) et depuis l'annuaire
-  national (bouton « Logo », FNCT).
+  national, dans « Modifier » (FNCT).
 - `GET /communes/{id}` rend aussi le nom arabe du gouvernorat (`gouvernorat_ar`).
 - **Campagne `logos-communes`** (45 contrôles), dans deux communes de test avec des comptes temporaires : les refus
   (sans compte, prestataire, citoyen, autre commune, PDF renommé, texte, plus de 1 Mo, huit formes de SVG actif,
@@ -40,6 +40,12 @@ national ; le logo s'affiche en tête du portail de la commune.
 
 ### Modifié
 - `PATCH /communes/{id}` n'accepte plus `logoUrl` (une adresse libre, tirée d'un autre site à chaque ouverture).
+- **L'annuaire national : un seul bouton « Modifier » par commune** (`composants/national/ModifierCommune.tsx`), qui
+  remplace « Limite » : il ouvre, à la place de l'annuaire, l'écran de la commune avec trois sections — ses
+  **contacts** (l'écran « Contacts » de son portail), ses **limites** (l'éditeur de découpage) et son **logo**. Le
+  bouton « Indicateurs » quitte la ligne : les indicateurs d'une commune se consultent dans son portail (onglet
+  « Indicateurs », le même écran, avec le mode FNCT), ou depuis l'onglet « Indicateurs & 5 axes » de l'observatoire.
+  La ligne ne garde que « Ouvrir le portail » et « Modifier ». Vérifié dans le navigateur, en français et en arabe.
 
 ### Reste (jalon D)
 - D1 : l'affichage dans l'espace citoyen, l'en-tête des documents imprimés et des exports. Puis D2 à D5.

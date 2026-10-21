@@ -81,8 +81,15 @@
       "modifier": "تعديل",
       "ouvrirPortail": "فتح البوّابة",
       "ouvrirPortailDe": "فتح البوّابة البلدية لـ{{nom}}",
-      "modifierLimite": "الحدود",
-      "indicateurs": "المؤشرات"
+      "retourAnnuaire": "العودة إلى الدليل",
+      "modifierTitre": "تعديل بلدية {{nom}}",
+      "modifierAide": "جهات الاتصال والحدود والشعار: تصحّحها الجامعة نيابةً عن البلدية عند الحاجة، والبلدية تتولاها أيضًا من بوابتها.",
+      "modifierSections": "ما يمكن للجامعة تعديله",
+      "sections": {
+        "contacts": "جهات الاتصال",
+        "limites": "الحدود",
+        "logo": "الشعار"
+      }
     },
     "statuts": {
       "active": "نشطة",
@@ -3466,7 +3473,6 @@
     "retirer": "سحب الشعار",
     "retirerConfirmer": "هل تريد سحب الشعار المعتمد؟ يبقى في السجل، وتعرض البوابة رمزًا بالأحرف الأولى.",
     "gerer": "شعار البلدية",
-    "annuaire": "الشعار",
     "portailDe": "بوابة البلدية",
     "gouvernorat": "ولاية {{nom}}",
     "alt": "شعار بلدية {{nom}}",
