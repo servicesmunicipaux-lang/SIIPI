@@ -79,12 +79,18 @@
       "ouvrirPortailDe": "Ouvrir le portail municipal de {{nom}}",
       "retourAnnuaire": "Retour à l'annuaire",
       "modifierTitre": "Modifier la commune de {{nom}}",
-      "modifierAide": "Ses contacts, ses limites et son logo : la FNCT les corrige en secours de la commune, qui les tient aussi depuis son portail.",
+      "modifierAide": "Ses coordonnées, ses contacts, ses limites et son logo : la FNCT les corrige en secours de la commune, qui les tient aussi depuis son portail.",
       "modifierSections": "Ce que la FNCT peut modifier",
       "sections": {
+        "coordonnees": "Coordonnées",
         "contacts": "Contacts",
         "limites": "Limites",
         "logo": "Logo"
+      },
+      "vues": "Annuaire ou carte des communes",
+      "vue": {
+        "annuaire": "Annuaire",
+        "carte": "Carte"
       }
     },
     "statuts": {
@@ -139,14 +145,13 @@
     },
     "onglets": {
       "synthese": "Synthèse",
-      "communes": "Annuaire des communes",
+      "communes": "Annuaire et carte",
       "performance": "Indicateurs & 5 axes",
       "deploiement": "Déploiement par gouvernorat",
       "parametres": "Paramètres nationaux",
       "demo": "Mode démo",
       "conservation": "Conservation des photos",
-      "wapla": "Bilans WaPla étayés",
-      "carte": "Carte des communes"
+      "wapla": "Bilans WaPla étayés"
     },
     "demo": {
       "titre": "Mode démo — le jumeau numérique",
@@ -376,7 +381,7 @@
     },
     "carte": {
       "titre": "Carte des communes",
-      "chapeau": "Les communes et leur contour officiel. Choisissez le fond (plan ou satellite) et affichez ou masquez les communes avec le sélecteur de la carte ; cliquez une commune pour sa fiche.",
+      "chapeau": "Les communes et leur contour officiel. Choisissez le fond (plan ou satellite) et affichez ou masquez les communes avec le sélecteur de la carte ; cliquez une commune pour ouvrir son portail.",
       "recherche": "Chercher une commune",
       "rechercheExemple": "Nom — gouvernorat",
       "gouvernorat": "Gouvernorat",
@@ -386,18 +391,7 @@
       "habitants": "{{n}} habitants ({{provenance}})",
       "sansPopulation": "population non renseignée pour {{n}}",
       "couche": "Communes",
-      "habKm2": "hab./km²",
       "source": "Contours : découpage officiel tenu dans SIIPI. Superficie calculée sur l’ellipsoïde à partir du contour. Fonds : © OpenStreetMap, © Esri.",
-      "fiche": {
-        "gouvernorat": "Gouvernorat",
-        "district": "District",
-        "type": "Type",
-        "population": "Population",
-        "superficie": "Superficie",
-        "densite": "Densité",
-        "secteurs": "Secteurs",
-        "code": "Code"
-      },
       "provenances": {
         "estime": "estimation",
         "declare": "déclaration",
@@ -3392,5 +3386,18 @@
     "gouvernorat": "Gouvernorat de {{nom}}",
     "alt": "Logo de la commune de {{nom}}",
     "emblemeAlt": "Emblème de la commune de {{nom}} (aucun logo déposé)"
+  },
+  "coordonnees": {
+    "titre": "Coordonnées de la commune",
+    "aide": "La fiche de la commune : téléphone, fax, courriel, adresse et responsable de la propreté. N'inscrivez que des numéros professionnels. Les interlocuteurs extérieurs (ANGeD, gouvernorat, prestataire…) se tiennent dans « Contacts ».",
+    "enregistrees": "Coordonnées enregistrées.",
+    "champs": {
+      "phone": "Téléphone",
+      "fax": "Fax",
+      "email": "Courriel",
+      "address": "Adresse",
+      "responsible_officer": "Responsable de la propreté (nom ou fonction)",
+      "responsible_phone": "Téléphone du responsable"
+    }
   }
 }

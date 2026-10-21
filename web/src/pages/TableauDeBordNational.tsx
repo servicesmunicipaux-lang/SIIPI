@@ -84,13 +84,14 @@ function sansAccent(texte: string): string {
 // performance, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
 // bas. Même défaut que les dix-sept onglets du portail communal — ce qu'on ne
 // voit pas, on ne sait pas que ça existe — et même remède : la barre latérale.
-type OngletNational = 'synthese' | 'communes' | 'carte' | 'performance' | 'deploiement' | 'wapla' | 'parametres' | 'conservation' | 'demo';
+type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'wapla' | 'parametres' | 'conservation' | 'demo';
 
 const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   { cle: 'synthese',    pole: 'cockpit' },
+  // Les communes : l'annuaire et la carte (lot S0 : carte du conseiller SIG) dans la
+  // même page — deux entrées de menu pour les mêmes 350 communes faisaient chercher
+  // deux fois.
   { cle: 'communes',    pole: 'terrain' },
-  // La carte des communes (lot S0 : carte du conseiller SIG) : fonds, gouvernorat, recherche, fiche.
-  { cle: 'carte',       pole: 'terrain' },
   { cle: 'performance', pole: 'pilotage' },
   { cle: 'deploiement', pole: 'pilotage' },
   // Les bilans WaPla étayés, additionnés par territoire (lot W5) : sans rang.
@@ -115,6 +116,8 @@ export function TableauDeBordNational() {
   // fenêtre superposée se manipule mal, et l'on y perd le fil de ce qu'on était
   // en train de faire.
   const [communeAModifier, setCommuneAModifier] = useState<{ id: string; section: SectionCommune } | null>(null);
+  // La page « Communes » a deux vues : l'annuaire (la liste, où l'on modifie) et la carte.
+  const [vueCommunes, setVueCommunes] = useState<'annuaire' | 'carte'>('annuaire');
   // A2.3 — « Visualiser » : les indicateurs d'une commune, en lecture et en
   // validation de sa fiche, sans ouvrir tout son portail.
   const [communeKpi, setCommuneKpi] = useState<string | null>(null);
@@ -334,7 +337,6 @@ export function TableauDeBordNational() {
       {onglet === 'demo' && <ModeDemo />}
       {onglet === 'parametres' && <ParametresNationaux />}
       {onglet === 'wapla' && <AgregatsWapla />}
-      {onglet === 'carte' && <CarteCommunes />}
       {onglet === 'conservation' && <ConservationPhotos />}
 
       {onglet === 'deploiement' && (
@@ -450,6 +452,27 @@ export function TableauDeBordNational() {
 
       {onglet === 'communes' && (
       <>
+      <div role="tablist" aria-label={t('national.communes.vues')} className="mb-4 flex flex-wrap gap-2">
+        {(['annuaire', 'carte'] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={vueCommunes === v}
+            onClick={() => setVueCommunes(v)}
+            className={`min-h-11 rounded-lg border px-4 text-sm font-medium ${
+              vueCommunes === v
+                ? 'border-siipi-600 bg-siipi-600 text-white'
+                : 'border-ardoise-300 bg-white text-ardoise-700 hover:bg-ardoise-100'
+            }`}
+          >
+            {t(`national.communes.vue.${v}`)}
+          </button>
+        ))}
+      </div>
+      {vueCommunes === 'carte' && <CarteCommunes onOuvrirPortail={ouvrirPortail} />}
+      {vueCommunes === 'annuaire' && (
+      <>
       {/* -------------------------------------------------------------------
           Recherche dans les 350 communes
           ------------------------------------------------------------------- */}
@@ -530,7 +553,7 @@ export function TableauDeBordNational() {
                         secours de la commune. */}
                     <button
                       type="button"
-                      onClick={() => setCommuneAModifier({ id: c.commune_id, section: 'contacts' })}
+                      onClick={() => setCommuneAModifier({ id: c.commune_id, section: 'coordonnees' })}
                       title={t('national.communes.modifierAide')}
                       className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-100"
                     >
@@ -543,6 +566,8 @@ export function TableauDeBordNational() {
           </div>
         )}
       </section>
+      </>
+      )}
       </>
       )}
     </>

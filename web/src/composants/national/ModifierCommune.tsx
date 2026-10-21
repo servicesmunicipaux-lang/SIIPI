@@ -1,21 +1,22 @@
 // « Modifier » une commune, depuis l'annuaire national : un seul bouton par
 // commune, et derrière lui tout ce que la FNCT peut corriger à sa place — ses
-// contacts, ses limites, son logo.
+// coordonnées, ses contacts, ses limites, son logo.
 //
-// Trois sections d'un même écran plutôt que trois boutons dans la ligne : une
-// ligne de l'annuaire qui porte « Ouvrir le portail », « Indicateurs », « Limite »
-// et « Logo » côte à côte se lit mal, surtout sur téléphone. Chaque section est
-// le composant que la commune a déjà sur son portail (Contacts, FormulaireLogo)
-// ou que la FNCT avait déjà ici (DecoupageCommunal) : une seule façon de faire
+// Quatre sections d'un même écran plutôt que quatre boutons dans la ligne : une
+// ligne de l'annuaire qui porte autant de boutons se lit mal, surtout sur
+// téléphone. Chaque section est le composant que la commune a déjà sur son
+// portail (Contacts, FormulaireLogo) ou que la FNCT avait déjà ici
+// (DecoupageCommunal), plus la fiche de coordonnées : une seule façon de faire
 // chaque chose, et les mêmes refus de l'API.
 import { useTranslation } from 'react-i18next';
 import { Contacts } from '../communal/Contacts';
+import { FormulaireCoordonnees } from '../ajout/FormulaireCoordonnees';
 import { FormulaireLogo } from '../ajout/FormulaireLogo';
 import { LogoCommune } from '../LogoCommune';
 import { DecoupageCommunal } from './DecoupageCommunal';
 
-export type SectionCommune = 'contacts' | 'limites' | 'logo';
-const SECTIONS: SectionCommune[] = ['contacts', 'limites', 'logo'];
+export type SectionCommune = 'coordonnees' | 'contacts' | 'limites' | 'logo';
+const SECTIONS: SectionCommune[] = ['coordonnees', 'contacts', 'limites', 'logo'];
 
 export function ModifierCommune({
   communeId,
@@ -72,6 +73,7 @@ export function ModifierCommune({
       </div>
 
       <div id="modifier-panneau" role="tabpanel" aria-labelledby={`modifier-onglet-${section}`}>
+        {section === 'coordonnees' && <FormulaireCoordonnees communeId={communeId} />}
         {section === 'contacts' && <Contacts communeId={communeId} />}
         {section === 'limites' && <DecoupageCommunal communeId={communeId} onFermer={onFermer} />}
         {section === 'logo' && <FormulaireLogo communeId={communeId} nom={nom} nomAr={nomAr} onFait={() => undefined} />}

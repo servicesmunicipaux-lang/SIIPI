@@ -41,7 +41,7 @@ function Cadrer({ communes, maxZoom }: { communes: Commune[]; maxZoom: number })
   return null;
 }
 
-export function CarteCommunes() {
+export function CarteCommunes({ onOuvrirPortail }: { onOuvrirPortail: (communeId: string) => void }) {
   const { t, i18n } = useTranslation();
   const [carte, setCarte] = useState<Carte | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -97,11 +97,14 @@ export function CarteCommunes() {
     setChoisie(null);
   };
 
-  // La fiche est bâtie élément par élément (textContent) : un nom venu d'un
-  // import ne s'interprète jamais comme du HTML.
+  // Un clic sur une commune mène à son portail : la fiche chiffrée (superficie,
+  // densité, secteurs, code) cède la place à l'accès. Le nom et le gouvernorat
+  // restent, pour ne pas ouvrir la mauvaise de deux communes homonymes
+  // (Ennour, Ezzouhour). Bâtie élément par élément (textContent) : un nom venu
+  // d'un import ne s'interprète jamais comme du HTML.
   const fiche = (p: Fiche) => {
     const racine = document.createElement('div');
-    racine.className = 'text-sm';
+    racine.className = 'min-w-44 text-sm';
     const titre = document.createElement('p');
     titre.className = 'font-semibold';
     titre.textContent = arabe && p.nom_ar ? p.nom_ar : p.nom;
@@ -111,32 +114,17 @@ export function CarteCommunes() {
     second.dir = arabe ? 'ltr' : 'rtl';
     second.textContent = (arabe ? p.nom : p.nom_ar) ?? '';
     racine.appendChild(second);
-    const densite = p.population != null && p.superficie_km2 ? p.population / p.superficie_km2 : null;
-    const lignes: [string, string][] = [
-      [t('national.carte.fiche.gouvernorat'), p.gouvernorat],
-      [t('national.carte.fiche.district'), p.district ?? t('kpi.national.nonRattache')],
-      [t('national.carte.fiche.type'), p.type ?? t('kpi.statuts.non_renseigne')],
-      [
-        t('national.carte.fiche.population'),
-        p.population == null
-          ? t('kpi.statuts.non_renseigne')
-          : `${formaterNombre(p.population, 0)} (${t(`national.carte.provenances.${p.provenance ?? 'inconnue'}`, { defaultValue: p.provenance ?? '' })})`,
-      ],
-      [t('national.carte.fiche.superficie'), p.superficie_km2 == null ? t('kpi.statuts.non_renseigne') : `${formaterNombre(p.superficie_km2, 2)} km²`],
-      [t('national.carte.fiche.densite'), densite == null ? t('kpi.statuts.non_renseigne') : `${formaterNombre(densite, 0)} ${t('national.carte.habKm2')}`],
-      [t('national.carte.fiche.secteurs'), p.secteurs == null ? t('kpi.statuts.non_renseigne') : String(p.secteurs)],
-      [t('national.carte.fiche.code'), p.code == null ? t('kpi.statuts.non_renseigne') : String(p.code)],
-    ];
-    const table = document.createElement('table');
-    table.className = 'mt-1';
-    for (const [k, v] of lignes) {
-      const tr = table.insertRow();
-      const a = tr.insertCell();
-      a.className = 'pe-3 text-ardoise-500';
-      a.textContent = k;
-      tr.insertCell().textContent = v;
-    }
-    racine.appendChild(table);
+    const lieu = document.createElement('p');
+    lieu.className = 'mt-1 text-xs text-ardoise-500';
+    lieu.textContent = p.gouvernorat;
+    racine.appendChild(lieu);
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'mt-2 min-h-10 w-full rounded-lg bg-siipi-600 px-3 text-sm font-semibold text-white';
+    bouton.textContent = t('national.communes.ouvrirPortail');
+    bouton.setAttribute('aria-label', t('national.communes.ouvrirPortailDe', { nom: p.nom }));
+    bouton.addEventListener('click', () => onOuvrirPortail(p.id));
+    racine.appendChild(bouton);
     return racine;
   };
 

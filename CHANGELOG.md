@@ -5,6 +5,35 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.62] — 2026-10-21 — L'observatoire : « Annuaire et carte » en une page, la carte mène au portail, « Modifier » gagne les coordonnées
+
+### Modifié
+- **Une seule entrée de menu « Annuaire et carte »** (observatoire national) au lieu de deux (« Annuaire des
+  communes » et « Carte des communes ») : les mêmes 350 communes se cherchaient deux fois. La page a deux vues, un
+  sélecteur « Annuaire | Carte » en tête ; l'annuaire reste la vue d'ouverture, puisque c'est là que se trouve
+  « Modifier ».
+- **Sur la carte, un clic sur une commune mène à son portail.** L'encadré qui s'ouvrait avec la liste de chiffres
+  (gouvernorat, district, type, population, superficie, densité, secteurs, code) est remplacé par un encadré court :
+  le nom de la commune, en français et en arabe, son gouvernorat — qui évite d'ouvrir la mauvaise de deux communes
+  homonymes (Ennour, Ezzouhour) — et un bouton « Ouvrir le portail ». La carte se cadre toujours sur la commune
+  choisie par la recherche, et l'encadré s'y ouvre.
+- **« Modifier » une commune gagne une section « Coordonnées »**, ouverte la première : le téléphone, le fax, le
+  courriel, l'adresse, le responsable de la propreté (nom ou fonction) et son numéro — la fiche de la commune
+  elle-même (`PATCH /communes/{id}`, `composants/ajout/FormulaireCoordonnees.tsx`), qu'aucun écran ne tenait
+  jusque-là. Seuls les champs changés sont envoyés : une fiche rouverte et enregistrée sans rien toucher ne laisse
+  pas de ligne de plus au journal d'audit. Elle se distingue de « Contacts », qui tient les interlocuteurs
+  extérieurs (l'ANGeD, le gouvernorat, un prestataire). « Modifier » compte désormais quatre sections :
+  Coordonnées, Contacts, Limites, Logo.
+- **Un champ de la fiche vidé redevient « non renseigné »** : `PATCH /communes/{id}` écrit `NULL` quand on lui
+  envoie un texte vide, au lieu de garder une chaîne vide qui se lirait comme une valeur (règle 1.1). Éprouvé dans la
+  campagne `logos-communes` (téléphone et adresse enregistrés, adresse vidée, téléphone intact).
+- Les libellés devenus inutiles (la fiche chiffrée de la carte, l'entrée « Carte des communes ») sont retirés, en
+  français et en arabe ; la consigne de la carte dit « cliquez une commune pour ouvrir son portail ».
+- Vérifié dans le navigateur, en français et en arabe (de droite à gauche) : l'entrée unique, la bascule entre les
+  deux vues, la carte et ses 350 communes, l'encadré, le bouton qui ouvre le portail de la commune, et la section
+  « Coordonnées » (enregistrer un seul champ n'écrit que ce champ au journal d'audit ; le bouton reste grisé tant que
+  rien n'a changé).
+
 ## [0.15.61] — 2026-10-21 — Jalon D, lot D1 : le logo des communes
 
 Jalon D, « prête à présenter » (`docs/specs_metier/SPEC_D_pret_a_presenter.md`, ajoutée au dépôt). D1, tel que
