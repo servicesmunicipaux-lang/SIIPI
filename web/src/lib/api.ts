@@ -234,6 +234,8 @@ export type EtudeCoutCompletDetail = Reponse<'/cout-complet/etudes/{id}', 'get'>
 export type ParametreNational = Reponse<'/parametres-nationaux', 'get'>[number];
 export type ValeurParametreNational = ParametreNational['historique'][number];
 export type Incoherence = Reponse<'/communes/{id}/coherence', 'get'>[number];
+// --- Jalon D, lot D2 : l'accueil du portail communal ---
+export type AccueilCommune = Reponse<'/communes/{id}/accueil', 'get'>;
 // --- Lot 18.1 : registre des acteurs informels, derrière le cadre national ---
 export type RegistreActeursInformels = Reponse<'/acteurs-informels', 'get'>;
 export type ActeurInformel = RegistreActeursInformels['acteurs'][number];
@@ -915,6 +917,8 @@ export const api = {
   engins: (communeId: string) =>
     requete<Vehicule[]>(`/trucks?communeId=${encodeURIComponent(communeId)}`),
   // Écarts entre le registre des circuits et l'inventaire du parc.
+  /** L'accueil du portail : ce qui va bien, ce qui demande une action, le constat du jour. */
+  accueil: (communeId: string) => requete<AccueilCommune>(`/communes/${encodeURIComponent(communeId)}/accueil`),
   coherence: (communeId: string) =>
     requete<Incoherence[]>(`/communes/${encodeURIComponent(communeId)}/coherence`),
   etatDuParc: (communeId: string) =>
