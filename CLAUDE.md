@@ -9,7 +9,7 @@ règles qu'on ne discute pas.
 > Propriété intellectuelle : FNCT. Hébergement : Tunisie. Données personnelles :
 > voir « Références légales » au §2.
 
-**Décisions tranchées :** `docs/specs_metier/DECISIONS_2026-10-16.md` (mobile, SMS et courriel, OTP, modèles 16.2, mutualisation D-1 à D-7). Elles priment sur les valeurs par défaut et les questions ouvertes des spécifications.
+**Décisions tranchées :** `docs/specs_metier/DECISIONS_2026-10-16.md` (mobile, SMS et courriel, OTP, modèles 16.2, mutualisation D-1 à D-7) et `docs/specs_metier/DECISIONS_2026-10-20.md` (versions fantômes, bases d'essai, SMTP, chantier P de mise en production, populations, noms arabes, matrice des densités 17.2, connecteur GPS 17.4 — avec l'ordre de travail). Elles priment sur les valeurs par défaut et les questions ouvertes des spécifications.
 
 **Où reprendre :** `FEUILLE_DE_ROUTE.md` § 0 donne l'ordre des jalons (S0, puis v0.16 → v0.19), ce qui
 est prêt et ce qui bloque. Les pièces métier sont dans `docs/specs_metier/` (lire `SPEC_v0.16.md`).
