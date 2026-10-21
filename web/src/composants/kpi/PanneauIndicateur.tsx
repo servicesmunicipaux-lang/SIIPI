@@ -34,7 +34,8 @@ import {
 import { formaterNombre } from '../../i18n';
 import { BoutonExport } from '../BoutonExport';
 import { Chargement } from '../Elements';
-import { BadgeSource, ValeurKpi } from './CarteIndicateur';
+import { ChiffreCle } from '../ui/ChiffreCle';
+import { AtteinteObjectif, PastilleSource, texteValeur } from './CarteIndicateur';
 import { boutonCompleter as bouton, LigneACompleter } from './LigneACompleter';
 import { bornesFenetre, decalerMois, finDeMois, libelleMois, type Fenetre } from './temps';
 
@@ -164,19 +165,19 @@ export function PanneauIndicateur({
   const groupes = (liste: { groupe: number }[]) => [...new Set(liste.map((d) => d.groupe))];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="font-semibold text-ardoise-900">{ar ? r.libelle_ar : r.libelle_fr}</h2>
-          <p className="mt-1 flex flex-wrap items-baseline gap-2">
-            <span className="text-xl">
-              <ValeurKpi r={r} />
-            </span>
-            <BadgeSource r={r} />
-          </p>
-          {r.statut === 'renseigne' && r.taux_atteinte != null && (
-            <p className="text-xs text-ardoise-600">{t('kpi.carte.atteinte', { pct: formaterNombre(100 * r.taux_atteinte, 0) })}</p>
+        <div className="min-w-0 space-y-3">
+          <h2 className="text-lg font-semibold leading-snug text-ardoise-900">{ar ? r.libelle_ar : r.libelle_fr}</h2>
+          {r.statut === 'renseigne' && r.valeur != null ? (
+            <p className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <ChiffreCle valeur={texteValeur(r.valeur)} unite={r.unite && r.unite.trim() !== '' ? r.unite : null} />
+              <PastilleSource r={r} />
+            </p>
+          ) : (
+            <p className="text-sm text-ardoise-500" title={t(`kpi.statuts.aide.${r.statut}`)}>{t(`kpi.statuts.${r.statut}`)}</p>
           )}
+          <AtteinteObjectif r={r} />
         </div>
         <button type="button" onClick={onFermer} className={`${bouton} shrink-0`}>
           {t('kpi.panneau.fermer')}
@@ -202,7 +203,7 @@ export function PanneauIndicateur({
                     .filter((m) => m.groupe === g)
                     .map((m, i) => (
                       <div key={`${m.groupe}-${m.ordre}`} className="space-y-2">
-                        {i > 0 && <p className="text-xs font-semibold uppercase text-ardoise-500">{t('kpi.panneau.ou')}</p>}
+                        {i > 0 && <p className="text-xs font-medium text-ardoise-500">{t('kpi.panneau.ou')}</p>}
                         <LigneACompleter
                           nature={m.nature}
                           cible={m.cible}
@@ -231,9 +232,9 @@ export function PanneauIndicateur({
       )}
 
       {/* --- Le graphique -------------------------------------------------------- */}
-      <section className="space-y-2" aria-labelledby={`graphique-${r.code}`}>
+      <section className="space-y-3" aria-labelledby={`graphique-${r.code}`}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 id={`graphique-${r.code}`} className="text-sm font-semibold text-ardoise-800">{t('kpi.panneau.evolution')}</h3>
+          <h3 id={`graphique-${r.code}`} className="text-base font-semibold text-ardoise-900">{t('kpi.panneau.evolution')}</h3>
           <div className="flex flex-wrap gap-1" role="group" aria-label={t('kpi.panneau.periode')}>
             {(mensuel ? (['3m', '6m', '12m', 'annees'] as const) : (['annees'] as const)).map((f) => (
               <button
@@ -289,9 +290,9 @@ export function PanneauIndicateur({
 
       {/* --- Les données sous le graphique --------------------------------------- */}
       {serie !== null && avecValeur && (
-        <section className="space-y-2" aria-labelledby={`donnees-${r.code}`}>
+        <section className="space-y-3" aria-labelledby={`donnees-${r.code}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 id={`donnees-${r.code}`} className="text-sm font-semibold text-ardoise-800">{t('kpi.panneau.donnees')}</h3>
+            <h3 id={`donnees-${r.code}`} className="text-base font-semibold text-ardoise-900">{t('kpi.panneau.donnees')}</h3>
             <BoutonExport chemin={`/kpi/serie?${parametresSerie(communeId, r.code, b.debut, b.fin, b.pas)}`} desactive={!avecValeur} />
           </div>
           <div className="overflow-x-auto rounded-lg border border-ardoise-200">
@@ -322,12 +323,12 @@ export function PanneauIndicateur({
       )}
 
       {/* --- La formule et les sources ------------------------------------------- */}
-      <section className="space-y-2 rounded-xl border border-ardoise-200 bg-white p-3" aria-labelledby={`formule-${r.code}`}>
-        <h3 id={`formule-${r.code}`} className="text-sm font-semibold text-ardoise-800">{t('kpi.panneau.formule')}</h3>
+      <section className="space-y-3 rounded-xl border border-ardoise-200 bg-white p-4" aria-labelledby={`formule-${r.code}`}>
+        <h3 id={`formule-${r.code}`} className="text-base font-semibold text-ardoise-900">{t('kpi.panneau.formule')}</h3>
         <p className="text-sm text-ardoise-700">{(ar ? indicateur?.description_ar : indicateur?.description) ?? '—'}</p>
         {sources.length > 0 && (
           <>
-            <h4 className="text-xs font-semibold uppercase text-ardoise-500">{t('kpi.panneau.sources')}</h4>
+            <h4 className="pt-1 text-sm font-medium text-ardoise-700">{t('kpi.panneau.sources')}</h4>
             <ul className="list-disc space-y-1 ps-5 text-sm text-ardoise-700">
               {groupes(sources).map((g) => (
                 <li key={g}>

@@ -5,6 +5,36 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.64] — 2026-10-21 — Jalon D, lot D3a : l'écran Indicateurs, la valeur d'abord
+
+Affichage seulement : les calculs, les règles et le cloisonnement ne bougent pas (SPEC_D § D3).
+
+### Modifié
+- **La carte d'un indicateur** (`kpi/CarteIndicateur.tsx`) : la valeur en grand, son unité en petit, son libellé au-dessus ;
+  la source dite par une pastille avec un dessin et un mot (« Mesuré », « Déclaré »), et par un filet de couleur sur le
+  bord de la carte (propriété logique : il passe à droite en arabe). L'atteinte de l'objectif est un filet fin et les mots
+  « 33 % de l'objectif », seulement quand la commune a un objectif. La courbe de douze mois est plus discrète, et la
+  **tendance** dit l'écart entre le premier et le dernier mois renseignés (« +2,4 pts depuis mars 26 »), sans couleur ni
+  jugement — pour des réclamations, une hausse n'est pas un progrès — et seulement avec deux mois au moins.
+- **Un indicateur non renseigné se tait** : une carte en pointillés, le mot « Non renseigné » discret, « Voir ce qui
+  manque ». Dix-sept absences au même poids que deux mesures réelles les auraient noyées (règle 1.1 : jamais un 0, jamais
+  un « — » qui prétend calculer).
+- Le haut de l'écran : « 2 indicateurs calculables sur 19 » avec le nombre en grand ; les cartes des axes et l'indice
+  sur 100 reprennent le même chiffre en grand ; plus d'étiquette en capitales.
+- **Le panneau de détail** : le chiffre en tête avec sa source, plus d'espace entre les sections, titres lisibles.
+
+### Ajouté
+- Un petit kit visuel partagé, `composants/ui/` : `ChiffreCle` (le chiffre isolé, chiffres alignés, sans la police à chasse
+  fixe réservée aux colonnes) et `Pastille` (un état avec icône ET mot : la couleur ne porte jamais seule le sens, un
+  ton par sens — mesure, déclaré, attention, action, neutre). D3b et D3c s'en servent.
+- Textes FR et AR : libellés courts de source, suite de la couverture, tendance.
+
+### À savoir (non modifié)
+- Le graphique « 5 ans » d'un indicateur mesuré sur l'état du jour (ex. « Propreté générale, information et mesures
+  dissuasives ») est une ligne plate : la mesure est recalculée à l'identique pour chaque année. Il suggère un historique
+  qui n'existe pas. À traiter dans un lot à part, hors D3.
+- Captures avant/après, FR et AR, sur Dar Chaâbane El Fehri, montrées à Nacer avant la fin du lot (spec D3).
+
 ## [0.15.63] — 2026-10-21 — Jalon D, lot D2 : l'accueil du portail communal
 
 ### Ajouté

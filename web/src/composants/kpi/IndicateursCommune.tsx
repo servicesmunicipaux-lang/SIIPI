@@ -30,6 +30,7 @@ import { imprimer } from '../../lib/impression';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
 import { DeclarationsIndicateurs } from './DeclarationsIndicateurs';
+import { ChiffreCle } from '../ui/ChiffreCle';
 import { CarteIndicateur } from './CarteIndicateur';
 import { PanneauIndicateur } from './PanneauIndicateur';
 import { bornesFenetre } from './temps';
@@ -54,11 +55,12 @@ function useGrandEcran() {
 function Indice({ valeur, renseignes, total }: { valeur: number | null; renseignes: number; total: number }) {
   const { t } = useTranslation();
   return (
-    <div>
-      <p className="chiffres text-3xl font-bold text-ardoise-900" title={valeur == null ? t('kpi.statuts.aide.non_renseigne') : undefined}>
-        {valeur == null ? <span className="text-xl text-ardoise-400">{t('kpi.statuts.non_renseigne')}</span> : formaterNombre(valeur, 1)}
-        {valeur != null && <span className="text-base font-normal text-ardoise-500"> / 100</span>}
-      </p>
+    <div className="space-y-1">
+      {valeur == null ? (
+        <p className="text-sm text-ardoise-500" title={t('kpi.statuts.aide.non_renseigne')}>{t('kpi.statuts.non_renseigne')}</p>
+      ) : (
+        <p><ChiffreCle valeur={formaterNombre(valeur, 1)} unite="/ 100" taille="md" /></p>
+      )}
       <p className="text-xs text-ardoise-500">{t('kpi.renseignes', { n: renseignes, total })}</p>
     </div>
   );
@@ -133,13 +135,14 @@ export function IndicateursCommune({
   };
 
   const grille = (liste: ResultatIndicateur[]) => (
-    <ul className={`grid gap-3 ${choisiR ? 'sm:grid-cols-2' : 'sm:grid-cols-2 xl:grid-cols-3'}`}>
+    <ul className={`grid gap-4 ${choisiR ? 'sm:grid-cols-2' : 'sm:grid-cols-2 xl:grid-cols-3'}`}>
       {liste.map((r) => (
         <li key={r.code}>
           <CarteIndicateur
             r={r}
             indicateur={parCode.get(r.code)}
             courbe={courbe(r.code)}
+            mois={douzeMois.mois}
             choisie={choisi === r.code}
             onChoisir={() => setChoisi((c) => (c === r.code ? null : r.code))}
           />
@@ -211,10 +214,11 @@ export function IndicateursCommune({
             <section className="grid gap-4 lg:grid-cols-3">
               <div className="rounded-xl border border-ardoise-200 bg-white p-4 lg:col-span-2">
                 <h2 className="font-semibold text-ardoise-900">{t('kpi.couverture.titre')}</h2>
-                <p className="chiffres mt-3 text-3xl font-bold text-ardoise-900">
-                  {t('kpi.couverture.texte', { calculables: kpi.couverture.calculables, total: kpi.couverture.total })}
+                <p className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <ChiffreCle valeur={formaterNombre(kpi.couverture.calculables, 0)} taille="xl" />
+                  <span className="text-base text-ardoise-700">{t('kpi.couverture.suite', { total: kpi.couverture.total })}</span>
                 </p>
-                <p className="mt-1 text-xs text-ardoise-500">{t('kpi.couverture.aide')}</p>
+                <p className="mt-3 max-w-prose text-sm text-ardoise-500">{t('kpi.couverture.aide')}</p>
               </div>
               <div className="rounded-xl border border-ardoise-200 bg-white p-4">
                 <h2 className="font-semibold text-ardoise-900">{t('kpi.dma.titre')}</h2>
@@ -232,8 +236,8 @@ export function IndicateursCommune({
             <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               {kpi.axes.map((a) => (
                 <a key={a.axe} href={`#axe-${a.axe}`} className="rounded-xl border border-ardoise-200 bg-white p-4 hover:border-siipi-300">
-                  <p className="text-xs font-semibold uppercase text-siipi-700">{t('kpi.axe', { n: a.axe })}</p>
-                  <p className="mb-2 text-sm font-medium text-ardoise-900">{t(`kpi.axes.${a.axe}`)}</p>
+                  <p className="text-xs font-semibold text-siipi-700">{t('kpi.axe', { n: a.axe })}</p>
+                  <p className="mb-3 text-sm font-medium leading-snug text-ardoise-900">{t(`kpi.axes.${a.axe}`)}</p>
                   <Indice valeur={a.indice} renseignes={a.renseignes} total={a.notes} />
                 </a>
               ))}
