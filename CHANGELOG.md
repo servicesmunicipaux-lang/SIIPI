@@ -5,6 +5,38 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.65] — 2026-10-21 — Jalon D, lot D3b : la synthèse nationale, les chiffres-clés d'abord
+
+Affichage seulement : aucun calcul, aucune règle, aucun cloisonnement ne change (SPEC_D § D3).
+
+### Modifié
+- **Les chiffres-clés passent en tête** de la synthèse, sous le titre : adoption (« 0 / 350 communes actives »),
+  population couverte, tonnage pesé, réclamations — la valeur en grand (`ChiffreCle`), le libellé en phrase et non en
+  capitales. Le tonnage pesé porte une pastille « Pesé » (icône et mot). La carte d'un chiffre
+  (`Elements.tsx › CarteIndicateur`, aussi utilisée par l'écran Preuve du portail) prend les mêmes règles.
+- **Une valeur absente se tait** : une carte en pointillés et un mot discret, jamais un gros « Non renseigné » aussi
+  voyant qu'un chiffre. **Sans commune active, les réclamations sont « non renseignées »**, plus « 0 » : zéro
+  réclamation se lirait « aucun problème », alors que personne ne les enregistre encore (règle 1.1).
+- **Le suivi du déploiement** : la phrase verte devient quatre chiffres en grand — saisissent, inactives ce mois-ci, pas
+  encore démarrées, désactivées — chacun avec sa pastille ; la phrase entière reste pour les lecteurs d'écran. Le gris
+  des communes « pas encore démarrées » s'éclaircit dans l'histogramme.
+- Ordre de la page : le titre, une proposition de découpage à instruire s'il y en a (elle bloque la commune), les
+  chiffres-clés, la carte, le suivi mois par mois, le tableau par territoire.
+
+### Ajouté
+- **La carte « Où la plateforme est utilisée »** (`national/CarteDeploiement.tsx`), par gouvernorat ou par district
+  FNCT : chaque territoire est teinté selon la part de ses communes qui saisissent ce mois-ci, en cinq teintes ; la
+  bulle dit « N communes sur M ». **Gris : aucune commune n'y saisit encore** — pas « mauvais ». À côté, la légende et la
+  liste des territoires où l'on saisit, dans l'ordre alphabétique : un suivi, jamais un palmarès. Elle lit les données
+  existantes (`GET /observatoire/activite`, `GET /observatoire/contours-gouvernorats`) : aucune route nouvelle.
+- Textes FR et AR.
+
+### À savoir (non modifié)
+- La population couverte n'est pas marquée « estimée » : l'interface ne porte pas cette information par territoire.
+- La carte de répartition d'un indicateur (« Indicateurs & 5 axes ») garde son style.
+- Captures avant/après, FR et AR, montrées à Nacer ; la carte colorée a été vérifiée sur des communes fictives qui
+  saisissent, simulées dans le navigateur seulement (rien n'est écrit en base).
+
 ## [0.15.64] — 2026-10-21 — Jalon D, lot D3a : l'écran Indicateurs, la valeur d'abord
 
 Affichage seulement : les calculs, les règles et le cloisonnement ne bougent pas (SPEC_D § D3).

@@ -14,6 +14,8 @@ import { ConservationPhotos } from '../composants/national/ConservationPhotos';
 import { ParametresNationaux } from '../composants/national/ParametresNationaux';
 import { AgregatsWapla } from '../composants/national/AgregatsWapla';
 import { CarteCommunes } from '../composants/national/CarteCommunes';
+import { CarteDeploiement } from '../composants/national/CarteDeploiement';
+import { Pastille } from '../composants/ui/Pastille';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
 import {
@@ -285,25 +287,25 @@ export function TableauDeBordNational() {
           plateforme. Il doit être lisible depuis le couloir.
           ------------------------------------------------------------------- */}
       <section className="mb-8">
-        <p className="text-xs font-semibold tracking-wide text-siipi-700 uppercase">
-          {t('national.titre')}
-        </p>
+        <p className="text-sm font-medium text-siipi-700">{t('national.titre')}</p>
         <h1 className="mt-2 max-w-3xl text-2xl font-bold text-balance text-ardoise-900 sm:text-3xl">
           {chapeau}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-ardoise-500">{t('national.chapeauDetail')}</p>
       </section>
 
-      {/* Le suivi du déploiement, en tête (refonte, lot 4b ; SPEC § 4). */}
-      <SuiviDeploiement />
-
+      {/* Une proposition qui attend bloque la commune : elle passe avant les chiffres.
+          Le composant ne s'affiche que s'il y a quelque chose à instruire. */}
       <PropositionsDecoupage />
 
-      <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Les chiffres-clés d'abord (jalon D, lot D3b), puis la carte, puis le suivi
+          mois par mois : de ce qu'on retient en un coup d'œil à ce qu'on vérifie. */}
+      <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={t('national.cartes.titre')}>
         <CarteIndicateur
           accent
           libelle={t('national.cartes.adoption')}
-          valeur={`${formaterNombre(totaux.actives)} / ${formaterNombre(totaux.communes)}`}
+          valeur={formaterNombre(totaux.actives)}
+          unite={`/ ${formaterNombre(totaux.communes)}`}
           detail={t('national.cartes.adoptionDetail')}
         />
         <CarteIndicateur
@@ -313,19 +315,30 @@ export function TableauDeBordNational() {
         />
         <CarteIndicateur
           libelle={t('national.cartes.tonnagePese')}
+          absent={totaux.communesPesees === 0}
+          marque={totaux.communesPesees > 0 ? <Pastille ton="mesure">{t('national.cartes.pese')}</Pastille> : undefined}
           valeur={totaux.communesPesees === 0 ? t('kpi.statuts.non_renseigne') : formaterNombre(totaux.tonnagePese, 0)}
+          unite={totaux.communesPesees === 0 ? undefined : 't'}
           detail={
             totaux.communesPesees === 0
               ? t('national.cartes.tonnagePeseAucun')
               : t('national.cartes.tonnagePeseDetail', { n: totaux.communesPesees, total: totaux.communes })
           }
         />
+        {/* Sans commune active, « 0 réclamation » se lirait « aucun problème » : personne ne
+            les enregistre encore (règle 1.1). */}
         <CarteIndicateur
           libelle={t('national.cartes.reclamations')}
-          valeur={formaterNombre(totaux.reclamations)}
-          detail={t('national.cartes.reclamationsDetail')}
+          absent={totaux.actives === 0}
+          valeur={totaux.actives === 0 ? t('kpi.statuts.non_renseigne') : formaterNombre(totaux.reclamations)}
+          detail={totaux.actives === 0 ? t('national.cartes.reclamationsAucune') : t('national.cartes.reclamationsDetail')}
         />
       </section>
+
+      <CarteDeploiement />
+
+      {/* Le suivi du déploiement mois par mois (refonte, lot 4b ; SPEC § 4). */}
+      <SuiviDeploiement />
 
       </>
       )}
