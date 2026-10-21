@@ -5,6 +5,51 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.61] — 2026-10-21 — Jalon D, lot D1 : le logo des communes
+
+Jalon D, « prête à présenter » (`docs/specs_metier/SPEC_D_pret_a_presenter.md`, ajoutée au dépôt). D1, tel que
+décidé : la commune dépose son logo elle-même, depuis son portail ; la FNCT en secours, depuis l'annuaire
+national ; le logo s'affiche en tête du portail de la commune.
+
+### Ajouté
+- **Migration 083.** L'usage de fichier `logo_commune` (PNG, JPEG, WebP ou SVG, 1 Mo au plus, contrôlés en base ;
+  le SVG n'est ouvert qu'à cet usage). La table `logos_communes` : un logo en vigueur par commune (index unique),
+  l'historique gardé (un logo remplacé ou retiré garde sa ligne, `retire_le`), un logo déposé qui ne se réécrit
+  pas, un logo retiré qui ne revient pas, un logo de commune réelle qui ne s'efface pas — seule une commune de test
+  ou de démonstration s'efface avec le sien. Dépôt par la commune ou la FNCT (`app.can_write_commune`), lecture par
+  tout compte, journal d'audit. `communes.logo_url`, jamais alimentée, est déclarée obsolète.
+- **Les routes** `POST /communes/{id}/logo` (dépôt ou remplacement, en une transaction : si l'écriture des octets
+  échoue, rien n'est inscrit), `POST /communes/{id}/logo/retrait`, `GET /communes/{id}/logo` (type réel, nosniff,
+  politique de sécurité fermée, ETag) et `GET /communes/{id}/logos` (l'historique).
+- **Le SVG statique** (`services/fichiers.ts`, `estSvg`, `svgStatique`) : un SVG qui contient un script, un
+  gestionnaire d'événement, une adresse javascript:, un objet étranger, une déclaration de type ou d'entités, un
+  lien extérieur, une feuille de style qui charge une adresse ou l'animation d'un lien est REFUSÉ, en disant
+  pourquoi — jamais réécrit (règle 1.5). Le dépôt de fichiers ordinaire refuse toujours le SVG.
+- **Le bandeau de la commune** en tête du portail (`composants/communal/BandeauCommune.tsx`) : son logo, ou un
+  emblème à ses initiales (jamais une image vide ou cassée, `composants/LogoCommune.tsx`), son nom et son
+  gouvernorat, en français et en arabe — le directeur ne voyait jusque-là nulle part le nom de sa commune.
+- **Un formulaire unique** (`composants/ajout/FormulaireLogo.tsx`) : aperçu, choix de l'image (1 Mo contrôlé avant
+  l'envoi), historique, retrait ; ouvert depuis le bandeau du portail (directeur, FNCT) et depuis l'annuaire
+  national, dans « Modifier » (FNCT).
+- `GET /communes/{id}` rend aussi le nom arabe du gouvernorat (`gouvernorat_ar`).
+- **Campagne `logos-communes`** (45 contrôles), dans deux communes de test avec des comptes temporaires : les refus
+  (sans compte, prestataire, citoyen, autre commune, PDF renommé, texte, plus de 1 Mo, huit formes de SVG actif,
+  et en base), le dépôt, les métadonnées retirées, le logo servi, le remplacement et son historique, le secours de
+  la FNCT, le retrait, le journal d'audit, l'ancienne adresse libre sans effet. Un mutant qui laisse passer tout
+  SVG fait échouer 16 contrôles.
+
+### Modifié
+- `PATCH /communes/{id}` n'accepte plus `logoUrl` (une adresse libre, tirée d'un autre site à chaque ouverture).
+- **L'annuaire national : un seul bouton « Modifier » par commune** (`composants/national/ModifierCommune.tsx`), qui
+  remplace « Limite » : il ouvre, à la place de l'annuaire, l'écran de la commune avec trois sections — ses
+  **contacts** (l'écran « Contacts » de son portail), ses **limites** (l'éditeur de découpage) et son **logo**. Le
+  bouton « Indicateurs » quitte la ligne : les indicateurs d'une commune se consultent dans son portail (onglet
+  « Indicateurs », le même écran, avec le mode FNCT), ou depuis l'onglet « Indicateurs & 5 axes » de l'observatoire.
+  La ligne ne garde que « Ouvrir le portail » et « Modifier ». Vérifié dans le navigateur, en français et en arabe.
+
+### Reste (jalon D)
+- D1 : l'affichage dans l'espace citoyen, l'en-tête des documents imprimés et des exports. Puis D2 à D5.
+
 ## [0.15.60] — 2026-10-20 — WaPla : les normales climatiques réelles des 24 gouvernorats
 
 ### Ajouté

@@ -5,7 +5,7 @@ import { api, type LigneGouvernorat, type StatutCommune } from '../lib/api';
 import { useFormats } from '../lib/formats';
 import { formaterNombre } from '../i18n';
 import { BoutonExport } from '../composants/BoutonExport';
-import { DecoupageCommunal } from '../composants/national/DecoupageCommunal';
+import { ModifierCommune, type SectionCommune } from '../composants/national/ModifierCommune';
 import { PropositionsDecoupage } from '../composants/national/PropositionsDecoupage';
 import { SuiviDeploiement } from '../composants/national/SuiviDeploiement';
 import { KpiNational } from '../composants/national/KpiNational';
@@ -110,10 +110,11 @@ export function TableauDeBordNational() {
   const { ouvrirPortail } = usePortail();
   const [gouvernorats, setGouvernorats] = useState<LigneGouvernorat[] | null>(null);
   const [communes, setCommunes] = useState<StatutCommune[] | null>(null);
-  // Le découpage s'ouvre à la place de l'annuaire plutôt que par-dessus : une
-  // carte d'édition dans une fenêtre superposée se manipule mal, et l'on y
-  // perd le fil de ce qu'on était en train de faire.
-  const [communeADecouper, setCommuneADecouper] = useState<string | null>(null);
+  // « Modifier » une commune (ses contacts, ses limites, son logo) s'ouvre à la
+  // place de l'annuaire plutôt que par-dessus : une carte d'édition dans une
+  // fenêtre superposée se manipule mal, et l'on y perd le fil de ce qu'on était
+  // en train de faire.
+  const [communeAModifier, setCommuneAModifier] = useState<{ id: string; section: SectionCommune } | null>(null);
   // A2.3 — « Visualiser » : les indicateurs d'une commune, en lecture et en
   // validation de sa fiche, sans ouvrir tout son portail.
   const [communeKpi, setCommuneKpi] = useState<string | null>(null);
@@ -203,7 +204,7 @@ export function TableauDeBordNational() {
   // semblerait ne rien faire, l'ancienne vue restant affichée par-dessus.
   function choisirOnglet(o: OngletNational) {
     setCommuneKpi(null);
-    setCommuneADecouper(null);
+    setCommuneAModifier(null);
     setOnglet(o);
   }
 
@@ -237,14 +238,17 @@ export function TableauDeBordNational() {
     );
   }
 
-  if (communeADecouper) {
+  if (communeAModifier) {
+    const c = communes.find((x) => x.commune_id === communeAModifier.id);
     return coque(
-      <div>
-        <DecoupageCommunal
-          communeId={communeADecouper}
-          onFermer={() => setCommuneADecouper(null)}
-        />
-      </div>
+      <ModifierCommune
+        communeId={communeAModifier.id}
+        nom={c?.name ?? communeAModifier.id}
+        nomAr={c?.name_ar}
+        section={communeAModifier.section}
+        onSection={(section) => setCommuneAModifier({ id: communeAModifier.id, section })}
+        onFermer={() => setCommuneAModifier(null)}
+      />
     );
   }
 
@@ -518,23 +522,19 @@ export function TableauDeBordNational() {
                     >
                       {t('national.communes.ouvrirPortail')}
                     </button>
-                    {/* « Modifier » ne concerne que le tracé de la limite
-                        communale : le libellé le dit, parce qu'à côté d'un
-                        bouton qui ouvre tout le portail, « Modifier » seul
-                        laissait croire qu'on allait éditer la commune. */}
+                    {/* Les indicateurs d'une commune se consultent dans son portail
+                        (onglet « Indicateurs »), pas depuis une ligne de l'annuaire :
+                        deux chemins vers le même écran, c'est un de trop. */}
+                    {/* Un seul « Modifier » : les contacts de la commune, ses
+                        limites et son logo (jalon D, D1), que la FNCT corrige en
+                        secours de la commune. */}
                     <button
                       type="button"
-                      onClick={() => setCommuneKpi(c.commune_id)}
+                      onClick={() => setCommuneAModifier({ id: c.commune_id, section: 'contacts' })}
+                      title={t('national.communes.modifierAide')}
                       className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-100"
                     >
-                      {t('national.communes.indicateurs')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCommuneADecouper(c.commune_id)}
-                      className="min-h-11 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-100"
-                    >
-                      {t('national.communes.modifierLimite')}
+                      {t('national.communes.modifier')}
                     </button>
                   </div>
                 </li>

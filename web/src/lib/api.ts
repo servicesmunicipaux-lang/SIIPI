@@ -425,9 +425,23 @@ export type Commune = {
   // « gouvernorat », comme la colonne que l'API renvoie : le type disait
   // « governorate », qui restait toujours vide sans que le compilateur le voie.
   gouvernorat?: string | null;
+  /** Le nom arabe du gouvernorat (GET /communes/:id). */
+  gouvernorat_ar?: string | null;
   /** Commune de démonstration fictive (jumeau numérique, lot S1). */
   est_demo?: boolean;
 };
+
+/** Un logo de la commune, dans son historique (jalon D, D1). */
+export interface LogoHistorique {
+  id: string;
+  fichier_id: string;
+  nom_original: string;
+  type_mime: string;
+  taille_octets: number;
+  depose_le: string;
+  retire_le: string | null;
+  en_vigueur: boolean;
+}
 
 /** Le jeu de démonstration (jumeau numérique, lot S1) : GET /demo. */
 export interface EtatDemo {
@@ -483,6 +497,19 @@ export async function lireOctetsFichier(chemin: string): Promise<string> {
     );
   }
   return URL.createObjectURL(await reponse.blob());
+}
+
+/**
+ * Le logo en vigueur d'une commune, en objet-URL (à libérer par l'appelant), ou
+ * null si elle n'en a pas : l'écran affiche alors l'emblème aux initiales.
+ */
+export async function lireLogoCommune(communeId: string): Promise<string | null> {
+  try {
+    return await lireOctetsFichier(`/communes/${encodeURIComponent(communeId)}/logo`);
+  } catch (e) {
+    if (e instanceof ErreurApi && e.statut === 404) return null;
+    throw e;
+  }
 }
 
 /**
@@ -580,6 +607,18 @@ export const api = {
   // La commune de démonstration n'est dans l'annuaire que demandée : le
   // sélecteur de la FNCT la demande, les écrans nationaux non.
   communes: (avecDemo = false) => requete<Commune[]>(avecDemo ? '/communes?avecDemo=1' : '/communes'),
+  commune: (id: string) => requete<Commune>(`/communes/${encodeURIComponent(id)}`),
+
+  // --- Le logo de la commune (jalon D, D1) ------------------------------------
+  deposerLogoCommune: (communeId: string, saisie: { nomFichier: string; contenu: string }) =>
+    requete<{ id: string; remplace: boolean }>(`/communes/${encodeURIComponent(communeId)}/logo`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  retirerLogoCommune: (communeId: string) =>
+    requete<void>(`/communes/${encodeURIComponent(communeId)}/logo/retrait`, { method: 'POST' }),
+  historiqueLogos: (communeId: string) =>
+    requete<LogoHistorique[]>(`/communes/${encodeURIComponent(communeId)}/logos`),
   // D-FNCT-1 : la position voyage dans le corps, jamais dans l'URL (journal d'accès).
   localiserCommune: (lat: number, lng: number) =>
     requete<

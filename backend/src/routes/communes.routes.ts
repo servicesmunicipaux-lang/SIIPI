@@ -139,7 +139,14 @@ communesRouter.get(
   '/:id',
   requireAuth,
   asyncHandler(async (req, res) => {
-    const commune = await queryOne('SELECT * FROM communes WHERE id = $1', [req.params.id]);
+    // Le nom arabe du gouvernorat (migration 080) : l'en-tête du portail en arabe
+    // ne l'écrit pas en lettres latines.
+    const commune = await queryOne(
+      `SELECT c.*, g.nom_ar AS gouvernorat_ar
+         FROM communes c LEFT JOIN gouvernorats_noms g ON g.gouvernorat = c.gouvernorat
+        WHERE c.id = $1`,
+      [req.params.id]
+    );
     if (!commune) throw new ApiError(404, 'Commune introuvable.');
     res.json(commune);
   })
@@ -500,7 +507,8 @@ const updateSchema = z.object({
   fax: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
   address: z.string().optional(),
-  logoUrl: z.string().optional(),
+  // Le logo n'est plus une adresse libre (migration 083) : il se dépose comme
+  // un fichier, POST /communes/:id/logo.
   hasPcgd: z.boolean().optional(),
   pcgdStatus: z.enum(['valide', 'en_cours', 'non_existant', 'a_actualiser']).optional(),
   pcgdValidationDate: z.string().optional(),
@@ -527,7 +535,6 @@ communesRouter.patch(
       fax: 'fax',
       email: 'email',
       address: 'address',
-      logoUrl: 'logo_url',
       hasPcgd: 'has_pcgd',
       pcgdStatus: 'pcgd_status',
       pcgdValidationDate: 'pcgd_validation_date',

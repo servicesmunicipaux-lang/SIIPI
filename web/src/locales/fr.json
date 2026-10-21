@@ -77,8 +77,15 @@
       "modifier": "Modifier",
       "ouvrirPortail": "Ouvrir le portail",
       "ouvrirPortailDe": "Ouvrir le portail municipal de {{nom}}",
-      "modifierLimite": "Limite",
-      "indicateurs": "Indicateurs"
+      "retourAnnuaire": "Retour à l'annuaire",
+      "modifierTitre": "Modifier la commune de {{nom}}",
+      "modifierAide": "Ses contacts, ses limites et son logo : la FNCT les corrige en secours de la commune, qui les tient aussi depuis son portail.",
+      "modifierSections": "Ce que la FNCT peut modifier",
+      "sections": {
+        "contacts": "Contacts",
+        "limites": "Limites",
+        "logo": "Logo"
+      }
     },
     "statuts": {
       "active": "Active",
@@ -3365,5 +3372,25 @@
       "plan": "Plan (OpenStreetMap)",
       "satellite": "Satellite (Esri)"
     }
+  },
+  "logo": {
+    "titre": "Logo de la commune de {{nom}}",
+    "aide": "PNG, JPEG, WebP ou SVG, 1 Mo au plus. Un SVG qui contient un script ou un lien vers l'extérieur est refusé. Le logo remplacé reste dans l'historique.",
+    "choisir": "Choisir l'image du logo",
+    "choisi": "Image choisie : {{nom}}",
+    "actuel": "Le logo en vigueur.",
+    "aucun": "Aucun logo déposé : l'emblème aux initiales de la commune le remplace.",
+    "tropGros": "L'image fait {{taille}} Mo : un logo se dépose en 1 Mo au plus (500 pixels de large suffisent).",
+    "historique": "Logos déposés",
+    "deposeLe": "déposé le {{date}}",
+    "retireLe": "retiré le {{date}}",
+    "enVigueur": "en vigueur",
+    "retirer": "Retirer le logo",
+    "retirerConfirmer": "Retirer le logo en vigueur ? Il reste dans l'historique, et le portail affichera l'emblème aux initiales.",
+    "gerer": "Logo de la commune",
+    "portailDe": "Portail de la commune",
+    "gouvernorat": "Gouvernorat de {{nom}}",
+    "alt": "Logo de la commune de {{nom}}",
+    "emblemeAlt": "Emblème de la commune de {{nom}} (aucun logo déposé)"
   }
 }

@@ -14,6 +14,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BandeauCommune } from '../composants/communal/BandeauCommune';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { ConstatDuJour } from '../composants/communal/ConstatDuJour';
@@ -226,6 +227,7 @@ export function EspaceCommunal({
     // et la barre latérale en prend déjà une part sur poste fixe.
     <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6">
       {selecteur}
+      <BandeauCommune communeId={communeId} />
       {/* Sur CHAQUE écran du portail de démonstration, et collée en haut :
           une capture d'écran du jumeau ne doit jamais pouvoir passer pour
           les chiffres d'une commune réelle (FEUILLE_DE_ROUTE.md § 6bis). */}

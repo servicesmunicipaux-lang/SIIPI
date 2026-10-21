@@ -35,6 +35,7 @@ export type TypeFichier =
   | 'image/jpeg'
   | 'image/png'
   | 'image/webp'
+  | 'image/svg+xml'
   | 'application/pdf'
   | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -51,15 +52,25 @@ export const TAILLE_MAX_OCTETS = 8 * 1024 * 1024;
  */
 const TAILLE_MAX_RAPPORT_OCTETS = 50 * 1024 * 1024;
 
+/**
+ * Un logo de commune s'affiche en tête d'un portail : au-delà d'un mégaoctet,
+ * c'est une photo, pas un logo, et chaque ouverture du portail la recharge. La
+ * base porte la même valeur (migration 083).
+ */
+const TAILLE_MAX_LOGO_OCTETS = 1024 * 1024;
+
 /** Le plafond applicable, selon l'usage déclaré au dépôt. */
 export function tailleMaxPour(usage?: string | null): number {
-  return usage === 'rapport_etude' ? TAILLE_MAX_RAPPORT_OCTETS : TAILLE_MAX_OCTETS;
+  if (usage === 'rapport_etude') return TAILLE_MAX_RAPPORT_OCTETS;
+  if (usage === 'logo_commune') return TAILLE_MAX_LOGO_OCTETS;
+  return TAILLE_MAX_OCTETS;
 }
 
 const EXTENSIONS: Record<TypeFichier, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
+  'image/svg+xml': 'svg',
   'application/pdf': 'pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
@@ -133,6 +144,59 @@ export function reconnaitreType(o: Buffer): TypeFichier | null {
     if (noms.includes('ppt/presentation.xml'))
       return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
     return null;
+  }
+  return null;
+}
+
+/**
+ * Un SVG, pour le seul usage « logo_commune » (migration 083) : reconnaître
+ * n'est pas accepter — voir svgStatique. reconnaitreType ne le reconnaît
+ * jamais : pour tout autre usage, un SVG reste un format refusé.
+ */
+export function estSvg(o: Buffer): boolean {
+  const debut = o.subarray(0, 4096).toString('utf8').replace(/^\uFEFF/, '');
+  // Une déclaration XML et des commentaires peuvent précéder la racine ; une
+  // déclaration de type (DOCTYPE) aussi, mais svgStatique la refuse ensuite.
+  // Le DOCTYPE peut porter un sous-ensemble interne entre crochets, plein de
+  // « > » (<!DOCTYPE svg [<!ENTITY …>]>) : sans ce cas, le SVG à entités passait
+  // pour « pas une image », refusé, mais sans que la raison soit dite.
+  return /^\s*(<\?xml[^>]*\?>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE[^[>]*(\[[\s\S]*?\])?\s*>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(debut);
+}
+
+/**
+ * Ce qui fait d'un SVG autre chose qu'une image : la raison du refus, ou null
+ * s'il est statique.
+ *
+ * REFUSÉ, PAS NETTOYÉ. Réécrire le fichier d'une commune pour en retirer un
+ * script, ce serait corriger à sa place (règle 1.5), et un nettoyeur maison
+ * laisse toujours passer la variante qu'il n'a pas prévue. On refuse donc tout
+ * ce qui peut agir ou aller chercher ailleurs : un script, un gestionnaire
+ * d'événement (onload=…), une adresse javascript:, un objet étranger (HTML,
+ * iframe, objet intégré), une entité ou une déclaration de type (qui ouvre les
+ * entités externes), un lien vers l'extérieur — seuls les renvois internes
+ * (#…) et les images intégrées en base64 sont permis —, une animation qui
+ * réécrit un lien, et une feuille de style qui importe ou charge une adresse.
+ * Le SVG accepté est en plus servi sous une politique de sécurité fermée.
+ */
+export function svgStatique(o: Buffer): string | null {
+  const texte = o.toString('utf8');
+  if (texte.includes('\uFFFD')) return "le fichier n'est pas un texte UTF-8 lisible";
+  const t = texte.toLowerCase();
+  if (/<\s*script/.test(t)) return 'il contient un script';
+  if (/[\s"'\/]on[a-z]+\s*=/.test(t)) return "il contient un gestionnaire d'événement (attribut on…)";
+  if (/javascript\s*:|vbscript\s*:|data\s*:\s*text\/html/.test(t)) return 'il contient une adresse exécutable (javascript:)';
+  if (/<\s*(foreignobject|iframe|embed|object|audio|video|canvas)/.test(t)) return 'il intègre un objet étranger (HTML, iframe, objet)';
+  if (/<!doctype|<!entity/.test(t)) return 'il déclare un type ou des entités (DOCTYPE, ENTITY)';
+  if (/<\s*(set|animate|animatetransform|animatemotion)[^>]*attributename\s*=\s*["']?(xlink:)?href/.test(t)) {
+    return 'il anime un lien';
+  }
+  if (/@import|url\s*\(\s*["']?\s*(https?:|\/\/)/.test(t)) return 'sa feuille de style charge une adresse extérieure';
+  // Chaque lien (href, xlink:href) : un renvoi interne, ou une image intégrée.
+  for (const m of t.matchAll(/(?:xlink:)?href\s*=\s*(["'])(.*?)\1/g)) {
+    const cible = m[2].trim();
+    if (cible.startsWith('#')) continue;
+    if (/^data:image\/(png|jpeg|jpg|gif|webp);base64,/.test(cible)) continue;
+    return `il renvoie vers une adresse extérieure (« ${cible.slice(0, 60)} »)`;
   }
   return null;
 }

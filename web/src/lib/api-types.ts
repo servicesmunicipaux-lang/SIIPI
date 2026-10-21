@@ -665,7 +665,6 @@ export interface paths {
                         fax?: string;
                         email?: string | "";
                         address?: string;
-                        logoUrl?: string;
                         hasPcgd?: boolean;
                         /** @enum {string} */
                         pcgdStatus?: "valide" | "en_cours" | "non_existant" | "a_actualiser";
@@ -22220,6 +22219,346 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/communes/{id}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le logo en vigueur
+         * @description Les octets, avec leur type réel, « nosniff », une politique de sécurité fermée (un SVG ne peut rien exécuter ni charger) et une empreinte en ETag. Lisible de tout compte : c’est l’identité de la commune. 404 sans logo : l’écran affiche l’emblème aux initiales.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Le logo. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                        "image/jpeg": string;
+                        "image/webp": string;
+                        "image/svg+xml": string;
+                    };
+                };
+                /** @description Inchangé depuis la dernière lecture (ETag). */
+                304: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Déposer ou remplacer le logo de la commune
+         * @description La commune dépose son logo elle-même ; la FNCT, en secours, pour n’importe quelle commune. Le fichier voyage en base64, comme tout dépôt de l’API.
+         *
+         *     Le type est reconnu par les OCTETS : PNG, JPEG, WebP, ou SVG statique (415 sinon). Un SVG qui contient un script, un gestionnaire d’événement (on…), une adresse javascript:, un objet étranger, une entité ou un lien extérieur est REFUSÉ, jamais réécrit. Les métadonnées des images sont retirées. 1 Mo au plus (413).
+         *
+         *     Remplacer un logo retire l’ancien, qui reste dans l’historique (règle 1.4) ; dépôt et retrait passent au journal d’audit. Une commune hors du périmètre de l’appelant est introuvable (404).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomFichier: string;
+                        contenu: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Logo déposé. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LogoCommuneDepose"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Plus de 1 Mo. */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Pas une image, ou un SVG actif. */
+                415: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/communes/{id}/logo/retrait": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retirer le logo en vigueur
+         * @description Le logo cesse d’être en vigueur et reste dans l’historique ; le portail affiche alors l’emblème aux initiales. 404 sans logo en vigueur.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Retiré. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/communes/{id}/logos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * L’historique des logos de la commune
+         * @description Chaque logo déposé, du plus récent au plus ancien, avec ses dates de dépôt et de retrait ; un seul est en vigueur.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description L’historique. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            fichier_id: string;
+                            nom_original: string;
+                            type_mime: string;
+                            taille_octets: number;
+                            depose_le: string;
+                            retire_le: string | null;
+                            en_vigueur: boolean;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fichiers/conservation": {
         parameters: {
             query?: never;
@@ -26087,6 +26426,11 @@ export interface components {
             name_ar: string | null;
             /** @example Tunis */
             gouvernorat: string;
+            /**
+             * @description Le nom arabe du gouvernorat (GET /communes/{id} seulement).
+             * @example تونس
+             */
+            gouvernorat_ar?: string | null;
             population: number;
             area_km2: number | null;
             waste_tons_per_day: number | null;
@@ -28042,6 +28386,18 @@ export interface components {
                 lat: number;
                 lng: number;
             } | null;
+        };
+        LogoCommuneDepose: {
+            /** Format: uuid */
+            id: string;
+            communeId: string;
+            /** Format: uuid */
+            fichierId: string;
+            /** @enum {string} */
+            type: "image/jpeg" | "image/png" | "image/webp" | "image/svg+xml";
+            tailleOctets: number;
+            /** @description Un logo était en vigueur : il est retiré, et reste dans l’historique. */
+            remplace: boolean;
         };
         PassageConservation: {
             id: number;
