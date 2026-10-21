@@ -212,6 +212,14 @@ chk "GET /communes/:id rend le nom arabe du gouvernorat" "200|$G_AR" \
     "$(curl -s -o "$T/r.json" -w '%{http_code}' "$API/communes/$A" -H "Authorization: Bearer $T_A")|$(val "d['gouvernorat_ar']")"
 
 echo
+echo "7. Les coordonnées de la fiche : un champ vidé redevient « non renseigné »"
+curl -s -o /dev/null -X PATCH "$API/communes/$A" -H "Authorization: Bearer $T_A" -H 'Content-Type: application/json' -d '{"phone":"72111222","address":"Avenue de l Essai"}'
+chk "téléphone et adresse enregistrés" "72111222|AvenuedelEssai" "$(sql "SELECT phone || '|' || address FROM communes WHERE id = '$A'")"
+curl -s -o /dev/null -X PATCH "$API/communes/$A" -H "Authorization: Bearer $T_A" -H 'Content-Type: application/json' -d '{"address":""}'
+chk "une adresse vidée vaut NULL, pas une chaîne vide ; le téléphone n'a pas bougé" "NULL|72111222" \
+    "$(sql "SELECT CASE WHEN address IS NULL THEN 'NULL' ELSE 'valeur' END || '|' || phone FROM communes WHERE id = '$A'")"
+
+echo
 echo "Aucune commune réelle n'a reçu de ligne"
 base_reelle_intacte "pendant la campagne"
 nettoyer_c

@@ -427,6 +427,13 @@ export type Commune = {
   gouvernorat?: string | null;
   /** Le nom arabe du gouvernorat (GET /communes/:id). */
   gouvernorat_ar?: string | null;
+  /** Les coordonnées de la commune (GET /communes/:id). */
+  phone?: string | null;
+  fax?: string | null;
+  email?: string | null;
+  address?: string | null;
+  responsible_officer?: string | null;
+  responsible_phone?: string | null;
   /** Commune de démonstration fictive (jumeau numérique, lot S1). */
   est_demo?: boolean;
 };
@@ -608,6 +615,9 @@ export const api = {
   // sélecteur de la FNCT la demande, les écrans nationaux non.
   communes: (avecDemo = false) => requete<Commune[]>(avecDemo ? '/communes?avecDemo=1' : '/communes'),
   commune: (id: string) => requete<Commune>(`/communes/${encodeURIComponent(id)}`),
+  /** Les coordonnées de la commune : seuls les champs changés sont envoyés (PATCH /communes/:id). */
+  majCommune: (id: string, corps: Record<string, string>) =>
+    requete<Commune>(`/communes/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(corps) }),
 
   // --- Le logo de la commune (jalon D, D1) ------------------------------------
   deposerLogoCommune: (communeId: string, saisie: { nomFichier: string; contenu: string }) =>
