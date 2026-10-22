@@ -2758,6 +2758,10 @@
       "aide": {
         "mesure": "Mesuré par un registre de la plateforme : cette valeur prime sur la déclaration.",
         "declare": "Déclaré par la commune, faute de mesure par la plateforme. La valeur vaut dès son enregistrement."
+      },
+      "court": {
+        "mesure": "Mesuré",
+        "declare": "Déclaré"
       }
     },
     "colonnes": {
@@ -2842,7 +2846,8 @@
     "couverture": {
       "titre": "Couverture des indicateurs",
       "texte": "{{calculables}} indicateurs calculables sur {{total}}",
-      "aide": "Un indicateur est calculable quand une mesure de la plateforme ou une valeur déclarée l'alimente. Ceux qui ne concernent pas la commune (pas d'abattoir, décharge contrôlée par l'ANGeD) sortent du total."
+      "aide": "Un indicateur est calculable quand une mesure de la plateforme ou une valeur déclarée l'alimente. Ceux qui ne concernent pas la commune (pas d'abattoir, décharge contrôlée par l'ANGeD) sortent du total.",
+      "suite": "indicateurs calculables sur {{total}}"
     },
     "declarations": {
       "aide": "Les valeurs que la plateforme ne mesure pas. Une valeur enregistrée s'affiche tout de suite, avec le badge « déclaré » : aucune validation n'est attendue. Une case vide reste « non renseignée » ; pour dire « aucun », saisir 0.",
@@ -2883,6 +2888,10 @@
         "annuelle": "Valeur annuelle : pas de courbe mensuelle",
         "actuelle": "État d'aujourd'hui : pas de courbe",
         "mensuelle": ""
+      },
+      "tendance": {
+        "evolue": "{{ecart}} depuis {{mois}}",
+        "stable": "Stable depuis {{mois}}"
       }
     },
     "donnees": {
