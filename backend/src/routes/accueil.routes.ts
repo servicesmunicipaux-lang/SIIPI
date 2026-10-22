@@ -25,6 +25,7 @@ import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { calculerCommune, charger, type Resultat } from '../services/kpi5Axes.js';
+import { avecTraduction } from '../services/avisAr.js';
 
 export const accueilRouter = Router();
 
@@ -94,7 +95,7 @@ accueilRouter.get(
         `SELECT code, rubrique, libelle_fr, libelle_ar, present, nombre FROM app.completude_commune($1, $2::date) ORDER BY rubrique, ordre`,
         [id, jour]
       ),
-      query(`SELECT * FROM app.incoherences_commune($1)`, [id]),
+      query<{ sujet: string; constat: string; quoi_faire: string }>(`SELECT * FROM app.incoherences_commune($1)`, [id]),
       query<LigneEcheance>(
         `SELECT plan_id, vehicule_id, registration, libelle, echeance_date, jours_restants, statut FROM app.echeances_entretien($1)`,
         [id]
@@ -129,7 +130,7 @@ accueilRouter.get(
           .map((e) => ({ code: e.code, libelle_fr: e.libelle_fr, libelle_ar: e.libelle_ar, nombre: e.nombre == null ? null : Number(e.nombre) })),
       },
       a_agir: {
-        a_verifier: ecarts,
+        a_verifier: ecarts.map(avecTraduction),
         non_renseignes: indicateurs
           .filter((r) => r.statut === 'non_renseigne')
           .map((r) => ({ code: r.code, libelle_fr: r.libelle_fr, libelle_ar: r.libelle_ar })),

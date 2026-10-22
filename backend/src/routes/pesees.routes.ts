@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { avecTraduction } from '../services/avisAr.js';
 import { communeDemandee } from '../perimetre.js';
 
 export const peseesRouter = Router();
@@ -183,7 +184,7 @@ peseesRouter.get(
   asyncHandler(async (req, res) => {
     const communeId = communeDemandee(req);
     if (!communeId) throw new ApiError(400, 'Commune requise.');
-    res.json(await query('SELECT * FROM app.incoherences_pesees($1)', [communeId]));
+    res.json((await query<{ sujet: string; constat: string; quoi_faire: string }>('SELECT * FROM app.incoherences_pesees($1)', [communeId])).map(avecTraduction));
   })
 );
 

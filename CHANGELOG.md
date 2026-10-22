@@ -5,6 +5,39 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.67] — 2026-10-22 — « À vérifier » en arabe
+
+Les textes de « À vérifier » viennent de la base **en français seulement** : dans l'accueil et dans le panneau du constat,
+l'écran arabe affichait des lignes françaises. D4 (bibliothèque nationale) affichera les mêmes avis ; sans ce lot, il aurait
+eu le même défaut bilingue dans sa version arabe.
+
+### Ajouté
+- **L'arabe des avis, rendu par l'API** (`services/avisAr.ts`). Chaque avis de `GET /communes/{id}/coherence`,
+  `GET /communes/{id}/accueil`, `GET /pesees/coherence` et `GET /communication/coherence` porte désormais `sujet_ar`,
+  `constat_ar` et `quoi_faire_ar`. Les neuf fonctions `app.incoherences_*` ne changent pas : leur texte français reste
+  celui que la base écrit, mot pour mot. L'API reconnaît ce texte sur un **modèle** (le texte du SQL, `%s` pour une valeur) et
+  rend l'arabe correspondant ; les noms propres et les valeurs (un circuit, une immatriculation, un pourcentage) passent
+  tels quels, les mots d'un vocabulaire fermé (l'état d'un engin, la séance d'un carnet, la catégorie d'un acteur) sont
+  traduits. Soixante-huit textes, avec la terminologie de l'interface (engin = المعدة, circuit = المسلك, parc = الحظيرة,
+  réclamation = إبلاغ, inventaire = الجرد). Chiffres latins.
+- **Rien ne reste en français sans que les tests le disent.** Un texte qu'aucun modèle ne reconnaît rend `null` en arabe
+  (l'écran affiche alors le français, jamais un arabe approximatif). La campagne `avis-ar` (64e) lit la définition des
+  fonctions de la base, en retire chaque texte qu'elles écrivent et **exige un modèle pour chacun** ; elle exige aussi
+  qu'aucun modèle ne soit orphelin (une phrase française changée sans que l'arabe suive). Puis, dans une commune de test, elle
+  éprouve de bout en bout un circuit sans agent, un engin en panne confié à un circuit et un bâchage sous le seuil, par les
+  routes qui rendent les avis. Deux défauts introduits à la main (un modèle retiré, une phrase française changée) sont
+  détectés.
+
+### Modifié
+- « À vérifier » (portail) et l'accueil affichent l'arabe quand il existe (`texteAvis`), le français sinon. Dans l'accueil,
+  les avis regroupés gardent leur sujet arabe quand c'est un libellé fixe.
+
+### À savoir
+- **Les traductions sont à relire par un arabophone de la FNCT** avant l'usage réel : le vocabulaire reprend l'interface
+  existante, les phrases sont nouvelles. Elles se corrigent dans un seul fichier, `services/avisAr.ts`.
+- Tout nouvel avis ajouté à une fonction `app.incoherences_*` doit recevoir son modèle dans ce fichier, sans quoi
+  `npm test` échoue.
+
 ## [0.15.66] — 2026-10-22 — Jalon D, lot D3c : l'accueil du portail, les chiffres à retenir d'abord
 
 Affichage seulement : l'API de l'accueil (`GET /communes/{id}/accueil`, v0.15.63) ne change pas (SPEC_D § D3).

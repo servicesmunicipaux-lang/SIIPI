@@ -29,7 +29,7 @@ import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
 import { ChiffreCle } from '../ui/ChiffreCle';
 import { Pastille } from '../ui/Pastille';
-import { ecartVoulu } from './Coherence';
+import { ecartVoulu, texteAvis } from './Coherence';
 import { MaCommune } from './MaCommune';
 
 /** Combien de lignes un bloc montre avant de renvoyer à l'écran complet : un accueil n'est pas une liste de tâches de fond. */
@@ -83,8 +83,11 @@ interface EcartRegroupe {
   gravite: string;
   domaine: string;
   constat: string;
+  constat_ar: string | null;
   quoi_faire: string;
-  sujets: string[];
+  quoi_faire_ar: string | null;
+  /** Le sujet d'un avis : français, et arabe quand c'est un libellé fixe (un nom propre n'a pas d'arabe). */
+  sujets: { fr: string; ar: string | null }[];
 }
 
 function regrouper(ecarts: Ecart[]): EcartRegroupe[] {
@@ -92,8 +95,9 @@ function regrouper(ecarts: Ecart[]): EcartRegroupe[] {
   for (const e of ecarts) {
     const cle = `${e.gravite}|${e.domaine}|${e.constat}|${e.quoi_faire}`;
     const g = groupes.get(cle);
-    if (g) g.sujets.push(e.sujet);
-    else groupes.set(cle, { gravite: e.gravite, domaine: e.domaine, constat: e.constat, quoi_faire: e.quoi_faire, sujets: [e.sujet] });
+    const sujet = { fr: e.sujet, ar: e.sujet_ar };
+    if (g) g.sujets.push(sujet);
+    else groupes.set(cle, { gravite: e.gravite, domaine: e.domaine, constat: e.constat, constat_ar: e.constat_ar, quoi_faire: e.quoi_faire, quoi_faire_ar: e.quoi_faire_ar, sujets: [sujet] });
   }
   return [...groupes.values()].sort((a, b) => (RANG_GRAVITE[a.gravite] ?? 9) - (RANG_GRAVITE[b.gravite] ?? 9) || b.sujets.length - a.sujets.length);
 }
@@ -332,20 +336,24 @@ export function Accueil({
                   <li key={`${g.gravite}|${g.domaine}|${g.constat}`} className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 ${ALLURE_GRAVITE[g.gravite] ?? ALLURE_GRAVITE.information}`}>
                     <div className="min-w-0 flex-1 text-sm">
                       <p className="font-medium">
-                        {g.sujets.length > 1 && <span className="chiffres me-1.5 font-semibold">{formaterNombre(g.sujets.length)} ×</span>}
-                        {g.constat}
+                        {g.sujets.length > 1 && (
+                          <>
+                            <span className="chiffres font-semibold">{formaterNombre(g.sujets.length)} ×</span>{' '}
+                          </>
+                        )}
+                        {texteAvis(g.constat, g.constat_ar, ar)}
                       </p>
                       <p className="mt-0.5 text-xs opacity-90">
                         {/* Un nom en arabe dans une phrase française (ou l'inverse) s'inverse sans isolation. */}
                         {g.sujets.slice(0, SUJETS_NOMMES).map((sujet, i) => (
-                          <span key={`${sujet}-${i}`}>
+                          <span key={`${sujet.fr}-${i}`}>
                             {i > 0 && ' · '}
-                            <bdi>{sujet}</bdi>
+                            <bdi>{texteAvis(sujet.fr, sujet.ar, ar)}</bdi>
                           </span>
                         ))}
                         {g.sujets.length > SUJETS_NOMMES && ` ${t('communal.accueil.etAutres', { count: g.sujets.length - SUJETS_NOMMES })}`}
                       </p>
-                      <p className="mt-1 text-xs opacity-80">{g.quoi_faire}</p>
+                      <p className="mt-1 text-xs opacity-80">{texteAvis(g.quoi_faire, g.quoi_faire_ar, ar)}</p>
                     </div>
                     <button type="button" className={lien} onClick={() => onOuvrirEcran(ECRAN_DU_DOMAINE[g.domaine] ?? 'constat')}>
                       {t('communal.accueil.ouvrir')}
