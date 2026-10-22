@@ -2269,7 +2269,20 @@
       "ceQuiManque": "Ce qui manque",
       "tousLesIndicateurs": "Voir les {{count}} autre(s) indicateur(s)",
       "tousLesEcarts": "Voir les {{count}} autre(s) point(s) à vérifier",
-      "tousLesEntretiens": "Voir les {{count}} autre(s) entretien(s)"
+      "tousLesEntretiens": "Voir les {{count}} autre(s) entretien(s)",
+      "chiffres": {
+        "titre": "Les chiffres à retenir",
+        "constatRien": "Le constat du jour ne s'applique pas aujourd'hui.",
+        "constatDetail": "circuits contrôlés sur ceux attendus aujourd’hui",
+        "complet": "Complet",
+        "rien": "Rien",
+        "aVerifierRien": "Aucun point à vérifier.",
+        "aVerifierDetail": "regroupés en {{count}} avis",
+        "bloquants": "{{count}} bloquant(s)",
+        "nonRenseignesDetail": "indicateurs sans source : « Ce qui manque » dit quoi saisir",
+        "entretiensDetail": "dont {{count}} en retard"
+      },
+      "etAutres": "et {{count}} autre(s)"
     }
   },
   "ajout": {
