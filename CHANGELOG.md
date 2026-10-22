@@ -5,6 +5,137 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.66] — 2026-10-22 — Jalon D, lot D3c : l'accueil du portail, les chiffres à retenir d'abord
+
+Affichage seulement : l'API de l'accueil (`GET /communes/{id}/accueil`, v0.15.63) ne change pas (SPEC_D § D3).
+
+### Modifié
+- **Une bande de chiffres à retenir** en tête de l'accueil, chaque carte étant un bouton vers l'écran où l'on agit : le
+  constat du jour (« 0 / 13 »), les points à vérifier (avec une pastille « N bloquant(s) »), les indicateurs non
+  renseignés. **Des effectifs d'éléments, jamais un total, un pourcentage ou une note** : un score de « ce qui va bien »
+  recréerait le palmarès retiré au lot 1. Un zéro n'est affiché que s'il est réel : « aucun circuit attendu » se dit en
+  mots, pas « 0 / 0 ».
+- **Une carte d'entretiens n'apparaît que s'il y en a de dus.** Sans plan d'entretien, « 0 en retard » se lirait « le
+  parc est à jour », ce que rien ne prouve (règle 1.1).
+- **Les avis identiques se regroupent.** Soixante-six circuits « en régie sans agent affecté » faisaient soixante-six
+  lignes rouges ; ils font maintenant sept avis, chacun avec son nombre (« 13 × … »), ses trois premiers sujets et
+  « et N autres ». Aucun écart n'est caché : il est compté. Les noms isolés (`<bdi>`) pour qu'un nom arabe ne s'inverse pas
+  dans une phrase française.
+- Les deux blocs (« Ce qui va bien », « Ce qui demande une action ») ne s'étirent plus à la hauteur l'un de l'autre ;
+  la valeur d'un indicateur et sa source (pastille icône et mot) sont lisibles d'un coup d'œil ; le bouton de chaque
+  ligne reste au bord, les indicateurs absents sont en pointillés, les entretiens portent leur pastille.
+- Textes FR et AR.
+
+### À savoir (non modifié)
+- Les textes de « À vérifier » (constat, ce qu'il y a à faire) viennent de la base en **français seulement** : dans
+  l'accueil arabe, ces lignes restent en français. Les traduire demande une migration (une colonne arabe pour ces avis).
+- Captures avant/après, FR et AR, sur Dar Chaâbane El Fehri, montrées à Nacer et validées.
+
+## [0.15.65] — 2026-10-21 — Jalon D, lot D3b : la synthèse nationale, les chiffres-clés d'abord
+
+Affichage seulement : aucun calcul, aucune règle, aucun cloisonnement ne change (SPEC_D § D3).
+
+### Modifié
+- **Les chiffres-clés passent en tête** de la synthèse, sous le titre : adoption (« 0 / 350 communes actives »),
+  population couverte, tonnage pesé, réclamations — la valeur en grand (`ChiffreCle`), le libellé en phrase et non en
+  capitales. Le tonnage pesé porte une pastille « Pesé » (icône et mot). La carte d'un chiffre
+  (`Elements.tsx › CarteIndicateur`, aussi utilisée par l'écran Preuve du portail) prend les mêmes règles.
+- **Une valeur absente se tait** : une carte en pointillés et un mot discret, jamais un gros « Non renseigné » aussi
+  voyant qu'un chiffre. **Sans commune active, les réclamations sont « non renseignées »**, plus « 0 » : zéro
+  réclamation se lirait « aucun problème », alors que personne ne les enregistre encore (règle 1.1).
+- **Le suivi du déploiement** : la phrase verte devient quatre chiffres en grand — saisissent, inactives ce mois-ci, pas
+  encore démarrées, désactivées — chacun avec sa pastille ; la phrase entière reste pour les lecteurs d'écran. Le gris
+  des communes « pas encore démarrées » s'éclaircit dans l'histogramme.
+- Ordre de la page : le titre, une proposition de découpage à instruire s'il y en a (elle bloque la commune), les
+  chiffres-clés, la carte, le suivi mois par mois, le tableau par territoire.
+
+### Ajouté
+- **La carte « Où la plateforme est utilisée »** (`national/CarteDeploiement.tsx`), par gouvernorat ou par district
+  FNCT : chaque territoire est teinté selon la part de ses communes qui saisissent ce mois-ci, en cinq teintes ; la
+  bulle dit « N communes sur M ». **Gris : aucune commune n'y saisit encore** — pas « mauvais ». À côté, la légende et la
+  liste des territoires où l'on saisit, dans l'ordre alphabétique : un suivi, jamais un palmarès. Elle lit les données
+  existantes (`GET /observatoire/activite`, `GET /observatoire/contours-gouvernorats`) : aucune route nouvelle.
+- Textes FR et AR.
+
+### À savoir (non modifié)
+- La population couverte n'est pas marquée « estimée » : l'interface ne porte pas cette information par territoire.
+- La carte de répartition d'un indicateur (« Indicateurs & 5 axes ») garde son style.
+- Captures avant/après, FR et AR, montrées à Nacer ; la carte colorée a été vérifiée sur des communes fictives qui
+  saisissent, simulées dans le navigateur seulement (rien n'est écrit en base).
+
+## [0.15.64] — 2026-10-21 — Jalon D, lot D3a : l'écran Indicateurs, la valeur d'abord
+
+Affichage seulement : les calculs, les règles et le cloisonnement ne bougent pas (SPEC_D § D3).
+
+### Modifié
+- **La carte d'un indicateur** (`kpi/CarteIndicateur.tsx`) : la valeur en grand, son unité en petit, son libellé au-dessus ;
+  la source dite par une pastille avec un dessin et un mot (« Mesuré », « Déclaré »), et par un filet de couleur sur le
+  bord de la carte (propriété logique : il passe à droite en arabe). L'atteinte de l'objectif est un filet fin et les mots
+  « 33 % de l'objectif », seulement quand la commune a un objectif. La courbe de douze mois est plus discrète, et la
+  **tendance** dit l'écart entre le premier et le dernier mois renseignés (« +2,4 pts depuis mars 26 »), sans couleur ni
+  jugement — pour des réclamations, une hausse n'est pas un progrès — et seulement avec deux mois au moins.
+- **Un indicateur non renseigné se tait** : une carte en pointillés, le mot « Non renseigné » discret, « Voir ce qui
+  manque ». Dix-sept absences au même poids que deux mesures réelles les auraient noyées (règle 1.1 : jamais un 0, jamais
+  un « — » qui prétend calculer).
+- Le haut de l'écran : « 2 indicateurs calculables sur 19 » avec le nombre en grand ; les cartes des axes et l'indice
+  sur 100 reprennent le même chiffre en grand ; plus d'étiquette en capitales.
+- **Le panneau de détail** : le chiffre en tête avec sa source, plus d'espace entre les sections, titres lisibles.
+
+### Ajouté
+- Un petit kit visuel partagé, `composants/ui/` : `ChiffreCle` (le chiffre isolé, chiffres alignés, sans la police à chasse
+  fixe réservée aux colonnes) et `Pastille` (un état avec icône ET mot : la couleur ne porte jamais seule le sens, un
+  ton par sens — mesure, déclaré, attention, action, neutre). D3b et D3c s'en servent.
+- Textes FR et AR : libellés courts de source, suite de la couverture, tendance.
+
+### À savoir (non modifié)
+- Le graphique « 5 ans » d'un indicateur mesuré sur l'état du jour (ex. « Propreté générale, information et mesures
+  dissuasives ») est une ligne plate : la mesure est recalculée à l'identique pour chaque année. Il suggère un historique
+  qui n'existe pas. À traiter dans un lot à part, hors D3.
+- Captures avant/après, FR et AR, sur Dar Chaâbane El Fehri, montrées à Nacer avant la fin du lot (spec D3).
+
+## [0.15.63] — 2026-10-21 — Jalon D, lot D2 : l'accueil du portail communal
+
+### Ajouté
+- **Un écran d'accueil**, ouvert par défaut à l'entrée du portail (pôle Cockpit, avant « Constat du jour »), qui
+  remplace l'écran d'arrivée d'avant. Le logo et le nom de la commune restent en tête, comme sur tous les écrans ;
+  dessous, deux blocs et l'avancement du constat :
+  - **« Ce qui va bien »** : les indicateurs dont l'objectif est atteint (un objectif déclaré, un taux de 1) ; les
+    autres indicateurs calculés, sans jugement, avec leur valeur et leur source ; les registres tenus ce mois-ci.
+  - **« Ce qui demande une action »** : le contenu de « À vérifier » (les mêmes préférences de l'utilisateur
+    s'appliquent : un avis bloquant s'affiche toujours), les indicateurs non renseignés avec « Ce qui manque » — le
+    lien ouvre l'écran des indicateurs sur le panneau de CET indicateur —, les entretiens en retard ou à prévoir.
+  - **Le constat du jour** : « N circuits contrôlés sur M attendus aujourd'hui », et la porte vers l'écran du constat.
+  - Chaque ligne mène, en un clic, à l'écran où l'on agit ; un bloc montre cinq lignes, puis renvoie à l'écran
+    complet. La FNCT qui ouvre le portail d'une commune lit la même chose.
+- **Une commune qui n'a rien saisi** (hors population et périmètre, qui viennent du référentiel national) voit
+  « Ma commune dans SIIPI » — le parcours de démarrage — et non un tableau de zéros.
+- `GET /communes/{id}/accueil` (`routes/accueil.routes.ts`) : une réponse pour tout l'écran, plutôt que six appels lus
+  à des instants différents. Elle ne calcule rien de plus : indicateurs du service des 5 axes, registres de
+  `app.completude_commune`, écarts de `app.incoherences_commune`, entretiens de `app.echeances_entretien`. Une
+  commune hors du périmètre de l'appelant est introuvable (404). Aucune migration.
+- Campagne `accueil` (63e) : ce que la route refuse (sans compte, citoyen, prestataire, directeur d'une autre commune,
+  commune inconnue) ; ce que l'écran ne dit jamais (un total, un pourcentage, un indicateur sans source parmi ce qui
+  va bien, un non renseigné rangé avec ce qui va bien, un 95 % dit « objectif atteint ») ; puis le parcours — circuits
+  attendus et constat posé, déclarations, entretien en retard, écart bloquant. Deux défauts introduits à la main
+  (seuil d'objectif abaissé, contrôle de périmètre retiré) sont détectés.
+
+### Corrigé
+- **Une session dont le compte n'existe plus dit « reconnectez-vous ».** Le jeton est signé et l'API ne relit pas `users` à
+  chaque requête : après un rechargement de la base (jeu d'essai, restauration) ou la suppression du compte, une session
+  ouverte avant continuait de lire, puis son premier dépôt — un logo — échouait sur la clé « déposé par » et recevait
+  « Requête incohérente avec les données existantes », qui envoyait chercher un défaut dans le fichier. Une clé étrangère
+  refusée vers `users` est maintenant vérifiée : si l'appelant n'y est plus, c'est un 401, et l'écran revient à la
+  connexion. Toute autre clé refusée reste un 400. Éprouvé dans la campagne `logos-communes` (compte supprimé, dépôt
+  refusé en 401, rien enregistré).
+
+### Modifié
+- Le filtre des préférences d'alerte de « À vérifier » est une fonction partagée (`ecartVoulu`, `Coherence.tsx`) : l'accueil
+  ne montre pas ce que « À vérifier » masque.
+- `IndicateursCommune` accepte un indicateur d'ouverture (`codeInitial`).
+- Vérifié dans le navigateur sur les données de Dar Chaabane (13 circuits attendus, 66 points à vérifier dont 5
+  affichés, indicateurs non renseignés nommés), en français et en arabe (de droite à gauche), sur téléphone (pas de
+  débordement), et sur une commune vide.
+
 ## [0.15.62] — 2026-10-21 — L'observatoire : « Annuaire et carte » en une page, la carte mène au portail, « Modifier » gagne les coordonnées
 
 ### Modifié

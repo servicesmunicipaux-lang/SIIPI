@@ -23,13 +23,26 @@ const ALLURE: Record<string, string> = {
   information: 'border-ardoise-200 bg-ardoise-50 text-ardoise-700',
 };
 
+/**
+ * Ce que les préférences de chacun (Paramètres) laissent voir d'un avis — sauf
+ * un avis bloquant, qui s'affiche toujours : un engin en panne sur un circuit
+ * du jour ne se masque pas d'une case décochée un mois plus tôt. Partagé avec
+ * l'accueil du portail, qui ne doit pas montrer ce que « À vérifier » masque.
+ */
+export function ecartVoulu(e: Incoherence, { domainesMasques, graviteMin }: { domainesMasques: string[]; graviteMin: string }): boolean {
+  return (
+    e.gravite === 'bloquant' ||
+    (!domainesMasques.includes(e.domaine) && (RANG[e.gravite] ?? 9) <= (RANG[graviteMin] ?? 2))
+  );
+}
+
 export function Coherence({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
   const [ecarts, setEcarts] = useState<Incoherence[] | null>(null);
   const [tout, setTout] = useState(false);
   const [sansFiltre, setSansFiltre] = useState(false);
   const { utilisateur } = useAuth();
-  const { domainesMasques, graviteMin } = (utilisateur?.preferences ?? PREFERENCES_DEFAUT).alertes;
+  const alertes = (utilisateur?.preferences ?? PREFERENCES_DEFAUT).alertes;
 
   useEffect(() => {
     let annule = false;
@@ -46,12 +59,7 @@ export function Coherence({ communeId }: { communeId: string }) {
 
   if (!ecarts || ecarts.length === 0) return null;
 
-  // Les préférences de chacun (Paramètres) règlent ce qu'on lui montre — sauf
-  // un avis bloquant, qui s'affiche toujours : un engin en panne sur un
-  // circuit du jour ne se masque pas d'une case décochée un mois plus tôt.
-  const voulu = (e: Incoherence) =>
-    e.gravite === 'bloquant' ||
-    (!domainesMasques.includes(e.domaine as never) && (RANG[e.gravite] ?? 9) <= (RANG[graviteMin] ?? 2));
+  const voulu = (e: Incoherence) => ecartVoulu(e, alertes);
   const retenus = sansFiltre ? ecarts : ecarts.filter(voulu);
   const masques = ecarts.length - ecarts.filter(voulu).length;
   if (retenus.length === 0 && masques === 0) return null;

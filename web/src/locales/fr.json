@@ -45,7 +45,10 @@
       "reclamationsDetail": "déposées sur 30 jours",
       "tonnagePese": "Tonnage pesé (12 mois)",
       "tonnagePeseDetail": "tonnes, sur {{n}} communes pesées sur {{total}} — sans aucune estimation",
-      "tonnagePeseAucun": "Aucune pesée réelle enregistrée sur les douze derniers mois."
+      "tonnagePeseAucun": "Aucune pesée réelle enregistrée sur les douze derniers mois.",
+      "reclamationsAucune": "Aucune commune n'utilise encore la plateforme : rien n'est compté.",
+      "pese": "Pesé",
+      "titre": "Les chiffres-clés"
     },
     "tableau": {
       "titre": "Par gouvernorat",
@@ -298,7 +301,8 @@
         "inactives": "Inactives ce mois",
         "pas_demarrees": "Pas encore démarrées",
         "desactivees": "Désactivées"
-      }
+      },
+      "enMois": "En {{mois}}, sur {{total}} communes :"
     },
     "repartition": {
       "indicateur": "Indicateur",
@@ -419,6 +423,16 @@
       "essaiEnvoye": "Accepté par le serveur, à destination de {{adresse}}. Vérifiez qu’il est arrivé.",
       "essaiEchec": "Le serveur a refusé : {{erreur}}",
       "essaiNonConfigure": "Rien n’est parti : aucun serveur n’est désigné."
+    },
+    "carteDeploiement": {
+      "titre": "Où la plateforme est utilisée",
+      "aide": "Chaque territoire est teinté selon la part de ses communes qui saisissent ce mois-ci. Gris : aucune commune n'y saisit encore — ce n'est pas un classement.",
+      "bulle": "{{n}} commune(s) sur {{total}} saisissent ce mois-ci",
+      "legende": "Légende de la carte",
+      "aucune": "Aucune commune n'y saisit",
+      "partCommunes": "Part des communes qui saisissent",
+      "ouOnSaisit": "Où l'on saisit ce mois-ci",
+      "personne": "Aucune commune ne saisit ce mois-ci : la carte reste grise."
     }
   },
   "commun": {
@@ -701,6 +715,7 @@
     "navigation": "Navigation de l’espace communal",
     "sansCommune": "Votre compte n’est rattaché à aucune commune. Contactez l’administrateur national.",
     "onglets": {
+      "accueil": "Accueil",
       "constat": "Constat du jour",
       "reclamations": "Réclamations",
       "suggestions": "Points suggérés",
@@ -2229,6 +2244,45 @@
       "annuler": "Annuler…",
       "motif": "Motif de l’annulation de {{numero}} (cinq caractères au moins) :",
       "annule": "{{numero}} annulé ; son numéro reste au registre."
+    },
+    "accueil": {
+      "titre": "Accueil",
+      "dateDuJour": "Aujourd’hui, {{jour}}.",
+      "communeVide": "Votre commune n’a encore rien saisi dans SIIPI : il n’y a donc rien à afficher, et rien n’est compté à zéro. Voici ce qu’il y a à poser en premier.",
+      "constatTitre": "Le constat du jour",
+      "constatAucun": "Aucun circuit n’est attendu aujourd’hui.",
+      "constatFaire": "Faire le constat",
+      "constatVoir": "Voir le constat",
+      "vaBien": "Ce qui va bien",
+      "demandeAction": "Ce qui demande une action",
+      "rienDeCalcule": "Aucun indicateur n’est encore calculé et aucun registre n’est tenu ce mois-ci : rien à signaler ici pour l’instant.",
+      "rienAAgir": "Rien ne demande d’action pour le moment.",
+      "objectifAtteint": "Objectif atteint",
+      "calcules": "Indicateurs calculés",
+      "registres": "Registres tenus ce mois-ci",
+      "aVerifier": "À vérifier",
+      "nonRenseignes": "Indicateurs non renseignés",
+      "entretiens": "Entretiens à traiter",
+      "objectif": "objectif {{cible}}",
+      "voir": "Voir",
+      "ouvrir": "Ouvrir",
+      "ceQuiManque": "Ce qui manque",
+      "tousLesIndicateurs": "Voir les {{count}} autre(s) indicateur(s)",
+      "tousLesEcarts": "Voir les {{count}} autre(s) point(s) à vérifier",
+      "tousLesEntretiens": "Voir les {{count}} autre(s) entretien(s)",
+      "chiffres": {
+        "titre": "Les chiffres à retenir",
+        "constatRien": "Le constat du jour ne s'applique pas aujourd'hui.",
+        "constatDetail": "circuits contrôlés sur ceux attendus aujourd’hui",
+        "complet": "Complet",
+        "rien": "Rien",
+        "aVerifierRien": "Aucun point à vérifier.",
+        "aVerifierDetail": "regroupés en {{count}} avis",
+        "bloquants": "{{count}} bloquant(s)",
+        "nonRenseignesDetail": "indicateurs sans source : « Ce qui manque » dit quoi saisir",
+        "entretiensDetail": "dont {{count}} en retard"
+      },
+      "etAutres": "et {{count}} autre(s)"
     }
   },
   "ajout": {
@@ -2731,6 +2785,10 @@
       "aide": {
         "mesure": "Mesuré par un registre de la plateforme : cette valeur prime sur la déclaration.",
         "declare": "Déclaré par la commune, faute de mesure par la plateforme. La valeur vaut dès son enregistrement."
+      },
+      "court": {
+        "mesure": "Mesuré",
+        "declare": "Déclaré"
       }
     },
     "colonnes": {
@@ -2815,7 +2873,8 @@
     "couverture": {
       "titre": "Couverture des indicateurs",
       "texte": "{{calculables}} indicateurs calculables sur {{total}}",
-      "aide": "Un indicateur est calculable quand une mesure de la plateforme ou une valeur déclarée l'alimente. Ceux qui ne concernent pas la commune (pas d'abattoir, décharge contrôlée par l'ANGeD) sortent du total."
+      "aide": "Un indicateur est calculable quand une mesure de la plateforme ou une valeur déclarée l'alimente. Ceux qui ne concernent pas la commune (pas d'abattoir, décharge contrôlée par l'ANGeD) sortent du total.",
+      "suite": "indicateurs calculables sur {{total}}"
     },
     "declarations": {
       "aide": "Les valeurs que la plateforme ne mesure pas. Une valeur enregistrée s'affiche tout de suite, avec le badge « déclaré » : aucune validation n'est attendue. Une case vide reste « non renseignée » ; pour dire « aucun », saisir 0.",
@@ -2856,6 +2915,10 @@
         "annuelle": "Valeur annuelle : pas de courbe mensuelle",
         "actuelle": "État d'aujourd'hui : pas de courbe",
         "mensuelle": ""
+      },
+      "tendance": {
+        "evolue": "{{ecart}} depuis {{mois}}",
+        "stable": "Stable depuis {{mois}}"
       }
     },
     "donnees": {

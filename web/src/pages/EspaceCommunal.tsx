@@ -1,6 +1,7 @@
 // Espace du directeur de la propreté.
 //
-// L'ordre des onglets est celui de sa journée : le constat du matin d'abord,
+// L'ordre des onglets est celui de sa journée : l'accueil d'abord (ce qui va bien,
+// ce qui demande une action), le constat du matin ensuite,
 // les réclamations ensuite, la preuve quand il doit rendre des comptes, les
 // circuits seulement quand l'organisation change, les comptes en dernier —
 // on n'ouvre pas des accès tous les jours.
@@ -17,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { BandeauCommune } from '../composants/communal/BandeauCommune';
 import { useAuth } from '../lib/auth';
 import { api } from '../lib/api';
+import { Accueil } from '../composants/communal/Accueil';
 import { ConstatDuJour } from '../composants/communal/ConstatDuJour';
 import { Reclamations } from '../composants/communal/Reclamations';
 import { Preuve } from '../composants/communal/Preuve';
@@ -46,7 +48,7 @@ import { MaCommune } from '../composants/communal/MaCommune';
 import { EcranWapla } from '../composants/wapla/EcranWapla';
 import type { EcranAjout } from '../composants/ajout/registre';
 
-type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
+type Onglet = 'accueil' | 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -61,6 +63,8 @@ type Onglet = 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions'
 // réglages, posé à part en bas. Forcer « Comptes » dans un pôle métier ferait
 // chercher les accès là où personne ne les cherche.
 const ENTREES: EntreeNavigation<Onglet>[] = [
+  // L'écran d'arrivée (jalon D, lot D2) : il renvoie à tous les autres.
+  { cle: 'accueil',       pole: 'cockpit' },
   { cle: 'constat',       pole: 'cockpit' },
 
   { cle: 'carte',         pole: 'terrain' },
@@ -106,7 +110,9 @@ export function EspaceCommunal({
 } = {}) {
   const { t } = useTranslation();
   const { utilisateur } = useAuth();
-  const [onglet, setOnglet] = useState<Onglet>('constat');
+  const [onglet, setOnglet] = useState<Onglet>('accueil');
+  // L'indicateur que l'accueil a désigné : l'écran des indicateurs s'ouvre sur son panneau.
+  const [indicateurCible, setIndicateurCible] = useState<string | null>(null);
   // Le catalogue « + Ajouter » (refonte, lot 2b). Après un enregistrement,
   // l'écran ouvert se remonte (`version`) : sa liste montre la ligne ajoutée
   // sans qu'on ait à le recharger.
@@ -249,6 +255,7 @@ export function EspaceCommunal({
           actif={onglet}
           onChoisir={(o) => {
             setAnnonce(null);
+            setIndicateurCible(null);
             setOnglet(o);
           }}
           libelle={t('communal.navigation')}
@@ -280,6 +287,21 @@ export function EspaceCommunal({
           un écran garderait les données de la commune précédente le temps de
           son rechargement, et on lirait Sfax sous le nom de Nabeul. */}
       <div key={`${communeId}-${version}`}>
+        {onglet === 'accueil' && (
+          <Accueil
+            communeId={communeId}
+            fnct={estFnct}
+            // Chaque ligne de l'accueil mène à un écran du menu : une clé inconnue est ignorée.
+            onOuvrirEcran={(ecran) => {
+              const cible = entrees.find((e) => e.cle === ecran);
+              if (cible) setOnglet(cible.cle);
+            }}
+            onOuvrirIndicateur={(code) => {
+              setIndicateurCible(code);
+              setOnglet('indicateurs');
+            }}
+          />
+        )}
         {onglet === 'constat' && <ConstatDuJour communeId={communeId} />}
         {onglet === 'carte' && <CarteCommunale communeId={communeId} />}
         {onglet === 'decoupage' && <DecoupageCommune communeId={communeId} />}
@@ -290,6 +312,7 @@ export function EspaceCommunal({
           <IndicateursCommune
             communeId={communeId}
             fnct={estFnct}
+            codeInitial={indicateurCible}
             // « Ce qui manque » peut conduire à un écran (pesées, parc…) : seule
             // une entrée du menu est acceptée.
             onOuvrirEcran={(ecran) => {

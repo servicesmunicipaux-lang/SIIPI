@@ -73,6 +73,15 @@
     unicode-bidi: embed;
   }
 
+  /* Un chiffre isolé, en grand (ChiffreCle) : la police de l'écran, aux chiffres
+     alignés, resserrée. Lu de gauche à droite en arabe aussi, comme `.chiffres`. */
+  .chiffre-cle {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    direction: ltr;
+    unicode-bidi: embed;
+  }
+
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-siipi-600;
   }

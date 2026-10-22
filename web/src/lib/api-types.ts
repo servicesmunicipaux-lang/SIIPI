@@ -22559,6 +22559,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/communes/{id}/accueil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * L’accueil du portail : ce qui va bien, ce qui demande une action
+         * @description Une réponse pour l’écran d’arrivée du portail communal (jalon D, lot D2). Elle réunit, sans rien recalculer d’autre, les indicateurs du service des 5 axes, les registres de « Ma commune dans SIIPI », les écarts de « À vérifier », les entretiens dus et l’avancement du constat du jour. Ni total, ni pourcentage, ni note ; une donnée absente reste absente, jamais un zéro.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La synthèse du jour. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccueilCommune"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fichiers/conservation": {
         parameters: {
             query?: never;
@@ -28398,6 +28475,67 @@ export interface components {
             tailleOctets: number;
             /** @description Un logo était en vigueur : il est retiré, et reste dans l’historique. */
             remplace: boolean;
+        };
+        IndicateurAccueil: {
+            code: string;
+            libelle_fr: string;
+            libelle_ar: string;
+            unite: string | null;
+            valeur: number | null;
+            /** @description L’objectif déclaré par la commune ; null quand elle n’en a pas. */
+            cible: number | null;
+            /** @description Entre 0 et 1 pour un indicateur rapporté à un objectif ; null sinon. */
+            taux_atteinte: number | null;
+            /** @enum {string|null} */
+            source: "mesure" | "declare" | null;
+        };
+        AccueilCommune: {
+            /** @description Le jour à Tunis, AAAA-MM-JJ. */
+            jour: string;
+            annee: number;
+            /** @description Vrai quand la commune n’a rien saisi elle-même (population et périmètre, qui viennent du référentiel national, ne comptent pas) : l’écran ouvre le parcours de démarrage au lieu d’un tableau vide. */
+            commune_vide: boolean;
+            constat: {
+                /** @description Les circuits actifs attendus aujourd’hui. */
+                attendus: number;
+                /** @description Ceux dont le constat du jour est posé. */
+                saisis: number;
+            };
+            va_bien: {
+                /** @description Les indicateurs calculés dont l’objectif déclaré est atteint. Un indicateur sans objectif n’y figure jamais. */
+                objectif_atteint: components["schemas"]["IndicateurAccueil"][];
+                /** @description Les autres indicateurs calculés ou déclarés, sans jugement : une valeur et sa source. */
+                calcules: components["schemas"]["IndicateurAccueil"][];
+                /** @description Les registres tenus ce mois-ci. */
+                registres: {
+                    code: string;
+                    libelle_fr: string;
+                    libelle_ar: string;
+                    /** @description Ce qu’il y a dans le registre ce mois-ci ; null quand l’élément n’a pas de compte. */
+                    nombre: number | null;
+                }[];
+            };
+            a_agir: {
+                /** @description Les écarts de « À vérifier », tous : l’écran applique les préférences de l’utilisateur. */
+                a_verifier: components["schemas"]["Incoherence"][];
+                /** @description Les indicateurs applicables dont la valeur n’est pas renseignée : jamais un zéro. */
+                non_renseignes: {
+                    code: string;
+                    libelle_fr: string;
+                    libelle_ar: string;
+                }[];
+                /** @description Les entretiens dus, en retard d’abord ; les plans à jour n’y figurent pas. */
+                entretiens: {
+                    plan_id: string;
+                    vehicule_id: string;
+                    registration: string;
+                    libelle: string;
+                    echeance_date: string | null;
+                    jours_restants: number | null;
+                    /** @enum {string} */
+                    statut: "en_retard" | "a_prevoir" | "a_verifier";
+                }[];
+            };
         };
         PassageConservation: {
             id: number;

@@ -19,12 +19,17 @@ import { api, ErreurApi, type LigneActivite, type NiveauActivite } from '../../l
 import { formaterNombre } from '../../i18n';
 import { BoutonExport } from '../BoutonExport';
 import { Chargement } from '../Elements';
+import { ChiffreCle } from '../ui/ChiffreCle';
+import { Pastille, type TonPastille } from '../ui/Pastille';
 import { bornesFenetre, libelleMois } from '../kpi/temps';
+
+/** Le ton de la pastille de chaque catégorie : le mot et le dessin disent ce que la couleur ne dit pas seule. */
+const TON: Record<string, TonPastille> = { saisissent: 'mesure', inactives: 'attention', pas_demarrees: 'neutre', desactivees: 'neutre' };
 
 const CATEGORIES = [
   { cle: 'saisissent', couleur: '#13784f' },
   { cle: 'inactives', couleur: '#d97706' },
-  { cle: 'pas_demarrees', couleur: '#b6bec9' },
+  { cle: 'pas_demarrees', couleur: '#cfd5dc' },
   { cle: 'desactivees', couleur: '#4b5563' },
 ] as const;
 
@@ -70,16 +75,30 @@ export function SuiviDeploiement() {
       </div>
 
       {dernier && (
-        <p className="rounded-xl border border-siipi-200 bg-siipi-50 p-3 text-sm text-siipi-950">
-          {t('national.deploiement.phrase', {
-            mois: libelleMois(dernier.mois.slice(0, 7), i18n.language),
-            saisissent: formaterNombre(dernier.saisissent),
-            inactives: formaterNombre(dernier.inactives),
-            pasDemarrees: formaterNombre(dernier.pas_demarrees),
-            desactivees: formaterNombre(dernier.desactivees),
-            total: formaterNombre(dernier.communes),
-          })}
-        </p>
+        <div className="rounded-lg border border-ardoise-200 bg-white p-4">
+          {/* La phrase entière reste pour les lecteurs d'écran ; les chiffres en grand sont pour l'œil. */}
+          <p className="sr-only">
+            {t('national.deploiement.phrase', {
+              mois: libelleMois(dernier.mois.slice(0, 7), i18n.language),
+              saisissent: formaterNombre(dernier.saisissent),
+              inactives: formaterNombre(dernier.inactives),
+              pasDemarrees: formaterNombre(dernier.pas_demarrees),
+              desactivees: formaterNombre(dernier.desactivees),
+              total: formaterNombre(dernier.communes),
+            })}
+          </p>
+          <p className="text-sm text-ardoise-600" aria-hidden="true">
+            {t('national.deploiement.enMois', { mois: libelleMois(dernier.mois.slice(0, 7), i18n.language), total: formaterNombre(dernier.communes) })}
+          </p>
+          <ul className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4" aria-hidden="true">
+            {CATEGORIES.map((c) => (
+              <li key={c.cle} className="space-y-2">
+                <Pastille ton={TON[c.cle]}>{t(`national.deploiement.categories.${c.cle}`)}</Pastille>
+                <p><ChiffreCle valeur={formaterNombre(dernier[c.cle])} taille="lg" /></p>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* Le temps de gauche à droite, en arabe aussi (SPEC § 6). */}

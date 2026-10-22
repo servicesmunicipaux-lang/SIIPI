@@ -6771,6 +6771,66 @@ registry.registerPath({
   },
 });
 
+const IndicateurAccueil = registry.register(
+  'IndicateurAccueil',
+  z.object({
+    code: z.string(),
+    libelle_fr: z.string(),
+    libelle_ar: z.string(),
+    unite: z.string().nullable(),
+    valeur: z.number().nullable(),
+    cible: z.number().nullable().openapi({ description: 'L’objectif déclaré par la commune ; null quand elle n’en a pas.' }),
+    taux_atteinte: z.number().nullable().openapi({ description: 'Entre 0 et 1 pour un indicateur rapporté à un objectif ; null sinon.' }),
+    source: z.enum(['mesure', 'declare']).nullable(),
+  })
+);
+const AccueilCommune = registry.register(
+  'AccueilCommune',
+  z.object({
+    jour: z.string().openapi({ description: 'Le jour à Tunis, AAAA-MM-JJ.' }),
+    annee: z.number().int(),
+    commune_vide: z.boolean().openapi({
+      description: 'Vrai quand la commune n’a rien saisi elle-même (population et périmètre, qui viennent du référentiel national, ne comptent pas) : l’écran ouvre le parcours de démarrage au lieu d’un tableau vide.',
+    }),
+    constat: z.object({
+      attendus: z.number().int().openapi({ description: 'Les circuits actifs attendus aujourd’hui.' }),
+      saisis: z.number().int().openapi({ description: 'Ceux dont le constat du jour est posé.' }),
+    }),
+    va_bien: z.object({
+      objectif_atteint: z.array(IndicateurAccueil).openapi({ description: 'Les indicateurs calculés dont l’objectif déclaré est atteint. Un indicateur sans objectif n’y figure jamais.' }),
+      calcules: z.array(IndicateurAccueil).openapi({ description: 'Les autres indicateurs calculés ou déclarés, sans jugement : une valeur et sa source.' }),
+      registres: z.array(z.object({
+        code: z.string(), libelle_fr: z.string(), libelle_ar: z.string(),
+        nombre: z.number().nullable().openapi({ description: 'Ce qu’il y a dans le registre ce mois-ci ; null quand l’élément n’a pas de compte.' }),
+      })).openapi({ description: 'Les registres tenus ce mois-ci.' }),
+    }),
+    a_agir: z.object({
+      a_verifier: z.array(Incoherence).openapi({ description: 'Les écarts de « À vérifier », tous : l’écran applique les préférences de l’utilisateur.' }),
+      non_renseignes: z.array(z.object({ code: z.string(), libelle_fr: z.string(), libelle_ar: z.string() }))
+        .openapi({ description: 'Les indicateurs applicables dont la valeur n’est pas renseignée : jamais un zéro.' }),
+      entretiens: z.array(z.object({
+        plan_id: z.string(), vehicule_id: z.string(), registration: z.string(), libelle: z.string(),
+        echeance_date: z.string().nullable(), jours_restants: z.number().int().nullable(),
+        statut: z.enum(['en_retard', 'a_prevoir', 'a_verifier']),
+      })).openapi({ description: 'Les entretiens dus, en retard d’abord ; les plans à jour n’y figurent pas.' }),
+    }),
+  })
+);
+registry.registerPath({
+  method: 'get',
+  path: '/communes/{id}/accueil',
+  tags: ['Communes'],
+  summary: 'L’accueil du portail : ce qui va bien, ce qui demande une action',
+  description:
+    'Une réponse pour l’écran d’arrivée du portail communal (jalon D, lot D2). Elle réunit, sans rien recalculer d’autre, les indicateurs du service des 5 axes, les registres de « Ma commune dans SIIPI », les écarts de « À vérifier », les entretiens dus et l’avancement du constat du jour. Ni total, ni pourcentage, ni note ; une donnée absente reste absente, jamais un zéro.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().openapi({ description: 'Identifiant de la commune.', example: 'nabeul_dar_chaabane_el_fehri' }) }) },
+  responses: {
+    200: json(AccueilCommune, 'La synthèse du jour.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+
 const PassageConservation = registry.register(
   'PassageConservation',
   z.object({
@@ -7770,7 +7830,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.62',
+      version: '0.15.66',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
