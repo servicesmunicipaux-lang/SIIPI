@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formaterNombre } from '../i18n';
 import { ErreurApi, lireOctetsFichier } from '../lib/api';
+import { ChiffreCle } from './ui/ChiffreCle';
 
 /* ---------------------------------------------------------------------------
    Badge de statut de déploiement — TDR §3.1.2 A2.5
@@ -60,32 +61,57 @@ export function BadgeProvenance({ provenance }: { provenance: Provenance }) {
    Carte d'indicateur
    --------------------------------------------------------------------------- */
 
+/**
+ * La carte d'un chiffre-clé (jalon D, lot D3b) : le libellé, la valeur en grand,
+ * puis ce qu'elle dit. Une valeur ABSENTE se tait — une carte en pointillés et un
+ * mot discret, jamais un gros « Non renseigné » aussi voyant qu'un vrai chiffre
+ * (règle 1.1). `marque` pose un état en toutes lettres (une Pastille) : « Pesé »,
+ * « Estimé » — la couleur ne porte jamais seule le sens.
+ */
 export function CarteIndicateur({
   libelle,
   valeur,
+  unite,
   detail,
   accent,
+  absent,
+  marque,
 }: {
   libelle: string;
   valeur: ReactNode;
+  /** L'unité, en petit à côté de la valeur. */
+  unite?: string;
   detail: string;
   accent?: boolean;
+  /** La valeur n'existe pas : elle se dit en petit, la carte passe en pointillés. */
+  absent?: boolean;
+  marque?: ReactNode;
 }) {
+  const enGrand = typeof valeur === 'string' || typeof valeur === 'number';
   return (
     <div
-      className={`rounded-xl border p-4 sm:p-5 ${
-        accent ? 'border-siipi-300 bg-siipi-50' : 'border-ardoise-200 bg-white'
+      className={`rounded-lg border p-4 sm:p-5 ${
+        absent
+          ? 'border-dashed border-ardoise-300 bg-ardoise-50/60'
+          : accent
+            ? 'border-siipi-300 bg-siipi-50'
+            : 'border-ardoise-200 bg-white'
       }`}
     >
-      <p className="text-xs font-semibold tracking-wide text-ardoise-500 uppercase">{libelle}</p>
-      <p
-        className={`chiffres-titre mt-2 text-3xl font-bold sm:text-4xl ${
-          accent ? 'text-siipi-700' : 'text-ardoise-900'
-        }`}
-      >
-        {valeur}
+      <div className="flex items-start justify-between gap-2">
+        <p className={`text-sm leading-snug ${absent ? 'text-ardoise-600' : 'font-medium text-ardoise-700'}`}>{libelle}</p>
+        {marque}
+      </div>
+      <p className="mt-3">
+        {absent ? (
+          <span className="text-sm text-ardoise-500">{valeur}</span>
+        ) : enGrand ? (
+          <ChiffreCle valeur={String(valeur)} unite={unite} taille={accent ? 'xl' : 'lg'} />
+        ) : (
+          valeur
+        )}
       </p>
-      <p className="mt-1 text-sm text-ardoise-500">{detail}</p>
+      <p className="mt-2 text-sm text-ardoise-500">{detail}</p>
     </div>
   );
 }
