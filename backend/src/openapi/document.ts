@@ -75,6 +75,7 @@ import { chargementEtudeSchema } from '../routes/coutComplet.routes.js';
 import { inscriptionActeurSchema, faitsActeurSchema, demarcheSchema } from '../routes/acteursInformels.routes.js';
 import { demandeRestaurationSchema, fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { depotLogoSchema } from '../routes/logosCommunes.routes.js';
+import { elementSchema as elementBibliothequeSchema, qLignesSchema as qLignesBibliothequeSchema } from '../routes/bibliotheque.routes.js';
 import { rapportEtudeDepotSchema, rapportEtudeVersionSchema } from '../routes/rapportsEtudes.routes.js';
 import { contactSchema, majContactSchema, importContactsSchema } from '../routes/contacts.routes.js';
 import {
@@ -6834,6 +6835,100 @@ registry.registerPath({
   },
 });
 
+const ElementBibliotheque = z.enum([
+  'pcgd', 'rapports_etudes', 'cout_complet', 'caracterisation', 'population', 'pesees', 'circuits', 'points', 'reclamations',
+]);
+const TerritoireBibliotheque = z.object({
+  cle: z.string(),
+  nom: z.string(),
+  communes: z.number().int().openapi({ description: 'Les communes réelles du territoire (le « M » de « N sur M »).' }),
+  communes_avec: z.number().int().openapi({ description: 'Celles qui tiennent cet élément dans SIIPI (le « N »). Zéro est un vrai zéro : aucune n’en a.' }),
+  nombre: z.number().int(),
+  derniere: z.string().nullable(),
+});
+const LigneBibliotheque = registry.register(
+  'LigneBibliotheque',
+  z.object({
+    commune_id: z.string(),
+    commune: z.string(),
+    commune_ar: z.string().nullable(),
+    gouvernorat: z.string(),
+    intitule: z.string().nullable().openapi({ description: 'Le titre d’un document ; le niveau de la source pour une caractérisation ; absent pour une série.' }),
+    annee: z.number().int().nullable(),
+    auteur: z.string().nullable(),
+    statut: z.string().nullable().openapi({ description: 'Le statut d’un PCGD, la catégorie d’un rapport ou le niveau de source d’une caractérisation.' }),
+    nature: z.string().nullable().openapi({ description: '« pese » pour les pesées ; « declaree » ou « estimee » pour la population.' }),
+    nombre: z.number().int().openapi({ description: 'Le nombre d’éléments — ou la population, pour l’élément « population ».' }),
+    premiere: z.string().nullable(),
+    derniere: z.string().nullable(),
+    mois_couverts: z.number().int().nullable().openapi({ description: 'Pour les pesées : le nombre de mois où il y en a.' }),
+  })
+);
+const BibliothequeCatalogue = registry.register(
+  'BibliothequeCatalogue',
+  z.object({
+    communes_total: z.number().int().openapi({ description: 'Les communes réelles : ni la démonstration, ni une commune retirée.' }),
+    elements: z.array(
+      z.object({
+        element: ElementBibliotheque,
+        groupe: z.enum(['documents', 'references', 'series']),
+        communes_avec: z.number().int(),
+        nombre: z.number().int(),
+        premiere: z.string().nullable(),
+        derniere: z.string().nullable(),
+        repartition: z.record(z.string(), z.number().int()).openapi({
+          description: 'Le nombre de communes par statut, niveau ou nature (adopté, en préparation… ; estimée, déclarée…) ; vide quand l’élément n’en distingue pas.',
+        }),
+      })
+    ),
+  })
+);
+const BibliothequeDetail = registry.register(
+  'BibliothequeDetail',
+  z.object({
+    element: ElementBibliotheque,
+    groupe: z.enum(['documents', 'references', 'series']),
+    communes_total: z.number().int(),
+    communes_avec: z.number().int(),
+    repartition: z.record(z.string(), z.number().int()),
+    gouvernorats: z.array(TerritoireBibliotheque).openapi({ description: 'Dans l’ordre alphabétique : un catalogue, pas un classement.' }),
+    districts: z.array(TerritoireBibliotheque),
+    lignes: z.array(LigneBibliotheque),
+  })
+);
+registry.registerPath({
+  method: 'get',
+  path: '/bibliotheque',
+  tags: ['Observatoire national'],
+  summary: 'La bibliothèque nationale des données : le catalogue (FNCT)',
+  description:
+    'Neuf éléments — PCGD, études et rapports, coût complet, caractérisation, population, pesées, circuits, points relevés, réclamations — avec, pour chacun, « N communes sur M », la période couverte et la répartition par statut ou nature. Lecture seule, réservée à la FNCT, aucun accès aux fichiers eux-mêmes. Un élément qu’aucune commune n’a rend zéro commune, jamais une valeur posée à sa place.',
+  security: SECURISE,
+  responses: { 200: json(BibliothequeCatalogue, 'Le catalogue.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get',
+  path: '/bibliotheque/lignes',
+  tags: ['Observatoire national'],
+  summary: 'La bibliothèque à plat, exportable (FNCT)',
+  description:
+    'Une ligne par document, et une ligne par commune pour les séries et les références, dans l’ordre alphabétique (gouvernorat, commune, intitulé). Excel ou CSV avec `format`. Le catalogue d’un élément se filtre avec `element`.',
+  security: SECURISE,
+  request: { query: qLignesBibliothequeSchema.extend(paramsExport) },
+  responses: { 200: jsonOuExport(z.array(LigneBibliotheque.extend({ nombre: z.number().int() })), 'Les lignes.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get',
+  path: '/bibliotheque/{element}',
+  tags: ['Observatoire national'],
+  summary: 'Un élément de la bibliothèque : par territoire, puis commune par commune (FNCT)',
+  description:
+    'Par gouvernorat et par district FNCT (« N communes sur M », ordre alphabétique), puis les lignes : le titre, l’auteur, l’année et le statut des documents d’une commune, ou le nombre et la période de ses séries. Un élément inconnu est introuvable (404).',
+  security: SECURISE,
+  request: { params: elementBibliothequeSchema },
+  responses: { 200: json(BibliothequeDetail, 'L’élément en détail.'), ...REPONSES_COMMUNES },
+});
+
 const PassageConservation = registry.register(
   'PassageConservation',
   z.object({
@@ -7833,7 +7928,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.67',
+      version: '0.15.68',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

@@ -18,6 +18,7 @@ import { authRouter } from './routes/auth.routes.js';
 import { communesRouter } from './routes/communes.routes.js';
 import { logosCommunesRouter } from './routes/logosCommunes.routes.js';
 import { accueilRouter } from './routes/accueil.routes.js';
+import { bibliothequeRouter } from './routes/bibliotheque.routes.js';
 import { trucksRouter } from './routes/trucks.routes.js';
 import { containersRouter } from './routes/containers.routes.js';
 import { ticketsRouter } from './routes/tickets.routes.js';
@@ -193,6 +194,7 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/communes', communesRouter],
   ['/communes', logosCommunesRouter],
   ['/communes', accueilRouter],
+  ['/bibliotheque', bibliothequeRouter],
   ['/trucks', trucksRouter],
   ['/containers', containersRouter],
   ['/tickets', ticketsRouter],

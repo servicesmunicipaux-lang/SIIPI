@@ -354,3 +354,60 @@ export const JEU_REPARTITION_COMMUNES: JeuExport = {
     },
   ],
 };
+
+const ELEMENTS_BIBLIOTHEQUE = {
+  pcgd: { fr: 'PCGD', ar: 'المخطط البلدي' },
+  rapports_etudes: { fr: 'Études et rapports', ar: 'الدراسات والتقارير' },
+  cout_complet: { fr: 'Coût complet', ar: 'الكلفة الكاملة' },
+  caracterisation: { fr: 'Caractérisation des déchets', ar: 'تصنيف النفايات' },
+  population: { fr: 'Population', ar: 'السكان' },
+  pesees: { fr: 'Pesées', ar: 'عمليات الوزن' },
+  circuits: { fr: 'Circuits', ar: 'المسالك' },
+  points: { fr: 'Points relevés', ar: 'النقاط المرفوعة' },
+  reclamations: { fr: 'Réclamations', ar: 'الإبلاغات' },
+};
+
+const NATURES_BIBLIOTHEQUE = {
+  pese: { fr: 'Pesé', ar: 'موزون' },
+  declaree: { fr: 'Déclarée par la commune', ar: 'مصرّح بها من البلدية' },
+  estimee: { fr: 'Estimée (référentiel national)', ar: 'تقديرية (المرجع الوطني)' },
+};
+
+// Le statut d'un PCGD, la catégorie d'un rapport et le niveau de source d'une caractérisation
+// partagent une colonne : leurs codes ne se recouvrent pas.
+const STATUTS_BIBLIOTHEQUE = {
+  adopte: { fr: 'Adopté', ar: 'مصادق عليه' },
+  en_preparation: { fr: 'En préparation', ar: 'في طور الإعداد' },
+  en_revision: { fr: 'En révision', ar: 'في طور المراجعة' },
+  etude_technique: { fr: 'Étude technique', ar: 'دراسة تقنية' },
+  rapport_activite: { fr: 'Rapport d’activité', ar: 'تقرير نشاط' },
+  audit: { fr: 'Audit', ar: 'تدقيق' },
+  plan_action: { fr: 'Plan d’action', ar: 'خطة عمل' },
+  autre: { fr: 'Autre', ar: 'أخرى' },
+  moyenne_nationale_anged: { fr: 'Moyenne nationale ANGeD', ar: 'المعدل الوطني للوكالة' },
+  etude_anged_commune: { fr: 'Étude ANGeD de la commune', ar: 'دراسة الوكالة الخاصة بالبلدية' },
+  pcgd: { fr: 'Issue du PCGD', ar: 'مستمدة من المخطط البلدي' },
+  autre_etude: { fr: 'Autre étude', ar: 'دراسة أخرى' },
+};
+
+/** D4 — la bibliothèque nationale des données : une ligne par document, une par commune pour les séries. */
+export const JEU_BIBLIOTHEQUE: JeuExport = {
+  nom: 'bibliotheque-donnees',
+  titre: { fr: 'Bibliothèque des données', ar: 'مكتبة المعطيات' },
+  colonnes: [
+    { cle: 'element', fr: 'Élément', ar: 'العنصر', libelles: ELEMENTS_BIBLIOTHEQUE },
+    { cle: 'gouvernorat', fr: 'Gouvernorat', ar: 'الولاية' },
+    { cle: 'district', fr: 'District FNCT', ar: 'مقاطعة الجامعة' },
+    { cle: 'commune', fr: 'Commune', ar: 'البلدية' },
+    // Pour une caractérisation, l'intitulé est le code du niveau de la source ; son libellé est dans la colonne suivante.
+    { cle: 'intitule', fr: 'Intitulé', ar: 'العنوان' },
+    { cle: 'annee', fr: 'Année', ar: 'السنة', type: 'nombre' },
+    { cle: 'auteur', fr: 'Auteur ou bureau d’études', ar: 'المؤلف أو مكتب الدراسات' },
+    { cle: 'statut', fr: 'Statut, catégorie ou niveau de source', ar: 'الحالة أو الصنف أو مستوى المصدر', libelles: STATUTS_BIBLIOTHEQUE },
+    { cle: 'nature', fr: 'Nature', ar: 'الطبيعة', libelles: NATURES_BIBLIOTHEQUE },
+    { cle: 'nombre', fr: 'Nombre (ou population)', ar: 'العدد (أو السكان)', type: 'nombre' },
+    { cle: 'premiere', fr: 'Première date', ar: 'أول تاريخ', type: 'date' },
+    { cle: 'derniere', fr: 'Dernière date', ar: 'آخر تاريخ', type: 'date' },
+    { cle: 'mois_couverts', fr: 'Mois couverts', ar: 'الأشهر المغطاة', type: 'nombre' },
+  ],
+};

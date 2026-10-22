@@ -15,6 +15,7 @@ import { ParametresNationaux } from '../composants/national/ParametresNationaux'
 import { AgregatsWapla } from '../composants/national/AgregatsWapla';
 import { CarteCommunes } from '../composants/national/CarteCommunes';
 import { CarteDeploiement } from '../composants/national/CarteDeploiement';
+import { BibliothequeDonnees } from '../composants/national/BibliothequeDonnees';
 import { Pastille } from '../composants/ui/Pastille';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
 import { BarreLaterale, type EntreeNavigation } from '../composants/BarreLaterale';
@@ -86,7 +87,7 @@ function sansAccent(texte: string): string {
 // performance, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
 // bas. Même défaut que les dix-sept onglets du portail communal — ce qu'on ne
 // voit pas, on ne sait pas que ça existe — et même remède : la barre latérale.
-type OngletNational = 'synthese' | 'communes' | 'performance' | 'deploiement' | 'wapla' | 'parametres' | 'conservation' | 'demo';
+type OngletNational = 'synthese' | 'communes' | 'performance' | 'bibliotheque' | 'deploiement' | 'wapla' | 'parametres' | 'conservation' | 'demo';
 
 const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   { cle: 'synthese',    pole: 'cockpit' },
@@ -95,6 +96,8 @@ const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   // deux fois.
   { cle: 'communes',    pole: 'terrain' },
   { cle: 'performance', pole: 'pilotage' },
+  // La bibliothèque des données (jalon D, lot D4) : ce que SIIPI capitalise, à côté des indicateurs.
+  { cle: 'bibliotheque', pole: 'pilotage' },
   { cle: 'deploiement', pole: 'pilotage' },
   // Les bilans WaPla étayés, additionnés par territoire (lot W5) : sans rang.
   { cle: 'wapla',       pole: 'pilotage' },
@@ -347,6 +350,7 @@ export function TableauDeBordNational() {
           alertes — avant le tableau par gouvernorat, qui montre le
           déploiement ; ceci montre la performance. */}
       {onglet === 'performance' && <KpiNational onOuvrirCommune={setCommuneKpi} />}
+      {onglet === 'bibliotheque' && <BibliothequeDonnees />}
       {onglet === 'demo' && <ModeDemo />}
       {onglet === 'parametres' && <ParametresNationaux />}
       {onglet === 'wapla' && <AgregatsWapla />}
