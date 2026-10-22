@@ -551,7 +551,10 @@ communesRouter.patch(
     const values: any[] = [];
     for (const [key, column] of Object.entries(fieldsMap)) {
       if (key in data) {
-        values.push((data as any)[key]);
+        // Un champ vidé redevient « non renseigné » (NULL), pas une chaîne vide qui
+        // se lirait comme une valeur : règle 1.1.
+        const valeur = (data as any)[key];
+        values.push(valeur === '' ? null : valeur);
         setClauses.push(`${column} = $${values.length}`);
       }
     }
