@@ -5,6 +5,32 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.66] — 2026-10-22 — Jalon D, lot D3c : l'accueil du portail, les chiffres à retenir d'abord
+
+Affichage seulement : l'API de l'accueil (`GET /communes/{id}/accueil`, v0.15.63) ne change pas (SPEC_D § D3).
+
+### Modifié
+- **Une bande de chiffres à retenir** en tête de l'accueil, chaque carte étant un bouton vers l'écran où l'on agit : le
+  constat du jour (« 0 / 13 »), les points à vérifier (avec une pastille « N bloquant(s) »), les indicateurs non
+  renseignés. **Des effectifs d'éléments, jamais un total, un pourcentage ou une note** : un score de « ce qui va bien »
+  recréerait le palmarès retiré au lot 1. Un zéro n'est affiché que s'il est réel : « aucun circuit attendu » se dit en
+  mots, pas « 0 / 0 ».
+- **Une carte d'entretiens n'apparaît que s'il y en a de dus.** Sans plan d'entretien, « 0 en retard » se lirait « le
+  parc est à jour », ce que rien ne prouve (règle 1.1).
+- **Les avis identiques se regroupent.** Soixante-six circuits « en régie sans agent affecté » faisaient soixante-six
+  lignes rouges ; ils font maintenant sept avis, chacun avec son nombre (« 13 × … »), ses trois premiers sujets et
+  « et N autres ». Aucun écart n'est caché : il est compté. Les noms isolés (`<bdi>`) pour qu'un nom arabe ne s'inverse pas
+  dans une phrase française.
+- Les deux blocs (« Ce qui va bien », « Ce qui demande une action ») ne s'étirent plus à la hauteur l'un de l'autre ;
+  la valeur d'un indicateur et sa source (pastille icône et mot) sont lisibles d'un coup d'œil ; le bouton de chaque
+  ligne reste au bord, les indicateurs absents sont en pointillés, les entretiens portent leur pastille.
+- Textes FR et AR.
+
+### À savoir (non modifié)
+- Les textes de « À vérifier » (constat, ce qu'il y a à faire) viennent de la base en **français seulement** : dans
+  l'accueil arabe, ces lignes restent en français. Les traduire demande une migration (une colonne arabe pour ces avis).
+- Captures avant/après, FR et AR, sur Dar Chaâbane El Fehri, montrées à Nacer et validées.
+
 ## [0.15.65] — 2026-10-21 — Jalon D, lot D3b : la synthèse nationale, les chiffres-clés d'abord
 
 Affichage seulement : aucun calcul, aucune règle, aucun cloisonnement ne change (SPEC_D § D3).

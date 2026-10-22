@@ -2326,7 +2326,20 @@
       "ceQuiManque": "ما ينقص",
       "tousLesIndicateurs": "عرض {{count}} مؤشر(ات) أخرى",
       "tousLesEcarts": "عرض {{count}} نقطة (نقاط) أخرى للتثبّت",
-      "tousLesEntretiens": "عرض {{count}} صيانة (صيانات) أخرى"
+      "tousLesEntretiens": "عرض {{count}} صيانة (صيانات) أخرى",
+      "chiffres": {
+        "titre": "الأرقام الواجب التذكّر بها",
+        "constatRien": "معاينة اليوم لا تنطبق على هذا اليوم.",
+        "constatDetail": "مسالك تمت معاينتها من أصل المنتظرة اليوم",
+        "complet": "مكتمل",
+        "rien": "لا شيء",
+        "aVerifierRien": "لا نقطة تستوجب التثبّت.",
+        "aVerifierDetail": "مجمّعة في {{count}} تنبيه(ات)",
+        "bloquants": "{{count}} معطِّل(ة)",
+        "nonRenseignesDetail": "مؤشرات دون مصدر: «ما ينقص» يبيّن ما يجب إدخاله",
+        "entretiensDetail": "منها {{count}} متأخرة"
+      },
+      "etAutres": "و{{count}} أخرى"
     }
   },
   "ajout": {
