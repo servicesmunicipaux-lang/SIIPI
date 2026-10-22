@@ -701,6 +701,7 @@
     "navigation": "Navigation de l’espace communal",
     "sansCommune": "Votre compte n’est rattaché à aucune commune. Contactez l’administrateur national.",
     "onglets": {
+      "accueil": "Accueil",
       "constat": "Constat du jour",
       "reclamations": "Réclamations",
       "suggestions": "Points suggérés",
@@ -2229,6 +2230,32 @@
       "annuler": "Annuler…",
       "motif": "Motif de l’annulation de {{numero}} (cinq caractères au moins) :",
       "annule": "{{numero}} annulé ; son numéro reste au registre."
+    },
+    "accueil": {
+      "titre": "Accueil",
+      "dateDuJour": "Aujourd’hui, {{jour}}.",
+      "communeVide": "Votre commune n’a encore rien saisi dans SIIPI : il n’y a donc rien à afficher, et rien n’est compté à zéro. Voici ce qu’il y a à poser en premier.",
+      "constatTitre": "Le constat du jour",
+      "constatAucun": "Aucun circuit n’est attendu aujourd’hui.",
+      "constatFaire": "Faire le constat",
+      "constatVoir": "Voir le constat",
+      "vaBien": "Ce qui va bien",
+      "demandeAction": "Ce qui demande une action",
+      "rienDeCalcule": "Aucun indicateur n’est encore calculé et aucun registre n’est tenu ce mois-ci : rien à signaler ici pour l’instant.",
+      "rienAAgir": "Rien ne demande d’action pour le moment.",
+      "objectifAtteint": "Objectif atteint",
+      "calcules": "Indicateurs calculés",
+      "registres": "Registres tenus ce mois-ci",
+      "aVerifier": "À vérifier",
+      "nonRenseignes": "Indicateurs non renseignés",
+      "entretiens": "Entretiens à traiter",
+      "objectif": "objectif {{cible}}",
+      "voir": "Voir",
+      "ouvrir": "Ouvrir",
+      "ceQuiManque": "Ce qui manque",
+      "tousLesIndicateurs": "Voir les {{count}} autre(s) indicateur(s)",
+      "tousLesEcarts": "Voir les {{count}} autre(s) point(s) à vérifier",
+      "tousLesEntretiens": "Voir les {{count}} autre(s) entretien(s)"
     }
   },
   "ajout": {

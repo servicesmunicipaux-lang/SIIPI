@@ -67,10 +67,13 @@ function Indice({ valeur, renseignes, total }: { valeur: number | null; renseign
 export function IndicateursCommune({
   communeId,
   fnct = false,
+  codeInitial = null,
   onOuvrirEcran,
 }: {
   communeId: string;
   fnct?: boolean;
+  /** L'indicateur dont le panneau s'ouvre d'emblée (un lien de l'accueil du portail). */
+  codeInitial?: string | null;
   /** Ouvrir un écran du portail depuis « ce qui manque » (portail communal seulement). */
   onOuvrirEcran?: (ecran: string) => void;
 }) {
@@ -83,7 +86,7 @@ export function IndicateursCommune({
   const [dependances, setDependances] = useState<DependanceIndicateur[]>([]);
   const [series, setSeries] = useState<PointSeriesCommune[]>([]);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [choisi, setChoisi] = useState<string | null>(null);
+  const [choisi, setChoisi] = useState<string | null>(codeInitial);
   const bloc = useRef<HTMLDivElement>(null);
   const grandEcran = useGrandEcran();
   const douzeMois = bornesFenetre(annee, '12m');

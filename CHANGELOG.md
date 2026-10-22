@@ -5,6 +5,49 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.63] — 2026-10-21 — Jalon D, lot D2 : l'accueil du portail communal
+
+### Ajouté
+- **Un écran d'accueil**, ouvert par défaut à l'entrée du portail (pôle Cockpit, avant « Constat du jour »), qui
+  remplace l'écran d'arrivée d'avant. Le logo et le nom de la commune restent en tête, comme sur tous les écrans ;
+  dessous, deux blocs et l'avancement du constat :
+  - **« Ce qui va bien »** : les indicateurs dont l'objectif est atteint (un objectif déclaré, un taux de 1) ; les
+    autres indicateurs calculés, sans jugement, avec leur valeur et leur source ; les registres tenus ce mois-ci.
+  - **« Ce qui demande une action »** : le contenu de « À vérifier » (les mêmes préférences de l'utilisateur
+    s'appliquent : un avis bloquant s'affiche toujours), les indicateurs non renseignés avec « Ce qui manque » — le
+    lien ouvre l'écran des indicateurs sur le panneau de CET indicateur —, les entretiens en retard ou à prévoir.
+  - **Le constat du jour** : « N circuits contrôlés sur M attendus aujourd'hui », et la porte vers l'écran du constat.
+  - Chaque ligne mène, en un clic, à l'écran où l'on agit ; un bloc montre cinq lignes, puis renvoie à l'écran
+    complet. La FNCT qui ouvre le portail d'une commune lit la même chose.
+- **Une commune qui n'a rien saisi** (hors population et périmètre, qui viennent du référentiel national) voit
+  « Ma commune dans SIIPI » — le parcours de démarrage — et non un tableau de zéros.
+- `GET /communes/{id}/accueil` (`routes/accueil.routes.ts`) : une réponse pour tout l'écran, plutôt que six appels lus
+  à des instants différents. Elle ne calcule rien de plus : indicateurs du service des 5 axes, registres de
+  `app.completude_commune`, écarts de `app.incoherences_commune`, entretiens de `app.echeances_entretien`. Une
+  commune hors du périmètre de l'appelant est introuvable (404). Aucune migration.
+- Campagne `accueil` (63e) : ce que la route refuse (sans compte, citoyen, prestataire, directeur d'une autre commune,
+  commune inconnue) ; ce que l'écran ne dit jamais (un total, un pourcentage, un indicateur sans source parmi ce qui
+  va bien, un non renseigné rangé avec ce qui va bien, un 95 % dit « objectif atteint ») ; puis le parcours — circuits
+  attendus et constat posé, déclarations, entretien en retard, écart bloquant. Deux défauts introduits à la main
+  (seuil d'objectif abaissé, contrôle de périmètre retiré) sont détectés.
+
+### Corrigé
+- **Une session dont le compte n'existe plus dit « reconnectez-vous ».** Le jeton est signé et l'API ne relit pas `users` à
+  chaque requête : après un rechargement de la base (jeu d'essai, restauration) ou la suppression du compte, une session
+  ouverte avant continuait de lire, puis son premier dépôt — un logo — échouait sur la clé « déposé par » et recevait
+  « Requête incohérente avec les données existantes », qui envoyait chercher un défaut dans le fichier. Une clé étrangère
+  refusée vers `users` est maintenant vérifiée : si l'appelant n'y est plus, c'est un 401, et l'écran revient à la
+  connexion. Toute autre clé refusée reste un 400. Éprouvé dans la campagne `logos-communes` (compte supprimé, dépôt
+  refusé en 401, rien enregistré).
+
+### Modifié
+- Le filtre des préférences d'alerte de « À vérifier » est une fonction partagée (`ecartVoulu`, `Coherence.tsx`) : l'accueil
+  ne montre pas ce que « À vérifier » masque.
+- `IndicateursCommune` accepte un indicateur d'ouverture (`codeInitial`).
+- Vérifié dans le navigateur sur les données de Dar Chaabane (13 circuits attendus, 66 points à vérifier dont 5
+  affichés, indicateurs non renseignés nommés), en français et en arabe (de droite à gauche), sur téléphone (pas de
+  débordement), et sur une commune vide.
+
 ## [0.15.62] — 2026-10-21 — L'observatoire : « Annuaire et carte » en une page, la carte mène au portail, « Modifier » gagne les coordonnées
 
 ### Modifié

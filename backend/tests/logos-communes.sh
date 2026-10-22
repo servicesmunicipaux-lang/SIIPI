@@ -220,6 +220,14 @@ chk "une adresse vidée vaut NULL, pas une chaîne vide ; le téléphone n'a pas
     "$(sql "SELECT CASE WHEN address IS NULL THEN 'NULL' ELSE 'valeur' END || '|' || phone FROM communes WHERE id = '$A'")"
 
 echo
+echo "8. Une session dont le compte n'existe plus : « reconnectez-vous », pas « requête incohérente »"
+compte_temporaire super_admin_fnct "" "Agent FNCT à session périmée"; T_V=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
+$PSQL -c "DELETE FROM users WHERE id = '$COMPTE_ID';" >/dev/null 2>&1
+chk "le compte a disparu : sa session ne peut plus déposer, et le dit en le renvoyant à la connexion (401)" 401 "$(deposer "$A" "$T/logo.png" "$T_V")"
+chk "le message dit de se reconnecter" 1 "$(val "1 if 'reconnectez-vous' in d['error'] else 0")"
+chk "rien n'a été enregistré par cette session" "0" "$(sql "SELECT count(*) FROM logos_communes WHERE commune_id = '$A' AND depose_par = '$COMPTE_ID'")"
+
+echo
 echo "Aucune commune réelle n'a reçu de ligne"
 base_reelle_intacte "pendant la campagne"
 nettoyer_c
