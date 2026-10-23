@@ -1,9 +1,15 @@
 # ---------------------------------------------------------------------------
 # SIIPI — déploiement (base + API construites depuis les sources).
 #
-# Prérequis : un fichier .env à la racine définissant DB_PASSWORD et
-# JWT_SECRET (voir .env.example). L'API refuse de démarrer en production
-# avec le secret JWT de développement.
+# Prérequis : un fichier .env à la racine définissant DB_PASSWORD, JWT_SECRET,
+# SIIPI_SECRET_IDENTITES, SIIPI_DOMAINE et SIIPI_TLS (voir .env.example). L'API
+# refuse de démarrer en production avec un secret de développement.
+#
+# HTTPS (chantier P, lot P4) : le service `frontal` (Caddy, image construite
+# depuis web/) sert le front à / et relaie /api vers l'API, sur une seule
+# origine. Il est le SEUL à publier des ports : 80 (renvoi vers HTTPS, et le
+# renouvellement Let's Encrypt) et 443. L'API et la base n'ont aucun port sur
+# l'hôte. Le certificat : SIIPI_TLS (voir backend/exploitation/frontal/Caddyfile).
 #
 #   docker compose -f docker-compose.prod.yml up -d --build
 #   docker compose -f docker-compose.prod.yml run --rm api npm run migrate:prod
@@ -20,9 +26,6 @@
 # Ce volume se SAUVEGARDE À PART et se garde hors ligne : c'est la seule copie
 # des originaux. La tâche refuse de compresser tant que son témoin n'y est pas.
 #
-# Le service front-end sera ajouté ici lors de la reconstruction du
-# front-end (il n'existe pas encore d'image web de production).
-#
 # Sauvegardes (chantier P, lot P2) : le service `sauvegarde` prend chaque nuit,
 # à SAUVEGARDE_HEURE (heure de Tunis), la base et les fichiers ensemble, chiffrés
 # pour les clés publiques age de SAUVEGARDE_DESTINATAIRES (deux clés, une par
@@ -33,8 +36,8 @@
 # facultatif. Une sauvegarde à la main :
 #   docker compose -f docker-compose.prod.yml exec sauvegarde /opt/sauvegarde/sauvegarder.sh
 #
-# Avant toute mise en service réelle, il reste à ajouter : un reverse proxy
-# TLS devant l'API, et la journalisation centralisée.
+# Avant toute mise en service réelle, il reste à ajouter : la supervision
+# (lot P5) et la procédure de déploiement (lot P6).
 # ---------------------------------------------------------------------------
 
 services:
@@ -65,6 +68,22 @@ services:
     environment:
       DATABASE_URL: postgres://siipi_admin:${DB_PASSWORD:?}@db:5432/siipi_national
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET doit être défini dans .env}
+      # Jusqu'à la v0.15.72, ce compose ne passait pas ce secret : l'API refusait de
+      # démarrer en production (secret de développement détecté). Le premier
+      # démarrage réel du compose, au lot P4, l'a montré.
+      SIIPI_SECRET_IDENTITES: ${SIIPI_SECRET_IDENTITES:?SIIPI_SECRET_IDENTITES doit être défini dans .env (openssl rand -hex 32)}
+      # Facultatifs : sans eux, les notifications push et les courriels ne partent
+      # pas, et la plateforme le dit (« non configuré »).
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:contact@fnct.tn}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURITE: ${SMTP_SECURITE:-starttls}
+      SMTP_UTILISATEUR: ${SMTP_UTILISATEUR:-}
+      SMTP_MOT_DE_PASSE: ${SMTP_MOT_DE_PASSE:-}
+      COURRIEL_EXPEDITEUR: ${COURRIEL_EXPEDITEUR:-SIIPI <ne-pas-repondre@siipi.tn>}
+      COURRIEL_URL_PORTAIL: https://${SIIPI_DOMAINE:?}
       JWT_EXPIRES_IN: 8h
       PORT: 4000
       SIIPI_FICHIERS_DIR: /var/siipi/fichiers
@@ -74,7 +93,13 @@ services:
       # production le reste, et refuse le mode formation.
       PRODUCTION: ${PRODUCTION:-true}
       FORMATION: ${FORMATION:-false}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      # Le front et l'API ont la même origine derrière le frontal : CORS ne sert plus
+      # qu'à refuser les autres.
+      CORS_ORIGIN: https://${SIIPI_DOMAINE:?}
+      # Un seul proxy de confiance devant l'API : le frontal. Sans cela, toutes les
+      # requêtes auraient son adresse, et la limite des tentatives de connexion
+      # deviendrait celle de tout le pays (src/config.ts).
+      TRUST_PROXY: 1
       NODE_ENV: production
     volumes:
       # Les octets des photos et documents. Volume nommé : ils survivent à la
@@ -85,8 +110,31 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # Aucun port sur l'hôte : on n'atteint l'API que par le frontal.
+    networks: [siipi-net]
+
+  frontal:
+    build:
+      context: ./web
+    image: siipi/frontal:latest
+    container_name: ${SIIPI_INSTANCE:-siipi}_frontal
+    restart: always
+    environment:
+      SIIPI_DOMAINE: ${SIIPI_DOMAINE:?SIIPI_DOMAINE doit être défini dans .env (le nom du serveur)}
+      SIIPI_TLS: ${SIIPI_TLS:?SIIPI_TLS doit être défini dans .env (une adresse pour Let's Encrypt, ou les chemins du certificat de la DSI)}
+    volumes:
+      - ./backend/exploitation/frontal/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Le certificat de la DSI, s'il y en a un : /certificats/cert.pem et cle.pem.
+      - ./certificats:/certificats:ro
+      # Les certificats obtenus et la clé du compte Let's Encrypt : gardés d'un
+      # redémarrage à l'autre, sinon chaque démarrage redemanderait un certificat.
+      - caddy_donnees:/data
+      - caddy_config:/config
     ports:
-      - "4000:4000"
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    depends_on: [api]
     networks: [siipi-net]
 
   sauvegarde:
@@ -129,6 +177,8 @@ volumes:
   # Les archives chiffrées et les témoins de la dernière réussite et du dernier
   # échec (lus par la supervision, lot P5).
   siipi_sauvegardes:
+  caddy_donnees:
+  caddy_config:
 
 networks:
   siipi-net:

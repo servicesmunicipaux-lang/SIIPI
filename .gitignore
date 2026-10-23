@@ -56,3 +56,8 @@ docs/specs_metier/sources/mhamdia-pcgd-2025-agregats.json
 # dépôt. Le premier port Python reste local : son successeur, le témoin des
 # campagnes, est backend/tests/wapla_attendus.py.
 docs/specs_metier/sources/wapla/*.py
+
+# Le certificat et la clé privée fournis par la DSI (chantier P, lot P4) : jamais dans le dépôt.
+certificats/
+# La description du distant rclone des sauvegardes, avec ses secrets (lot P2).
+sauvegarde.env

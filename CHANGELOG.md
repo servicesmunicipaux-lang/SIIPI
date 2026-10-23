@@ -5,6 +5,45 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.72] — 2026-10-23 — Chantier P, lot P4 : le frontal HTTPS
+
+Quatrième lot de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 4 et complément du 23/10/2026 : Caddy).
+
+### Ajouté
+- **Le service `frontal`** (`docker-compose.prod.yml`) : Caddy 2.11, dont l'image (`web/Dockerfile`) construit le front
+  (`npm run build`, typage compris) et le sert à `/`, et relaie `/api` vers l'API (préfixe retiré, comme le serveur de
+  développement de Vite). **Une seule origine** : plus de CORS entre le front et l'API. La configuration
+  (`backend/exploitation/frontal/Caddyfile`) est montée par le compose, et c'est ce fichier-là que la campagne éprouve.
+- **Le certificat**, par `SIIPI_TLS` : une adresse électronique (Let's Encrypt, obtenu et renouvelé seul), les chemins du
+  certificat de la DSI (déposé dans `./certificats`, que `.gitignore` exclut), ou `internal` pour un essai sur un poste.
+  HTTP renvoie vers HTTPS (308), HSTS est posé, Caddy ne dit pas ce qu'il est. Le service worker et l'index ne sont jamais
+  mis en cache ; les fichiers construits, à empreinte, se gardent un an.
+- **Le frontal est la seule porte** : l'API (4000) et la base n'ont plus aucun port sur l'hôte ; seuls 80 et 443 sont
+  publiés. `scripts/skills/ports-production.sh` le vérifie sur la configuration résolue et sort en erreur sinon (éprouvé :
+  un port 4000 remis à l'API est signalé).
+- **`TRUST_PROXY`** (`src/config.ts`, `app.set('trust proxy')`) : derrière Caddy, toutes les requêtes auraient l'adresse du
+  proxy, et la limite des tentatives de connexion (20 par quart d'heure) serait devenue celle de **tout le pays**. Avec
+  `TRUST_PROXY=1`, l'API lit l'adresse réelle que Caddy écrit dans `X-Forwarded-For` (un en-tête forgé par l'appelant ne
+  passe pas Caddy) ; le journal des requêtes aussi. Vide, l'en-tête est ignoré. `TRUST_PROXY=true` est refusé au démarrage :
+  il laisserait tout appelant choisir son adresse.
+- Campagne `proxy-https` (69e), 19 contrôles, avec un vrai Caddy en HTTPS devant une API à part : `TRUST_PROXY=true` refusé ;
+  sans proxy de confiance, un en-tête changé à chaque essai n'échappe pas à la limite ; HTTP → HTTPS (308) ; `/api` et `/` ;
+  une adresse de l'application qui rend l'index ; en-têtes de cache, HSTS, `helmet` ; à travers Caddy, un en-tête forgé
+  n'échappe pas à la limite ; **deux appelants réels ont chacun la leur**. Quatre mutants détectés : la confiance au proxy
+  retirée, `TRUST_PROXY=true` accepté, le renvoi vers l'index retiré, HSTS retiré.
+
+### Corrigé
+- **Le compose de production ne passait pas `SIIPI_SECRET_IDENTITES` à l'API**, qui refuse alors de démarrer en production
+  (secret de développement détecté, depuis la v0.15.5). Ni les réglages du courriel ni ceux des notifications push. Le
+  compose de production n'avait jamais été démarré : le premier démarrage réel, à ce lot, l'a montré. Ils y sont, le secret
+  obligatoire, les autres facultatifs (« non configuré » sans eux).
+
+### Essai réel
+- Le compose de production a été construit et démarré sur ce poste (`localhost`, autorité locale de Caddy), puis retiré :
+  migrations, API saine derrière Caddy, base devenue « production », HTTP → HTTPS, index et fichiers construits avec leurs
+  en-têtes, mot de passe de démonstration refusé, API et base sans aucun port publié, adresse réelle de l'appelant au journal
+  de l'API, page de connexion affichée en HTTPS.
+
 ## [0.15.71] — 2026-10-23 — Chantier P, lot P3 : la restauration testée
 
 Troisième lot de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 4 : « une campagne restaure la
