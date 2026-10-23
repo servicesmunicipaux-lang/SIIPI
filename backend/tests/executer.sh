@@ -14,6 +14,9 @@
 # que les tests de période en dépendent pour construire leurs dates.
 #
 #   sh tests/executer.sh module2
+#
+# Codes de sortie du lanceur lui-même : 2 usage, 3 outils, 4 compte emprunté
+# (JC-011), 5 base ou API qui n'est pas de développement (chantier P, P1).
 # ---------------------------------------------------------------------------
 set -u
 
@@ -112,6 +115,34 @@ fi
 
 # L'API répond sur le réseau Compose sous son propre nom de service.
 [ -z "${API_URL:-}" ] && API_URL="http://localhost:4000" && export API_URL
+
+# --- Jamais sur une base de production ni de formation (chantier P, P1) -----
+#
+# Une campagne bâtit des communes et des comptes de test et rend les tables
+# nationales qu'elle a modifiées : sur une base de production, même en effaçant
+# ses lignes, elle laisserait son passage au journal d'audit ; sur une base de
+# formation, elle poserait ses communes de test au milieu des agents formés
+# (décision du 23/10/2026). La base dit ce qu'elle est (migration 067) ; l'API
+# aussi (GET /instance), et une campagne écrit par les deux : les deux doivent
+# dire « développement ». Ne pas savoir vaut refus — une nature illisible, une
+# API injoignable : un lanceur qui ne sait pas où il est ne part pas.
+refuser() {
+  echo "[tests] REFUS : $1" >&2
+  echo "[tests] Aucune campagne ne tourne ailleurs que sur une base et une API de développement : lancez-les sur une pile d'essai (CLAUDE.md § 9)." >&2
+  exit 5
+}
+nature_base=$(psql -qtAX -c "SELECT app.nature_instance()" 2>/dev/null | tr -d ' ')
+case "$nature_base" in
+  developpement) ;;
+  production|formation) refuser "la base ${PGDATABASE:-?} est une base de $nature_base (migration 067)." ;;
+  *) refuser "la nature de la base ${PGDATABASE:-?} est illisible (base injoignable, ou antérieure à la migration 067)." ;;
+esac
+nature_api=$(curl -s --max-time 10 "$API_URL/instance" 2>/dev/null | sed -n 's/.*"nature":"\([a-z]*\)".*/\1/p')
+case "$nature_api" in
+  developpement) ;;
+  production|formation) refuser "l'API $API_URL sert une instance de $nature_api." ;;
+  *) refuser "l'API $API_URL est injoignable, ou ne dit pas sa nature (GET /instance)." ;;
+esac
 
 echo "[tests] base ${PGUSER:-?}@${PGHOST:-?}:${PGPORT:-5432}/${PGDATABASE:-?} — API $API_URL"
 exec bash "$fichier"

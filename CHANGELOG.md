@@ -5,6 +5,32 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.69] — 2026-10-23 — Chantier P, lot P1 : les campagnes refusent une base de production
+
+Premier des six lots de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 4 et son complément du
+23/10/2026). Le plus court, et celui qui protège dès maintenant : une base réelle ne peut plus recevoir une campagne de tests.
+
+### Ajouté
+- **Le lanceur des campagnes (`tests/executer.sh`) refuse de partir** si la base n'est pas une base de développement
+  (`app.nature_instance()`, migration 067) **ou** si l'API ne l'est pas (`GET /instance`) : une campagne écrit par les deux.
+  Le refus vaut pour la **production** et, par décision du 23/10/2026, pour la **formation** — une campagne y poserait ses
+  communes de test au milieu des agents formés. **Ne pas savoir vaut refus** : une nature illisible (base injoignable ou
+  antérieure à la migration 067), une API injoignable ou qui ne dit pas sa nature. Le refus tombe avant toute campagne, avec
+  le code de sortie 5, dit ce qu'est la base ou l'API, et où lancer les campagnes (une pile d'essai). `npm test`, `MIGRER.bat`
+  et `TESTS.bat` passent tous par lui. Il n'y a pas de dérogation.
+- Campagne `refus-production` (66e), 26 contrôles. Elle bâtit trois bases d'essai à part (`tests/outils/instance_essai.sh`),
+  rendues production et formation **par leur propre API**, comme sur un serveur réel. Chaque refus est éprouvé par une
+  fausse campagne (`tests/outils/sonde_lanceur.sh`) qui écrirait dans sa base : après un refus, la base n'a pas bougé, pas
+  même son journal d'audit. Sont refusées : la base de production, l'API de production devant une base de développement, la
+  base et l'API de formation, l'API injoignable, la base introuvable. Puis la même sonde, sur une base et une API de
+  développement, part et écrit. Trois mutants du lanceur sont détectés : la garde de la base retirée (7 contrôles échouent),
+  celle de l'API (7), « ne pas savoir » qui ne refuse plus (6).
+
+### À savoir
+- Une base neuve est « développement » jusqu'à ce qu'une API de production la serve la première fois. La procédure
+  d'installation (lot P6) fixera sa nature avant tout chargement : c'est la garde qui protège une base réelle, pas l'espoir
+  qu'on ne s'y trompera pas.
+
 ## [0.15.68] — 2026-10-22 — Jalon D, lot D4 : la bibliothèque nationale des données
 
 Pour montrer le rôle de SIIPI dans la **capitalisation des données** de la gestion des déchets : un catalogue de tout ce qu'il
