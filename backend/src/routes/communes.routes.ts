@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole, requireCommuneAccess } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
+import { avecTraduction } from '../services/avisAr.js';
 
 export const communesRouter = Router();
 
@@ -213,8 +214,9 @@ communesRouter.get(
   requireRole('admin_commune', 'super_admin_fnct'),
   requireCommuneAccess((req) => req.params.id),
   asyncHandler(async (req, res) => {
-    const lignes = await query('SELECT * FROM app.incoherences_commune($1)', [req.params.id]);
-    res.json(lignes);
+    const lignes = await query<{ sujet: string; constat: string; quoi_faire: string }>('SELECT * FROM app.incoherences_commune($1)', [req.params.id]);
+    // Les textes viennent de la base en français ; l'arabe est rendu à la sortie (services/avisAr.ts).
+    res.json(lignes.map(avecTraduction));
   })
 );
 

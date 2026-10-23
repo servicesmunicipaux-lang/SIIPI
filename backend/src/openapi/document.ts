@@ -541,6 +541,9 @@ const Incoherence = registry.register(
     sujet_id: z.string(),
     constat: z.string().openapi({ description: 'Ce qui a été vu.' }),
     quoi_faire: z.string().openapi({ description: "Ce qu'il y a à faire — pas une injonction." }),
+    sujet_ar: z.string().nullable().openapi({ description: 'Le sujet en arabe quand c’est un libellé fixe (« Réclamations ») ; null pour un nom propre, qui passe tel quel.' }),
+    constat_ar: z.string().nullable().openapi({ description: 'Le constat en arabe ; null si aucun modèle de services/avisAr.ts ne reconnaît le texte français (l’écran affiche alors le français).' }),
+    quoi_faire_ar: z.string().nullable().openapi({ description: 'Ce qu’il y a à faire, en arabe ; null si aucun modèle ne reconnaît le texte français.' }),
   })
 );
 
@@ -7830,7 +7833,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.66',
+      version: '0.15.67',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

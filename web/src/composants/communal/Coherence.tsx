@@ -24,6 +24,15 @@ const ALLURE: Record<string, string> = {
 };
 
 /**
+ * Un texte d'avis dans la langue de l'écran : l'arabe quand l'API en rend un, sinon le français.
+ * Un texte sans modèle de traduction reste en français — jamais un arabe approximatif — et la
+ * campagne `avis-ar` empêche qu'un avis de la base en soit privé.
+ */
+export function texteAvis(fr: string, ar: string | null | undefined, arabe: boolean): string {
+  return arabe && ar ? ar : fr;
+}
+
+/**
  * Ce que les préférences de chacun (Paramètres) laissent voir d'un avis — sauf
  * un avis bloquant, qui s'affiche toujours : un engin en panne sur un circuit
  * du jour ne se masque pas d'une case décochée un mois plus tôt. Partagé avec
@@ -37,7 +46,8 @@ export function ecartVoulu(e: Incoherence, { domainesMasques, graviteMin }: { do
 }
 
 export function Coherence({ communeId }: { communeId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const arabe = i18n.language.startsWith('ar');
   const [ecarts, setEcarts] = useState<Incoherence[] | null>(null);
   const [tout, setTout] = useState(false);
   const [sansFiltre, setSansFiltre] = useState(false);
@@ -94,13 +104,13 @@ export function Coherence({ communeId }: { communeId: string }) {
             className={`rounded-lg border p-2.5 text-sm ${ALLURE[e.gravite] ?? ALLURE.information}`}
           >
             <p>
-              <span className="font-semibold">{e.sujet}</span>
+              <span className="font-semibold">{texteAvis(e.sujet, e.sujet_ar, arabe)}</span>
               {' — '}
-              {e.constat}
+              {texteAvis(e.constat, e.constat_ar, arabe)}
             </p>
             {/* Ce qu'il y a à faire, pas une injonction : la plateforme constate,
                 elle ne décide pas à la place du service. */}
-            <p className="mt-0.5 text-xs opacity-80">{e.quoi_faire}</p>
+            <p className="mt-0.5 text-xs opacity-80">{texteAvis(e.quoi_faire, e.quoi_faire_ar, arabe)}</p>
           </li>
         ))}
       </ul>

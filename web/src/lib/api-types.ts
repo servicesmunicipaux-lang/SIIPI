@@ -26702,6 +26702,12 @@ export interface components {
             constat: string;
             /** @description Ce qu'il y a à faire — pas une injonction. */
             quoi_faire: string;
+            /** @description Le sujet en arabe quand c’est un libellé fixe (« Réclamations ») ; null pour un nom propre, qui passe tel quel. */
+            sujet_ar: string | null;
+            /** @description Le constat en arabe ; null si aucun modèle de services/avisAr.ts ne reconnaît le texte français (l’écran affiche alors le français). */
+            constat_ar: string | null;
+            /** @description Ce qu’il y a à faire, en arabe ; null si aucun modèle ne reconnaît le texte français. */
+            quoi_faire_ar: string | null;
         };
         EtatDuParc: {
             commune_id: string | null;
