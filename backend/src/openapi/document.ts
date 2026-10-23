@@ -6929,6 +6929,37 @@ registry.registerPath({
   responses: { 200: json(BibliothequeDetail, 'L’élément en détail.'), ...REPONSES_COMMUNES },
 });
 
+const EtatExploitation = registry.register(
+  'EtatExploitation',
+  z.object({
+    disponible: z.boolean(),
+    verifie_le: z.string().nullable(),
+    age_minutes: z.number().int().nullable(),
+    perime: z.boolean().nullable(),
+    alertes_configurees: z.boolean().nullable(),
+    controles: z.array(
+      z.object({
+        controle: z.enum(['api', 'frontal', 'certificat', 'sauvegarde', 'copie', 'disque']),
+        etat: z.enum(['ok', 'panne', 'avertissement', 'non_verifie']),
+        depuis: z.string().nullable(),
+        message: z.string().nullable(),
+        message_ar: z.string().nullable(),
+      })
+    ),
+    derniere_alerte: z.object({ le: z.string(), sujet: z.string(), envoyee: z.boolean() }).nullable(),
+  })
+);
+registry.registerPath({
+  method: 'get',
+  path: '/supervision/etat',
+  tags: ['Paramètres nationaux'],
+  summary: 'L’état de l’exploitation (FNCT)',
+  description:
+    'Réservé à la FNCT. Le dernier constat de la surveillance (service à part, chantier P, lot P5) : l’API, le site, le certificat, la sauvegarde, sa copie hors du serveur, le disque — chacun ok, en panne, à surveiller ou non vérifié, depuis quand, avec son message en français et en arabe. Un constat de plus de trois intervalles est dit périmé ; sans constat, `disponible` est faux et rien n’est supposé. Ni les destinataires des alertes ni le serveur de courriel ne sortent.',
+  security: SECURISE,
+  responses: { 200: json(EtatExploitation, 'L’état de l’exploitation.'), ...REPONSES_COMMUNES },
+});
+
 const PassageConservation = registry.register(
   'PassageConservation',
   z.object({
@@ -7928,7 +7959,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.72',
+      version: '0.15.73',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

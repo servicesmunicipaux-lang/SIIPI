@@ -1,6 +1,6 @@
 # scripts/skills — les outils de vérification interne
 
-Six outils, chacun né d'un défaut réel. Ils ne remplacent pas les campagnes
+Sept outils, chacun né d'un défaut réel. Ils ne remplacent pas les campagnes
 de tests : ils cherchent ce qu'une campagne ne voit pas, parce qu'une campagne
 éprouve un comportement alors que ceux-ci interrogent une **structure** — y
 compris celle des campagnes elles-mêmes (`audit-blocs.py`).
@@ -13,6 +13,7 @@ compris celle des campagnes elles-mêmes (`audit-blocs.py`).
 | `pdf-template.mjs` | Gabarit légal complet : numéro d'ordre continu, référence réglementaire, signatures qualifiées, mention d'édition | Un bon de carburant sans numéro continu ne prouve rien : on ne peut pas montrer qu'aucun bon ne manque |
 | `audit-blocs.py` | Les contrôles de campagne placés sous condition (`if [ -n "$X" ]`, `[ … ] && chk`) qui n'ont pas tourné sur le jeu de référence | La campagne `fichiers` imprimait « Le citoyen » et ne contrôlait rien : la preuve de traitement (B5.1.3) n'était éprouvée par aucune campagne, comptée réussie (JC-003, JC-004) |
 | `versions-fantomes.sh` | Les versions du découpage nées d'une campagne de tests : un geste d'essai (secteur `TEST`, « Secteur temporaire », périmètre corrigé avec le compte de démonstration) à 60 s près de leur insertion au journal d'audit, dans la même commune. Lecture seule ; il ne retire rien | Deux campagnes corrigeaient le découpage d'une commune réelle : l'historique de Houmt Souk et de Midoun portait des versions validées qui n'avaient jamais eu lieu, dont une correction de périmètre attribuée à la FNCT (JC-009, JC-010) |
+| `ports-production.sh` | Dans `docker-compose.prod.yml` résolu, tout port publié par un autre service que le frontal, ou autre que 80 et 443 | Une base ou une API joignable depuis internet contourne le HTTPS et la limite des tentatives de connexion (chantier P, lot P4) |
 
 ## Emploi
 
@@ -34,6 +35,7 @@ docker compose exec -T api npm test > npm-test.log 2>&1
 python3 scripts/skills/audit-blocs.py backend npm-test.log
 
 bash scripts/skills/versions-fantomes.sh          # la base du poste ; PGDATABASE pour une autre
+bash scripts/skills/ports-production.sh           # le compose de production : seuls 80 et 443
 ```
 
 `db-check.sh` et `kpi-evaluator.mjs` ont besoin des conteneurs démarrés

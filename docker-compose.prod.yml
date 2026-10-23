@@ -36,8 +36,16 @@
 # facultatif. Une sauvegarde à la main :
 #   docker compose -f docker-compose.prod.yml exec sauvegarde /opt/sauvegarde/sauvegarder.sh
 #
-# Avant toute mise en service réelle, il reste à ajouter : la supervision
-# (lot P5) et la procédure de déploiement (lot P6).
+# Supervision (chantier P, lot P5) : le service `surveillance`, à part de l'API,
+# vérifie toutes les 5 minutes l'API, le site, le certificat, la sauvegarde, sa
+# copie hors serveur et le disque, et écrit son constat dans le volume
+# siipi_supervision, que l'API lit pour l'écran « État de l'exploitation ».
+# Une panne envoie un courriel à SUPERVISION_DESTINATAIRES, au changement
+# d'état seulement. Si le serveur entier s'arrête, il ne peut pas prévenir : une
+# surveillance extérieure de https://<domaine>/api/health reste nécessaire.
+#
+# Avant toute mise en service réelle, il reste à ajouter : la procédure de
+# déploiement (lot P6).
 # ---------------------------------------------------------------------------
 
 services:
@@ -107,10 +115,41 @@ services:
       # emporter — ils ne sont pas en base, volontairement.
       - siipi_fichiers:/var/siipi/fichiers
       - siipi_archive_froide:/var/siipi/archive
+      # Le constat de la surveillance (lot P5), lu en lecture seule.
+      - siipi_supervision:/var/siipi/supervision:ro
     depends_on:
       db:
         condition: service_healthy
     # Aucun port sur l'hôte : on n'atteint l'API que par le frontal.
+    networks: [siipi-net]
+
+  surveillance:
+    build:
+      context: ./backend/exploitation/surveillance
+    image: siipi/surveillance:latest
+    container_name: ${SIIPI_INSTANCE:-siipi}_surveillance
+    restart: always
+    environment:
+      SIIPI_INSTANCE: ${SIIPI_INSTANCE:-siipi}
+      SUPERVISION_API: http://api:4000
+      SUPERVISION_SITE: https://${SIIPI_DOMAINE:?}
+      # Le site se joint par le frontal, sur le réseau interne : le nom public peut
+      # ne pas se résoudre vers ce serveur depuis l'intérieur.
+      SUPERVISION_CONNEXION: frontal:443
+      SUPERVISION_DESTINATAIRES: ${SUPERVISION_DESTINATAIRES:-}
+      SUPERVISION_DISQUES: /var/lib/postgresql/data /var/siipi/fichiers /var/siipi/sauvegardes
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURITE: ${SMTP_SECURITE:-starttls}
+      SMTP_UTILISATEUR: ${SMTP_UTILISATEUR:-}
+      SMTP_MOT_DE_PASSE: ${SMTP_MOT_DE_PASSE:-}
+      COURRIEL_EXPEDITEUR: ${COURRIEL_EXPEDITEUR:-SIIPI <ne-pas-repondre@siipi.tn>}
+    volumes:
+      # Lecture seule : la surveillance regarde, elle ne touche à rien.
+      - siipi_postgres_data:/var/lib/postgresql/data:ro
+      - siipi_fichiers:/var/siipi/fichiers:ro
+      - siipi_sauvegardes:/var/siipi/sauvegardes:ro
+      - siipi_supervision:/var/siipi/supervision
     networks: [siipi-net]
 
   frontal:
@@ -179,6 +218,8 @@ volumes:
   siipi_sauvegardes:
   caddy_donnees:
   caddy_config:
+  # Le constat de la surveillance (lot P5) : écrit par elle, lu par l'API.
+  siipi_supervision:
 
 networks:
   siipi-net:

@@ -155,7 +155,8 @@
       "parametres": "Paramètres nationaux",
       "demo": "Mode démo",
       "conservation": "Conservation des photos",
-      "wapla": "Bilans WaPla étayés"
+      "wapla": "Bilans WaPla étayés",
+      "exploitation": "État de l'exploitation"
     },
     "demo": {
       "titre": "Mode démo — le jumeau numérique",
@@ -518,6 +519,65 @@
         "pese": "Pesé",
         "declaree": "Déclarée par la commune",
         "estimee": "Estimée (référentiel national)"
+      }
+    },
+    "exploitation": {
+      "titre": "État de l'exploitation",
+      "intro": "Ce que la surveillance du serveur constate toutes les 5 minutes : l'API, le site, son certificat, la sauvegarde de la nuit et sa copie hors du serveur, la place sur le disque. Une panne envoie une alerte par courriel à l'exploitant, une seule fois, puis une autre quand elle cesse.",
+      "actualiser": "Actualiser",
+      "indisponible": "La surveillance n'a encore rien écrit sur ce serveur.",
+      "indisponibleAide": "Le service de surveillance ne tourne pas, ou n'a pas encore fait son premier passage. Rien n'est supposé en attendant : aucun état n'est affiché.",
+      "perime": "Constat périmé",
+      "perimeAide": "Le dernier constat date de {{minutes}} minutes : la surveillance elle-même ne tourne plus. Ce qui suit est l'état d'alors, pas celui d'aujourd'hui.",
+      "verifie": "Dernière vérification : {{date}} (il y a {{minutes}} min).",
+      "depuis": "Depuis le {{date}}",
+      "resume": {
+        "pannes": "En panne",
+        "avertissements": "À surveiller",
+        "enService": "En service"
+      },
+      "etats": {
+        "ok": "En service",
+        "panne": "En panne",
+        "avertissement": "À surveiller",
+        "non_verifie": "Non vérifié"
+      },
+      "controles": {
+        "api": {
+          "libelle": "L'API",
+          "aide": "Elle répond, et sa base de données est connectée."
+        },
+        "frontal": {
+          "libelle": "Le site",
+          "aide": "Il répond à travers le frontal HTTPS, comme le voient les utilisateurs."
+        },
+        "certificat": {
+          "libelle": "Le certificat HTTPS",
+          "aide": "Il expire dans plus de 14 jours ; sinon, son renouvellement automatique a cessé de marcher."
+        },
+        "sauvegarde": {
+          "libelle": "La sauvegarde",
+          "aide": "La dernière réussite date de moins de 26 heures, et aucun échec n'est plus récent qu'elle."
+        },
+        "copie": {
+          "libelle": "La copie hors du serveur",
+          "aide": "La dernière sauvegarde est aussi ailleurs que sur ce serveur."
+        },
+        "disque": {
+          "libelle": "Le disque",
+          "aide": "Aucun volume (base, fichiers, sauvegardes) n'est plein à plus de 85 %."
+        }
+      },
+      "alertes": {
+        "titre": "Les alertes",
+        "configurees": "Les alertes partent par courriel",
+        "nonConfigurees": "Aucune alerte ne peut partir",
+        "nonConfigureesAide": "Il manque le serveur de courriel (SMTP) ou l'adresse qui reçoit les alertes. Les pannes restent visibles ici, mais personne n'est prévenu.",
+        "derniere": "Dernière alerte, le {{date}} :",
+        "envoyee": "envoyée",
+        "nonEnvoyee": "non envoyée",
+        "aucune": "Aucune alerte n'a été émise.",
+        "exterieure": "Si le serveur entier s'arrête, il ne peut pas prévenir lui-même : une surveillance extérieure (chez l'hébergeur, ou un service en ligne qui interroge le site) reste nécessaire."
       }
     }
   },
