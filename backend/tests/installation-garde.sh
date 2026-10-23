@@ -39,6 +39,7 @@ bon() {
 DB_PASSWORD="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 JWT_SECRET=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
 SIIPI_SECRET_IDENTITES=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+SIIPI_SECRET_GPS=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
 SIIPI_DOMAINE=siipi.exemple.tn
 SIIPI_TLS=exploitation@exemple.tn
 SAUVEGARDE_DESTINATAIRES=$CLE1,$CLE2
@@ -57,9 +58,10 @@ dit() { grep -c -- "$2" "$T/$1/sortie"; }
 echo "1. Le .env d'un serveur : ce qui est refusé"
 chk "aucun fichier : refus" 1 "$(bash "$VERIFIER" "$T/absent/.env" >/dev/null 2>&1; echo $?)"
 bon | sed -e 's/^DB_PASSWORD=.*/DB_PASSWORD="siipi_dev_password"/' -e 's/^JWT_SECRET=.*/JWT_SECRET="dev_only_change_me_before_any_real_deployment"/' \
-        -e 's/^SIIPI_SECRET_IDENTITES=.*/SIIPI_SECRET_IDENTITES="dev_only_secret_identites_a_remplacer"/' | poser dev
-chk "les trois secrets de développement : refus" 1 "$(essai dev)"
-chk "… chacun est nommé" "1|1|1" "$(dit dev 'DB_PASSWORD a encore')|$(dit dev 'JWT_SECRET a encore')|$(dit dev 'SIIPI_SECRET_IDENTITES a encore')"
+        -e 's/^SIIPI_SECRET_IDENTITES=.*/SIIPI_SECRET_IDENTITES="dev_only_secret_identites_a_remplacer"/' \
+        -e 's/^SIIPI_SECRET_GPS=.*/SIIPI_SECRET_GPS="dev_only_secret_gps_a_remplacer"/' | poser dev
+chk "les quatre secrets de développement : refus" 1 "$(essai dev)"
+chk "… chacun est nommé" "1|1|1|1" "$(dit dev 'DB_PASSWORD a encore')|$(dit dev 'JWT_SECRET a encore')|$(dit dev 'SIIPI_SECRET_IDENTITES a encore')|$(dit dev 'SIIPI_SECRET_GPS a encore')"
 bon | sed 's/^JWT_SECRET=.*/JWT_SECRET=court/' | poser court
 chk "un secret trop court : refus, et sa longueur est dite" "1|1" "$(essai court)|$(dit court 'JWT_SECRET est trop court (5 caractères')"
 bon | grep -v '^SIIPI_DOMAINE=\|^SIIPI_TLS=' | poser sansdomaine

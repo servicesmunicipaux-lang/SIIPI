@@ -9,7 +9,7 @@
 # base avant une mise à jour, et reviennent seuls en arrière si elle échoue.
 #
 # Prérequis : un fichier .env à la racine définissant DB_PASSWORD, JWT_SECRET,
-# SIIPI_SECRET_IDENTITES, SIIPI_DOMAINE et SIIPI_TLS (voir .env.example). L'API
+# SIIPI_SECRET_IDENTITES, SIIPI_SECRET_GPS, SIIPI_DOMAINE et SIIPI_TLS (voir .env.example). L'API
 # refuse de démarrer en production avec un secret de développement.
 #
 # HTTPS (chantier P, lot P4) : le service `frontal` (Caddy, image construite
@@ -86,6 +86,11 @@ services:
       # démarrer en production (secret de développement détecté). Le premier
       # démarrage réel du compose, au lot P4, l'a montré.
       SIIPI_SECRET_IDENTITES: ${SIIPI_SECRET_IDENTITES:?SIIPI_SECRET_IDENTITES doit être défini dans .env (openssl rand -hex 32)}
+      # La clé des secrets du connecteur GPS (lot 17.4a) : jetons des fournisseurs et
+      # secrets de webhook sont chiffrés avec elle. La perdre rend les jetons
+      # enregistrés illisibles : chaque commune les ressaisit.
+      SIIPI_SECRET_GPS: ${SIIPI_SECRET_GPS:?SIIPI_SECRET_GPS doit être défini dans .env (openssl rand -hex 32)}
+      SIIPI_GPS_PLANIFICATEUR: active
       # Facultatifs : sans eux, les notifications push et les courriels ne partent
       # pas, et la plateforme le dit (« non configuré »).
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}

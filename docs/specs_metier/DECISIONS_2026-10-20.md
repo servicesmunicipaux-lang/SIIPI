@@ -114,3 +114,22 @@ testée, P4 HTTPS, P5 supervision, P6 déploiement et mise à jour. Trois choix 
 - **La clé privée des sauvegardes** (chiffrement `age` par clé publique : le serveur chiffre, il ne sait pas
   déchiffrer) est gardée par **deux personnes de la FNCT**, sur un support hors ligne. Sans elle, aucune sauvegarde
   n'est lisible.
+
+## Complément du 23 octobre 2026 (soir) — Lot 17.4 : les choix
+
+Le plan du lot 17.4 (§ 8) est validé, en deux lots : **17.4a** le service, **17.4b** l'écran. Quatre choix :
+
+- **Le webhook est signé** (HMAC-SHA256 du corps et de l'horodatage, secret propre à la commune) ; un mode « jeton dans
+  l'en-tête » ne s'ajoutera que si la documentation de Menzel Chaker montre que leur plateforme ne sait pas signer.
+- **Les traces sont gardées entières** pour l'instant ; la supervision surveille le disque. Une colonne `agregee_le`
+  (vide) est réservée dans `traces_engins` pour résumer plus tard les vieilles traces sans casser la base.
+- **L'écran porte une carte** : la dernière position de chaque engin, la trace du jour d'un engin choisi.
+- **La commune seule écrit la configuration** ; la FNCT la lit.
+
+Trois ajouts de Nacer :
+
+- **Une aide dans l'écran**, près du bouton « Essayer », en français et en arabe : « Si votre fournisseur change son API,
+  recliquez sur Essayer pour vérifier le mapping. » (17.4b).
+- **Un horodatage illisible ou impossible n'entre jamais dans `traces_engins`** : il va dans les positions signalées. Un
+  mutant qui force une telle position dans les traces fait échouer la campagne `gps` (17.4a).
+- **La colonne `agregee_le`**, nulle, documentée « Date à laquelle cette trace a été résumée. NULL = trace brute. » (17.4a).
