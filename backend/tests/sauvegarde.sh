@@ -208,7 +208,16 @@ chk "… l'archive du serveur est gardée : elle est complète et chiffrée" t \
     "$([ "$(ls -1t "$T/s" | grep -E '\.tar$' | head -1)" != "$DERNIERE" ] && echo t || echo f)"
 chk "… et le témoin de réussite reste celui du passage précédent" "$DERNIERE" "$(temoin derniere_reussite.json .archive)"
 
-echo "7. En partant"
+echo "7. Beaucoup de fichiers"
+# Jusqu'à la v0.15.71, les empreintes passaient en argument à jq : au-delà de quelques
+# centaines de photos, « Argument list too long », et la sauvegarde échouait chaque nuit.
+mkdir -p "$T/fichiers/lot"
+for i in $(seq 1 2000); do printf '%s\n' "$i" > "$T/fichiers/lot/photo-$i.jpg"; done
+chk "un dossier de 2 003 fichiers se sauvegarde" 0 "$(sauver)"
+mkdir -p "$T/y"; tar -C "$T/y" -xf "$T/s/$(temoin derniere_reussite.json .archive)"
+chk "… et son manifeste les compte tous" 2003 "$(age -d -i "$T/cle1" "$T/y/manifeste.json.age" | jq '.fichiers | length')"
+
+echo "8. En partant"
 retirer_bases_essai
 chk "la base d'essai est retirée" 0 "$(psql_essai postgres "SELECT count(*) FROM pg_database WHERE datname = '$BASE'")"
 
