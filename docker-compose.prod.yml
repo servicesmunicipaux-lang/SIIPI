@@ -23,9 +23,18 @@
 # Le service front-end sera ajouté ici lors de la reconstruction du
 # front-end (il n'existe pas encore d'image web de production).
 #
+# Sauvegardes (chantier P, lot P2) : le service `sauvegarde` prend chaque nuit,
+# à SAUVEGARDE_HEURE (heure de Tunis), la base et les fichiers ensemble, chiffrés
+# pour les clés publiques age de SAUVEGARDE_DESTINATAIRES (deux clés, une par
+# personne de la FNCT ; les clés privées ne viennent jamais sur ce serveur). Il
+# en garde 7 dates, 4 dimanches et 12 premiers du mois, et les copie vers
+# SAUVEGARDE_DESTINATION ; l'archive froide y part original par original, jamais
+# effacée. Le distant rclone se décrit dans sauvegarde.env (RCLONE_CONFIG_*),
+# facultatif. Une sauvegarde à la main :
+#   docker compose -f docker-compose.prod.yml exec sauvegarde /opt/sauvegarde/sauvegarder.sh
+#
 # Avant toute mise en service réelle, il reste à ajouter : un reverse proxy
-# TLS devant l'API, une sauvegarde planifiée du volume PostgreSQL, et la
-# journalisation centralisée.
+# TLS devant l'API, et la journalisation centralisée.
 # ---------------------------------------------------------------------------
 
 services:
@@ -80,10 +89,46 @@ services:
       - "4000:4000"
     networks: [siipi-net]
 
+  sauvegarde:
+    build:
+      context: ./backend/exploitation/sauvegarde
+    image: siipi/sauvegarde:latest
+    container_name: ${SIIPI_INSTANCE:-siipi}_sauvegarde
+    restart: always
+    environment:
+      PGHOST: db
+      PGUSER: siipi_admin
+      PGPASSWORD: ${DB_PASSWORD:?}
+      PGDATABASE: siipi_national
+      SAUVEGARDE_INSTANCE: ${SIIPI_INSTANCE:-siipi}
+      SAUVEGARDE_DESTINATAIRES: ${SAUVEGARDE_DESTINATAIRES:-}
+      SAUVEGARDE_DESTINATION: ${SAUVEGARDE_DESTINATION:-}
+      SAUVEGARDE_HEURE: ${SAUVEGARDE_HEURE:-02:30}
+      SIIPI_FICHIERS_DIR: /var/siipi/fichiers
+      SIIPI_ARCHIVE_DIR: /var/siipi/archive
+    env_file:
+      # La description du distant rclone (RCLONE_CONFIG_<NOM>_TYPE, _HOST, _USER…),
+      # avec ses secrets : hors du dépôt, et facultative — sans elle, une
+      # destination ne peut être qu'un chemin monté.
+      - path: ./sauvegarde.env
+        required: false
+    volumes:
+      # Lecture seule : la sauvegarde lit les fichiers, elle ne les touche jamais.
+      - siipi_fichiers:/var/siipi/fichiers:ro
+      - siipi_archive_froide:/var/siipi/archive:ro
+      - siipi_sauvegardes:/var/siipi/sauvegardes
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [siipi-net]
+
 volumes:
   siipi_postgres_data:
   siipi_fichiers:
   siipi_archive_froide:
+  # Les archives chiffrées et les témoins de la dernière réussite et du dernier
+  # échec (lus par la supervision, lot P5).
+  siipi_sauvegardes:
 
 networks:
   siipi-net:
