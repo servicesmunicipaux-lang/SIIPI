@@ -5,6 +5,45 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.71] — 2026-10-23 — Chantier P, lot P3 : la restauration testée
+
+Troisième lot de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 4 : « une campagne restaure la
+dernière sauvegarde sur une base neuve et vérifie que les recomptages sont identiques »).
+
+### Ajouté
+- **`restaurer.sh <archive> <clé privée> <base neuve> <dossier neuf>`**, dans l'image de sauvegarde. Elle **ne restaure
+  jamais par-dessus quelque chose** : une base cible qui existe, un dossier non vide, et elle refuse avant tout
+  déchiffrement. La clé privée est lue depuis son fichier (le support hors ligne de la personne de la FNCT), jamais copiée.
+  Le déchiffrement se fait au vol vers `pg_restore` et `tar` ; `age` vérifie l'intégrité. La base redevient ce qu'elle
+  était, **nature comprise** : une sauvegarde de production restaurée est une base de production. Le rôle `siipi_app` et le
+  droit du compte de l'API de l'endosser, qui vivent hors de la base, sont recréés comme la migration 013 les crée — ce
+  qu'exige un serveur neuf.
+- **La vérification contre le manifeste** : nature, nombre et dernière migration, nombre de lignes de **chaque table**,
+  empreinte de **chaque fichier**, rien de plus ni de moins. Le rapport (`restauration_<base>.json`) nomme chaque écart
+  (table, attendu, obtenu ; fichier manquant, en trop ou différent) ; au moindre écart, la sortie est en erreur.
+- **Un échec ne laisse rien à moitié** : déchiffrement, restauration ou vérification qui échoue, la base créée est retirée
+  et le dossier vidé. Remettre une base restaurée en service est une procédure écrite (lot P6), pas un geste du script.
+- Campagne `restauration` (68e), 31 contrôles. Les refus : sans arguments, base cible existante (non touchée), dossier non
+  vide (fichier intact), autre clé, archive abîmée d'un seul octet, fichier qui n'est pas une archive — chaque fois ni base
+  ni fichier laissés. Un manifeste refait faux (40 lignes annoncées au lieu de 41, un fichier en moins) : deux écarts nommés,
+  base retirée. Une base d'essai restaurée (lignes et géométries, fichiers identiques, chacune des deux clés, une API qui
+  démarre dessus et se dit en bonne santé). Une sauvegarde de production restaurée reste de production, et le lanceur des
+  campagnes la refuse (P1). **La base des campagnes elle-même**, sauvegardée en lecture seule et restaurée à part : plus de
+  cent tables, Dar Chaâbane comprise, tous ses fichiers, aucun écart, et son journal d'audit n'a pas bougé. Trois mutants
+  détectés : les fichiers oubliés, les écarts de comptes ignorés, une base cible existante acceptée.
+- L'image a été construite et a fait l'aller-retour complet contre la base de la pile d'essai : 101 tables, 22 052 lignes,
+  aucun écart.
+
+### Corrigé
+- **La sauvegarde échouait au-delà de quelques centaines de fichiers** (v0.15.70) : les empreintes passaient en argument à
+  `jq`, et une ligne de commande a une longueur maximale — « Argument list too long » avec les 884 fichiers de la pile
+  d'essai. La restauration de la base des campagnes l'a révélé ; les essais de P2 n'avaient que quelques fichiers. Les
+  empreintes et les comptes passent désormais par des fichiers. La campagne `sauvegarde` (56 contrôles) sauvegarde un
+  dossier de 2 003 fichiers et vérifie que le manifeste les compte tous ; la version de la v0.15.70 y échoue. Aucune
+  installation n'était touchée : le service de sauvegarde n'a encore tourné sur aucun serveur.
+- Les campagnes `sauvegarde` et `restauration` utilisent les outils PostgreSQL 16, ceux de l'image : le `pg_dump` plus
+  récent du conteneur des campagnes écrit un réglage (`transaction_timeout`) qu'un serveur 16 refuse à la restauration.
+
 ## [0.15.70] — 2026-10-23 — Chantier P, lot P2 : les sauvegardes chiffrées
 
 Deuxième lot de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 4 et son complément du 23/10/2026).
