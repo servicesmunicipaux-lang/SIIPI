@@ -5,6 +5,53 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.74] — 2026-10-23 — Chantier P, lot P6 : le déploiement et la mise à jour — le chantier P est clos
+
+Sixième et dernier lot de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 2 et § 4, et complément
+du 23/10/2026 : référentiels seuls, retour arrière automatique avant la réouverture, page de maintenance).
+
+### Ajouté
+- **`backend/exploitation/deploiement/`** — les trois procédures, et leurs documents dans `docs/exploitation/`
+  (`INSTALLATION.md`, `MISE_A_JOUR.md`, `RETOUR_ARRIERE.md`) :
+  - **`verifier_env.sh`** : le `.env` d'un serveur, **lu, jamais exécuté**, refusé sur un secret absent, de
+    développement ou trop court, un domaine ou un certificat absent, `localhost` hors essai, un certificat de la DSI
+    introuvable, aucune clé de sauvegarde valide ; une seule clé, ni copie, ni SMTP, ni adresse d'alerte sont signalés.
+  - **`installer.sh`** : toujours sur une base neuve (refus si le volume existe) ; images **étiquetées par la version**
+    (le compose de production n'a plus d'image `latest`) ; base migrée puis **fixée « production » avant tout
+    chargement** ; archive froide ; **référentiels nationaux seuls** (communes, découpage officiel, normales
+    climatiques) ; premier compte de la FNCT, mot de passe provisoire affiché une fois ; contrôles (HTTPS, ports,
+    versions fantômes) ; première sauvegarde et premier passage de la surveillance.
+  - **`mettre_a_jour.sh`** : images construites pendant que l'ancienne version sert ; **page « maintenance en cours »**
+    (FR et AR, 503, `web/public/maintenance.html`, témoin sur un volume que tient Caddy) ; API arrêtée ; sauvegarde
+    chiffrée (en échec : rien ne change) ; **copie de la base dans le serveur PostgreSQL** (`CREATE DATABASE … TEMPLATE`) —
+    la sauvegarde est chiffrée pour des clés que le serveur n'a pas, il ne peut pas la relire seul ; migrations,
+    démarrage, contrôles (API saine, migrations au compte de l'image, frontal qui joint l'API) ; **retour arrière
+    automatique** si un contrôle échoue avant la réouverture — personne n'ayant écrit depuis la copie, rien n'est perdu.
+  - **`revenir.sh <base> <version>`** : met en service une autre base avec la version qui la connaît ; la base courante
+    est **renommée** `siipi_national_abandonnee_<date>`, jamais effacée. Sert au retour arrière automatique et, après une
+    restauration (P3), à la remise en service.
+  - Chaque geste est inscrit dans `deploiements.log` (exclu du dépôt).
+- **`essai_bout_en_bout.sh`** : les trois procédures jouées sur une pile jetable de ce poste — installation, une mise
+  à jour qui ajoute une migration, une mise à jour dont la migration échoue et revient seule en arrière — **23 contrôles
+  réussis**, puis tout retiré. Hors de `npm test` (les campagnes n'ont pas Docker), versionné pour être rejoué par la DSI.
+- `seed:referentiel` (et `:prod`), `seed:normales-climat:prod` : les chargements de référence dans l'image de production.
+- Campagne `installation-garde` (71e), 22 contrôles : les refus de `verifier_env.sh` (dont un `.env` piégé qui n'est pas
+  exécuté), ses avertissements, et le seed — référentiel seul sur une base de production ou avec `--referentiel`, la
+  démonstration inchangée en développement. Trois mutants détectés. La campagne `proxy-https` éprouve la page de
+  maintenance (front et API en 503, `Retry-After`, levée).
+
+### Corrigé
+- **Le seed posait de la démonstration dans une base de production** : il s'abstenait des comptes, mais posait encore
+  6 camions, 6 conteneurs, 3 secteurs et un barbécha fictifs dans La Marsa, Sfax et Djerba — des communes réelles (le
+  mutant qui retire la correction les retrouve). En production, ou avec `--referentiel`, il ne charge que le référentiel.
+- `scripts/skills/versions-fantomes.sh` accepte le compose d'un serveur (`DC`) ; `ports-production.sh` fournit
+  `SIIPI_VERSION`.
+
+### Le chantier P est clos
+P1 (refus des campagnes), P2 (sauvegardes chiffrées), P3 (restauration testée), P4 (HTTPS), P5 (supervision), P6
+(déploiement). Ce qui reste hors du dépôt attend la DSI : l'hébergeur, le nom de domaine et son DNS, les ports 80 et
+443, la destination de la copie hors serveur, le compte SMTP, l'adresse des alertes, et une surveillance extérieure.
+
 ## [0.15.73] — 2026-10-23 — Chantier P, lot P5 : la supervision
 
 Cinquième lot de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 4 : « /health surveillé, alerte si la

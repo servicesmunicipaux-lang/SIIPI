@@ -295,8 +295,18 @@ async function seedDjerbaZones() {
 }
 
 async function run() {
+  // Le référentiel seul (chantier P, lot P6) : sur une instance de production, ou à la
+  // demande (--referentiel). Jusqu'à la v0.15.73, le seed ne s'abstenait en production
+  // que des comptes de démonstration : il posait encore des camions, des conteneurs, un
+  // barbécha et des secteurs fictifs dans La Marsa, Sfax et Djerba — des communes
+  // réelles. Une donnée de démonstration n'a rien à faire dans une base de production.
+  const referentielSeul = process.argv.includes('--referentiel') || (await natureSansFixer()) === 'production';
   await withTransaction(async () => {
     await seedCommunes();
+    if (referentielSeul) {
+      console.log('[seed] Référentiel seul : ni compte, ni flotte, ni conteneur, ni secteur de démonstration.');
+      return;
+    }
     await seedUsers();
     await seedFleetAndOperations();
     await seedDjerbaZones();
