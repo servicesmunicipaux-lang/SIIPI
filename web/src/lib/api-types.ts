@@ -22871,6 +22871,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/supervision/etat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * L’état de l’exploitation (FNCT)
+         * @description Réservé à la FNCT. Le dernier constat de la surveillance (service à part, chantier P, lot P5) : l’API, le site, le certificat, la sauvegarde, sa copie hors du serveur, le disque — chacun ok, en panne, à surveiller ou non vérifié, depuis quand, avec son message en français et en arabe. Un constat de plus de trois intervalles est dit périmé ; sans constat, `disponible` est faux et rien n’est supposé. Ni les destinataires des alertes ni le serveur de courriel ne sortent.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description L’état de l’exploitation. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EtatExploitation"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fichiers/conservation": {
         parameters: {
             query?: never;
@@ -28848,6 +28923,27 @@ export interface components {
                 derniere: string | null;
             }[];
             lignes: components["schemas"]["LigneBibliotheque"][];
+        };
+        EtatExploitation: {
+            disponible: boolean;
+            verifie_le: string | null;
+            age_minutes: number | null;
+            perime: boolean | null;
+            alertes_configurees: boolean | null;
+            controles: {
+                /** @enum {string} */
+                controle: "api" | "frontal" | "certificat" | "sauvegarde" | "copie" | "disque";
+                /** @enum {string} */
+                etat: "ok" | "panne" | "avertissement" | "non_verifie";
+                depuis: string | null;
+                message: string | null;
+                message_ar: string | null;
+            }[];
+            derniere_alerte: {
+                le: string;
+                sujet: string;
+                envoyee: boolean;
+            } | null;
         };
         PassageConservation: {
             id: number;

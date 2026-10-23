@@ -5,6 +5,47 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.73] — 2026-10-23 — Chantier P, lot P5 : la supervision
+
+Cinquième lot de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 4 : « /health surveillé, alerte si la
+plateforme ou la sauvegarde échoue »).
+
+### Ajouté
+- **Le service `surveillance`** (`backend/exploitation/surveillance/`, `docker-compose.prod.yml`), **à part de l'API** — on ne
+  confie pas à l'API le soin de dire que l'API est tombée. Toutes les 5 minutes : l'API (`/health`, base comprise), le site à
+  travers le frontal, le certificat (moins de 14 jours avant l'expiration : le renouvellement automatique a cessé), la
+  sauvegarde (dernière réussite de plus de 26 h, ou échec plus récent qu'elle, d'après les témoins de P2), la copie hors
+  serveur (« non configurée » : à surveiller), le disque (un volume plein à plus de 85 %). Chaque constat en français et en
+  arabe. Aucun port ; volumes en lecture seule, sauf le sien.
+- **L'alerte part au changement d'état seulement** : « en panne » au premier constat, plus rien tant que cela dure, puis
+  « rétabli » — un seul courriel pour plusieurs contrôles qui changent ensemble. Par le serveur SMTP de l'API, vers
+  `SUPERVISION_DESTINATAIRES` ; le mot de passe du serveur ne passe ni sur une ligne de commande ni dans un fichier. Sans
+  serveur ou sans destinataire, rien ne part, et l'état le dit.
+- **`GET /supervision/etat`** (FNCT seule) lit le constat écrit par la surveillance, sans rien recalculer : chaque contrôle,
+  depuis quand, son message dans les deux langues, la dernière alerte (sans ses destinataires ni le serveur). **Un constat de
+  plus de trois intervalles est dit périmé** — si la surveillance elle-même s'arrête, son dernier « tout va bien » ne passe
+  pas pour actuel ; sans constat, `disponible` est faux et rien n'est supposé.
+- **L'écran « État de l'exploitation »** (observatoire, pôle Performance & déploiement), en français et en arabe : en tête,
+  un bandeau rouge si le constat est périmé ; des effectifs de contrôles (en panne, à surveiller, en service — jamais un
+  score) ; une carte par contrôle avec son état en mot et en pastille, son message, depuis quand ; les alertes, et le rappel
+  qu'une surveillance extérieure au serveur reste nécessaire. Captures FR et AR prises sur un vrai passage de la surveillance.
+- Campagne `supervision` (70e), 37 contrôles, avec une fausse API, des témoins fabriqués, un certificat de 5 puis de 60 jours
+  et le serveur SMTP d'essai : une alerte et une seule par panne, la date de début gardée, « rétabli » une fois ; l'échec plus
+  récent, l'API muette, le disque, la copie, le certificat ; sans SMTP ; la route (refus sans compte et pour un directeur,
+  ordre, deux langues, aucun secret, périmé, absent). Quatre mutants détectés : une alerte à chaque passage, le « rétabli »
+  jamais envoyé, le seuil de 26 h ignoré, un constat périmé non signalé.
+- L'image a été construite et a fait un passage contre l'API de la pile d'essai.
+
+### Corrigé
+- `scripts/skills/ports-production.sh` (v0.15.72) échouait sans rien vérifier : il ne fournissait pas `SIIPI_SECRET_IDENTITES`,
+  devenue obligatoire au même lot. Il la fournit ; il est inscrit dans le README des outils.
+
+### Incident pendant le lot (consigné)
+- Pendant le critère de P4, le fichier de route de ce lot a été créé sous le nom `exploitation.routes.ts`, déjà pris par le
+  lot 16.3 (carnets de bord, carburant) : il l'a écrasé, les API d'essai ne démarraient plus et le critère a échoué. Le
+  fichier a été restauré depuis git avant tout commit, le critère de P4 relancé et passé ; la route de ce lot s'appelle
+  `supervision.routes.ts`. Rien de faux n'a été livré.
+
 ## [0.15.72] — 2026-10-23 — Chantier P, lot P4 : le frontal HTTPS
 
 Quatrième lot de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 4 et complément du 23/10/2026 : Caddy).

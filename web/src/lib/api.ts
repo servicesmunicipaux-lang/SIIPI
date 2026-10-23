@@ -237,6 +237,7 @@ export type Incoherence = Reponse<'/communes/{id}/coherence', 'get'>[number];
 // --- Jalon D, lot D4 : la bibliothèque nationale des données ---
 export type BibliothequeCatalogue = Reponse<'/bibliotheque', 'get'>;
 export type BibliothequeDetail = Reponse<'/bibliotheque/{element}', 'get'>;
+export type EtatExploitation = Reponse<'/supervision/etat', 'get'>;
 // --- Jalon D, lot D2 : l'accueil du portail communal ---
 export type AccueilCommune = Reponse<'/communes/{id}/accueil', 'get'>;
 // --- Lot 18.1 : registre des acteurs informels, derrière le cadre national ---
@@ -922,6 +923,7 @@ export const api = {
   // Écarts entre le registre des circuits et l'inventaire du parc.
   /** La bibliothèque des données : le catalogue des neuf éléments (FNCT, lecture seule). */
   bibliotheque: () => requete<BibliothequeCatalogue>('/bibliotheque'),
+  etatExploitation: () => requete<EtatExploitation>('/supervision/etat'),
   /** Un élément de la bibliothèque : par territoire, puis commune par commune. */
   bibliothequeElement: (element: string) => requete<BibliothequeDetail>(`/bibliotheque/${encodeURIComponent(element)}`),
   /** L'accueil du portail : ce qui va bien, ce qui demande une action, le constat du jour. */
