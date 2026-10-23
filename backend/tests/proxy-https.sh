@@ -48,6 +48,8 @@ mkdir -p "$T/racine/assets"
 printf '<!doctype html><title>SIIPI</title><div id="racine">INDEX-SIIPI</div>\n' > "$T/racine/index.html"
 printf 'self.addEventListener("fetch", () => {});\n' > "$T/racine/sw.js"
 printf 'console.log("app");\n' > "$T/racine/assets/app-3f9a2c.js"
+printf '<!doctype html><title>SIIPI</title>MAINTENANCE-SIIPI\n' > "$T/racine/maintenance.html"
+mkdir -p "$T/maintenance"
 
 # Une connexion qui échoue (compte inconnu) : 401, puis 429 quand la limite est atteinte.
 connexion() { # url [X-Forwarded-For]
@@ -78,7 +80,7 @@ chk "quatre tentatives qui changent d'en-tête : la quatrième est refusée" "40
 echo "3. Derrière Caddy"
 api_essai "$PORT_ESSAI" "$BASE" AUTH_RATE_LIMIT_MAX=3 TRUST_PROXY=1; CODE=$?
 chk "l'API d'essai démarre, TRUST_PROXY=1" 0 "$CODE"
-SIIPI_DOMAINE=localhost SIIPI_TLS=internal SIIPI_API="localhost:$PORT_ESSAI" SIIPI_RACINE="$T/racine" \
+SIIPI_DOMAINE=localhost SIIPI_TLS=internal SIIPI_API="localhost:$PORT_ESSAI" SIIPI_RACINE="$T/racine" SIIPI_MAINTENANCE="$T/maintenance" \
   SIIPI_PORT_HTTP=$HTTP SIIPI_PORT_HTTPS=$HTTPS XDG_DATA_HOME="$T/donnees" XDG_CONFIG_HOME="$T/config" \
   caddy run --config exploitation/frontal/Caddyfile --adapter caddyfile >"$T/caddy.log" 2>&1 &
 PID_CADDY=$!
@@ -111,7 +113,18 @@ chk "à travers Caddy, un en-tête forgé n'échappe pas à la limite" "401 401 
 chk "un premier appelant réel épuise SA limite" "401 401 401 429" "$(quatre "$API_ESSAI" 203.0.113.7)"
 chk "… un second appelant garde la sienne" "401 401 401 429" "$(quatre "$API_ESSAI" 203.0.113.8)"
 
-echo "5. En partant"
+echo "5. La maintenance (lot P6)"
+touch "$T/maintenance/active"
+chk "pendant une mise à jour, le front rend la page de maintenance (503)" "503|1" \
+    "$(curl -s -o "$T/m.html" -w '%{http_code}' --cacert "$T/ca.crt" "$SITE/observatoire")|$(grep -c MAINTENANCE-SIIPI "$T/m.html")"
+chk "… l'API aussi : personne n'écrit pendant la mise à jour" "503|1" \
+    "$(curl -s -o "$T/m.html" -w '%{http_code}' --cacert "$T/ca.crt" "$SITE/api/health")|$(grep -c MAINTENANCE-SIIPI "$T/m.html")"
+chk "… et dit quand revenir, sans être mise en cache" "600|no-store" "$(entete / retry-after)|$(entete / cache-control)"
+rm -f "$T/maintenance/active"
+chk "la maintenance levée, tout répond de nouveau" "ok|1" \
+    "$(curl -s --cacert "$T/ca.crt" "$SITE/api/health" | jq -r .status)|$(curl -s --cacert "$T/ca.crt" "$SITE/" | grep -c INDEX-SIIPI)"
+
+echo "6. En partant"
 arreter_caddy
 arreter_api_essai
 retirer_bases_essai

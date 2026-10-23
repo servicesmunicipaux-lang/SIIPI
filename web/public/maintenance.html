@@ -1,0 +1,38 @@
+<!doctype html>
+<!--
+  La page « maintenance en cours » (chantier P, lot P6). Caddy la rend, avec le
+  code 503, pendant une mise à jour (backend/exploitation/frontal/Caddyfile).
+  Autonome : ni script, ni feuille de style, ni image extérieure — l'application
+  elle-même est arrêtée. Bilingue sur la même page : on ne sait pas encore dans
+  quelle langue la personne travaille.
+-->
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="refresh" content="60" />
+    <title>SIIPI — maintenance en cours</title>
+    <style>
+      body { margin: 0; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; background: #eef0f2; color: #1f2933; }
+      main { max-width: 34rem; margin: 12vh auto; padding: 0 1rem; }
+      .carte { background: #fff; border: 1px solid #d9dde1; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+      .logo { width: 48px; height: 48px; border-radius: 10px; background: #13784f; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto 1rem; }
+      h1 { font-size: 1.15rem; margin: 0 0 .5rem; }
+      p { margin: 0; line-height: 1.55; color: #3e4c59; }
+      [dir='rtl'] { text-align: right; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="logo" aria-hidden="true">ن</div>
+      <section class="carte" lang="fr">
+        <h1>Maintenance en cours</h1>
+        <p>SIIPI est en cours de mise à jour. Le service revient dans quelques minutes ; vos données sont sauvegardées et rien n'est perdu. Cette page se recharge seule.</p>
+      </section>
+      <section class="carte" lang="ar" dir="rtl">
+        <h1>صيانة جارية</h1>
+        <p>يجري تحديث المنظومة. ستعود الخدمة خلال بضع دقائق ؛ معطياتكم محفوظة ولن يضيع شيء. تُعاد هذه الصفحة تحميلها تلقائيا.</p>
+      </section>
+    </main>
+  </body>
+</html>

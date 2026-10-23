@@ -1,6 +1,13 @@
 # ---------------------------------------------------------------------------
 # SIIPI — déploiement (base + API construites depuis les sources).
 #
+# NE SE LANCE PAS À LA MAIN (chantier P, lot P6) : l'installation, la mise à jour
+# et le retour arrière passent par backend/exploitation/deploiement/ (installer.sh,
+# mettre_a_jour.sh, revenir.sh ; docs/exploitation/). Ils vérifient le .env avant
+# tout geste, étiquettent les images par version (SIIPI_VERSION, jamais latest),
+# fixent la base « production » avant tout chargement, sauvegardent et copient la
+# base avant une mise à jour, et reviennent seuls en arrière si elle échoue.
+#
 # Prérequis : un fichier .env à la racine définissant DB_PASSWORD, JWT_SECRET,
 # SIIPI_SECRET_IDENTITES, SIIPI_DOMAINE et SIIPI_TLS (voir .env.example). L'API
 # refuse de démarrer en production avec un secret de développement.
@@ -11,10 +18,9 @@
 # renouvellement Let's Encrypt) et 443. L'API et la base n'ont aucun port sur
 # l'hôte. Le certificat : SIIPI_TLS (voir backend/exploitation/frontal/Caddyfile).
 #
-#   docker compose -f docker-compose.prod.yml up -d --build
-#   docker compose -f docker-compose.prod.yml run --rm api npm run migrate:prod
-#   docker compose -f docker-compose.prod.yml run --rm api npm run medias:archive:initialiser:prod
-#   docker compose -f docker-compose.prod.yml run --rm api npm run compte:fnct:creer:prod -- <adresse> "<nom>"
+#   bash backend/exploitation/deploiement/installer.sh <adresse FNCT> "<nom complet>"
+#   bash backend/exploitation/deploiement/mettre_a_jour.sh
+#   bash backend/exploitation/deploiement/revenir.sh <base> <version>
 #
 # Production ou formation (D-FNCT-5, README.md « Production et formation ») :
 # PRODUCTION=true par défaut ici. Une instance de formation se lance avec
@@ -34,7 +40,7 @@
 # SAUVEGARDE_DESTINATION ; l'archive froide y part original par original, jamais
 # effacée. Le distant rclone se décrit dans sauvegarde.env (RCLONE_CONFIG_*),
 # facultatif. Une sauvegarde à la main :
-#   docker compose -f docker-compose.prod.yml exec sauvegarde /opt/sauvegarde/sauvegarder.sh
+#   docker compose -p <instance> -f docker-compose.prod.yml exec sauvegarde /opt/sauvegarde/sauvegarder.sh
 #
 # Supervision (chantier P, lot P5) : le service `surveillance`, à part de l'API,
 # vérifie toutes les 5 minutes l'API, le site, le certificat, la sauvegarde, sa
@@ -69,7 +75,7 @@ services:
   api:
     build:
       context: ./backend
-    image: siipi/api:latest
+    image: siipi/api:${SIIPI_VERSION:?la version à servir est fixée par les scripts de backend/exploitation/deploiement}
     container_name: ${SIIPI_INSTANCE:-siipi}_api
     restart: always
     init: true
@@ -126,7 +132,7 @@ services:
   surveillance:
     build:
       context: ./backend/exploitation/surveillance
-    image: siipi/surveillance:latest
+    image: siipi/surveillance:${SIIPI_VERSION:?la version à servir est fixée par les scripts de backend/exploitation/deploiement}
     container_name: ${SIIPI_INSTANCE:-siipi}_surveillance
     restart: always
     environment:
@@ -155,7 +161,7 @@ services:
   frontal:
     build:
       context: ./web
-    image: siipi/frontal:latest
+    image: siipi/frontal:${SIIPI_VERSION:?la version à servir est fixée par les scripts de backend/exploitation/deploiement}
     container_name: ${SIIPI_INSTANCE:-siipi}_frontal
     restart: always
     environment:
@@ -169,6 +175,9 @@ services:
       # redémarrage à l'autre, sinon chaque démarrage redemanderait un certificat.
       - caddy_donnees:/data
       - caddy_config:/config
+      # Le témoin « maintenance en cours » (lot P6) : sur un volume, il survit au
+      # remplacement du frontal par sa nouvelle version au milieu d'une mise à jour.
+      - siipi_maintenance:/maintenance
     ports:
       - "80:80"
       - "443:443"
@@ -179,7 +188,7 @@ services:
   sauvegarde:
     build:
       context: ./backend/exploitation/sauvegarde
-    image: siipi/sauvegarde:latest
+    image: siipi/sauvegarde:${SIIPI_VERSION:?la version à servir est fixée par les scripts de backend/exploitation/deploiement}
     container_name: ${SIIPI_INSTANCE:-siipi}_sauvegarde
     restart: always
     environment:
@@ -220,6 +229,7 @@ volumes:
   caddy_config:
   # Le constat de la surveillance (lot P5) : écrit par elle, lu par l'API.
   siipi_supervision:
+  siipi_maintenance:
 
 networks:
   siipi-net:

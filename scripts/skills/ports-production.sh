@@ -20,7 +20,7 @@ cd "$(dirname "$0")/../.."
 # Des valeurs de forme seulement : config exige les variables obligatoires, et rien ne démarre.
 # Toutes les variables obligatoires : une seule manquante, et config échoue sans rien vérifier
 # (oubli de la v0.15.72, quand SIIPI_SECRET_IDENTITES est devenue obligatoire).
-config=$(DB_PASSWORD=verification JWT_SECRET=verification SIIPI_SECRET_IDENTITES=verification \
+config=$(DB_PASSWORD=verification JWT_SECRET=verification SIIPI_SECRET_IDENTITES=verification SIIPI_VERSION=verification \
   SIIPI_DOMAINE=verification.invalid SIIPI_TLS=internal \
   docker compose -f docker-compose.prod.yml config)
 

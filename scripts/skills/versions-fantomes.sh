@@ -33,7 +33,8 @@
 # Code de sortie non nul dès qu'une version est « fantôme » ou « à examiner ».
 # =============================================================================
 set -u
-DC="docker compose"; docker compose version >/dev/null 2>&1 || DC="docker-compose"
+# DC peut nommer le compose d'un serveur (installer.sh : --env-file, -p, -f docker-compose.prod.yml).
+if [ -z "${DC:-}" ]; then DC="docker compose"; docker compose version >/dev/null 2>&1 || DC="docker-compose"; fi
 PSQL="$DC exec -T db psql -v ON_ERROR_STOP=1 -qX -U ${PGUSER:-siipi_admin} -d ${PGDATABASE:-siipi_national}"
 
 REQUETE="

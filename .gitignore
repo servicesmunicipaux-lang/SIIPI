@@ -61,3 +61,5 @@ docs/specs_metier/sources/wapla/*.py
 certificats/
 # La description du distant rclone des sauvegardes, avec ses secrets (lot P2).
 sauvegarde.env
+# Le journal des installations, mises à jour et retours arrière d'un serveur (lot P6).
+deploiements.log
