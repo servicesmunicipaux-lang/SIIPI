@@ -150,6 +150,7 @@
       "synthese": "Synthèse",
       "communes": "Annuaire et carte",
       "performance": "Indicateurs & 5 axes",
+      "bibliotheque": "Bibliothèque des données",
       "deploiement": "Déploiement par gouvernorat",
       "parametres": "Paramètres nationaux",
       "demo": "Mode démo",
@@ -433,6 +434,91 @@
       "partCommunes": "Part des communes qui saisissent",
       "ouOnSaisit": "Où l'on saisit ce mois-ci",
       "personne": "Aucune commune ne saisit ce mois-ci : la carte reste grise."
+    },
+    "bibliotheque": {
+      "titre": "Bibliothèque des données",
+      "chapeau": "Tout ce que SIIPI réunit sur la gestion des déchets, par territoire. En lecture seule : la bibliothèque ne crée rien et n'ouvre aucun fichier — elle dit ce qui existe, d'où cela vient, et ce qui manque.",
+      "groupes": {
+        "documents": "Documents",
+        "references": "Références",
+        "series": "Séries"
+      },
+      "aucune": "Aucune commune sur {{total}} : rien n'est encore dans SIIPI.",
+      "communesAvec": "Dans SIIPI pour {{n}} commune(s) sur {{total}}",
+      "periode": "du {{debut}} au {{fin}}",
+      "jusquau": "jusqu'au {{date}}",
+      "moisCouverts": "{{count}} mois couvert(s)",
+      "fermer": "Fermer",
+      "parTerritoire": "Par territoire",
+      "parCommune": "Commune par commune",
+      "rechercher": "Chercher une commune ou un gouvernorat…",
+      "colCommunes": "Communes",
+      "colEn": "Dont en tiennent",
+      "colDerniere": "Dernière date",
+      "elements": {
+        "pcgd": {
+          "libelle": "PCGD",
+          "aide": "Le plan communal de gestion des déchets déposé : son statut, son année, son bureau d'études.",
+          "unite": "document(s)"
+        },
+        "rapports_etudes": {
+          "libelle": "Études et rapports",
+          "aide": "Études techniques, rapports d'activité, audits : un titre, une catégorie, un auteur.",
+          "unite": "document(s)"
+        },
+        "cout_complet": {
+          "libelle": "Coût complet",
+          "aide": "L'étude d'un bureau d'études sur le coût de la gestion des déchets, rejouée dans SIIPI.",
+          "unite": "étude(s)"
+        },
+        "caracterisation": {
+          "libelle": "Caractérisation des déchets",
+          "aide": "La composition des déchets mesurée pour la commune, avec le niveau de sa source.",
+          "unite": "caractérisation(s)"
+        },
+        "population": {
+          "libelle": "Population",
+          "aide": "La population déclarée par la commune, sinon l'estimation du référentiel national.",
+          "unite": "habitants"
+        },
+        "pesees": {
+          "libelle": "Pesées",
+          "aide": "Les tonnages pesés à la décharge ou au centre de transfert — toujours « pesés », jamais mêlés à une estimation.",
+          "unite": "pesée(s)"
+        },
+        "circuits": {
+          "libelle": "Circuits",
+          "aide": "Les circuits de collecte relevés par la commune.",
+          "unite": "circuit(s)"
+        },
+        "points": {
+          "libelle": "Points relevés",
+          "aide": "Les arrêts, bacs et dépôts relevés sur le terrain.",
+          "unite": "point(s)"
+        },
+        "reclamations": {
+          "libelle": "Réclamations",
+          "aide": "Les réclamations reçues des citoyens : leur nombre et leur période, sans le détail d'aucune.",
+          "unite": "réclamation(s)"
+        }
+      },
+      "valeurs": {
+        "adopte": "Adopté",
+        "en_preparation": "En préparation",
+        "en_revision": "En révision",
+        "etude_technique": "Étude technique",
+        "rapport_activite": "Rapport d'activité",
+        "audit": "Audit",
+        "plan_action": "Plan d'action",
+        "autre": "Autre",
+        "moyenne_nationale_anged": "Moyenne nationale ANGeD",
+        "etude_anged_commune": "Étude ANGeD de la commune",
+        "pcgd": "Issue du PCGD",
+        "autre_etude": "Autre étude",
+        "pese": "Pesé",
+        "declaree": "Déclarée par la commune",
+        "estimee": "Estimée (référentiel national)"
+      }
     }
   },
   "commun": {

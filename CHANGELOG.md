@@ -5,6 +5,47 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.68] — 2026-10-22 — Jalon D, lot D4 : la bibliothèque nationale des données
+
+Pour montrer le rôle de SIIPI dans la **capitalisation des données** de la gestion des déchets : un catalogue de tout ce qu'il
+réunit, par commune, gouvernorat et district (SPEC_D § D4).
+
+### Ajouté
+- **L'écran « Bibliothèque des données »**, dans le pôle « Performance & déploiement » de l'observatoire, à côté de
+  « Indicateurs & 5 axes ». Neuf éléments en trois groupes — **documents** (le PCGD, les études et rapports, les études de coût
+  complet), **références** (la caractérisation des déchets, la population), **séries** (les pesées, les circuits, les points
+  relevés, les réclamations). Chaque élément dit « dans SIIPI pour N commune(s) sur M », son nombre, sa période, et sa
+  répartition (statut d'un PCGD, niveau d'une caractérisation, nature d'une population ou d'une pesée). Un clic ouvre le détail :
+  **par gouvernorat ou par district FNCT** (« N communes sur M », ordre alphabétique), puis **commune par commune** — le titre,
+  l'auteur, l'année et le statut des documents, le nombre et la période des séries, le nombre de mois où il y a des pesées —
+  avec une recherche et un export Excel ou CSV. Français et arabe (de droite à gauche).
+- `GET /bibliotheque` (le catalogue), `GET /bibliotheque/{element}` (le détail) et `GET /bibliotheque/lignes` (à plat,
+  exportable) — **réservés à la FNCT** : le ministère la voit depuis un compte FNCT, sans nouveau rôle. Un élément inconnu est
+  introuvable (404).
+- Migration 084 : `app.bibliotheque_lignes()`, la lecture commune des neuf éléments (une ligne par document, une ligne par
+  commune pour les séries et les références). Droits de l'appelant ; communes réelles seulement (ni la démonstration, ni une
+  commune retirée) et, pour les tables qui le portent, lignes de provenance « réel ».
+- Campagne `bibliotheque` (65e) : ce que la route refuse (sans compte, directeur, prestataire, citoyen, élément inconnu) ; les
+  comptes exacts de chaque élément avant et après, dans une commune de test (une version remplacée d'un rapport ne compte pas,
+  la population « déclarée » se distingue de l'« estimée », la période et les mois des pesées) ; l'ordre alphabétique ; l'export ;
+  et la preuve que lire n'écrit rien, que le chemin d'un fichier ne sort nulle part et qu'aucune donnée personnelle ne sort. Un
+  contrôle de rôle retiré à la main est détecté. La campagne a aussi révélé un défaut de la migration en cours d'écriture : la
+  « provenance » d'une étude de coût complet dit de qui elle vient, pas si elle est réelle — la filtrer excluait toutes les études.
+
+### Ce que la bibliothèque ne fait pas — par décision
+- **Elle ne crée aucune donnée** : elle rend visible ce qui existe et ce qui manque.
+- **Elle ne donne accès à aucun fichier** : un rapport est listé, jamais ouvert d'ici ; les fichiers restent dans leur commune.
+- **Elle ne classe personne** : territoires et communes dans l'ordre alphabétique.
+- Elle ne remplace pas un « non tenu » par un zéro : un élément qu'aucune commune n'a se dit « aucune commune sur M », en mots.
+  Les pesées gardent leur nature « pesé » et leur tonnage n'est pas additionné ; une population dit si elle est déclarée ou estimée.
+
+### À savoir
+- Sur le banc, la bibliothèque est presque vide (seules la population de référence et les circuits de Dar Chaâbane existent) :
+  c'est l'état réel. Les noms de gouvernorats restent en français dans l'écran arabe, comme dans le reste de l'observatoire : c'est
+  le lot « noms arabes », à venir.
+- Captures FR et AR montrées à Nacer et validées ; la vue remplie a été vérifiée sur des données fictives injectées dans le navigateur
+  seulement (rien n'est écrit en base).
+
 ## [0.15.67] — 2026-10-22 — « À vérifier » en arabe
 
 Les textes de « À vérifier » viennent de la base **en français seulement** : dans l'accueil et dans le panneau du constat,

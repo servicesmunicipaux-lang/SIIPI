@@ -22636,6 +22636,241 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bibliotheque": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La bibliothèque nationale des données : le catalogue (FNCT)
+         * @description Neuf éléments — PCGD, études et rapports, coût complet, caractérisation, population, pesées, circuits, points relevés, réclamations — avec, pour chacun, « N communes sur M », la période couverte et la répartition par statut ou nature. Lecture seule, réservée à la FNCT, aucun accès aux fichiers eux-mêmes. Un élément qu’aucune commune n’a rend zéro commune, jamais une valeur posée à sa place.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Le catalogue. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BibliothequeCatalogue"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bibliotheque/lignes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La bibliothèque à plat, exportable (FNCT)
+         * @description Une ligne par document, et une ligne par commune pour les séries et les références, dans l’ordre alphabétique (gouvernorat, commune, intitulé). Excel ou CSV avec `format`. Le catalogue d’un élément se filtre avec `element`.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    element?: "pcgd" | "rapports_etudes" | "cout_complet" | "caracterisation" | "population" | "pesees" | "circuits" | "points" | "reclamations";
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les lignes. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": (components["schemas"]["LigneBibliotheque"] & {
+                            nombre?: number;
+                        })[];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bibliotheque/{element}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Un élément de la bibliothèque : par territoire, puis commune par commune (FNCT)
+         * @description Par gouvernorat et par district FNCT (« N communes sur M », ordre alphabétique), puis les lignes : le titre, l’auteur, l’année et le statut des documents d’une commune, ou le nombre et la période de ses séries. Un élément inconnu est introuvable (404).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    element: "pcgd" | "rapports_etudes" | "cout_complet" | "caracterisation" | "population" | "pesees" | "circuits" | "points" | "reclamations";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description L’élément en détail. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BibliothequeDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fichiers/conservation": {
         parameters: {
             query?: never;
@@ -28542,6 +28777,77 @@ export interface components {
                     statut: "en_retard" | "a_prevoir" | "a_verifier";
                 }[];
             };
+        };
+        LigneBibliotheque: {
+            commune_id: string;
+            commune: string;
+            commune_ar: string | null;
+            gouvernorat: string;
+            /** @description Le titre d’un document ; le niveau de la source pour une caractérisation ; absent pour une série. */
+            intitule: string | null;
+            annee: number | null;
+            auteur: string | null;
+            /** @description Le statut d’un PCGD, la catégorie d’un rapport ou le niveau de source d’une caractérisation. */
+            statut: string | null;
+            /** @description « pese » pour les pesées ; « declaree » ou « estimee » pour la population. */
+            nature: string | null;
+            /** @description Le nombre d’éléments — ou la population, pour l’élément « population ». */
+            nombre: number;
+            premiere: string | null;
+            derniere: string | null;
+            /** @description Pour les pesées : le nombre de mois où il y en a. */
+            mois_couverts: number | null;
+        };
+        BibliothequeCatalogue: {
+            /** @description Les communes réelles : ni la démonstration, ni une commune retirée. */
+            communes_total: number;
+            elements: {
+                /** @enum {string} */
+                element: "pcgd" | "rapports_etudes" | "cout_complet" | "caracterisation" | "population" | "pesees" | "circuits" | "points" | "reclamations";
+                /** @enum {string} */
+                groupe: "documents" | "references" | "series";
+                communes_avec: number;
+                nombre: number;
+                premiere: string | null;
+                derniere: string | null;
+                /** @description Le nombre de communes par statut, niveau ou nature (adopté, en préparation… ; estimée, déclarée…) ; vide quand l’élément n’en distingue pas. */
+                repartition: {
+                    [key: string]: number;
+                };
+            }[];
+        };
+        BibliothequeDetail: {
+            /** @enum {string} */
+            element: "pcgd" | "rapports_etudes" | "cout_complet" | "caracterisation" | "population" | "pesees" | "circuits" | "points" | "reclamations";
+            /** @enum {string} */
+            groupe: "documents" | "references" | "series";
+            communes_total: number;
+            communes_avec: number;
+            repartition: {
+                [key: string]: number;
+            };
+            /** @description Dans l’ordre alphabétique : un catalogue, pas un classement. */
+            gouvernorats: {
+                cle: string;
+                nom: string;
+                /** @description Les communes réelles du territoire (le « M » de « N sur M »). */
+                communes: number;
+                /** @description Celles qui tiennent cet élément dans SIIPI (le « N »). Zéro est un vrai zéro : aucune n’en a. */
+                communes_avec: number;
+                nombre: number;
+                derniere: string | null;
+            }[];
+            districts: {
+                cle: string;
+                nom: string;
+                /** @description Les communes réelles du territoire (le « M » de « N sur M »). */
+                communes: number;
+                /** @description Celles qui tiennent cet élément dans SIIPI (le « N »). Zéro est un vrai zéro : aucune n’en a. */
+                communes_avec: number;
+                nombre: number;
+                derniere: string | null;
+            }[];
+            lignes: components["schemas"]["LigneBibliotheque"][];
         };
         PassageConservation: {
             id: number;
