@@ -8,6 +8,25 @@ function required(name: string, fallback?: string): string {
   return value;
 }
 
+/**
+ * TRUST_PROXY : vide → aucun proxy ; un nombre → autant de proxys de confiance ;
+ * sinon, des adresses ou des réseaux (« loopback », « 10.0.0.0/8 »), comme Express
+ * les lit. « true » est refusé : il ferait confiance à n'importe quel appelant, qui
+ * choisirait alors son adresse — et sa limite de tentatives de connexion.
+ */
+function lireTrustProxy(valeur: string | undefined): false | number | string {
+  const v = (valeur ?? '').trim();
+  if (!v || ['false', '0', 'non', 'no'].includes(v.toLowerCase())) return false;
+  if (/^\d+$/.test(v)) return Number(v);
+  if (['true', 'oui', 'yes'].includes(v.toLowerCase())) {
+    throw new Error(
+      'TRUST_PROXY=true ferait confiance à tout appelant, qui choisirait son adresse. ' +
+        'Indiquez le nombre de proxys devant l’API (1 derrière Caddy), ou leurs adresses.'
+    );
+  }
+  return v;
+}
+
 export const config = {
   databaseUrl: required('DATABASE_URL'),
   jwtSecret: required('JWT_SECRET'),
@@ -19,6 +38,14 @@ export const config = {
   // temporairement pour rejouer plusieurs campagnes de tests d'affilée, jamais
   // en production.
   authRateLimitMax: Number(process.env.AUTH_RATE_LIMIT_MAX ?? 20),
+  // Le proxy HTTPS de production (Caddy, chantier P, lot P4) : derrière lui,
+  // toutes les requêtes viennent de SON adresse, et la limite ci-dessus
+  // deviendrait 20 tentatives pour tout le pays. TRUST_PROXY dit combien de
+  // proxys de confiance précèdent l'API (1 derrière Caddy) : l'adresse réelle
+  // se lit alors dans X-Forwarded-For, que Caddy réécrit. Vide (le poste de
+  // développement, l'API servie directement) : l'en-tête est ignoré, et un
+  // appelant ne peut pas se faire passer pour une autre adresse.
+  trustProxy: lireTrustProxy(process.env.TRUST_PROXY),
   // L'image de production, ou PRODUCTION=true (D-FNCT-5) : les secrets de
   // développement y sont refusés. Ce que la base EST — production, formation,
   // développement — se lit dans src/instance.ts, qui a le dernier mot.

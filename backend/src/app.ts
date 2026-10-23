@@ -103,6 +103,10 @@ const SCRIPT_DOCUMENTATION = `window.ui = SwaggerUIBundle({
 });`;
 
 export const app = express();
+// Avant tout le reste : la limite des tentatives de connexion et le journal des
+// requêtes lisent l'adresse de l'appelant, qui n'est la bonne derrière Caddy que
+// si l'on fait confiance à CE proxy-là (config.trustProxy, lot P4).
+app.set('trust proxy', config.trustProxy);
 
 // helmet applique une politique de sécurité de contenu stricte. La page de
 // documentation charge ses propres scripts depuis /docs/assets : on l'autorise
