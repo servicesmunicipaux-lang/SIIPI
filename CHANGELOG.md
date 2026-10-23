@@ -5,6 +5,46 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.70] — 2026-10-23 — Chantier P, lot P2 : les sauvegardes chiffrées
+
+Deuxième lot de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 4 et son complément du 23/10/2026).
+
+### Ajouté
+- **Le service `sauvegarde`** (`docker-compose.prod.yml`, image `backend/exploitation/sauvegarde/`) : chaque nuit à
+  `SAUVEGARDE_HEURE` (02:30, heure de Tunis, par décision du 23/10), une archive `siipi_<instance>_<date>_<heure>.tar` qui
+  prend **ensemble** la base (`pg_dump -Fc`, dans un instantané) et les fichiers déposés (pris après la base : toute photo que
+  la base cite y est), avec un **manifeste** — nature de la base, nombre de migrations, nombre de lignes de chaque table lu
+  dans le même instantané que le dump, empreinte SHA-256 de chaque fichier. C'est ce que la restauration (P3) comparera.
+- **Chiffrée par clés publiques `age`** : le serveur ne porte que `SAUVEGARDE_DESTINATAIRES`, il sait chiffrer, pas
+  déchiffrer. Deux clés, une par personne de la FNCT (décision du 23/10) : chacune restaure seule, perdre une clé ne perd
+  aucune sauvegarde. Sans clé valide (absente, ou refusée par `age`), la sauvegarde ne part pas : elle n'écrit jamais une
+  archive en clair. La base et les fichiers sont chiffrés au vol.
+- **Un échec ne passe jamais pour une réussite** : le passage est d'un seul bloc, une étape qui échoue retire l'archive
+  partielle et écrit `dernier_echec.json` (quand, quelle étape, pourquoi) sans toucher `derniere_reussite.json`. Une
+  archive n'a son nom définitif qu'une fois complète. La supervision (P5) lira ces deux témoins.
+- **La rotation** (`rotation.sh`, une fonction pure sur les noms) : une archive par date, la plus récente de la journée ;
+  7 dates, 4 dimanches, 12 premiers du mois. Elle compte les archives existantes, pas les jours du calendrier : des semaines
+  d'échec ne retirent jamais les dernières bonnes. Un nom qu'elle ne reconnaît pas n'est ni gardé ni retiré.
+- **La copie hors du serveur** par `rclone` vers `SAUVEGARDE_DESTINATION` (un chemin monté, ou un distant décrit dans
+  `sauvegarde.env`), vérifiée après envoi, avec la même rotation. **Jamais en miroir** : un serveur réinstallé, au dossier
+  vide, effacerait toutes les copies. Sans destination, le témoin dit « non configurée ».
+- **L'archive froide des originaux** (D-FNCT-4) part original par original, chiffré, **une seule fois** (index des envois,
+  chemin et empreinte), et n'est jamais effacée à la destination.
+- Campagne `sauvegarde` (67e), 54 contrôles, sur une base d'essai à part et des dossiers temporaires : les refus (sans clé,
+  clé qui n'en est pas une, clé tronquée, base injoignable — aucune archive, échec écrit, réussite intacte) ; une archive
+  illisible sans clé (ni dump, ni nom de fichier, ni nom de table en clair), ouverte par chacune des deux clés et pas par une
+  troisième ; un manifeste exact (nature, migrations, lignes d'une table témoin, autant de tables que la base, empreintes) ;
+  des fichiers repris identiques ; la rotation contre un témoin Python écrit d'après la règle seule, sur plus d'un an de noms
+  fabriqués ; la copie hors serveur identique, sa rotation, l'absence de miroir ; l'archive froide envoyée une fois et gardée ;
+  une destination injoignable (échec, archive locale gardée). Cinq mutants détectés : le dump en clair, une rotation à
+  8 jours, un échec qui écrit « réussite », une copie en miroir, des originaux renvoyés.
+
+### À savoir
+- L'image a été construite et lancée contre la base de la pile d'essai : `pg_dump` 16.15 (la version du serveur), heure de
+  Tunis, archive lisible avec la clé, horaire posé à 02:30, heure invalide refusée.
+- Reste hors du dépôt et attend la DSI : la destination hors du serveur. Les deux personnes qui gardent les clés privées
+  les créent sur leur propre poste (`age-keygen`) ; seule la ligne « public key » vient sur le serveur.
+
 ## [0.15.69] — 2026-10-23 — Chantier P, lot P1 : les campagnes refusent une base de production
 
 Premier des six lots de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 4 et son complément du
