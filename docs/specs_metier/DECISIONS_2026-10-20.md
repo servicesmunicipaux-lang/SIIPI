@@ -94,3 +94,23 @@ Remplace l'« Ordre de travail » en tête de ce registre.
 - **Pendant le jalon D, rien d'autre n'est travaillé.** Claude Code ne présente pas les autres points comme « sans changement » à chaque lot : ils sont **suspendus jusqu'à la fin de D**, pas fermés.
 - **Après D, tout reprend**, dans cet ordre : versions fantômes et bases d'essai, chantier P, 17.4 connecteur GPS, noms arabes, 17.2 matrice des densités, puis le **jalon 14 (mutualisation)**, qui n'attend plus que les jalons 11 à 13 tournent en production.
 - Restent dépendants d'une réponse extérieure : R1 (Nacer décide quand SIIPI est prête), la DSI (hébergement, compte SMTP à demander dans la relance), l'article 13 (18.2, 18.3), l'API GPS de Menzel Chaker.
+
+## Complément du 23 octobre 2026 — versions fantômes closes, chantier P tranché
+
+**Versions fantômes (§ 1).** La liste à blanc est vide : la base du dossier principal ne porte aucune version du
+découpage ; la pile d'essai, reconstruite de zéro, a perdu ses trois fantômes ; l'ancien volume
+`nacer_siipi_postgres_data` n'a pas d'historique du découpage. **JC-010 est close par la documentation, sans
+opération de retrait** : elle n'aurait rien à retirer. La signature de l'inventaire devient un outil en lecture seule,
+`scripts/skills/versions-fantomes.sh`, à lancer sur toute base avant une recette ou une mise en production. Si une
+base en porte un jour, la FNCT décide, et le retrait s'écrit alors contre ces lignes-là.
+
+**Chantier P (§ 4).** Le plan en six lots est validé, dans cet ordre : P1 refus, P2 sauvegardes, P3 restauration
+testée, P4 HTTPS, P5 supervision, P6 déploiement et mise à jour. Trois choix tranchés :
+
+- **Le refus vaut aussi pour une base de formation** : les campagnes ne tournent que sur une base de développement,
+  et devant une API de développement. Une nature illisible ou une API injoignable valent refus.
+- **Caddy** sert le front et relaie l'API, avec un certificat renouvelé automatiquement ; il accepte aussi un
+  certificat fourni par la DSI.
+- **La clé privée des sauvegardes** (chiffrement `age` par clé publique : le serveur chiffre, il ne sait pas
+  déchiffrer) est gardée par **deux personnes de la FNCT**, sur un support hors ligne. Sans elle, aucune sauvegarde
+  n'est lisible.

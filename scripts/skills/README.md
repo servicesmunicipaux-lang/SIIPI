@@ -1,6 +1,6 @@
 # scripts/skills — les outils de vérification interne
 
-Cinq outils, chacun né d'un défaut réel. Ils ne remplacent pas les campagnes
+Six outils, chacun né d'un défaut réel. Ils ne remplacent pas les campagnes
 de tests : ils cherchent ce qu'une campagne ne voit pas, parce qu'une campagne
 éprouve un comportement alors que ceux-ci interrogent une **structure** — y
 compris celle des campagnes elles-mêmes (`audit-blocs.py`).
@@ -12,6 +12,7 @@ compris celle des campagnes elles-mêmes (`audit-blocs.py`).
 | `ui-builder.mjs` | Écran neuf conforme : trois états distingués, propriétés logiques (RTL), clés posées **dans les deux langues** | Une classe `ml-` casse la mise en page en arabe ; une clé absente d'`ar.json` affiche la clé brute |
 | `pdf-template.mjs` | Gabarit légal complet : numéro d'ordre continu, référence réglementaire, signatures qualifiées, mention d'édition | Un bon de carburant sans numéro continu ne prouve rien : on ne peut pas montrer qu'aucun bon ne manque |
 | `audit-blocs.py` | Les contrôles de campagne placés sous condition (`if [ -n "$X" ]`, `[ … ] && chk`) qui n'ont pas tourné sur le jeu de référence | La campagne `fichiers` imprimait « Le citoyen » et ne contrôlait rien : la preuve de traitement (B5.1.3) n'était éprouvée par aucune campagne, comptée réussie (JC-003, JC-004) |
+| `versions-fantomes.sh` | Les versions du découpage nées d'une campagne de tests : un geste d'essai (secteur `TEST`, « Secteur temporaire », périmètre corrigé avec le compte de démonstration) à 60 s près de leur insertion au journal d'audit, dans la même commune. Lecture seule ; il ne retire rien | Deux campagnes corrigeaient le découpage d'une commune réelle : l'historique de Houmt Souk et de Midoun portait des versions validées qui n'avaient jamais eu lieu, dont une correction de périmètre attribuée à la FNCT (JC-009, JC-010) |
 
 ## Emploi
 
@@ -31,6 +32,8 @@ node scripts/skills/pdf-template.mjs bon-carburant --ecrire   # backend/src/docu
 # sur une base neuve chargée dans l'ordre de référence (CLAUDE.md § 7)
 docker compose exec -T api npm test > npm-test.log 2>&1
 python3 scripts/skills/audit-blocs.py backend npm-test.log
+
+bash scripts/skills/versions-fantomes.sh          # la base du poste ; PGDATABASE pour une autre
 ```
 
 `db-check.sh` et `kpi-evaluator.mjs` ont besoin des conteneurs démarrés
@@ -49,6 +52,8 @@ s'enchaînent donc dans un script de vérification.
 - **`audit-blocs`** après toute campagne nouvelle ou modifiée, sur le journal
   du critère d'acceptation : un contrôle qui ne tourne pas ne se voit pas dans
   le bilan « réussis ».
+- **`versions-fantomes`** sur toute base **avant une recette ou une mise en
+  production** : une version fantôme ne se voit à aucun écran.
 
 ## Ce qu'ils ne font pas
 
