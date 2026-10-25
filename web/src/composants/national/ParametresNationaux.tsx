@@ -338,7 +338,7 @@ function CadreSecteurInformel({ onFait, onErreur }: { onFait: (m: string) => voi
   );
 }
 
-// Les corrections du référentiel des communes décidées par la FNCT (D-FNCT-3) :
+// Les corrections du référentiel des communes décidées par la FNCT (D-FNCT-3 ; D-NOMS-AR-1, les noms arabes) :
 // une commune rattachée à une autre n'apparaît plus nulle part dans la
 // plateforme ; c'est ici qu'on lit qu'elle a existé, à qui elle a été rattachée,
 // et sur quelle source. Rien ne s'y écrit depuis l'écran : une correction du
@@ -377,7 +377,9 @@ function CorrectionsReferentiel() {
                     gouvernorat: c.gouvernorat ? t(`gouvernorats.${c.gouvernorat}`, { defaultValue: c.gouvernorat }) : '',
                     cible: nom(c.cible, c.cible_ar),
                   })
-                : t('national.parametres.corrections.creee', { commune: nom(c.commune, c.commune_ar) })}
+                : c.nature === 'nom_arabe'
+                  ? t('national.parametres.corrections.nomArabe', { commune: c.commune, ancien: c.ancien_nom ?? '', nouveau: c.nouveau_nom ?? '' })
+                  : t('national.parametres.corrections.creee', { commune: nom(c.commune, c.commune_ar) })}
             </p>
           ))}
           <p className="text-xs text-ardoise-600">{t('national.parametres.corrections.source', { source: lignes[0].source })}</p>

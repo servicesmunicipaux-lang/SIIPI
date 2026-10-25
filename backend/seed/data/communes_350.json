@@ -991,7 +991,8 @@
   {
     "id": "tunis_tunis_capitale",
     "name": "Tunis (Capitale)",
-    "nameAr": "بلدية تونس",
+    "nameAr": "تونس",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "بلدية تونس", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Tunis",
     "population": 638845,
     "areaKm2": 267.5,
@@ -1222,7 +1223,8 @@
   {
     "id": "tunis_sidi_bou_said",
     "name": "Sidi Bou Saïd",
-    "nameAr": "سيدي بو سعيد",
+    "nameAr": "سيدي بوسعيد",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "سيدي بو سعيد", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Tunis",
     "population": 6000,
     "areaKm2": 14.4,
@@ -4073,7 +4075,8 @@
   {
     "id": "nabeul_tazarka",
     "name": "Tazarka",
-    "nameAr": "تزغران",
+    "nameAr": "تازركة",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "تزغران", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Nabeul",
     "population": 10500,
     "areaKm2": 16.2,
@@ -4601,7 +4604,8 @@
   {
     "id": "nabeul_tazghrane_boukrim_zaouiet_el_mgaiez",
     "name": "Tazghrane Boukrim Zaouiet El Mgaiez",
-    "nameAr": "تزغران بوكريم",
+    "nameAr": "تزغران بوكريم زاوية المقايز",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "تزغران بوكريم", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Nabeul",
     "population": 14500,
     "areaKm2": 17.8,
@@ -6012,7 +6016,8 @@
   {
     "id": "monastir_el_masdour_menzel_harb",
     "name": "El Masdour Menzel Harb",
-    "nameAr": "المسدور منزل حرب",
+    "nameAr": "المصدور منزل حرب",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "المسدور منزل حرب", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Monastir",
     "population": 9800,
     "areaKm2": 15.9,
@@ -6275,7 +6280,8 @@
   {
     "id": "monastir_cherahil",
     "name": "Cherahil",
-    "nameAr": "شراحيل",
+    "nameAr": "الشراحيل",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "شراحيل", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Monastir",
     "population": 5400,
     "areaKm2": 14.2,
@@ -6340,7 +6346,8 @@
   {
     "id": "monastir_bembla_el_mnara",
     "name": "Bembla El Mnara",
-    "nameAr": "بمبلة المنارة",
+    "nameAr": "بنبلة المنارة",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "بمبلة المنارة", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Monastir",
     "population": 16000,
     "areaKm2": 18.4,
@@ -6898,7 +6905,8 @@
   {
     "id": "mahdia_tlelsa",
     "name": "Tlelsa",
-    "nameAr": "تلايلسة",
+    "nameAr": "التلالسة",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "تلايلسة", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Mahdia",
     "population": 11500,
     "areaKm2": 16.6,
@@ -7915,7 +7923,8 @@
   {
     "id": "kairouan_el_alaa",
     "name": "El Alâa",
-    "nameAr": "العلاء",
+    "nameAr": "العلا",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "العلاء", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Kairouan",
     "population": 28991,
     "areaKm2": 23.6,
@@ -7981,7 +7990,8 @@
   {
     "id": "kairouan_nasrallah",
     "name": "Nasrallah",
-    "nameAr": "نصرالله",
+    "nameAr": "نصر الله",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "نصرالله", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Kairouan",
     "population": 37112,
     "areaKm2": 26.8,
@@ -11024,7 +11034,8 @@
   {
     "id": "medenine_ben_guerdane",
     "name": "Ben Guerdane",
-    "nameAr": "بنقردان",
+    "nameAr": "بن قردان",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "بنقردان", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Médenine",
     "population": 79912,
     "areaKm2": 44,
@@ -11387,7 +11398,8 @@
   {
     "id": "tataouine_bir_lahmar",
     "name": "Bir Lahmar",
-    "nameAr": "بئر لحمر",
+    "nameAr": "بئر الأحمر",
+    "correctionNomArabe": { "decision": "D-NOMS-AR-1", "ancien": "بئر لحمر", "source": "Décision de Nacer (FNCT) du 25/10/2026, d'après les écarts avec la carte du conseiller SIG du 16/10/2026", "decideeLe": "2026-10-25" },
     "gouvernorat": "Tataouine",
     "population": 8460,
     "areaKm2": 15.4,

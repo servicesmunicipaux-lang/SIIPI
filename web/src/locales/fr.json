@@ -234,7 +234,8 @@
         "decision": "Décision {{decision}} du {{date}}",
         "rattachee": "{{commune}} ({{gouvernorat}}) : rattachée à la commune de {{cible}}.",
         "creee": "{{commune}} : commune à part entière.",
-        "source": "Source : {{source}}."
+        "source": "Source : {{source}}.",
+        "nomArabe": "{{commune}} : le nom arabe « {{ancien}} » devient « {{nouveau}} »."
       }
     },
     "moyenneNationale": {

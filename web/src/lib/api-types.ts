@@ -13240,7 +13240,7 @@ export interface paths {
         };
         /**
          * Les corrections du référentiel des communes décidées par la FNCT, avec leur source
-         * @description D-FNCT-3 : Zarzouna rattachée à la commune de Bizerte (retirée du référentiel, jamais effacée), El Hchachna commune à part entière. Une commune rattachée n’apparaît plus nulle part ailleurs dans l’API ; son nom reste lisible ici.
+         * @description D-FNCT-3 : Zarzouna rattachée à la commune de Bizerte (retirée du référentiel, jamais effacée), El Hchachna commune à part entière. Une commune rattachée n’apparaît plus nulle part ailleurs dans l’API ; son nom reste lisible ici. D-NOMS-AR-1 : douze noms arabes corrigés, l’ancien et le nouveau nom rendus.
          */
         get: {
             parameters: {
@@ -13260,7 +13260,7 @@ export interface paths {
                         "application/json": {
                             decision: string;
                             /** @enum {string} */
-                            nature: "rattachee" | "creee";
+                            nature: "rattachee" | "creee" | "nom_arabe";
                             commune: string;
                             commune_ar: string | null;
                             gouvernorat: string | null;
@@ -13268,6 +13268,8 @@ export interface paths {
                             cible_ar: string | null;
                             source: string;
                             decidee_le: string;
+                            ancien_nom: string | null;
+                            nouveau_nom: string | null;
                         }[];
                     };
                 };

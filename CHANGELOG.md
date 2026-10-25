@@ -5,6 +5,28 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.77] — 2026-10-25 — Les noms arabes : douze corrigés par décision (D-NOMS-AR-1)
+
+`DECISIONS_2026-10-20.md` § 6 et son complément du 25/10/2026. Les 44 noms arabes qui différaient de la carte du conseiller
+SIG ont été classés et tranchés un par un (`docs/specs_metier/sources/sig/NOMS_ARABES_A_VALIDER.md`) : 12 corrigés,
+24 gardés, 8 en attente d'une source officielle.
+
+### Modifié
+- **Migration 086** : les douze noms du groupe A (Tazarka : « تزغران » devient « تازركة » ; Tazghrane Boukrim Zaouiet El Mgaiez
+  retrouve son nom complet ; Tunis, Sidi Bou Saïd, Bembla El Mnara, El Masdour Menzel Harb, Cherahil, Tlelsa, El Alâa,
+  Nasrallah, Ben Guerdane, Bir Lahmar). Un nom n'est corrigé que s'il porte encore le nom constaté : une base où la FNCT
+  l'aurait déjà changé n'est pas réécrite. **Rien ne s'efface** : `corrections_referentiel` gagne la nature `nom_arabe`, avec
+  l'**ancien et le nouveau nom** (contrainte : les deux, et différents) ; le journal d'audit de `communes` garde chaque
+  changement. Le référentiel du seed (`communes_350.json`) porte les nouveaux noms et la correction, pour qu'une base neuve
+  arrive au même état.
+- `app.corrections_referentiel()` et `GET /observatoire/corrections-referentiel` rendent l'ancien et le nouveau nom ;
+  **Paramètres nationaux** les montre (« le nom arabe « … » devient « … » »), en français et en arabe.
+- Campagne `noms-arabes` (73e), **17 contrôles** : ce que la base refuse (une correction de nom sans ancien nom, ou sans
+  changement) ; sur la base des campagnes, les douze nouveaux noms, chaque ancien nom gardé, aucun autre nom différent du
+  référentiel, des noms gardés et en attente intacts ; sur une base jetable qui porte encore les anciens noms, la migration
+  corrige, trace au journal d'audit, épargne un nom déjà changé par la FNCT et se rejoue sans doublon ; l'observatoire rend
+  l'ancien et le nouveau nom. Un mutant qui retire la garde (« seulement si le nom constaté est encore là ») est détecté.
+
 ## [0.15.76] — 2026-10-25 — Lot 17.4b : l'écran « Intégration GPS »
 
 Le lot 17.4 est livré (service en 17.4a, écran ici) ; il ne sera recetté qu'avec Menzel Chaker, dont la documentation de
