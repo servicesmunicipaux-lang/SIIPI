@@ -26,6 +26,8 @@ SIG ont été classés et tranchés un par un (`docs/specs_metier/sources/sig/NO
   référentiel, des noms gardés et en attente intacts ; sur une base jetable qui porte encore les anciens noms, la migration
   corrige, trace au journal d'audit, épargne un nom déjà changé par la FNCT et se rejoue sans doublon ; l'observatoire rend
   l'ancien et le nouveau nom. Un mutant qui retire la garde (« seulement si le nom constaté est encore là ») est détecté.
+- La campagne `decoupage` lisait la source de D-FNCT-3 dans la première correction rendue ; les corrections de nom, plus
+  récentes, viennent désormais en tête. Elle la cherche par sa décision.
 
 ## [0.15.76] — 2026-10-25 — Lot 17.4b : l'écran « Intégration GPS »
 

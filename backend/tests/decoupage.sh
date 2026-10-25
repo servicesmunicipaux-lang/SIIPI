@@ -228,8 +228,10 @@ chk "rien ne s'efface : la ligne reste, retirée, rattachée à Bizerte, motif e
 chk "El Hchachna a son contour officiel, et la position la retrouve" "officiel|bizerte_el_hchachna" \
     "$(sql "SELECT boundary_source FROM communes WHERE id='bizerte_el_hchachna'")|$(P=$(sql "SELECT ST_Y(p)||','||ST_X(p) FROM (SELECT ST_PointOnSurface(boundary_geom) p FROM communes WHERE id='bizerte_el_hchachna') x"); code -X POST "$API/communes/localiser" -H "Authorization: Bearer $T_CIT" -H 'Content-Type: application/json' -d "{\"lat\":${P%,*},\"lng\":${P#*,}}" >/dev/null; jq_ "d['commune']['id']")"
 code "$API/observatoire/corrections-referentiel" -H "Authorization: Bearer $T_CIT" >/dev/null
+# La source de la décision D-FNCT-3, cherchée par sa décision : depuis D-NOMS-AR-1 (v0.15.77), des
+# corrections plus récentes viennent en tête de la liste.
 chk "l'observatoire dit la correction et sa source" "Zarzouna>Bizerte (Nord & Centre)|El Hchachna|Instance Prospective, arrêté conjoint en attente" \
-    "$(jq_ "[c['commune']+'>'+c['cible'] for c in d if c['nature']=='rattachee'][0]")|$(jq_ "[c['commune'] for c in d if c['nature']=='creee'][0]")|$(jq_ "d[0]['source']")"
+    "$(jq_ "[c['commune']+'>'+c['cible'] for c in d if c['nature']=='rattachee'][0]")|$(jq_ "[c['commune'] for c in d if c['nature']=='creee'][0]")|$(jq_ "[c['source'] for c in d if c['decision']=='D-FNCT-3'][0]")"
 
 # Le rattachement, éprouvé sur des communes de test : ce qu'il refuse d'abord.
 $PSQL -c "DELETE FROM pesees WHERE commune_id LIKE 'test_fusion_%';
