@@ -40,6 +40,23 @@ const TYPES_ENGIN = {
   autre: { fr: 'Autre', ar: 'أخرى' },
 };
 
+// Les libellés sont ceux de la table classes_engins (migration 087) : la campagne
+// `typologie-engins` vérifie qu'ils n'en divergent pas.
+const CLASSES_ENGIN = {
+  benne_tasseuse: { fr: 'Camion à benne tasseuse', ar: 'شاحنة ضاغطة' },
+  benne_basculante: { fr: 'Camion à benne basculante (Cbb)', ar: 'شاحنة ذات صندوق قلاب' },
+  pick_up: { fr: 'Camionnette pick-up à benne basculante', ar: 'شاحنة خفيفة ذات صندوق قلاب' },
+  tracteur_remorque_agricole: { fr: 'Tracteur et remorque agricole (Tag)', ar: 'جرار ومجرورة فلاحية' },
+  tracteur_remorque_compactrice: { fr: 'Tracteur et remorque compactrice', ar: 'جرار ومجرورة ضاغطة' },
+  ampli_roll: { fr: 'Camion ampli-roll et caisson', ar: 'شاحنة ذات ذراع وحاوية' },
+};
+
+const PROVENANCES_VOLUME = {
+  constructeur: { fr: 'Constructeur', ar: 'الصانع' },
+  mesure: { fr: 'Mesuré', ar: 'مقيس' },
+  declare: { fr: 'Déclaré', ar: 'مصرَّح به' },
+};
+
 const CATEGORIES_ENGIN = {
   poids_lourd: { fr: 'Poids lourd', ar: 'وزن ثقيل' },
   engin_lourd: { fr: 'Engin lourd', ar: 'آلية ثقيلة' },
@@ -136,7 +153,9 @@ export const JEU_PARC: JeuExport = {
     { cle: 'motif_immobilisation', fr: "Motif d'immobilisation", ar: 'سبب التوقف', import: 'motifImmobilisation' },
     { cle: 'date_premiere_circulation', fr: '1re mise en circulation', ar: 'أوّل إذن بالجولان', type: 'date', import: 'datePremiereCirculation' },
     { cle: 'age_annees', fr: 'Âge (années)', ar: 'العمر (سنوات)', type: 'nombre' },
+    { cle: 'classe_collecte', fr: 'Classe de collecte', ar: 'صنف الرفع', libelles: CLASSES_ENGIN, import: 'classeCollecte' },
     { cle: 'capacity_m3', fr: 'Capacité (m³)', ar: 'السعة (م³)', type: 'nombre', import: 'capacityM3' },
+    { cle: 'volume_provenance', fr: 'Provenance du volume', ar: 'مصدر الحجم', libelles: PROVENANCES_VOLUME, import: 'volumeProvenance' },
     { cle: 'charge_utile_t', fr: 'Charge utile (t)', ar: 'الحمولة (طن)', type: 'nombre', import: 'chargeUtileT' },
     { cle: 'valeur_achat_tnd', fr: "Valeur d'achat (TND)", ar: 'قيمة الشراء (دينار)', type: 'nombre', import: 'valeurAchatTnd' },
     { cle: 'domaine_emploi', fr: "Domaine d'emploi", ar: 'مجال الاستعمال', import: 'domaineEmploi' },

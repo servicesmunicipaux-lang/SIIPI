@@ -11,13 +11,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type EcheanceEntretien, type Vehicule, type EtatDuParc } from '../../lib/api';
+import { api, ErreurApi, type ClasseEngin, type EcheanceEntretien, type Vehicule, type EtatDuParc } from '../../lib/api';
 import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
 import { ImportParc } from '../ajout/ImportsCsv';
 import { useAjoutEnLigne } from '../ajout/useAjoutEnLigne';
 import { AlertesEntretien, EntretienEngin, STYLE_STATUT } from './Entretien';
+import { ChampsTypologie, typologieValide, volumeSaisi, type SaisieTypologie } from './ChampsTypologie';
 
 const ETATS = ['en_service', 'en_panne', 'a_reformer', 'reforme'] as const;
 type Etat = (typeof ETATS)[number];
@@ -33,7 +34,7 @@ const nombre = (n: unknown) =>
   n === null || n === undefined ? '—' : Number(n).toLocaleString('fr-FR');
 
 export function Parc({ communeId }: { communeId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const f = useFormats();
   const [engins, setEngins] = useState<Vehicule[] | null>(null);
   const [etatParc, setEtatParc] = useState<EtatDuParc | null>(null);
@@ -41,6 +42,7 @@ export function Parc({ communeId }: { communeId: string }) {
   const [filtre, setFiltre] = useState<Etat | 'tous'>('tous');
   const [ouvert, setOuvert] = useState<string | null>(null);
   const [echeances, setEcheances] = useState<EcheanceEntretien[]>([]);
+  const [classes, setClasses] = useState<ClasseEngin[]>([]);
 
   const charger = async () => {
     try {
@@ -51,6 +53,8 @@ export function Parc({ communeId }: { communeId: string }) {
         api.etatDuParc(communeId),
         api.echeancesEntretien(communeId).catch(() => [] as EcheanceEntretien[]),
       ]);
+      // Le référentiel des classes est national et ne change pas d'une commune à l'autre.
+      if (classes.length === 0) setClasses(await api.classesEngins().catch(() => [] as ClasseEngin[]));
       setEngins(liste as unknown as Vehicule[]);
       setEtatParc(etat);
       setEcheances(ech);
@@ -78,6 +82,11 @@ export function Parc({ communeId }: { communeId: string }) {
     for (const e of ETATS) c[e] = (engins ?? []).filter((v) => v.etat === e).length;
     return c;
   }, [engins]);
+
+  const libelleClasse = (code: string) => {
+    const k = classes.find((c) => c.code === code);
+    return k ? (i18n.language === 'ar' ? k.libelle_ar : k.libelle_fr) : code;
+  };
 
   if (erreur && !engins) return <Erreur message={erreur} onReessayer={() => void charger()} />;
   if (!engins || !etatParc) return <Chargement />;
@@ -223,10 +232,17 @@ export function Parc({ communeId }: { communeId: string }) {
                       </span>
                       {v.marque && <span className="text-sm font-normal text-ardoise-400">{v.marque}</span>}
                     </p>
+                    {/* Les morceaux connus seulement, joints : une ligne ne commence pas par « · ». */}
                     <p className="chiffres mt-0.5 text-xs text-ardoise-500">
-                      {v.age_annees != null && t('communal.parc.age', { n: v.age_annees })}
-                      {v.charge_utile_t != null && ` · ${f.masse(v.charge_utile_t)}`}
-                      {v.attele_a_immat && ` · ${t('communal.parc.atteleA', { immat: v.attele_a_immat })}`}
+                      {[
+                        v.age_annees != null ? t('communal.parc.age', { n: v.age_annees }) : null,
+                        v.charge_utile_t != null ? f.masse(v.charge_utile_t) : null,
+                        v.attele_a_immat ? t('communal.parc.atteleA', { immat: v.attele_a_immat }) : null,
+                        v.travail_classe ? libelleClasse(v.travail_classe) : null,
+                        v.travail_volume_m3 != null ? f.volume(v.travail_volume_m3, 2) : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </p>
                     {/* Le motif est la partie utile de la ligne : il dit à qui
                         s'adresser. On le montre sans déplier. */}
@@ -303,6 +319,13 @@ export function Parc({ communeId }: { communeId: string }) {
                       ))}
                     </dl>
 
+                    <FicheTypologie
+                      v={v}
+                      classes={classes}
+                      onFait={charger}
+                      onErreur={(err) => setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'))}
+                    />
+
                     <EntretienEngin communeId={communeId} vehicule={v} echeances={echeancesEngin} onChange={charger} />
                   </div>
                 )}
@@ -312,5 +335,68 @@ export function Parc({ communeId }: { communeId: string }) {
         </ul>
       )}
     </div>
+  );
+}
+
+// La typologie d'un engin (lot T), dans sa fiche. Pour un tracteur, rien ne se saisit
+// ici : la benne est sa remorque, et la fiche dit laquelle porte la classe et le volume,
+// ou ce qui manque pour le savoir.
+function FicheTypologie(props: { v: Vehicule; classes: ClasseEngin[]; onFait: () => Promise<void>; onErreur: (e: unknown) => void }) {
+  const { t, i18n } = useTranslation();
+  const f = useFormats();
+  const { v, classes } = props;
+  // Hors tracteur, l'engin de travail est l'engin lui-même : son volume est le sien.
+  const initiale: SaisieTypologie = {
+    classe: v.classe_collecte,
+    volume: v.type !== 'tracteur' && v.travail_volume_m3 != null ? String(v.travail_volume_m3).replace('.', ',') : '',
+    provenance: v.type !== 'tracteur' ? v.travail_volume_provenance : null,
+  };
+  const [saisie, setSaisie] = useState<SaisieTypologie>(initiale);
+  const [envoi, setEnvoi] = useState(false);
+  const modifie = JSON.stringify(saisie) !== JSON.stringify(initiale);
+
+  const enregistrer = async () => {
+    setEnvoi(true);
+    try {
+      await api.modifierEngin(v.id, {
+        classeCollecte: saisie.classe,
+        capacityM3: volumeSaisi(saisie.volume),
+        volumeProvenance: saisie.provenance,
+      });
+      await props.onFait();
+    } catch (err) {
+      props.onErreur(err);
+    } finally {
+      setEnvoi(false);
+    }
+  };
+
+  const k = classes.find((c) => c.code === v.travail_classe);
+  return (
+    <section className="space-y-2 rounded-lg border border-ardoise-200 p-3">
+      <h3 className="text-xs font-medium text-ardoise-700">{t('communal.parc.typologie.titre')}</h3>
+      {v.type === 'tracteur' && (
+        <p className="text-sm text-ardoise-800">
+          {v.travail_manque === 'remorque_absente' || v.travail_manque === 'remorques_multiples'
+            ? t(`communal.parc.typologie.manques.${v.travail_manque}`)
+            : t('communal.parc.typologie.benneDeTravail', {
+                remorque: v.travail_porteur_immat ?? '',
+                classe: k ? (i18n.language === 'ar' ? k.libelle_ar : k.libelle_fr) : t('communal.parc.typologie.classeNonRenseignee'),
+                volume: v.travail_volume_m3 != null ? f.volume(v.travail_volume_m3, 2) : t('communal.parc.nonRenseigne'),
+              })}
+        </p>
+      )}
+      <ChampsTypologie idPrefixe={`fiche-${v.id}`} type={v.type} classes={classes} valeur={saisie} onChange={setSaisie} />
+      {v.type !== 'tracteur' && (
+        <button
+          type="button"
+          disabled={!modifie || !typologieValide(saisie) || envoi}
+          onClick={() => void enregistrer()}
+          className="min-h-11 rounded-lg bg-ardoise-900 px-3 text-sm font-medium text-white disabled:opacity-40"
+        >
+          {t('communal.parc.typologie.enregistrer')}
+        </button>
+      )}
+    </section>
   );
 }

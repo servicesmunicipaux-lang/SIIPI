@@ -144,3 +144,25 @@ La liste `docs/specs_metier/sources/sig/NOMS_ARABES_A_VALIDER.md` est tranchée 
 - **Groupe C, 24 noms : gardés** tels que dans SIIPI (variantes, gouvernorat ajouté, nom complet, erreurs de la carte).
 - **Groupe B, 8 noms : en attente** d'une source officielle (Kalaat Khasba, Bahra, Grymet Hicher, Zelba, Hazeg El Louza,
   Sisseb-Driaat, Aïn El Beidha, Saïda). Rien n'est changé d'ici là.
+
+## Complément du 25 octobre 2026 (suite) — Le guide TADAEEM, la matrice 17.2, le lot T
+
+- **Le guide TADAEEM devient la référence métier officielle de SIIPI** (*Guide d'optimisation de la collecte des DMA en
+  Tunisie*, USAID TADAEEM, MALE ; `docs/specs_metier/sources/guide_tadaeem_collecte_dma.pdf`, lu dans
+  `GUIDE_TADAEEM_LECTURE.md`). Il sert pour tout le reste du plan. Le code applique ses formules sans le citer en
+  commentaire ; les documents et les colonnes `source` le citent.
+- **Matrice des densités 17.2, flux DMA** (§ 7), validée par Nacer :
+  - benne tasseuse de 7 à 8 m³ : **0,35** ; de plus de 8 m³ : **0,5** ; de moins de 7 m³ : aucune densité ;
+  - tracteur et remorque compactrice : **0,3** ;
+  - benne basculante (Cbb), tracteur et remorque agricole (Tag), poubelles et conteneurs : **fourchette 0,20 – 0,25**
+    (le guide donne 0,2 aux Tableaux 2 et Annexe 14, 0,25 au Tableau 11 : les deux bornes viennent de lui) ;
+  - un engin sans densité dans le guide (pick-up, ampli-roll, remorque seule) : **aucune estimation**, « non renseigné ».
+  - La benne tasseuse à 0,75 t/m³ n'est pas retenue.
+- **Ordre de travail** : lot T (typologie des engins), puis 17.2, puis K (indicateurs du § 1.2.7), puis C (coût de
+  collecte par circuit et par engin), puis le jalon 14.
+- **Lot T, plan validé** avec ses quatre recommandations :
+  1. aucun engin n'est classé automatiquement ; l'écran propose la classe évidente (benne tasseuse, ampli-roll), la
+     commune la confirme ;
+  2. pour un attelage, classe et volume se portent sur la remorque ; le tracteur les reprend par `attele_a` ;
+  3. le volume dit sa provenance (constructeur, mesuré, déclaré), avec une aide longueur × largeur × hauteur ;
+  4. un volume hors de la plage de référence de sa classe est un avis de « À vérifier », jamais un refus.

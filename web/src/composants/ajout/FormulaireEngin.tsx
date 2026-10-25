@@ -7,9 +7,10 @@
 // Un engin se reconnaît à son immatriculation, espaces et casse mis à part :
 // l'API refuse un doublon (409), et son message le dit tel quel.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi } from '../../lib/api';
+import { api, ErreurApi, type ClasseEngin } from '../../lib/api';
+import { ChampsTypologie, typologieValide, volumeSaisi, type SaisieTypologie } from '../communal/ChampsTypologie';
 import { CadreAjout, champAjout } from './CadreAjout';
 import type { PropsFormulaireAjout } from './registre';
 
@@ -28,14 +29,27 @@ export function FormulaireEngin({ communeId, onFait, onAnnuler }: PropsFormulair
   const [type, setType] = useState<(typeof TYPES)[number]>('benne_tasseuse');
   const [marque, setMarque] = useState('');
   const [miseEnCirculation, setMiseEnCirculation] = useState('');
-  const [capacite, setCapacite] = useState('');
+  const [typologie, setTypologie] = useState<SaisieTypologie>({ classe: null, volume: '', provenance: null });
+  const [classes, setClasses] = useState<ClasseEngin[]>([]);
   const [chargeUtile, setChargeUtile] = useState('');
   const [valeurAchat, setValeurAchat] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
-  const nombres = [capacite, chargeUtile, valeurAchat].map(nombre);
-  const nombresValides = nombres.every((n) => n === null || (Number.isFinite(n) && n >= 0));
+  const nombres = [chargeUtile, valeurAchat].map(nombre);
+  const nombresValides = nombres.every((n) => n === null || (Number.isFinite(n) && n >= 0)) && typologieValide(typologie);
+
+  // Sans le référentiel, la classe reste « non renseignée » : l'engin s'enregistre quand même.
+  useEffect(() => {
+    api.classesEngins().then(setClasses).catch(() => setClasses([]));
+  }, []);
+
+  // Une classe qui ne convient plus au type choisi est retirée, pas gardée en silence.
+  const changerType = (nouveau: (typeof TYPES)[number]) => {
+    setType(nouveau);
+    const k = classes.find((c) => c.code === typologie.classe);
+    if (k && !k.types_compatibles.includes(nouveau)) setTypologie({ ...typologie, classe: null });
+  };
 
   const enregistrer = async () => {
     setEnvoi(true);
@@ -46,9 +60,11 @@ export function FormulaireEngin({ communeId, onFait, onAnnuler }: PropsFormulair
         type,
         marque: marque.trim() || null,
         datePremiereCirculation: miseEnCirculation || null,
-        capacityM3: nombres[0],
-        chargeUtileT: nombres[1],
-        valeurAchatTnd: nombres[2],
+        capacityM3: volumeSaisi(typologie.volume),
+        volumeProvenance: typologie.provenance,
+        classeCollecte: typologie.classe,
+        chargeUtileT: nombres[0],
+        valeurAchatTnd: nombres[1],
       });
       await onFait();
     } catch (err) {
@@ -76,7 +92,7 @@ export function FormulaireEngin({ communeId, onFait, onAnnuler }: PropsFormulair
         </label>
         <label className="text-sm" htmlFor="engin-type">
           {t('ajout.engin.type')}
-          <select id="engin-type" value={type} onChange={(e) => setType(e.target.value as typeof type)} className={champAjout}>
+          <select id="engin-type" value={type} onChange={(e) => changerType(e.target.value as typeof type)} className={champAjout}>
             {TYPES.map((ty) => (
               <option key={ty} value={ty}>{t(`communal.parc.types.${ty}`)}</option>
             ))}
@@ -90,10 +106,6 @@ export function FormulaireEngin({ communeId, onFait, onAnnuler }: PropsFormulair
           {t('communal.parc.champs.miseEnCirculation')}
           <input id="engin-circulation" type="date" value={miseEnCirculation} onChange={(e) => setMiseEnCirculation(e.target.value)} className={champAjout} />
         </label>
-        <label className="text-sm" htmlFor="engin-capacite">
-          {t('ajout.engin.capacite')}
-          <input id="engin-capacite" inputMode="decimal" dir="ltr" value={capacite} onChange={(e) => setCapacite(e.target.value)} className={champAjout} />
-        </label>
         <label className="text-sm" htmlFor="engin-charge">
           {t('ajout.engin.chargeUtile')}
           <input id="engin-charge" inputMode="decimal" dir="ltr" value={chargeUtile} onChange={(e) => setChargeUtile(e.target.value)} className={champAjout} />
@@ -103,6 +115,10 @@ export function FormulaireEngin({ communeId, onFait, onAnnuler }: PropsFormulair
           <input id="engin-valeur" inputMode="decimal" dir="ltr" value={valeurAchat} onChange={(e) => setValeurAchat(e.target.value)} className={champAjout} />
         </label>
       </div>
+      <fieldset className="rounded-lg border border-ardoise-200 p-3">
+        <legend className="px-1 text-sm font-medium text-ardoise-700">{t('communal.parc.typologie.titre')}</legend>
+        <ChampsTypologie idPrefixe="engin" type={type} classes={classes} valeur={typologie} onChange={setTypologie} />
+      </fieldset>
       {!nombresValides && <p className="text-xs text-amber-800">{t('ajout.engin.nombreInvalide')}</p>}
     </CadreAjout>
   );
