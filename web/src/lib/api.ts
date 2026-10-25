@@ -237,6 +237,13 @@ export type Incoherence = Reponse<'/communes/{id}/coherence', 'get'>[number];
 // --- Jalon D, lot D4 : la bibliothèque nationale des données ---
 export type BibliothequeCatalogue = Reponse<'/bibliotheque', 'get'>;
 export type BibliothequeDetail = Reponse<'/bibliotheque/{element}', 'get'>;
+// Le connecteur GPS (lot 17.4).
+export type ConfigurationGps = Reponse<'/gps/configuration', 'get'>;
+export type SaisieConfigurationGps = Corps<'/gps/configuration', 'put'>;
+export type ResultatGps = Reponse<'/gps/configuration/essai', 'post'>;
+export type BoitierGps = Reponse<'/gps/boitiers', 'get'>[number];
+export type PositionsSignaleesGps = Reponse<'/gps/non-rattachees', 'get'>;
+export type TracesGps = Reponse<'/gps/traces', 'get'>;
 export type EtatExploitation = Reponse<'/supervision/etat', 'get'>;
 // --- Jalon D, lot D2 : l'accueil du portail communal ---
 export type AccueilCommune = Reponse<'/communes/{id}/accueil', 'get'>;
@@ -926,6 +933,38 @@ export const api = {
   etatExploitation: () => requete<EtatExploitation>('/supervision/etat'),
   /** Un élément de la bibliothèque : par territoire, puis commune par commune. */
   bibliothequeElement: (element: string) => requete<BibliothequeDetail>(`/bibliotheque/${encodeURIComponent(element)}`),
+  // --- Lot 17.4 : le connecteur GPS ----------------------------------------
+  //
+  // Le jeton s'écrit, il ne se relit jamais ; le secret du webhook ne se lit qu'une
+  // fois, dans la réponse qui le crée.
+  configurationGps: (communeId: string) => requete<ConfigurationGps>(`/gps/configuration?communeId=${encodeURIComponent(communeId)}`),
+  enregistrerConfigurationGps: (communeId: string, saisie: SaisieConfigurationGps) =>
+    requete<ConfigurationGps>(`/gps/configuration?communeId=${encodeURIComponent(communeId)}`, { method: 'PUT', body: JSON.stringify(saisie) }),
+  essayerGps: (communeId: string, exemple?: unknown) =>
+    requete<ResultatGps>(`/gps/configuration/essai?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(exemple === undefined ? {} : { exemple }),
+    }),
+  interrogerGps: (communeId: string) =>
+    requete<ResultatGps>(`/gps/configuration/interroger?communeId=${encodeURIComponent(communeId)}`, { method: 'POST' }),
+  secretWebhookGps: (communeId: string) =>
+    requete<{ secret: string; webhook_chemin: string; avertissement: string }>(
+      `/gps/configuration/secret-webhook?communeId=${encodeURIComponent(communeId)}`,
+      { method: 'POST' }
+    ),
+  boitiersGps: (communeId: string) => requete<BoitierGps[]>(`/gps/boitiers?communeId=${encodeURIComponent(communeId)}`),
+  rattacherBoitierGps: (communeId: string, saisie: Corps<'/gps/boitiers', 'post'>) =>
+    requete<BoitierGps>(`/gps/boitiers?communeId=${encodeURIComponent(communeId)}`, { method: 'POST', body: JSON.stringify(saisie) }),
+  cloreBoitierGps: (id: string) =>
+    requete<BoitierGps>(`/gps/boitiers/${encodeURIComponent(id)}/cloture`, { method: 'POST', body: '{}' }),
+  positionsSignaleesGps: (communeId: string) =>
+    requete<PositionsSignaleesGps>(`/gps/non-rattachees?communeId=${encodeURIComponent(communeId)}`),
+  tracesGps: (communeId: string, vehiculeId?: string, jour?: string) =>
+    requete<TracesGps>(
+      `/gps/traces?communeId=${encodeURIComponent(communeId)}` +
+        (vehiculeId ? `&vehiculeId=${encodeURIComponent(vehiculeId)}` : '') +
+        (jour ? `&jour=${jour}` : '')
+    ),
   /** L'accueil du portail : ce qui va bien, ce qui demande une action, le constat du jour. */
   accueil: (communeId: string) => requete<AccueilCommune>(`/communes/${encodeURIComponent(communeId)}/accueil`),
   coherence: (communeId: string) =>

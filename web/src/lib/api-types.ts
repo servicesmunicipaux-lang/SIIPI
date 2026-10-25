@@ -22871,6 +22871,924 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gps/configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le fournisseur GPS de la commune
+         * @description La commune et la FNCT ; le prestataire non. Jamais un secret : seulement la date où le jeton et le secret du webhook ont été enregistrés. L’état du dernier relevé reçu et du dernier échec (sans jeton ni paramètre d’adresse). Une commune hors du périmètre est introuvable (404).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La configuration, ou configure = false. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConfigurationGps"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Paramétrer le fournisseur GPS (commune seule)
+         * @description La commune seule ; la FNCT lit. Mode pull (SIIPI interroge l’adresse à la cadence) ou push (webhook signé). Le jeton s’écrit et ne se relit jamais : absent, celui qui est enregistré reste. Il est chiffré dans l’API avant d’entrer en base.
+         */
+        put: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nom: string;
+                        /** @enum {string} */
+                        mode: "pull" | "push";
+                        /** Format: uri */
+                        url?: string | null;
+                        /** @default 5 */
+                        cadenceMinutes?: number;
+                        /**
+                         * @default bearer
+                         * @enum {string}
+                         */
+                        authentification?: "bearer" | "entete" | "parametre" | "aucune";
+                        nomChampAuth?: string | null;
+                        correspondance: {
+                            liste: string;
+                            boitier: string;
+                            latitude: string;
+                            longitude: string;
+                            horodatage: string;
+                            /** @enum {string} */
+                            format_horodatage: "iso" | "epoch_s" | "epoch_ms";
+                            vitesse?: string | null;
+                            cap?: string | null;
+                        };
+                        /** @default false */
+                        actif?: boolean;
+                        jeton?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description La configuration enregistrée, sans secret. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConfigurationGps"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gps/configuration/secret-webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Générer le secret du webhook (montré une seule fois)
+         * @description Un fournisseur en push signe chaque envoi avec ce secret (HMAC-SHA256 de « horodatage.corps »). Le secret est rendu ICI, une fois ; il n’est plus jamais affiché. En générer un nouveau remplace l’ancien.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Le secret, une seule fois. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            secret: string;
+                            webhook_chemin: string;
+                            avertissement: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gps/configuration/essai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Essayer la correspondance, sans rien enregistrer
+         * @description Interroge le fournisseur une fois (pull), ou lit un exemple collé (`exemple`, pour un fournisseur en push), et rend les cinq premières positions telles que la correspondance les lit. Rien n’est enregistré : c’est l’outil pour régler la correspondance, ou la vérifier quand le fournisseur change son API.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        exemple?: unknown;
+                    };
+                };
+            };
+            responses: {
+                /** @description L’essai, ou son échec. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResultatInterrogationGps"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gps/configuration/interroger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Interroger le fournisseur maintenant
+         * @description Une interrogation enregistrée, hors de la cadence : positions tracées, doublons, signalées. Un échec est noté, il ne bloque rien.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Le bilan, ou l’échec. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResultatInterrogationGps"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gps/boitiers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les boîtiers et leurs engins */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les correspondances, en cours d’abord. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoitierGps"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Rattacher un boîtier à un engin
+         * @description La commune seule. Un boîtier ne se rattache qu’à un engin de la commune ; un boîtier déjà en service doit d’abord être clos (409). Les positions signalées avant ce rattachement ne sont pas reprises en silence.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        identifiant: string;
+                        vehiculeId: string;
+                        /** Format: date-time */
+                        dateDebut?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description La correspondance. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoitierGps"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gps/boitiers/{id}/cloture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clore une correspondance boîtier → engin
+         * @description Elle n’est pas effacée : les traces d’avant gardent l’engin qui les portait.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        dateFin?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description La correspondance close. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BoitierGps"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gps/non-rattachees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les positions signalées, par boîtier et par motif
+         * @description Boîtier sans engin, hors de Tunisie, horodatage illisible ou impossible, coordonnées illisibles : jamais rattachées au hasard. Le dernier horodatage brut dit pourquoi une date n’a pas été lue.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les positions signalées. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            boitier: string | null;
+                            /** @enum {string} */
+                            motif: "boitier_inconnu" | "hors_tunisie" | "horodatage_invalide" | "coordonnees_invalides";
+                            nombre: number;
+                            premiere_recue: string;
+                            derniere_recue: string;
+                            dernier_horodatage_brut: string | null;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gps/traces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les traces des engins
+         * @description Sans engin : la dernière position de chacun. Avec un engin : sa trace d’un jour (heure de Tunis), au plus 5 000 points. Provenance « GPS fournisseur » : une trace ne modifie aucun circuit ni point relevé.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    vehiculeId?: string;
+                    jour?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les dernières positions, ou la trace d’un jour. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            dernieres?: {
+                                vehicule_id: string;
+                                registration: string | null;
+                                horodatage: string;
+                                lat: number;
+                                lng: number;
+                                vitesse_kmh: number | null;
+                            }[];
+                            vehicule_id?: string;
+                            jour?: string;
+                            points?: {
+                                horodatage: string;
+                                lat: number;
+                                lng: number;
+                                vitesse_kmh: number | null;
+                                cap: number | null;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gps/webhook/{fournisseurId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Recevoir les positions d’un fournisseur (webhook signé)
+         * @description Sans compte. Chaque envoi porte `X-SIIPI-Horodatage` (secondes Unix) et `X-SIIPI-Signature: sha256=<HMAC-SHA256 hex du « horodatage.corps » avec le secret de la commune>`. Sans signature, signature fausse, ou horodatage à plus de 5 minutes : 401. Fournisseur inconnu, interrogé (pull) ou éteint : 404. Débit limité par fournisseur (429). Le corps se lit selon la correspondance de la commune.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "X-SIIPI-Horodatage": string;
+                    "X-SIIPI-Signature": string;
+                };
+                path: {
+                    fournisseurId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            responses: {
+                /** @description Le bilan : reçues, tracées, doublons, signalées. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            recues: number;
+                            enregistrees: number;
+                            doublons: number;
+                            signalees: number;
+                        };
+                    };
+                };
+                /** @description Corps illisible, ou correspondance qui ne trouve pas les positions. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Signature absente, fausse ou trop ancienne. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Fournisseur introuvable. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Trop d’envois. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/supervision/etat": {
         parameters: {
             query?: never;
@@ -28923,6 +29841,69 @@ export interface components {
                 derniere: string | null;
             }[];
             lignes: components["schemas"]["LigneBibliotheque"][];
+        };
+        ConfigurationGps: {
+            configure: boolean;
+            commune_id: string;
+            /** Format: uuid */
+            id?: string;
+            nom?: string;
+            /** @enum {string} */
+            mode?: "pull" | "push";
+            url?: string | null;
+            cadence_minutes?: number;
+            /** @enum {string} */
+            authentification?: "bearer" | "entete" | "parametre" | "aucune";
+            nom_champ_auth?: string | null;
+            correspondance?: {
+                liste: string;
+                boitier: string;
+                latitude: string;
+                longitude: string;
+                horodatage: string;
+                /** @enum {string} */
+                format_horodatage: "iso" | "epoch_s" | "epoch_ms";
+                vitesse?: string | null;
+                cap?: string | null;
+            };
+            actif?: boolean;
+            jeton_enregistre_le?: string | null;
+            secret_webhook_enregistre_le?: string | null;
+            webhook_chemin?: string | null;
+            derniere_interrogation_le?: string | null;
+            dernier_releve_recu_le?: string | null;
+            dernier_echec_le?: string | null;
+            dernier_echec_message?: string | null;
+            mis_a_jour_le?: string;
+        };
+        ResultatInterrogationGps: {
+            /** @enum {string} */
+            statut: "ok" | "essai" | "echec";
+            recues?: number;
+            enregistrees?: number;
+            doublons?: number;
+            signalees?: number;
+            lues?: number;
+            apercu?: {
+                boitier: string | null;
+                lat: number | null;
+                lng: number | null;
+                horodatage: string | null;
+                horodatage_brut: string | null;
+                vitesse: number | null;
+                cap: number | null;
+            }[];
+            message?: string;
+        };
+        BoitierGps: {
+            /** Format: uuid */
+            id: string;
+            identifiant: string;
+            vehicule_id: string;
+            registration?: string | null;
+            date_debut: string;
+            date_fin: string | null;
+            actif?: boolean;
         };
         EtatExploitation: {
             disponible: boolean;

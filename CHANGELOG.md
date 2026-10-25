@@ -5,6 +5,37 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.76] — 2026-10-25 — Lot 17.4b : l'écran « Intégration GPS »
+
+Le lot 17.4 est livré (service en 17.4a, écran ici) ; il ne sera recetté qu'avec Menzel Chaker, dont la documentation de
+l'API et un accès de test sont attendus. Plan validé le 23/10/2026, avec la FNCT en lecture seule et l'entrée visible pour elle.
+
+### Ajouté
+- **L'écran « Intégration GPS »** du portail communal (pôle Flotte, après « Parc » ; `composants/communal/IntegrationGps.tsx`),
+  en français et en arabe :
+  - **l'état d'abord** : le fournisseur, actif ou éteint ; la date du dernier relevé reçu, ou « aucun relevé reçu » en mots ;
+    le dernier échec et son message, en rouge s'il est plus récent que le dernier relevé (« rien d'autre n'est bloqué ») ;
+  - **la configuration** : qui appelle qui (chaque mode expliqué), l'adresse et la cadence, l'authentification ; **le jeton en
+    écriture seule** (« enregistré le … — laissez vide pour le garder ») ; la correspondance des champs, avec un exemple pour
+    chacun, et le format de l'horodatage ;
+  - **« Essayer »**, qui lit sans rien enregistrer (une interrogation, ou un envoi collé pour un fournisseur en push), avec l'aide
+    décidée le 23/10/2026 : « Si votre fournisseur change son API, recliquez sur Essayer pour vérifier le mapping. » **Un
+    horodatage illisible montre la valeur reçue ET le format attendu, avec un exemple, et quoi corriger** (« Horodatage illisible :
+    2026/10/23 14:00 — Attendu : Timestamp Unix (millisecondes), par ex. 1761224400000. Vérifiez « Format de l'horodatage » dans la
+    configuration. ») ; une date avant 2020 ou dans l'avenir est dite impossible. « Interroger maintenant » et son bilan ;
+  - **le webhook** : l'adresse à donner au fournisseur, le secret généré et **montré une seule fois**, la façon de signer un envoi ;
+  - **les boîtiers** : leur engin, depuis, jusqu'au, « Clore » (avec confirmation ; la correspondance reste dans l'historique) ;
+  - **les positions signalées**, par boîtier et motif, en mots ; « Rattacher ce boîtier à un engin » ouvre le formulaire déjà
+    rempli ; pour un horodatage illisible, la dernière valeur reçue et l'indice que le format a peut-être changé ;
+  - **la carte** (`FondsDeCarte`) : la dernière position de chaque engin, et la trace du jour d'un engin choisi.
+- **La FNCT voit le même écran en lecture seule**, l'entrée visible : champs désactivés, aucun geste, un bandeau le dit.
+- **`ajout/FormulaireBoitierGps.tsx`** : le seul formulaire qui rattache un boîtier (`appels-creation.json`, vérifié par
+  `npm run lint`), aussi dans le catalogue « + Ajouter » ; il ne propose que les engins de la commune.
+
+### À savoir
+- Captures FR et AR prises sur la pile d'essai, dans une commune de test avec le faux fournisseur (une date au format changé, un
+  boîtier inconnu, une position hors de Tunisie), puis retirée.
+
 ## [0.15.75] — 2026-10-23 — Lot 17.4a : le connecteur GPS générique (le service)
 
 `DECISIONS_2026-10-20.md` § 8 et ses compléments du 23/10/2026. Livrable avec un faux fournisseur ; recetté seulement avec Menzel
