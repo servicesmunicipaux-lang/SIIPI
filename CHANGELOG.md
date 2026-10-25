@@ -5,6 +5,45 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.75] — 2026-10-23 — Lot 17.4a : le connecteur GPS générique (le service)
+
+`DECISIONS_2026-10-20.md` § 8 et ses compléments du 23/10/2026. Livrable avec un faux fournisseur ; recetté seulement avec Menzel
+Chaker, dont la documentation de l'API et un accès de test sont attendus. L'écran « Intégration GPS » est le lot 17.4b.
+
+### Ajouté
+- **Migration 085** : `gps_fournisseurs` (un par commune : pull ou push, authentification, **correspondance des champs JSON**,
+  état du dernier relevé), `gps_secrets` (le jeton et le secret du webhook, **chiffrés par l'API**, illisibles pour le rôle de
+  l'application, sans journal d'audit), `gps_boitiers` (boîtier → engin, daté, clos et jamais effacé ; un engin de la commune
+  seulement), `traces_engins` (provenance « GPS fournisseur » ; **engins seulement**, aucune colonne vers une personne ; dans
+  la Tunisie ; horodatage ni avant 2020 ni plus de 10 minutes après la réception ; une position reçue deux fois gardée une
+  fois ; **`agregee_le`**, vide, réservée au résumé des vieilles traces : « Date à laquelle cette trace a été résumée. NULL =
+  trace brute. »), `gps_positions_non_rattachees` (signalées avec leur motif, jamais rattachées au hasard). Le seul chemin vers
+  les traces : `app.enregistrer_positions_gps()`. La commune écrit, la FNCT lit, le prestataire ne lit pas (RLS).
+- **Le service** (`services/gps.ts`) : il ne connaît aucun fournisseur ; il lit selon la correspondance de la commune.
+  **Un horodatage illisible reste illisible** : jamais remplacé par « maintenant » — un fournisseur qui change son format de
+  date voit ses positions signalées (« horodatage_invalide », la date brute gardée), pas datées de leur réception. Une date
+  ISO sans fuseau est lue à l'heure de Tunis ; une date de calendrier impossible est illisible. **Pull** : un planificateur
+  (actif en production) interroge chaque fournisseur dû, à sa cadence, en 10 secondes au plus ; une panne est notée
+  (message sans jeton), l'écran garde la date du dernier relevé, rien d'autre n'est bloqué. **Push** : `POST /gps/webhook/{id}`,
+  sans compte, **signé** (HMAC-SHA256 de « horodatage.corps », secret de la commune, fenêtre de 5 minutes contre le rejeu),
+  débit limité par fournisseur.
+- **Les routes** `/gps/…` (11) : configuration (le jeton s'écrit et ne se relit jamais), essai sans enregistrement (une
+  interrogation, ou un exemple collé), interrogation immédiate, secret du webhook montré une seule fois, boîtiers, positions
+  signalées par boîtier et motif, traces (dernière position de chaque engin, trace d'un jour).
+- **`SIIPI_SECRET_GPS`** : la clé des secrets GPS, refusée en production à sa valeur de développement, vérifiée par
+  `verifier_env.sh`, passée par le compose de production (planificateur actif).
+- Faux fournisseur générique (`tests/outils/faux_gps.py`) et campagne `gps` (72e), **58 contrôles**, qui commence par les refus de
+  la décision : jeton relu (ni par l'API, ni en base, ni au journal d'audit, ni dans les journaux de l'API), table des secrets
+  illisible pour l'application, webhook non signé, mal signé, rejoué, inconnu ; boîtier sur un engin d'une autre commune ; hors
+  de Tunisie ; sans engin ; horodatage illisible, impossible, avant 2020, dans deux jours ; prestataire, autre commune, FNCT qui
+  écrit. Puis l'essai, l'interrogation et ses doublons, quatre pannes, le boîtier clos, le webhook et sa limite, la cadence du
+  planificateur, et des circuits, points relevés et engins qui n'ont pas bougé. **Quatre mutants détectés**, dont celui demandé
+  le 23/10/2026 : un horodatage illisible remplacé par « maintenant » fait échouer six contrôles.
+
+### À venir (17.4b)
+- L'écran « Intégration GPS » du portail communal, avec sa carte, et l'aide décidée le 23/10/2026 près du bouton « Essayer » :
+  « Si votre fournisseur change son API, recliquez sur Essayer pour vérifier le mapping. » (FR et AR).
+
 ## [0.15.74] — 2026-10-23 — Chantier P, lot P6 : le déploiement et la mise à jour — le chantier P est clos
 
 Sixième et dernier lot de la préparation à la mise en production (`DECISIONS_2026-10-20.md` § 2 et § 4, et complément

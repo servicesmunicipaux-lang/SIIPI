@@ -66,6 +66,18 @@ export const config = {
   // n'a de valeur que si sa clé est hors de la base — ici, dans
   // l'environnement, jamais en base ni dans le dépôt.
   secretIdentites: process.env.SIIPI_SECRET_IDENTITES ?? 'dev_only_secret_identites_a_remplacer',
+  // La clé des secrets GPS (lot 17.4a) : le jeton d'un fournisseur et le secret de
+  // son webhook sont chiffrés avec elle avant d'entrer en base. Hors de la base,
+  // jamais dans le dépôt : une sauvegarde volée ne livre aucun jeton.
+  secretGps: process.env.SIIPI_SECRET_GPS ?? 'dev_only_secret_gps_a_remplacer',
+  gps: {
+    /** Le planificateur des interrogations (pull) : actif en production, éteint par défaut ailleurs. */
+    planificateur: process.env.SIIPI_GPS_PLANIFICATEUR === 'active',
+    /** Secondes entre deux tours du planificateur ; chaque fournisseur garde sa propre cadence. */
+    ticSecondes: Number(process.env.SIIPI_GPS_TIC_S ?? 60),
+    /** Envois de webhook acceptés par fournisseur et par minute. */
+    webhookParMinute: Number(process.env.SIIPI_GPS_WEBHOOK_MAX ?? 120),
+  },
   // Le courriel (décision du 16/10/2026 : « courriel d'abord »). Un serveur
   // SMTP que l'exploitant désigne ; sans SMTP_HOST, rien ne part et la
   // plateforme le dit (« non configuré ») — jamais un envoi supposé réussi.
@@ -84,6 +96,9 @@ export const config = {
 
 if (config.isProduction && config.jwtSecret.startsWith('dev_only')) {
   throw new Error('JWT_SECRET par défaut détecté en production. Définissez un secret fort avant tout déploiement réel.');
+}
+if (config.isProduction && config.secretGps.startsWith('dev_only')) {
+  throw new Error('SIIPI_SECRET_GPS par défaut détecté en production. Définissez un secret fort (openssl rand -hex 32) avant tout déploiement réel.');
 }
 if (config.isProduction && config.secretIdentites.startsWith('dev_only')) {
   throw new Error('SIIPI_SECRET_IDENTITES par défaut détecté en production. Définissez un secret fort (openssl rand -hex 32) avant tout déploiement réel.');

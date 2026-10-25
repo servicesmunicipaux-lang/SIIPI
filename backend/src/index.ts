@@ -7,6 +7,7 @@ import { pool } from './db.js';
 import { preparerRacine, racine } from './services/fichiers.js';
 import { signalerComptesDeDemonstration } from './comptesDemonstration.js';
 import { demarrerPlanificateurConservation } from './services/conservationMedias.js';
+import { demarrerPlanificateurGps } from './services/gps.js';
 import { etablirNatureInstance, RefusDemarrage } from './instance.js';
 
 // Le volume de stockage est éprouvé AU DÉMARRAGE, pas au premier dépôt. Un
@@ -48,6 +49,7 @@ app.listen(config.port, () => {
   if (nature === 'production') void signalerComptesDeDemonstration();
   // Conservation des photos (D-FNCT-4) : seulement si SIIPI_CONSERVATION_MEDIAS=active.
   demarrerPlanificateurConservation();
+  demarrerPlanificateurGps();
 });
 
 process.on('SIGTERM', async () => {

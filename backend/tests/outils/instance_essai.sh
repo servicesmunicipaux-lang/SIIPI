@@ -52,7 +52,7 @@ api_essai() {
   arreter_api_essai
   env -u PRODUCTION -u FORMATION "$@" \
     DATABASE_URL="$(url_essai "$base")" PORT="$port" \
-    JWT_SECRET="$SECRET_ESSAI" SIIPI_SECRET_IDENTITES="essai_identites_$$" \
+    JWT_SECRET="$SECRET_ESSAI" SIIPI_SECRET_IDENTITES="essai_identites_$$" SIIPI_SECRET_GPS="essai_gps_$$" \
     npx tsx src/index.ts >"$T/api_$port.log" 2>&1 &
   PID_ESSAI=$!
   for _ in $(seq 1 90); do

@@ -60,6 +60,14 @@ import { demandeDemoSchema } from '../routes/demo.routes.js';
 import { emissionSchema, annulationSchema } from '../routes/documents.routes.js';
 import { carnetSchema, retourSchema, bonCarburantSchema, quotaSchema, uniteCompteurSchema } from '../routes/exploitation.routes.js';
 import {
+  configurationSchema as configurationGpsSchema,
+  essaiSchema as essaiGpsSchema,
+  boitierSchema as boitierGpsSchema,
+  clotureSchema as clotureGpsSchema,
+  tracesSchema as tracesGpsSchema,
+  correspondanceSchema as correspondanceGpsSchema,
+} from '../routes/gps.routes.js';
+import {
   dossierSchema,
   majDossierSchema,
   etapeSchema,
@@ -6929,6 +6937,227 @@ registry.registerPath({
   responses: { 200: json(BibliothequeDetail, 'L’élément en détail.'), ...REPONSES_COMMUNES },
 });
 
+// ---------------------------------------------------------------------------
+// Le connecteur GPS (lot 17.4a)
+// ---------------------------------------------------------------------------
+const ConfigurationGps = registry.register(
+  'ConfigurationGps',
+  z.object({
+    configure: z.boolean(),
+    commune_id: z.string(),
+    id: z.string().uuid().optional(),
+    nom: z.string().optional(),
+    mode: z.enum(['pull', 'push']).optional(),
+    url: z.string().nullable().optional(),
+    cadence_minutes: z.number().int().optional(),
+    authentification: z.enum(['bearer', 'entete', 'parametre', 'aucune']).optional(),
+    nom_champ_auth: z.string().nullable().optional(),
+    correspondance: correspondanceGpsSchema.optional(),
+    actif: z.boolean().optional(),
+    jeton_enregistre_le: z.string().nullable().optional(),
+    secret_webhook_enregistre_le: z.string().nullable().optional(),
+    webhook_chemin: z.string().nullable().optional(),
+    derniere_interrogation_le: z.string().nullable().optional(),
+    dernier_releve_recu_le: z.string().nullable().optional(),
+    dernier_echec_le: z.string().nullable().optional(),
+    dernier_echec_message: z.string().nullable().optional(),
+    mis_a_jour_le: z.string().optional(),
+  })
+);
+const PositionLueGps = z.object({
+  boitier: z.string().nullable(),
+  lat: z.number().nullable(),
+  lng: z.number().nullable(),
+  horodatage: z.string().nullable(),
+  horodatage_brut: z.string().nullable(),
+  vitesse: z.number().nullable(),
+  cap: z.number().nullable(),
+});
+const BilanGps = z.object({ recues: z.number().int(), enregistrees: z.number().int(), doublons: z.number().int(), signalees: z.number().int() });
+const ResultatGps = registry.register(
+  'ResultatInterrogationGps',
+  z.object({
+    statut: z.enum(['ok', 'essai', 'echec']),
+    recues: z.number().int().optional(),
+    enregistrees: z.number().int().optional(),
+    doublons: z.number().int().optional(),
+    signalees: z.number().int().optional(),
+    lues: z.number().int().optional(),
+    apercu: z.array(PositionLueGps).optional(),
+    message: z.string().optional(),
+  })
+);
+const BoitierGps = registry.register(
+  'BoitierGps',
+  z.object({
+    id: z.string().uuid(),
+    identifiant: z.string(),
+    vehicule_id: z.string(),
+    registration: z.string().nullable().optional(),
+    date_debut: z.string(),
+    date_fin: z.string().nullable(),
+    actif: z.boolean().optional(),
+  })
+);
+const qCommuneGps = z.object({ communeId: paramCommuneId.optional() });
+const corpsJson = (schema: any) => ({ body: { content: { 'application/json': { schema } } } });
+
+registry.registerPath({
+  method: 'get',
+  path: '/gps/configuration',
+  tags: ['Connecteur GPS'],
+  summary: 'Le fournisseur GPS de la commune',
+  description:
+    'La commune et la FNCT ; le prestataire non. Jamais un secret : seulement la date où le jeton et le secret du webhook ont été enregistrés. L’état du dernier relevé reçu et du dernier échec (sans jeton ni paramètre d’adresse). Une commune hors du périmètre est introuvable (404).',
+  security: SECURISE,
+  request: { query: qCommuneGps },
+  responses: { 200: json(ConfigurationGps, 'La configuration, ou configure = false.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'put',
+  path: '/gps/configuration',
+  tags: ['Connecteur GPS'],
+  summary: 'Paramétrer le fournisseur GPS (commune seule)',
+  description:
+    'La commune seule ; la FNCT lit. Mode pull (SIIPI interroge l’adresse à la cadence) ou push (webhook signé). Le jeton s’écrit et ne se relit jamais : absent, celui qui est enregistré reste. Il est chiffré dans l’API avant d’entrer en base.',
+  security: SECURISE,
+  request: { query: qCommuneGps, ...corpsJson(configurationGpsSchema) },
+  responses: { 200: json(ConfigurationGps, 'La configuration enregistrée, sans secret.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/gps/configuration/secret-webhook',
+  tags: ['Connecteur GPS'],
+  summary: 'Générer le secret du webhook (montré une seule fois)',
+  description:
+    'Un fournisseur en push signe chaque envoi avec ce secret (HMAC-SHA256 de « horodatage.corps »). Le secret est rendu ICI, une fois ; il n’est plus jamais affiché. En générer un nouveau remplace l’ancien.',
+  security: SECURISE,
+  request: { query: qCommuneGps },
+  responses: {
+    201: json(z.object({ secret: z.string(), webhook_chemin: z.string(), avertissement: z.string() }), 'Le secret, une seule fois.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/gps/configuration/essai',
+  tags: ['Connecteur GPS'],
+  summary: 'Essayer la correspondance, sans rien enregistrer',
+  description:
+    'Interroge le fournisseur une fois (pull), ou lit un exemple collé (`exemple`, pour un fournisseur en push), et rend les cinq premières positions telles que la correspondance les lit. Rien n’est enregistré : c’est l’outil pour régler la correspondance, ou la vérifier quand le fournisseur change son API.',
+  security: SECURISE,
+  request: { query: qCommuneGps, ...corpsJson(essaiGpsSchema) },
+  responses: { 200: json(ResultatGps, 'L’essai, ou son échec.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/gps/configuration/interroger',
+  tags: ['Connecteur GPS'],
+  summary: 'Interroger le fournisseur maintenant',
+  description: 'Une interrogation enregistrée, hors de la cadence : positions tracées, doublons, signalées. Un échec est noté, il ne bloque rien.',
+  security: SECURISE,
+  request: { query: qCommuneGps },
+  responses: { 200: json(ResultatGps, 'Le bilan, ou l’échec.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get',
+  path: '/gps/boitiers',
+  tags: ['Connecteur GPS'],
+  summary: 'Les boîtiers et leurs engins',
+  security: SECURISE,
+  request: { query: qCommuneGps },
+  responses: { 200: json(z.array(BoitierGps), 'Les correspondances, en cours d’abord.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/gps/boitiers',
+  tags: ['Connecteur GPS'],
+  summary: 'Rattacher un boîtier à un engin',
+  description:
+    'La commune seule. Un boîtier ne se rattache qu’à un engin de la commune ; un boîtier déjà en service doit d’abord être clos (409). Les positions signalées avant ce rattachement ne sont pas reprises en silence.',
+  security: SECURISE,
+  request: { query: qCommuneGps, ...corpsJson(boitierGpsSchema) },
+  responses: { 201: json(BoitierGps, 'La correspondance.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/gps/boitiers/{id}/cloture',
+  tags: ['Connecteur GPS'],
+  summary: 'Clore une correspondance boîtier → engin',
+  description: 'Elle n’est pas effacée : les traces d’avant gardent l’engin qui les portait.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }), ...corpsJson(clotureGpsSchema) },
+  responses: { 200: json(BoitierGps, 'La correspondance close.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get',
+  path: '/gps/non-rattachees',
+  tags: ['Connecteur GPS'],
+  summary: 'Les positions signalées, par boîtier et par motif',
+  description: 'Boîtier sans engin, hors de Tunisie, horodatage illisible ou impossible, coordonnées illisibles : jamais rattachées au hasard. Le dernier horodatage brut dit pourquoi une date n’a pas été lue.',
+  security: SECURISE,
+  request: { query: qCommuneGps },
+  responses: {
+    200: json(
+      z.array(
+        z.object({
+          boitier: z.string().nullable(),
+          motif: z.enum(['boitier_inconnu', 'hors_tunisie', 'horodatage_invalide', 'coordonnees_invalides']),
+          nombre: z.number().int(),
+          premiere_recue: z.string(),
+          derniere_recue: z.string(),
+          dernier_horodatage_brut: z.string().nullable(),
+        })
+      ),
+      'Les positions signalées.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'get',
+  path: '/gps/traces',
+  tags: ['Connecteur GPS'],
+  summary: 'Les traces des engins',
+  description: 'Sans engin : la dernière position de chacun. Avec un engin : sa trace d’un jour (heure de Tunis), au plus 5 000 points. Provenance « GPS fournisseur » : une trace ne modifie aucun circuit ni point relevé.',
+  security: SECURISE,
+  request: { query: qCommuneGps.merge(tracesGpsSchema) },
+  responses: {
+    200: json(
+      z.object({
+        dernieres: z
+          .array(z.object({ vehicule_id: z.string(), registration: z.string().nullable(), horodatage: z.string(), lat: z.number(), lng: z.number(), vitesse_kmh: z.number().nullable() }))
+          .optional(),
+        vehicule_id: z.string().optional(),
+        jour: z.string().optional(),
+        points: z.array(z.object({ horodatage: z.string(), lat: z.number(), lng: z.number(), vitesse_kmh: z.number().nullable(), cap: z.number().nullable() })).optional(),
+      }),
+      'Les dernières positions, ou la trace d’un jour.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/gps/webhook/{fournisseurId}',
+  tags: ['Connecteur GPS'],
+  summary: 'Recevoir les positions d’un fournisseur (webhook signé)',
+  description:
+    'Sans compte. Chaque envoi porte `X-SIIPI-Horodatage` (secondes Unix) et `X-SIIPI-Signature: sha256=<HMAC-SHA256 hex du « horodatage.corps » avec le secret de la commune>`. Sans signature, signature fausse, ou horodatage à plus de 5 minutes : 401. Fournisseur inconnu, interrogé (pull) ou éteint : 404. Débit limité par fournisseur (429). Le corps se lit selon la correspondance de la commune.',
+  request: {
+    params: z.object({ fournisseurId: z.string().uuid() }),
+    headers: z.object({ 'X-SIIPI-Horodatage': z.string(), 'X-SIIPI-Signature': z.string() }),
+    body: { content: { 'application/json': { schema: z.unknown() } } },
+  },
+  responses: {
+    200: json(BilanGps, 'Le bilan : reçues, tracées, doublons, signalées.'),
+    400: json(z.object({ error: z.string() }), 'Corps illisible, ou correspondance qui ne trouve pas les positions.'),
+    401: json(z.object({ error: z.string() }), 'Signature absente, fausse ou trop ancienne.'),
+    404: json(z.object({ error: z.string() }), 'Fournisseur introuvable.'),
+    429: json(z.object({ error: z.string() }), 'Trop d’envois.'),
+  },
+});
+
 const EtatExploitation = registry.register(
   'EtatExploitation',
   z.object({
@@ -7959,7 +8188,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.74',
+      version: '0.15.75',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

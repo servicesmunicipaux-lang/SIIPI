@@ -61,6 +61,7 @@ import { acteursInformelsRouter } from './routes/acteursInformels.routes.js';
 import { waplaRouter } from './wapla/routes.js';
 import { courrielRouter } from './routes/courriel.routes.js';
 import { supervisionRouter } from './routes/supervision.routes.js';
+import { gpsRouter } from './routes/gps.routes.js';
 import { genererDocumentOpenApi } from './openapi/document.js';
 
 
@@ -137,6 +138,10 @@ app.use(morgan(config.isProduction ? 'combined' : 'dev'));
 // l'API à son plafond habituel. Express saute un corps déjà lu par un
 // analyseur précédent — celui-ci fait donc écran avant le suivant, sans le
 // dédoubler.
+// Le webhook GPS (lot 17.4a) lit son corps BRUT, avant les lecteurs JSON : la
+// signature porte sur les octets reçus, et un corps déjà converti en objet ne se
+// re-signe pas à l'identique. 1 Mo : quelques milliers de positions.
+app.use('/gps/webhook', express.raw({ type: () => true, limit: '1mb' }));
 app.use('/fichiers', express.json({ limit: '70mb' }));
 // 12 Mo pour tout le reste : le plafond d'un fichier ordinaire est de 8 Mo
 // une fois DÉCODÉ, et l'encodage base64 l'alourdit d'un tiers — 8 Mo
@@ -268,6 +273,7 @@ export const ROUTEURS: Array<[string, Router]> = [
   // Le serveur de courriel : son état et un essai, pour la FNCT (v0.15.47).
   ['/courriel', courrielRouter],
   ['/supervision', supervisionRouter],
+  ['/gps', gpsRouter],
 ];
 
 for (const [prefixe, routeur] of ROUTEURS) {
