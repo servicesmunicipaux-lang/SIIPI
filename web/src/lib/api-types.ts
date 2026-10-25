@@ -845,6 +845,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/trucks/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Classes de collecte des engins (référentiel national)
+         * @description Lot T. Le référentiel des classes d'engins de collecte des DMA, avec leurs types compatibles et leur plage de volume de référence, chacune avec sa source. Lecture seule : une classe nouvelle passe par une migration.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Classes, dans leur ordre. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClasseEngin"][];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trucks/etat": {
         parameters: {
             query?: never;
@@ -972,7 +1020,15 @@ export interface paths {
                         datePremiereCirculation?: string | null;
                         valeurAchatTnd?: number | null;
                         chargeUtileT?: number | null;
+                        /** @description Volume de la benne (m³). Pour un attelage, il se porte sur la remorque. */
                         capacityM3?: number | null;
+                        /** @description Classe de collecte (GET /trucks/classes). Elle doit convenir au type ; un tracteur n'en porte pas, sa remorque oui. Jamais déduite du type. */
+                        classeCollecte?: string | null;
+                        /**
+                         * @description Ce qui garantit le volume. Une provenance suppose un volume.
+                         * @enum {string|null}
+                         */
+                        volumeProvenance?: "constructeur" | "mesure" | "declare" | null;
                         domaineEmploi?: string | null;
                         /** @enum {string} */
                         etat?: "en_service" | "en_panne" | "a_reformer" | "reforme";
@@ -1227,7 +1283,15 @@ export interface paths {
                         datePremiereCirculation?: string | null;
                         valeurAchatTnd?: number | null;
                         chargeUtileT?: number | null;
+                        /** @description Volume de la benne (m³). Pour un attelage, il se porte sur la remorque. */
                         capacityM3?: number | null;
+                        /** @description Classe de collecte (GET /trucks/classes). Elle doit convenir au type ; un tracteur n'en porte pas, sa remorque oui. Jamais déduite du type. */
+                        classeCollecte?: string | null;
+                        /**
+                         * @description Ce qui garantit le volume. Une provenance suppose un volume.
+                         * @enum {string|null}
+                         */
+                        volumeProvenance?: "constructeur" | "mesure" | "declare" | null;
                         domaineEmploi?: string | null;
                         /** @enum {string} */
                         etat?: "en_service" | "en_panne" | "a_reformer" | "reforme";
@@ -27828,6 +27892,22 @@ export interface components {
             /** @description Tracteur auquel cette remorque est attelée : l'unité de travail est l'attelage, pas le tracteur seul. */
             attele_a: string | null;
             attele_a_immat: string | null;
+            /** @description Classe de collecte (lot T). Vide tant que la commune ne l'a pas choisie. */
+            classe_collecte: string | null;
+            /** @enum {string|null} */
+            volume_provenance: "constructeur" | "mesure" | "declare" | null;
+            /** @description La classe de la benne qui travaille : celle de l'engin, ou pour un tracteur celle de sa seule remorque attelée. */
+            travail_classe: string | null;
+            travail_volume_m3: number | null;
+            /** @enum {string|null} */
+            travail_volume_provenance: "constructeur" | "mesure" | "declare" | null;
+            /** @description L’engin qui porte cette benne (la remorque, pour un tracteur). */
+            travail_porteur_immat: string | null;
+            /**
+             * @description Ce qui empêche de connaître la benne de travail. SIIPI ne choisit jamais entre deux remorques attelées.
+             * @enum {string|null}
+             */
+            travail_manque: "remorque_absente" | "remorques_multiples" | "classe" | "volume" | "classe_et_volume" | null;
             /** @description Dernier kilométrage connu (Jalon 5). Relevé à l’écran, ou relevé à la hausse par une intervention qui en porte un plus élevé. */
             kilometrage: number | null;
             kilometrage_le: string | null;
@@ -27955,6 +28035,17 @@ export interface components {
             immobilises_sans_motif: number;
             /** @description Date du dernier inventaire. Un état du parc lu sans savoir de quand il date se prend pour l'état d'aujourd'hui, et l'on décide sur des pannes réparées depuis six mois. */
             inventaire_le: string | null;
+        };
+        ClasseEngin: {
+            code: string;
+            libelle_fr: string;
+            libelle_ar: string;
+            compactant: boolean;
+            volume_ref_min_m3: number | null;
+            /** @description Plage de volume de référence. Un volume hors plage est signalé dans « À vérifier », jamais refusé. Vide si la référence ne donne pas de plage. */
+            volume_ref_max_m3: number | null;
+            types_compatibles: string[];
+            source: string;
         };
         IdentitePrecollecteur: {
             /** Format: uuid */

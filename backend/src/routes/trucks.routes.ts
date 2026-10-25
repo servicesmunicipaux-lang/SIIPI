@@ -14,12 +14,18 @@ export const trucksRouter = Router();
 // devant. Un parc dont 45 % est à l'arrêt se consulte pour savoir ce qui ne
 // roule pas, et faire chercher ces lignes au milieu des autres serait ranger
 // l'information par commodité de tri plutôt que par ordre d'importance.
+// L'engin de travail (lot T) : pour un tracteur, la classe et le volume sont ceux
+// de sa remorque attelée ; « travail_manque » dit ce qui empêche de les connaître.
 const VEHICULE_SELECT = `
   SELECT v.*,
          a.registration AS attele_a_immat,
-         EXTRACT(year FROM age(CURRENT_DATE, v.date_premiere_circulation))::integer AS age_annees
+         EXTRACT(year FROM age(CURRENT_DATE, v.date_premiere_circulation))::integer AS age_annees,
+         t.classe AS travail_classe, t.volume_m3::float8 AS travail_volume_m3,
+         t.volume_provenance AS travail_volume_provenance, t.porteur_immat AS travail_porteur_immat,
+         t.manque AS travail_manque
     FROM vehicules v
     LEFT JOIN vehicules a ON a.id = v.attele_a
+    LEFT JOIN LATERAL app.engin_de_travail(v.id) t ON true
 `;
 const ORDRE = `
   ORDER BY CASE v.etat WHEN 'en_panne' THEN 0 WHEN 'a_reformer' THEN 1
@@ -84,7 +90,9 @@ const vehiculeSchema = z.object({
   datePremiereCirculation: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   valeurAchatTnd: z.number().min(0).nullable().optional(),
   chargeUtileT: z.number().min(0).nullable().optional(),
-  capacityM3: z.number().min(0).nullable().optional(),
+  capacityM3: z.number().positive().nullable().optional(),
+  classeCollecte: z.string().max(40).nullable().optional(),
+  volumeProvenance: z.enum(['constructeur', 'mesure', 'declare']).nullable().optional(),
   domaineEmploi: z.string().max(200).nullable().optional(),
   etat: z.enum(['en_service', 'en_panne', 'a_reformer', 'reforme']).optional(),
   etatDepuis: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
@@ -101,6 +109,8 @@ const COLONNES_VEHICULE: Record<string, string> = {
   valeurAchatTnd: 'valeur_achat_tnd',
   chargeUtileT: 'charge_utile_t',
   capacityM3: 'capacity_m3',
+  classeCollecte: 'classe_collecte',
+  volumeProvenance: 'volume_provenance',
   domaineEmploi: 'domaine_emploi',
   etat: 'etat',
   etatDepuis: 'etat_depuis',
@@ -119,6 +129,64 @@ const MEME_IMMAT = "upper(regexp_replace(registration, '\\s+', '', 'g'))";
 const typerVehicule = (cle: string, pos: number) =>
   cle === 'datePremiereCirculation' || cle === 'etatDepuis' ? `$${pos}::date` : `$${pos}`;
 
+// --- Typologie (lot T) ---------------------------------------------------------
+//
+// La base refuse déjà une classe qui ne convient pas au type, et une provenance
+// sans volume ; mais son refus ne dirait que « requête incohérente ». On contrôle
+// donc avant d'écrire, pour dire QUOI corriger — et pour l'import, à la ligne.
+
+interface ClasseEngin {
+  code: string;
+  libelle_fr: string;
+  types_compatibles: string[];
+}
+
+const lireClasses = async () =>
+  new Map((await query<ClasseEngin>('SELECT code, libelle_fr, types_compatibles FROM classes_engins')).map((k) => [k.code, k]));
+
+/** L'engin tel qu'il sera après l'écriture : la saisie, complétée par ce qu'il est déjà. */
+function erreurTypologie(
+  classes: Map<string, ClasseEngin>,
+  saisie: Record<string, unknown>,
+  actuel?: Record<string, unknown>
+): string | null {
+  const apres = (cle: string, colonne: string) => (cle in saisie ? saisie[cle] : actuel?.[colonne]) ?? null;
+  const type = String(apres('type', 'type') ?? '');
+  const classe = apres('classeCollecte', 'classe_collecte') as string | null;
+  const volume = apres('capacityM3', 'capacity_m3');
+  const provenance = apres('volumeProvenance', 'volume_provenance');
+  if (classe !== null) {
+    const k = classes.get(classe);
+    if (!k) {
+      return `La classe de collecte « ${classe} » n'existe pas. Les classes sont celles de GET /trucks/classes (Paramètres nationaux, typologie des engins).`;
+    }
+    if (!k.types_compatibles.includes(type)) {
+      return type === 'tracteur'
+        ? `Un tracteur ne porte pas de classe de collecte : la benne est sa remorque. Classez la remorque attelée, et indiquez à quel tracteur elle est attelée.`
+        : `La classe « ${k.libelle_fr} » ne convient pas à un engin de type « ${type} ». Choisissez une classe qui convient à ce type, ou corrigez le type.`;
+    }
+  }
+  if (provenance !== null && volume === null) {
+    return "La provenance du volume suppose un volume : renseignez le volume (m³), ou retirez la provenance.";
+  }
+  return null;
+}
+
+// DÉCLARÉE AVANT « /:id » : « /classes » serait sinon pris pour un identifiant.
+trucksRouter.get(
+  '/classes',
+  requireAuth,
+  asyncHandler(async (_req, res) => {
+    res.json(
+      await query(
+        `SELECT code, libelle_fr, libelle_ar, compactant, volume_ref_min_m3::float8 AS volume_ref_min_m3,
+                volume_ref_max_m3::float8 AS volume_ref_max_m3, types_compatibles, source
+           FROM classes_engins ORDER BY ordre`
+      )
+    );
+  })
+);
+
 trucksRouter.post(
   '/',
   requireAuth,
@@ -127,6 +195,8 @@ trucksRouter.post(
     const d = vehiculeSchema.parse(req.body) as Record<string, unknown>;
     const communeId = communeDemandee(req);
     if (!communeId) throw new ApiError(400, 'Commune requise.');
+    const typologie = erreurTypologie(await lireClasses(), d);
+    if (typologie) throw new ApiError(400, typologie);
 
     const id = idVehicule(communeId, String(d.registration));
     const existe = await queryOne(
@@ -199,6 +269,7 @@ trucksRouter.post(
       ).map((v) => [cleImmat(String(v.registration)), v])
     );
     const vusDansLeFichier = new Map<string, number>();
+    const classes = await lireClasses();
 
     const lignes = tableau.lignes.map((l) => {
       const v = Object.fromEntries(Object.entries(l.valeurs).filter(([, x]) => x !== null));
@@ -217,11 +288,15 @@ trucksRouter.post(
       if (!existant) {
         const r = vehiculeSchema.safeParse(v);
         if (!r.success) return erreur(messagesValidation(JEU_PARC, r.error.issues as never));
+        const typologie = erreurTypologie(classes, r.data as Record<string, unknown>);
+        if (typologie) return erreur([typologie]);
         return { numero: l.numero, action: 'creer' as const, libelle, erreurs: [], champs: [], saisie: { id, ...r.data } as Record<string, unknown> };
       }
 
       const r = vehiculeSchema.partial().safeParse(v);
       if (!r.success) return erreur(messagesValidation(JEU_PARC, r.error.issues as never));
+      const typologie = erreurTypologie(classes, r.data as Record<string, unknown>, existant);
+      if (typologie) return erreur([typologie]);
       const modifies = Object.entries(r.data as Record<string, unknown>).filter(
         ([cle, valeur]) => cle !== 'registration' && !identiques(valeur, existant[COLONNES_VEHICULE[cle]])
       );
@@ -292,6 +367,16 @@ trucksRouter.patch(
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
     const d = vehiculeSchema.partial().parse(req.body) as Record<string, unknown>;
+    if (['type', 'classeCollecte', 'capacityM3', 'volumeProvenance'].some((cle) => cle in d)) {
+      // RLS : un engin hors du périmètre n'est pas lu, il est introuvable.
+      const actuel = await queryOne<Record<string, unknown>>(
+        'SELECT type, classe_collecte, capacity_m3, volume_provenance FROM vehicules WHERE id = $1 AND deleted_at IS NULL',
+        [req.params.id]
+      );
+      if (!actuel) throw new ApiError(404, 'Engin introuvable.');
+      const typologie = erreurTypologie(await lireClasses(), d, actuel);
+      if (typologie) throw new ApiError(400, typologie);
+    }
     const clauses: string[] = [];
     const valeurs: unknown[] = [];
     for (const [cle, colonne] of Object.entries(COLONNES_VEHICULE)) {

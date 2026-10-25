@@ -15,6 +15,7 @@ import {
   api,
   ErreurApi,
   type CadreSecteurInformel as EtatCadre,
+  type ClasseEngin,
   type CorrectionReferentiel,
   type ParametreNational,
   type ValeurParametreNational,
@@ -72,6 +73,7 @@ export function ParametresNationaux() {
       )}
       <CorrectionsReferentiel />
       <DistrictsFnct />
+      <ClassesEngins />
       <ServeurCourriel />
       <CadreSecteurInformel onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
       <MoyenneNationaleCaracterisation />
@@ -385,6 +387,53 @@ function CorrectionsReferentiel() {
           <p className="text-xs text-ardoise-600">{t('national.parametres.corrections.source', { source: lignes[0].source })}</p>
         </div>
       ))}
+    </article>
+  );
+}
+
+// La typologie des engins de collecte (lot T) : le référentiel national, avec sa source.
+// Rien ne s'y écrit depuis l'écran : une classe nouvelle demande une densité (17.2),
+// donc une migration.
+function ClassesEngins() {
+  const { t, i18n } = useTranslation();
+  const [classes, setClasses] = useState<ClasseEngin[] | null>(null);
+
+  useEffect(() => {
+    api
+      .classesEngins()
+      .then(setClasses)
+      .catch(() => setClasses([]));
+  }, []);
+
+  if (!classes || classes.length === 0) return null;
+  const arabe = i18n.language === 'ar';
+  const volumeRef = (x: number) => formaterNombre(x, Number.isInteger(x) ? 0 : 1);
+  const plage = (k: ClasseEngin) =>
+    k.volume_ref_min_m3 == null || k.volume_ref_max_m3 == null
+      ? t('national.parametres.classesEngins.sansPlage')
+      : k.volume_ref_min_m3 === k.volume_ref_max_m3
+        ? t('national.parametres.classesEngins.volumeUnique', { volume: volumeRef(k.volume_ref_min_m3) })
+        : t('national.parametres.classesEngins.plage', { min: volumeRef(k.volume_ref_min_m3), max: volumeRef(k.volume_ref_max_m3) });
+
+  return (
+    <article className="space-y-3 rounded-xl border border-ardoise-200 bg-white p-4">
+      <h3 className="font-semibold text-ardoise-900">{t('national.parametres.classesEngins.titre')}</h3>
+      <p className="text-sm text-ardoise-600">{t('national.parametres.classesEngins.intro')}</p>
+      <ul className="space-y-2">
+        {classes.map((k) => (
+          <li key={k.code} className="rounded-lg bg-ardoise-50 p-3 text-sm">
+            <p className="font-medium text-ardoise-900">
+              {arabe ? k.libelle_ar : k.libelle_fr}
+              <span className="ms-2 text-xs font-normal text-ardoise-600">
+                {t(k.compactant ? 'national.parametres.classesEngins.compactant' : 'national.parametres.classesEngins.nonCompactant')}
+                {' · '}
+                {plage(k)}
+              </span>
+            </p>
+            <p className="mt-1 text-xs text-ardoise-600">{t('national.parametres.classesEngins.source', { source: k.source })}</p>
+          </li>
+        ))}
+      </ul>
     </article>
   );
 }

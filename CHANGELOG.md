@@ -5,6 +5,46 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.78] — 2026-10-25 — Lot T : la typologie des engins de collecte
+
+`DECISIONS_2026-10-20.md`, complément du 25/10/2026 (suite). Le guide TADAEEM (*Guide d'optimisation de la collecte des
+DMA en Tunisie*, USAID TADAEEM, MALE) devient la référence métier de SIIPI ; il entre dans le dépôt avec sa note de
+lecture, qui constate ses contradictions (`docs/specs_metier/sources/GUIDE_TADAEEM_LECTURE.md`). Le lot T prépare 17.2 :
+le moteur volumétrique et le taux de remplissage ont besoin de la classe de chaque engin et d'un volume dont on sait
+d'où il vient.
+
+### Ajouté
+- **Migration 087** — `classes_engins`, référentiel national en lecture seule (Tableau 10 du guide) : benne tasseuse,
+  benne basculante (Cbb), pick-up, tracteur et remorque agricole (Tag), tracteur et remorque compactrice, ampli-roll et
+  caisson ; pour chacune, compactant ou non, plage de volume de référence, types du parc compatibles, source.
+- `vehicules.classe_collecte` et `vehicules.volume_provenance` (constructeur, mesuré, déclaré). **La base refuse** une
+  classe qui ne convient pas au type (déclencheur ; un tracteur n'en porte jamais), un volume nul ou négatif, une
+  provenance sans volume. L'API le refuse avant elle, en disant quoi corriger, et l'import CSV à la ligne.
+- **`app.engin_de_travail()`** : la benne qui travaille pour un engin — lui-même, ou pour un tracteur sa seule remorque
+  attelée. Sans remorque, ou avec plusieurs, le volume est inconnu et la raison est dite ; **SIIPI ne choisit jamais
+  entre deux remorques.** La liste du parc la rend (`travail_*`).
+- **« À vérifier »** (`app.incoherences_engins`, information) : le circuit dont le tonnage ne pourra pas être estimé
+  (engin sans classe ou sans volume, tracteur sans remorque ou avec plusieurs), le volume hors de la plage de sa classe
+  — signalé, jamais refusé. Chaque avis a son arabe.
+- `GET /trucks/classes` ; l'export et l'import du parc portent la classe et la provenance du volume, en libellés FR/AR.
+- **Écrans** (FR, AR) : `communal/ChampsTypologie.tsx`, dans le formulaire d'ajout d'un engin et dans sa fiche du parc.
+  La classe évidente (benne tasseuse, ampli-roll) est **proposée** avec un bouton « Retenir », jamais cochée d'avance ;
+  l'aide « Mesurer la benne » calcule longueur × largeur × hauteur et le reporte comme volume mesuré ; un volume hors
+  plage est annoncé comme un avis à venir, pas comme une erreur. La fiche d'un tracteur dit quelle remorque porte sa
+  benne, ou ce qui manque. *Paramètres nationaux* montre le référentiel et ses sources.
+- Campagne **`typologie-engins`** (74e), 56 contrôles : d'abord les refus (classe inconnue, incompatible, sur un
+  tracteur ; type changé contre la classe ; volume nul ou négatif ; provenance sans volume ou hors liste ; référentiel
+  non inscriptible ; autre commune → 404), à l'API et dans la base ; puis le référentiel, l'engin de travail d'un
+  attelage, les avis et leur arabe, l'export et l'import, et aucune classe posée à la place de la commune. Deux mutants
+  (déclencheur retiré, remorque choisie au hasard) la font échouer.
+
+### Modifié
+- La ligne d'un engin dans le parc ne commence plus par « · » quand son âge n'est pas connu.
+
+### À savoir
+- **Aucun engin existant n'a reçu de classe** : à Dar Chaabane comme ailleurs, la commune les choisit. D'ici là, ses
+  circuits apparaissent dans « À vérifier » (information) : leur tonnage ne pourra pas être estimé par 17.2.
+
 ## [0.15.77] — 2026-10-25 — Les noms arabes : douze corrigés par décision (D-NOMS-AR-1)
 
 `DECISIONS_2026-10-20.md` § 6 et son complément du 25/10/2026. Les 44 noms arabes qui différaient de la carte du conseiller

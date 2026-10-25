@@ -236,6 +236,16 @@
         "creee": "{{commune}} : commune à part entière.",
         "source": "Source : {{source}}.",
         "nomArabe": "{{commune}} : le nom arabe « {{ancien}} » devient « {{nouveau}} »."
+      },
+      "classesEngins": {
+        "titre": "Typologie des engins de collecte",
+        "intro": "Les classes d'engins de collecte des DMA, référentiel national. Chaque commune choisit la classe de ses engins dans le parc ; SIIPI ne la déduit jamais du type.",
+        "sansPlage": "aucune plage de volume de référence",
+        "volumeUnique": "{{volume}} m³",
+        "plage": "{{min}} à {{max}} m³",
+        "compactant": "compactant",
+        "nonCompactant": "non compactant",
+        "source": "Source : {{source}}"
       }
     },
     "moyenneNationale": {
@@ -1350,6 +1360,37 @@
         "mini_chargeuse": "Mini-chargeuse",
         "niveleuse": "Niveleuse",
         "autre": "Autre"
+      },
+      "typologie": {
+        "titre": "Typologie de collecte",
+        "tracteur": "Un tracteur ne porte pas de classe : la benne est sa remorque. Classez la remorque attelée à ce tracteur.",
+        "classe": "Classe de collecte",
+        "classeNonRenseignee": "— non renseignée —",
+        "volume": "Volume de la benne (m³)",
+        "provenance": "Provenance du volume",
+        "provenanceNonDite": "— non dite —",
+        "provenances": {
+          "constructeur": "Constructeur (fiche technique)",
+          "mesure": "Mesuré (longueur × largeur × hauteur)",
+          "declare": "Déclaré"
+        },
+        "aucuneClasse": "Aucune classe de collecte ne convient à ce type d'engin.",
+        "proposition": "Proposition : {{classe}}.",
+        "retenir": "Retenir",
+        "plage": "Plage de référence de la classe : {{min}} à {{max}} m³.",
+        "horsPlage": "Hors de la plage de référence : ce n'est pas une erreur (une benne rehaussée de ridelles, par exemple), ce sera signalé dans « À vérifier ».",
+        "mesurer": "Mesurer la benne",
+        "longueur": "Longueur (m)",
+        "largeur": "Largeur (m)",
+        "hauteur": "Hauteur (m)",
+        "reporter": "Reporter {{volume}} m³ (mesuré)",
+        "reporterVide": "Saisir les trois dimensions",
+        "enregistrer": "Enregistrer la typologie",
+        "benneDeTravail": "Benne de travail : la remorque {{remorque}} — {{classe}}, {{volume}}.",
+        "manques": {
+          "remorque_absente": "Aucune remorque n'est attelée à ce tracteur : le volume de ses circuits est inconnu. Indiquez, sur la fiche de la remorque, à quel tracteur elle est attelée.",
+          "remorques_multiples": "Plusieurs remorques sont attelées à ce tracteur : SIIPI ne choisit pas laquelle travaille. Ne laissez attelée que la remorque qui fait ses circuits."
+        }
       }
     },
     "entretien": {
@@ -2732,7 +2773,6 @@
       "immatriculation": "Immatriculation",
       "type": "Type d'engin",
       "marque": "Marque (facultative)",
-      "capacite": "Capacité (m³)",
       "chargeUtile": "Charge utile (t)",
       "valeurAchat": "Valeur d'achat (TND)",
       "nombreInvalide": "Capacité, charge utile et valeur d'achat s'écrivent en chiffres, sans signe moins."

@@ -196,6 +196,7 @@ export type Circuit = Reponse<'/circuits', 'get'>[number];
 export type Compte = Reponse<'/comptes', 'get'>[number];
 export type Vehicule = Reponse<'/trucks', 'get'>[number];
 export type EtatDuParc = Reponse<'/trucks/etat', 'get'>;
+export type ClasseEngin = Reponse<'/trucks/classes', 'get'>[number];
 export type Agent = Reponse<'/personnel', 'get'>[number];
 // --- Lot 16.3 : carnet de bord, carburant, consommation ----------------------
 export type SortieCarnet = Reponse<'/exploitation/carnets', 'get'>[number];
@@ -971,6 +972,7 @@ export const api = {
     requete<Incoherence[]>(`/communes/${encodeURIComponent(communeId)}/coherence`),
   etatDuParc: (communeId: string) =>
     requete<EtatDuParc>(`/trucks/etat?communeId=${encodeURIComponent(communeId)}`),
+  classesEngins: () => requete<ClasseEngin[]>('/trucks/classes'),
   creerEngin: (communeId: string, saisie: Record<string, unknown>) =>
     requete<Vehicule>(`/trucks?communeId=${encodeURIComponent(communeId)}`, {
       method: 'POST',

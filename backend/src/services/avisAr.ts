@@ -1,6 +1,6 @@
 // Les avis de « À vérifier » en arabe (v0.15.67).
 //
-// Les neuf fonctions `app.incoherences_*` écrivent leurs constats en français, valeurs
+// Les fonctions `app.incoherences_*` écrivent leurs constats en français, valeurs
 // comprises (« L'engin %s (%s) est déclaré %s à l'inventaire. »). Les réécrire pour qu'elles
 // rendent un code et des paramètres aurait changé neuf fonctions, leurs retours et tous
 // leurs lecteurs : la traduction se fait donc ICI, à la sortie de l'API, sur le texte
@@ -41,6 +41,13 @@ const VOCABULAIRE: Record<string, string> = {
   matin: 'صباحية',
   apres_midi: 'مسائية',
   nuit: 'ليلية',
+  // Les classes de collecte (lot T), telles que les écrit classes_engins.libelle_fr.
+  'Camion à benne tasseuse': 'شاحنة ضاغطة',
+  'Camion à benne basculante (Cbb)': 'شاحنة ذات صندوق قلاب',
+  'Camionnette pick-up à benne basculante': 'شاحنة خفيفة ذات صندوق قلاب',
+  'Tracteur et remorque agricole (Tag)': 'جرار ومجرورة فلاحية',
+  'Tracteur et remorque compactrice': 'جرار ومجرورة ضاغطة',
+  'Camion ampli-roll et caisson': 'شاحنة ذات ذراع وحاوية',
   // La catégorie d'un acteur informel.
   intermédiaire: 'وسيط',
   'pré-collecteur': 'مجمّع أولي',
@@ -64,6 +71,16 @@ export const MODELES: Modele[] = [
   { fr: 'Bâchage des bennes', ar: 'تغطية الشاحنات' },
   { fr: 'Réclamations', ar: 'الإبلاغات' },
   { fr: 'Entretien des engins', ar: 'صيانة المعدات' },
+
+  // --- Typologie des engins (lot T) ----------------------------------------------------------
+  { fr: "Le tracteur %s n'a aucune remorque attelée : le volume de ce circuit est inconnu.", ar: 'الجرار {0} غير مربوط بأي مجرورة: حجم هذا المسلك غير معروف.' },
+  { fr: "Plusieurs remorques sont attelées au tracteur %s : SIIPI ne choisit pas laquelle fait ce circuit.", ar: 'عدة مجرورات مربوطة بالجرار {0}: لا تختار المنظومة أيّها تنجز هذا المسلك.' },
+  { fr: "L'engin %s n'a pas de classe de collecte ou pas de volume : le tonnage de ce circuit ne pourra pas être estimé.", ar: 'المعدة {0} بلا صنف رفع أو بلا حجم: لا يمكن تقدير كمية هذا المسلك.' },
+  { fr: 'Indiquer, dans le parc, la remorque attelée à ce tracteur.', ar: 'تحديد المجرورة المربوطة بهذا الجرار في الحظيرة.' },
+  { fr: 'Ne laisser attelée au tracteur que la remorque qui fait ce circuit.', ar: 'عدم الإبقاء مربوطة بالجرار إلا على المجرورة التي تنجز هذا المسلك.' },
+  { fr: "Renseigner la classe et le volume de l'engin dans le parc (fiche de l'engin).", ar: 'إدخال صنف المعدة وحجمها في الحظيرة (بطاقة المعدة).' },
+  { fr: 'Volume de %s m³, hors de la plage de référence de la classe « %s » (%s à %s m³).', ar: 'حجم قدره {0} م³، خارج المجال المرجعي للصنف «{1}» (من {2} إلى {3} م³).' },
+  { fr: "Vérifier le volume saisi. Un volume hors plage n'est pas une erreur (une benne rehaussée de ridelles, par exemple) : SIIPI le signale, il ne le change pas.", ar: 'التثبّت من الحجم المُدخل. الحجم خارج المجال ليس خطأً (صندوق مُعلّى بجوانب إضافية مثلاً): تشير إليه المنظومة ولا تغيّره.' },
 
   // --- Acteurs informels ----------------------------------------------------------------------
   { fr: "Déclaré pré-collecteur, mais achète à d'autres pré-collecteurs : relève de la catégorie intermédiaire.", ar: 'مصرَّح به كمجمّع أولي، لكنه يشتري من مجمّعين أوليين آخرين: يندرج ضمن فئة الوسطاء.' },

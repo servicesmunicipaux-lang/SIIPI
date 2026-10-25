@@ -370,6 +370,17 @@ const Vehicule = registry.register(
         description: "Tracteur auquel cette remorque est attelée : l'unité de travail est l'attelage, pas le tracteur seul.",
       }),
       attele_a_immat: z.string().nullable(),
+      classe_collecte: z.string().nullable().openapi({ description: "Classe de collecte (lot T). Vide tant que la commune ne l'a pas choisie." }),
+      volume_provenance: z.enum(['constructeur', 'mesure', 'declare']).nullable(),
+      travail_classe: z.string().nullable().openapi({
+        description: "La classe de la benne qui travaille : celle de l'engin, ou pour un tracteur celle de sa seule remorque attelée.",
+      }),
+      travail_volume_m3: z.number().nullable(),
+      travail_volume_provenance: z.enum(['constructeur', 'mesure', 'declare']).nullable(),
+      travail_porteur_immat: z.string().nullable().openapi({ description: 'L’engin qui porte cette benne (la remorque, pour un tracteur).' }),
+      travail_manque: z.enum(['remorque_absente', 'remorques_multiples', 'classe', 'volume', 'classe_et_volume']).nullable().openapi({
+        description: "Ce qui empêche de connaître la benne de travail. SIIPI ne choisit jamais entre deux remorques attelées.",
+      }),
       kilometrage: z.number().int().nullable().openapi({
         description: 'Dernier kilométrage connu (Jalon 5). Relevé à l’écran, ou relevé à la hausse par une intervention qui en porte un plus élevé.',
       }),
@@ -847,12 +858,47 @@ const vehiculeSchemaDoc = z.object({
   datePremiereCirculation: z.string().nullable().optional(),
   valeurAchatTnd: z.number().nullable().optional(),
   chargeUtileT: z.number().nullable().optional(),
-  capacityM3: z.number().nullable().optional(),
+  capacityM3: z.number().positive().nullable().optional().openapi({ description: 'Volume de la benne (m³). Pour un attelage, il se porte sur la remorque.' }),
+  classeCollecte: z.string().nullable().optional().openapi({
+    description: "Classe de collecte (GET /trucks/classes). Elle doit convenir au type ; un tracteur n'en porte pas, sa remorque oui. Jamais déduite du type.",
+  }),
+  volumeProvenance: z.enum(['constructeur', 'mesure', 'declare']).nullable().optional().openapi({
+    description: 'Ce qui garantit le volume. Une provenance suppose un volume.',
+  }),
   domaineEmploi: z.string().nullable().optional(),
   etat: z.enum(['en_service', 'en_panne', 'a_reformer', 'reforme']).optional(),
   etatDepuis: z.string().nullable().optional(),
   motifImmobilisation: z.string().nullable().optional(),
   atteleA: z.string().nullable().optional(),
+});
+
+const ClasseEngin = registry.register(
+  'ClasseEngin',
+  z
+    .object({
+      code: z.string(),
+      libelle_fr: z.string(),
+      libelle_ar: z.string(),
+      compactant: z.boolean(),
+      volume_ref_min_m3: z.number().nullable(),
+      volume_ref_max_m3: z.number().nullable().openapi({
+        description: 'Plage de volume de référence. Un volume hors plage est signalé dans « À vérifier », jamais refusé. Vide si la référence ne donne pas de plage.',
+      }),
+      types_compatibles: z.array(z.string()),
+      source: z.string(),
+    })
+    .openapi('ClasseEngin')
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/trucks/classes',
+  tags: ['Flotte'],
+  summary: 'Classes de collecte des engins (référentiel national)',
+  description:
+    "Lot T. Le référentiel des classes d'engins de collecte des DMA, avec leurs types compatibles et leur plage de volume de référence, chacune avec sa source. Lecture seule : une classe nouvelle passe par une migration.",
+  security: SECURISE,
+  responses: { 200: json(z.array(ClasseEngin), 'Classes, dans leur ordre.'), 401: REPONSES_COMMUNES[401] },
 });
 
 registry.registerPath({
@@ -8192,7 +8238,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.77',
+      version: '0.15.78',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
