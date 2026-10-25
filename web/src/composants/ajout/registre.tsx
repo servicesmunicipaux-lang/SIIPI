@@ -21,6 +21,7 @@ import type { ComponentType } from 'react';
 import type { NomRegistre } from '../../lib/api';
 import appels from './appels-creation.json';
 import { FormulaireAgent } from './FormulaireAgent';
+import { FormulaireBoitierGps } from './FormulaireBoitierGps';
 import { FormulaireCaracterisation } from './FormulaireCaracterisation';
 import { FormulaireCircuit } from './FormulaireCircuit';
 import { FormulaireContact } from './FormulaireContact';
@@ -107,6 +108,8 @@ const FORMULAIRES: Record<TypeFormulaire, Omit<EntreeFormulaire, 'type'>> = {
   'ordre-mission': { rubrique: 'equipe', roles: COMMUNE, Formulaire: document('ordre_mission') },
   'bon-travail': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('bon_travail') },
   'declaration-panne': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('declaration_panne') },
+  // Le connecteur GPS (lot 17.4) : la commune seule rattache un boîtier ; la FNCT lit.
+  'boitier-gps': { rubrique: 'moyens', roles: COMMUNE, Formulaire: FormulaireBoitierGps },
 };
 
 const ECRANS: Record<TypeEcran, Omit<EntreeEcran, 'type'>> = {

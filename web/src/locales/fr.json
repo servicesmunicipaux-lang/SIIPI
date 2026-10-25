@@ -886,7 +886,8 @@
       "acteursInformels": "Acteurs informels",
       "maCommune": "Ma commune dans SIIPI",
       "wapla": "Bilan de planification (WaPla)",
-      "documents": "Documents"
+      "documents": "Documents",
+      "gps": "Intégration GPS"
     },
     "etats": {
       "fait": "Fait",
@@ -2429,6 +2430,162 @@
         "entretiensDetail": "dont {{count}} en retard"
       },
       "etAutres": "et {{count}} autre(s)"
+    },
+    "gps": {
+      "titre": "Intégration GPS",
+      "intro": "Relier le GPS des engins de la commune à SIIPI : la commune décrit son fournisseur (son adresse, son jeton, la forme de ses données) ; SIIPI reçoit les positions des engins, les rattache par boîtier et les montre sur la carte. Les positions d'engins seulement, jamais d'une personne. Une trace ne modifie ni un circuit ni un point relevé.",
+      "lectureSeule": "Lecture seule",
+      "lectureSeuleAide": "La commune paramètre son fournisseur ; la FNCT consulte.",
+      "nonConfigure": "Aucun fournisseur GPS n'est encore paramétré pour cette commune.",
+      "heureTunis": "Heures de Tunis (maintenant : {{maintenant}}).",
+      "etat": {
+        "fournisseur": "Fournisseur",
+        "actif": "Actif",
+        "eteint": "Éteint",
+        "dernierReleve": "Dernier relevé reçu",
+        "aucunReleve": "Aucun relevé reçu pour l’instant",
+        "dernierEchec": "Dernier échec",
+        "aucunEchec": "Aucun échec",
+        "echecRienBloque": "Plus récent que le dernier relevé : les positions n’arrivent plus. Rien d’autre n’est bloqué."
+      },
+      "modes": {
+        "pull": {
+          "court": "SIIPI interroge",
+          "libelle": "SIIPI interroge le fournisseur",
+          "aide": "À la cadence choisie, SIIPI appelle l’adresse du fournisseur et lit les positions."
+        },
+        "push": {
+          "court": "Le fournisseur envoie",
+          "libelle": "Le fournisseur envoie à SIIPI",
+          "aide": "Le fournisseur pousse ses positions vers l’adresse de SIIPI, chaque envoi signé avec le secret de la commune."
+        }
+      },
+      "auth": {
+        "bearer": "Jeton (Authorization: Bearer)",
+        "entete": "Jeton dans un en-tête nommé",
+        "parametre": "Jeton dans un paramètre de l’adresse",
+        "aucune": "Aucune"
+      },
+      "config": {
+        "titre": "Le fournisseur",
+        "nom": "Nom",
+        "nomExemple": "par ex. plateforme du loueur des camions",
+        "mode": "Qui appelle qui",
+        "url": "Adresse à interroger",
+        "cadence": "Toutes les (minutes)",
+        "authentification": "Authentification",
+        "nomEntete": "Nom de l’en-tête",
+        "nomParametre": "Nom du paramètre",
+        "jeton": "Jeton",
+        "jetonEnregistre": "Enregistré le {{date}} — laissez vide pour le garder",
+        "jetonAbsent": "Aucun jeton enregistré",
+        "correspondance": "Où trouver chaque information dans les données du fournisseur",
+        "correspondanceAide": "Des chemins en notation pointée, tels que le fournisseur les écrit (par ex. data.positions, pos.lat). Laissez « Liste des positions » vide si les données sont directement une liste.",
+        "actif": "Actif : recevoir les positions",
+        "enregistrer": "Enregistrer",
+        "enregistree": "Configuration enregistrée."
+      },
+      "champs": {
+        "liste": "Liste des positions",
+        "boitier": "Boîtier",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "horodatage": "Horodatage",
+        "vitesse": "Vitesse (facultatif)",
+        "cap": "Cap (facultatif)",
+        "format_horodatage": "Format de l’horodatage"
+      },
+      "exemplesChamps": {
+        "liste": "data.positions",
+        "boitier": "deviceId",
+        "latitude": "pos.lat",
+        "longitude": "pos.lng",
+        "horodatage": "timestamp",
+        "vitesse": "speed",
+        "cap": "heading"
+      },
+      "formats": {
+        "iso": {
+          "libelle": "Date ISO 8601",
+          "exemple": "2026-10-23T14:00:00 ou 2026-10-23T14:00:00+01:00"
+        },
+        "epoch_s": {
+          "libelle": "Timestamp Unix (secondes)",
+          "exemple": "1761224400"
+        },
+        "epoch_ms": {
+          "libelle": "Timestamp Unix (millisecondes)",
+          "exemple": "1761224400000"
+        }
+      },
+      "essai": {
+        "titre": "Essayer la correspondance",
+        "aidePull": "Interroge le fournisseur une fois et montre les cinq premières positions telles que SIIPI les lit. Rien n’est enregistré.",
+        "aidePush": "Collez un envoi du fournisseur : SIIPI montre les cinq premières positions telles qu’il les lit. Rien n’est enregistré.",
+        "siApiChange": "Si votre fournisseur change son API, recliquez sur Essayer pour vérifier le mapping.",
+        "exemplePlaceholder": "{\"data\":{\"positions\":[{\"deviceId\":\"BX-1\",\"pos\":{\"lat\":36.8,\"lng\":10.18},\"timestamp\":\"2026-10-23T14:00:00\"}]}}",
+        "exempleIllisible": "L’exemple collé n’est pas du JSON.",
+        "essayer": "Essayer",
+        "interroger": "Interroger maintenant",
+        "echec": "Échec",
+        "lues": "{{n}} position(s) lue(s). Les cinq premières :",
+        "bilan": "{{recues}} reçue(s) : {{enregistrees}} tracée(s), {{doublons}} déjà reçue(s), {{signalees}} signalée(s).",
+        "illisible": "illisible",
+        "absent": "(absent)",
+        "horodatageIllisible": "Horodatage illisible :",
+        "horodatageImpossible": "Horodatage impossible (avant 2020 ou dans l’avenir) :",
+        "attendu": "Attendu : {{format}}, par ex. {{exemple}}.",
+        "verifierFormat": "Vérifiez « Format de l’horodatage » dans la configuration.",
+        "colonneVitesse": "Vitesse (km/h)"
+      },
+      "webhook": {
+        "titre": "L’adresse de réception (webhook)",
+        "aide": "À donner au fournisseur : il y envoie les positions, chaque envoi signé avec le secret de la commune.",
+        "copier": "Copier",
+        "secretEnregistre": "Secret enregistré le {{date}}",
+        "sansSecret": "Aucun secret : aucun envoi n’est accepté",
+        "generer": "Générer le secret",
+        "regenerer": "Générer un nouveau secret (remplace l’ancien)",
+        "uneFois": "Ce secret ne sera plus jamais affiché : transmettez-le maintenant au fournisseur.",
+        "pourFournisseur": "Pour votre fournisseur : comment signer un envoi",
+        "fenetre": "Un envoi dont l’horodatage a plus de 5 minutes d’écart est refusé, comme un envoi sans signature ou mal signé."
+      },
+      "boitiers": {
+        "titre": "Boîtiers et engins",
+        "rattacher": "Rattacher un boîtier",
+        "aucun": "Aucun boîtier rattaché : les positions reçues seront signalées, pas tracées.",
+        "boitier": "Boîtier",
+        "engin": "Engin",
+        "depuis": "Depuis",
+        "jusquau": "Jusqu’au",
+        "etat": "État",
+        "enService": "En service",
+        "clos": "Clos",
+        "clore": "Clore",
+        "confirmerCloture": "Clore la correspondance du boîtier {{boitier}} avec l’engin {{engin}} ? Elle reste dans l’historique ; ses traces passées gardent leur engin."
+      },
+      "signalees": {
+        "titre": "Positions signalées",
+        "aide": "Des positions reçues qu’aucune trace n’a prises. Elles ne sont jamais rattachées au hasard.",
+        "aucune": "Aucune position signalée.",
+        "nombre": "{{n}} position(s), la dernière reçue le {{date}}",
+        "formatChange": "Le format de date a peut-être changé ; dernière valeur reçue :",
+        "rattacherCeBoitier": "Rattacher ce boîtier à un engin"
+      },
+      "motifs": {
+        "boitier_inconnu": "Boîtier sans engin",
+        "hors_tunisie": "Hors de Tunisie",
+        "horodatage_invalide": "Horodatage illisible ou impossible",
+        "coordonnees_invalides": "Coordonnées illisibles"
+      },
+      "carte": {
+        "titre": "Les engins sur la carte",
+        "aucunePosition": "Aucune position reçue pour l’instant.",
+        "engin": "Engin",
+        "tousLesEngins": "Tous les engins (dernière position)",
+        "jour": "Jour",
+        "aucunPointCeJour": "Aucune position de cet engin ce jour-là."
+      }
     }
   },
   "ajout": {
@@ -2528,7 +2685,8 @@
       "import-geographique": "Des fichiers géographiques d'un circuit",
       "ordre-mission": "Un ordre de mission",
       "bon-travail": "Un bon de travail",
-      "declaration-panne": "Une déclaration de panne"
+      "declaration-panne": "Une déclaration de panne",
+      "boitier-gps": "Un boîtier GPS"
     },
     "precisions": {
       "circuit": "Avec son fichier GPX, KML ou GeoJSON",
@@ -2605,6 +2763,14 @@
       "provisoire": "Modèle provisoire, en attente de validation par le chef de dépôt.",
       "choisirEngin": "— Choisir l’engin —",
       "definitif": "Émettre attribue le numéro suivant et fige le contenu : une erreur se corrige en annulant la pièce, avec un motif, puis en en émettant une nouvelle."
+    },
+    "boitierGps": {
+      "titre": "Rattacher un boîtier GPS",
+      "aide": "Le boîtier tel que le fournisseur le nomme, et l’engin de la commune qu’il équipe. Les positions déjà signalées pour ce boîtier ne sont pas reprises : seules les suivantes seront tracées.",
+      "identifiant": "Identifiant du boîtier",
+      "engin": "Engin",
+      "choisirEngin": "Choisir un engin",
+      "aucunEngin": "La commune n’a encore aucun engin au parc."
     }
   },
   "prestataire": {
