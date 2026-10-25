@@ -49,6 +49,8 @@ interface CommuneSeed {
   motifRetrait?: string;
   /** La décision de la FNCT qui a corrigé le référentiel pour cette commune. */
   correction?: { decision: string; nature: 'rattachee' | 'creee'; source: string; decideeLe: string };
+  /** Le nom arabe corrigé par décision (D-NOMS-AR-1, migration 086) : le fichier porte le nouveau, ceci garde l'ancien. */
+  correctionNomArabe?: { decision: string; ancien: string; source: string; decideeLe: string };
 }
 
 // Public, et voulu tel en développement ; en production il n'ouvre aucun
@@ -120,6 +122,17 @@ async function seedCommunes() {
       `INSERT INTO corrections_referentiel (decision, nature, commune_id, commune_cible, source, decidee_le)
        VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (decision, commune_id) DO NOTHING`,
       [k.decision, k.nature, c.id, c.fusionneeDans ?? null, k.source, k.decideeLe]
+    );
+  }
+  // Les noms arabes corrigés par décision : sur une base neuve, la migration 086 n'a
+  // trouvé aucune commune ; c'est ici que la correction s'inscrit, ancien nom compris.
+  for (const c of communes) {
+    const n = c.correctionNomArabe;
+    if (!n) continue;
+    await pool.query(
+      `INSERT INTO corrections_referentiel (decision, nature, commune_id, source, decidee_le, ancien_nom, nouveau_nom)
+       VALUES ($1, 'nom_arabe', $2, $3, $4, $5, $6) ON CONFLICT (decision, commune_id) DO NOTHING`,
+      [n.decision, c.id, n.source, n.decideeLe, n.ancien, c.nameAr]
     );
   }
   const actives = communes.length - communes.filter((x) => x.fusionneeDans).length;

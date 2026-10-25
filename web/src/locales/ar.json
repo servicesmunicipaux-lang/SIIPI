@@ -242,7 +242,8 @@
         "decision": "القرار {{decision}} بتاريخ {{date}}",
         "rattachee": "{{commune}} ({{gouvernorat}}) : أُلحقت ببلدية {{cible}}.",
         "creee": "{{commune}} : بلدية قائمة الذات.",
-        "source": "المصدر : {{source}}."
+        "source": "المصدر : {{source}}.",
+        "nomArabe": "{{commune}} : الاسم بالعربية « {{ancien}} » يصبح « {{nouveau}} »."
       }
     },
     "moyenneNationale": {

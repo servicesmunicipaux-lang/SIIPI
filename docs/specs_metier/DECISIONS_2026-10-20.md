@@ -133,3 +133,14 @@ Trois ajouts de Nacer :
 - **Un horodatage illisible ou impossible n'entre jamais dans `traces_engins`** : il va dans les positions signalées. Un
   mutant qui force une telle position dans les traces fait échouer la campagne `gps` (17.4a).
 - **La colonne `agregee_le`**, nulle, documentée « Date à laquelle cette trace a été résumée. NULL = trace brute. » (17.4a).
+
+## Complément du 25 octobre 2026 — Noms arabes : les décisions (§ 6)
+
+La liste `docs/specs_metier/sources/sig/NOMS_ARABES_A_VALIDER.md` est tranchée (décision **D-NOMS-AR-1**) :
+
+- **Groupe A, 12 noms : corrigés** par la migration 086 (Tazarka, Tazghrane Boukrim Zaouiet El Mgaiez, Tunis, Sidi Bou
+  Saïd, Bembla El Mnara, El Masdour Menzel Harb, Cherahil, Tlelsa, El Alâa, Nasrallah, Ben Guerdane, Bir Lahmar). L'ancien
+  nom reste dans `corrections_referentiel` et au journal d'audit ; un nom déjà changé par la FNCT n'est pas réécrit.
+- **Groupe C, 24 noms : gardés** tels que dans SIIPI (variantes, gouvernorat ajouté, nom complet, erreurs de la carte).
+- **Groupe B, 8 noms : en attente** d'une source officielle (Kalaat Khasba, Bahra, Grymet Hicher, Zelba, Hazeg El Louza,
+  Sisseb-Driaat, Aïn El Beidha, Saïda). Rien n'est changé d'ici là.

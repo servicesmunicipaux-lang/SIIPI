@@ -3553,14 +3553,15 @@ registry.registerPath({
   summary: 'Les corrections du référentiel des communes décidées par la FNCT, avec leur source',
   description:
     'D-FNCT-3 : Zarzouna rattachée à la commune de Bizerte (retirée du référentiel, jamais effacée), El Hchachna commune à ' +
-    'part entière. Une commune rattachée n’apparaît plus nulle part ailleurs dans l’API ; son nom reste lisible ici.',
+    'part entière. Une commune rattachée n’apparaît plus nulle part ailleurs dans l’API ; son nom reste lisible ici. ' +
+    'D-NOMS-AR-1 : douze noms arabes corrigés, l’ancien et le nouveau nom rendus.',
   security: SECURISE,
   responses: {
     200: json(
       z.array(
         z.object({
           decision: z.string(),
-          nature: z.enum(['rattachee', 'creee']),
+          nature: z.enum(['rattachee', 'creee', 'nom_arabe']),
           commune: z.string(),
           commune_ar: z.string().nullable(),
           gouvernorat: z.string().nullable(),
@@ -3568,6 +3569,9 @@ registry.registerPath({
           cible_ar: z.string().nullable(),
           source: z.string(),
           decidee_le: z.string(),
+          // Une correction de nom (D-NOMS-AR-1) : l'ancien nom reste lisible.
+          ancien_nom: z.string().nullable(),
+          nouveau_nom: z.string().nullable(),
         })
       ),
       'Corrections, la plus récente d’abord.'
@@ -8188,7 +8192,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.76',
+      version: '0.15.77',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
