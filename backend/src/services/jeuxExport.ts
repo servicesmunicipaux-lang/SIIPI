@@ -51,6 +51,19 @@ const CLASSES_ENGIN = {
   ampli_roll: { fr: 'Camion ampli-roll et caisson', ar: 'شاحنة ذات ذراع وحاوية' },
 };
 
+const MANQUES_ESTIMATION = {
+  flux_non_renseigne: { fr: 'Flux du circuit non renseigné', ar: 'نوع فضلات الدورة غير مدوَّن' },
+  flux_sans_densite: { fr: 'Flux sans densité (hors DMA)', ar: 'نوع فضلات بلا كثافة (خارج الفضلات المنزلية)' },
+  circuit_sans_engin: { fr: 'Circuit sans engin', ar: 'دورة بلا معدة' },
+  remorque_absente: { fr: 'Tracteur sans remorque attelée', ar: 'جرار بلا مجرورة مربوطة' },
+  remorques_multiples: { fr: 'Plusieurs remorques attelées', ar: 'عدة مجرورات مربوطة' },
+  classe: { fr: "Classe de l'engin non renseignée", ar: 'صنف المعدة غير مدوَّن' },
+  volume: { fr: "Volume de l'engin non renseigné", ar: 'حجم المعدة غير مدوَّن' },
+  classe_et_volume: { fr: "Classe et volume de l'engin non renseignés", ar: 'صنف المعدة وحجمها غير مدوَّنين' },
+  aucun_voyage_attendu: { fr: 'Aucun voyage attendu ce mois', ar: 'لا رحلة منتظرة هذا الشهر' },
+  densite_absente: { fr: 'Aucune densité pour cette classe et ce volume', ar: 'لا كثافة لهذا الصنف وهذا الحجم' },
+};
+
 const PROVENANCES_VOLUME = {
   constructeur: { fr: 'Constructeur', ar: 'الصانع' },
   mesure: { fr: 'Mesuré', ar: 'مقيس' },
@@ -165,6 +178,30 @@ export const JEU_PARC: JeuExport = {
     { cle: 'kilometrage_le', fr: 'Kilométrage relevé le', ar: 'تاريخ قراءة العداد', type: 'date' },
     { cle: 'attele_a_immat', fr: 'Attelé à', ar: 'مربوط بـ' },
     { cle: 'inventaire_le', fr: 'Inventorié le', ar: 'تاريخ الجرد', type: 'date' },
+  ],
+};
+
+/** Lot 17.2 — le tonnage estimé d'un mois. Le pesé et l'estimé sont deux colonnes : aucune ne les additionne. */
+export const JEU_TONNAGE_ESTIME: JeuExport = {
+  nom: 'tonnage-estime',
+  titre: { fr: 'Tonnage estimé', ar: 'الكميات المقدَّرة' },
+  colonnes: [
+    { cle: 'circuit', fr: 'Circuit', ar: 'الدورة' },
+    { cle: 'vehicule_immat', fr: 'Engin', ar: 'المعدة' },
+    { cle: 'porteur_immat', fr: 'Benne portée par', ar: 'الصندوق محمول على' },
+    { cle: 'classe', fr: 'Classe de collecte', ar: 'صنف الرفع', libelles: CLASSES_ENGIN },
+    { cle: 'volume_m3', fr: 'Volume (m³)', ar: 'الحجم (م³)', type: 'nombre' },
+    { cle: 'volume_provenance', fr: 'Provenance du volume', ar: 'مصدر الحجم', libelles: PROVENANCES_VOLUME },
+    { cle: 'densite_min', fr: 'Densité min (t/m³)', ar: 'الكثافة الدنيا (طن/م³)', type: 'nombre' },
+    { cle: 'densite_max', fr: 'Densité max (t/m³)', ar: 'الكثافة القصوى (طن/م³)', type: 'nombre' },
+    { cle: 'densite_source', fr: 'Source de la densité', ar: 'مصدر الكثافة' },
+    { cle: 'voyages_attendus', fr: 'Voyages attendus', ar: 'الرحلات المنتظرة', type: 'nombre' },
+    { cle: 'voyages_peses', fr: 'Voyages pesés', ar: 'الرحلات الموزونة', type: 'nombre' },
+    { cle: 'voyages_estimes', fr: 'Voyages estimés', ar: 'الرحلات المقدَّرة', type: 'nombre' },
+    { cle: 'tonnage_min_t', fr: 'Estimé min (t, benne pleine)', ar: 'التقدير الأدنى (طن، صندوق ممتلئ)', type: 'nombre' },
+    { cle: 'tonnage_max_t', fr: 'Estimé max (t, benne pleine)', ar: 'التقدير الأقصى (طن، صندوق ممتلئ)', type: 'nombre' },
+    { cle: 'tonnage_pese_t', fr: 'Pesé (t)', ar: 'الموزون (طن)', type: 'nombre' },
+    { cle: 'manque', fr: 'Ce qui manque', ar: 'ما ينقص', libelles: MANQUES_ESTIMATION },
   ],
 };
 

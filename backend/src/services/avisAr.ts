@@ -82,6 +82,10 @@ export const MODELES: Modele[] = [
   { fr: 'Volume de %s m³, hors de la plage de référence de la classe « %s » (%s à %s m³).', ar: 'حجم قدره {0} م³، خارج المجال المرجعي للصنف «{1}» (من {2} إلى {3} م³).' },
   { fr: "Vérifier le volume saisi. Un volume hors plage n'est pas une erreur (une benne rehaussée de ridelles, par exemple) : SIIPI le signale, il ne le change pas.", ar: 'التثبّت من الحجم المُدخل. الحجم خارج المجال ليس خطأً (صندوق مُعلّى بجوانب إضافية مثلاً): تشير إليه المنظومة ولا تغيّره.' },
 
+  // --- Volumétrie (lot 17.2) ------------------------------------------------------------------
+  { fr: 'Benne de %s m³ à %s – %s t/m³ : de %s à %s t par voyage, au-delà de la charge utile de %s t.', ar: 'صندوق حجمه {0} م³ بكثافة {1} – {2} طن/م³: من {3} إلى {4} طن في الرحلة، أكثر من الحمولة النافعة البالغة {5} طن.' },
+  { fr: "Vérifier le volume, la classe ou la charge utile de l'engin. SIIPI ne corrige pas l'estimation : il signale l'écart.", ar: 'التثبّت من حجم المعدة أو صنفها أو حمولتها النافعة. لا تصحّح المنظومة التقدير، بل تشير إلى الفارق.' },
+
   // --- Acteurs informels ----------------------------------------------------------------------
   { fr: "Déclaré pré-collecteur, mais achète à d'autres pré-collecteurs : relève de la catégorie intermédiaire.", ar: 'مصرَّح به كمجمّع أولي، لكنه يشتري من مجمّعين أوليين آخرين: يندرج ضمن فئة الوسطاء.' },
   { fr: "Déclaré pré-collecteur, mais dispose d'un local de stockage : relève de la catégorie intermédiaire.", ar: 'مصرَّح به كمجمّع أولي، لكنه يملك محلاًّ للخزن: يندرج ضمن فئة الوسطاء.' },

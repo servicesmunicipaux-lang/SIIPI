@@ -79,6 +79,7 @@ import {
   NATURES_PIECE,
 } from '../routes/declassement.routes.js';
 import { valeurParametreSchema, retraitValeurSchema } from '../routes/parametresNationaux.routes.js';
+import { valeurDensiteSchema, retraitDensiteSchema } from '../routes/volumetrie.routes.js';
 import { chargementEtudeSchema } from '../routes/coutComplet.routes.js';
 import { inscriptionActeurSchema, faitsActeurSchema, demarcheSchema } from '../routes/acteursInformels.routes.js';
 import { demandeRestaurationSchema, fichierDepotSchema } from '../routes/fichiers.routes.js';
@@ -3395,6 +3396,116 @@ registry.registerPath({
     ),
     ...REPONSES_COMMUNES,
   },
+});
+
+const DensiteReference = registry.register(
+  'DensiteReference',
+  z
+    .object({
+      id: z.string().uuid(),
+      flux: z.enum(['dma']),
+      equipement: z.string().openapi({ description: 'Une classe d’engin (GET /trucks/classes), ou poubelles_conteneurs.' }),
+      tranche_m3: z.string().nullable().openapi({ description: 'Tranche de volume, en intervalle ([7,8], (8,)). Vide : tout volume.' }),
+      tranche_min_m3: z.number().nullable(),
+      tranche_max_m3: z.number().nullable(),
+      tranche_min_incluse: z.boolean().nullable(),
+      tranche_max_incluse: z.boolean().nullable(),
+      densite_min: z.number(),
+      densite_max: z.number().openapi({ description: 'Densité en t/m³. Égale au minimum quand la référence ne donne qu’une valeur.' }),
+      date_effet: z.string(),
+      source: z.string(),
+      created_at: z.string(),
+      retire_le: z.string().nullable(),
+      motif_retrait: z.string().nullable(),
+      en_vigueur: z.boolean().optional().openapi({ description: 'La valeur appliquée aujourd’hui à cet équipement et cette tranche.' }),
+    })
+    .openapi('DensiteReference')
+);
+
+const TonnageEstimeCircuit = registry.register(
+  'TonnageEstimeCircuit',
+  z
+    .object({
+      circuit_id: z.string().uuid(),
+      circuit: z.string(),
+      type_dechet: z.string().nullable(),
+      vehicule_immat: z.string().nullable(),
+      porteur_immat: z.string().nullable().openapi({ description: 'L’engin qui porte la benne (la remorque, pour un tracteur).' }),
+      classe: z.string().nullable(),
+      volume_m3: z.number().nullable(),
+      volume_provenance: z.enum(['constructeur', 'mesure', 'declare']).nullable(),
+      densite_min: z.number().nullable(),
+      densite_max: z.number().nullable(),
+      densite_source: z.string().nullable(),
+      voyages_attendus: z.number().int(),
+      voyages_peses: z.number().int(),
+      voyages_estimes: z.number().int().openapi({ description: 'Les voyages attendus sans pesée : les seuls qui s’estiment.' }),
+      tonnage_min_t: z.number().nullable(),
+      tonnage_max_t: z.number().nullable().openapi({
+        description: 'Fourchette du tonnage estimé des voyages non pesés, benne pleine. Vide si rien n’est à estimer, ou s’il manque quelque chose.',
+      }),
+      tonnage_pese_t: z.number().nullable().openapi({ description: 'Le pesé du mois, à part : jamais ajouté à l’estimation.' }),
+      manque: z
+        .enum(['flux_non_renseigne', 'flux_sans_densite', 'circuit_sans_engin', 'remorque_absente', 'remorques_multiples',
+               'classe', 'volume', 'classe_et_volume', 'aucun_voyage_attendu', 'densite_absente'])
+        .nullable(),
+    })
+    .openapi('TonnageEstimeCircuit')
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/volumetrie/densites',
+  tags: ['Volumétrie'],
+  summary: 'La matrice des densités',
+  description:
+    'Lot 17.2. Chaque valeur, par équipement et tranche de volume, avec sa date d’effet et sa source ; en_vigueur marque celle qui s’applique aujourd’hui. Les retirées restent lisibles.',
+  security: SECURISE,
+  responses: { 200: json(z.array(DensiteReference), 'La matrice et son historique.'), 401: REPONSES_COMMUNES[401] },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/volumetrie/densites',
+  tags: ['Volumétrie'],
+  summary: 'Ajouter une valeur datée à la matrice',
+  description:
+    'FNCT seule. La valeur reprend l’équipement et la tranche d’une valeur existante (« reprend ») : les tranches ne se redessinent que par migration. La base refuse une benne qui tasse moins dense qu’une benne qui ne tasse pas.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: valeurDensiteSchema } } } },
+  responses: { 201: json(DensiteReference, 'Valeur ajoutée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/volumetrie/densites/{id}/retrait',
+  tags: ['Volumétrie'],
+  summary: 'Retirer une densité saisie à tort',
+  description: 'FNCT seule, avec un motif. La valeur reste lisible ; l’estimation ne l’utilise plus.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: retraitDensiteSchema } } },
+  },
+  responses: { 200: json(DensiteReference, 'Valeur retirée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/volumetrie/tonnage',
+  tags: ['Volumétrie'],
+  summary: 'Le tonnage estimé d’un mois, par circuit',
+  description:
+    'Les voyages attendus jusqu’à aujourd’hui ; ceux qui ont une pesée sont comptés pesés et ne s’estiment pas. Pour les autres : volume de la benne de travail × densité du jour, en fourchette, benne pleine. Le pesé est rendu à côté, jamais additionné. Sans tout ce qu’il faut, « manque » dit quoi. Hors du périmètre : 404.',
+  security: SECURISE,
+  request: {
+    query: z.object({
+      communeId: paramCommuneId.optional(),
+      mois: z.string().regex(/^\d{4}-\d{2}$/).optional().openapi({ description: 'AAAA-MM ; le mois en cours par défaut.' }),
+      ...paramsExport,
+    }),
+  },
+  responses: { 200: jsonOuExport(z.array(TonnageEstimeCircuit), 'Une ligne par circuit en régie.'), ...REPONSES_COMMUNES },
 });
 
 registry.registerPath({
@@ -8238,7 +8349,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.78',
+      version: '0.15.79',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

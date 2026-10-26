@@ -30,7 +30,7 @@ tranche par une décision écrite, pas par le choix de celle qui arrange.
 |---|---|---|---|
 | G1 | Densité des poubelles et conteneurs, de la benne basculante (Cbb) et du tracteur à remorque agricole (Tag) | 0,2 t/m³ au Tableau 2 et à l'Annexe 14 ; 0,25 t/m³ au Tableau 11 | **Fourchette 0,20 – 0,25** (25/10/2026) |
 | G2 | Classes des bennes tasseuses | Tableaux 2 et 11 : « > 7 m³ » et « = 7 m³ » ; Tableau 10 : classes 7–8 m³ et 12–22 m³ | **0,35 de 7 à 8 m³, 0,5 au-delà, aucune densité sous 7 m³** (25/10/2026) |
-| G3 | Engins sans densité | Pick-up, ampli-roll et caisson, remorque seule : absents des tableaux de densité | **Aucune estimation** : « non renseigné » (25/10/2026) |
+| G3 | Engins sans densité | Pick-up, ampli-roll et caisson : absents des tableaux de densité | Non compactants : **fourchette des non-compactants, 0,20 – 0,25** (26/10/2026, qui remplace « aucune estimation » du 25/10) |
 | G4 | Capacité des bennes tasseuses (Tableau 13) | 3,5 t et 2,45 t, soit 7 m³ × 0,5 et 7 m³ × 0,35 : la classe « > 7 m³ » calculée sur 7 m³ ; unité écrite « Tonne/m3 » pour des tonnes | Sans effet : SIIPI calcule avec le volume de chaque engin |
 | G5 | Densité en pré-collecte (§ 2.1.2) | « 0.2 kg/m3 » | Lire t/m³ (coquille) |
 | G6 | Coût unitaire (§ 1.2.7) | « Coût unitaire = Quantité collectée / coût total » | Formule inversée : SIIPI calcule coût ÷ tonnage (lot K) |

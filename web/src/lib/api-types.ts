@@ -12715,6 +12715,289 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/volumetrie/densites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La matrice des densités
+         * @description Lot 17.2. Chaque valeur, par équipement et tranche de volume, avec sa date d’effet et sa source ; en_vigueur marque celle qui s’applique aujourd’hui. Les retirées restent lisibles.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La matrice et son historique. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DensiteReference"][];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Ajouter une valeur datée à la matrice
+         * @description FNCT seule. La valeur reprend l’équipement et la tranche d’une valeur existante (« reprend ») : les tranches ne se redessinent que par migration. La base refuse une benne qui tasse moins dense qu’une benne qui ne tasse pas.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        reprend: string;
+                        densiteMin: number;
+                        densiteMax: number;
+                        dateEffet: string;
+                        source: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Valeur ajoutée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DensiteReference"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/volumetrie/densites/{id}/retrait": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retirer une densité saisie à tort
+         * @description FNCT seule, avec un motif. La valeur reste lisible ; l’estimation ne l’utilise plus.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Valeur retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DensiteReference"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/volumetrie/tonnage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le tonnage estimé d’un mois, par circuit
+         * @description Les voyages attendus jusqu’à aujourd’hui ; ceux qui ont une pesée sont comptés pesés et ne s’estiment pas. Pour les autres : volume de la benne de travail × densité du jour, en fourchette, benne pleine. Le pesé est rendu à côté, jamais additionné. Sans tout ce qu’il faut, « manque » dit quoi. Hors du périmètre : 404.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    mois?: string;
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Une ligne par circuit en régie. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TonnageEstimeCircuit"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/parametres-nationaux/valeurs/{id}/retrait": {
         parameters: {
             query?: never;
@@ -28761,6 +29044,57 @@ export interface components {
             created_at: string;
             retire_le: string | null;
             motif_retrait: string | null;
+        };
+        DensiteReference: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            flux: "dma";
+            /** @description Une classe d’engin (GET /trucks/classes), ou poubelles_conteneurs. */
+            equipement: string;
+            /** @description Tranche de volume, en intervalle ([7,8], (8,)). Vide : tout volume. */
+            tranche_m3: string | null;
+            tranche_min_m3: number | null;
+            tranche_max_m3: number | null;
+            tranche_min_incluse: boolean | null;
+            tranche_max_incluse: boolean | null;
+            densite_min: number;
+            /** @description Densité en t/m³. Égale au minimum quand la référence ne donne qu’une valeur. */
+            densite_max: number;
+            date_effet: string;
+            source: string;
+            created_at: string;
+            retire_le: string | null;
+            motif_retrait: string | null;
+            /** @description La valeur appliquée aujourd’hui à cet équipement et cette tranche. */
+            en_vigueur?: boolean;
+        };
+        TonnageEstimeCircuit: {
+            /** Format: uuid */
+            circuit_id: string;
+            circuit: string;
+            type_dechet: string | null;
+            vehicule_immat: string | null;
+            /** @description L’engin qui porte la benne (la remorque, pour un tracteur). */
+            porteur_immat: string | null;
+            classe: string | null;
+            volume_m3: number | null;
+            /** @enum {string|null} */
+            volume_provenance: "constructeur" | "mesure" | "declare" | null;
+            densite_min: number | null;
+            densite_max: number | null;
+            densite_source: string | null;
+            voyages_attendus: number;
+            voyages_peses: number;
+            /** @description Les voyages attendus sans pesée : les seuls qui s’estiment. */
+            voyages_estimes: number;
+            tonnage_min_t: number | null;
+            /** @description Fourchette du tonnage estimé des voyages non pesés, benne pleine. Vide si rien n’est à estimer, ou s’il manque quelque chose. */
+            tonnage_max_t: number | null;
+            /** @description Le pesé du mois, à part : jamais ajouté à l’estimation. */
+            tonnage_pese_t: number | null;
+            /** @enum {string|null} */
+            manque: "flux_non_renseigne" | "flux_sans_densite" | "circuit_sans_engin" | "remorque_absente" | "remorques_multiples" | "classe" | "volume" | "classe_et_volume" | "aucun_voyage_attendu" | "densite_absente" | null;
         };
         EtudeCoutComplet: {
             /** Format: uuid */

@@ -197,6 +197,8 @@ export type Compte = Reponse<'/comptes', 'get'>[number];
 export type Vehicule = Reponse<'/trucks', 'get'>[number];
 export type EtatDuParc = Reponse<'/trucks/etat', 'get'>;
 export type ClasseEngin = Reponse<'/trucks/classes', 'get'>[number];
+export type DensiteReference = Reponse<'/volumetrie/densites', 'get'>[number];
+export type TonnageEstimeCircuit = Reponse<'/volumetrie/tonnage', 'get'>[number];
 export type Agent = Reponse<'/personnel', 'get'>[number];
 // --- Lot 16.3 : carnet de bord, carburant, consommation ----------------------
 export type SortieCarnet = Reponse<'/exploitation/carnets', 'get'>[number];
@@ -1286,6 +1288,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ motif }),
     }),
+  // --- Lot 17.2 : la matrice des densités, le tonnage estimé -------------------
+  densites: () => requete<DensiteReference[]>('/volumetrie/densites'),
+  ajouterDensite: (saisie: Corps<'/volumetrie/densites', 'post'>) =>
+    requete<DensiteReference>('/volumetrie/densites', { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerDensite: (id: string, motif: string) =>
+    requete<DensiteReference>(`/volumetrie/densites/${id}/retrait`, { method: 'POST', body: JSON.stringify({ motif }) }),
+  tonnageEstime: (communeId: string, mois: string) =>
+    requete<TonnageEstimeCircuit[]>(`/volumetrie/tonnage?communeId=${encodeURIComponent(communeId)}&mois=${mois}`),
   coherencePesees: (communeId: string) =>
     requete<Incoherence[]>(`/pesees/coherence?communeId=${encodeURIComponent(communeId)}`),
   creerPesee: (communeId: string, saisie: Record<string, unknown>) =>

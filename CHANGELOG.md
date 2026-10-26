@@ -5,6 +5,42 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.79] — 2026-10-26 — Lot 17.2 : le moteur volumétrique
+
+`DECISIONS_2026-10-20.md`, compléments des 25 et 26/10/2026 ; `SPEC_v0.16.md`, R4. Une commune sans pont-bascule n'avait
+aucun tonnage. La méthode du guide de référence — volume de la benne × densité des déchets dans cet équipement — est
+posée, avec ses garde-fous.
+
+### Ajouté
+- **Migration 088** — `densites_reference`, la matrice nationale des densités (flux DMA), datée et sourcée, tenue par la
+  FNCT : benne tasseuse **0,35** de 7 à 8 m³ et **0,5** au-delà de 8 m³ (rien sous 7 m³) ; tracteur et remorque
+  compactrice **0,3** ; benne basculante, tracteur et remorque agricole, pick-up et ampli-roll (non compactants,
+  décision du 26/10/2026), poubelles et conteneurs **0,20 – 0,25**. Une valeur ne se réécrit pas, une autre s'ajoute ;
+  une valeur saisie à tort se retire avec son motif. **La base refuse** une benne qui tasse moins dense qu'une benne qui
+  ne tasse pas, des bornes à l'envers, une valeur sans source, un équipement inconnu, une tranche qui en chevauche une
+  autre.
+- `app.densite_retenue()` et **`app.tonnage_estime(commune, mois)`** : par circuit, les voyages attendus jusqu'à
+  aujourd'hui ; ceux qui ont une pesée sont comptés pesés et **ne s'estiment pas** ; pour les autres, volume de la benne
+  de travail (lot T) × densité **du jour**, en fourchette, **benne pleine**. Le pesé est rendu à côté, **jamais
+  additionné**. Sans tout ce qu'il faut, « ce qui manque » le dit (flux, engin, classe, volume, remorque, voyages,
+  densité) — jamais 0.
+- « À vérifier » (`app.incoherences_volumetrie`, information) : une benne qui, pleine, dépasserait la charge utile de
+  l'engin. Avis traduit en arabe.
+- `/volumetrie/densites` (lecture ; nouvelle valeur et retrait pour la FNCT), `/volumetrie/tonnage` (avec export).
+- **Écrans** (FR, AR) : l'onglet **Estimation** des pesées (`communal/TonnageEstime.tsx`) — par circuit la benne, les
+  voyages attendus, pesés et estimés, la fourchette « benne pleine » avec sa formule, le pesé dans sa colonne, ce qui
+  manque et le geste qui le comble ; *Paramètres nationaux* : la matrice, son historique, révision et retrait
+  (`national/MatriceDensites.tsx`).
+- Campagne **`volumetrie`** (75e), 61 contrôles, contre un témoin indépendant (`tests/volumetrie_attendus.py`, qui ne
+  lit que le scénario et la méthode) : les refus ; les bornes de 7 et 8 m³ ; l'attelage ; la densité du jour (révision
+  en cours de mois) ; chaque « ce qui manque » ; le pick-up et l'ampli-roll ; **aucune estimation ajoutée au pesé** ;
+  l'avis de charge utile et son arabe ; l'export ; la matrice rendue ligne entière en partant. Le mutant de la SPEC v0.16
+  (estimer aussi les voyages pesés) la fait échouer.
+
+### À savoir
+- Aucun circuit réel ne s'estime encore : ses engins n'ont pas de classe (lot T), ou le circuit n'a pas d'engin. Chaque
+  ligne dit ce qui manque.
+
 ## [0.15.78] — 2026-10-25 — Lot T : la typologie des engins de collecte
 
 `DECISIONS_2026-10-20.md`, complément du 25/10/2026 (suite). Le guide TADAEEM (*Guide d'optimisation de la collecte des
