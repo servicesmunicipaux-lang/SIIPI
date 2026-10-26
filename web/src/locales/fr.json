@@ -246,6 +246,31 @@
         "compactant": "compactant",
         "nonCompactant": "non compactant",
         "source": "Source : {{source}}"
+      },
+      "densites": {
+        "titre": "Matrice des densités (DMA)",
+        "intro": "La densité des déchets ménagers et assimilés dans chaque équipement, en t/m³, qui sert à estimer le tonnage des voyages non pesés. Une révision s'ajoute, datée et sourcée ; une valeur saisie à tort se retire avec son motif. Les tranches de volume ne se redessinent que par décision.",
+        "poubelles": "Poubelles et conteneurs (pré-collecte)",
+        "toutVolume": "tout volume",
+        "auDela": "plus de {{min}} m³",
+        "entre": "de {{min}} à {{max}} m³",
+        "aucuneEnVigueur": "aucune valeur en vigueur",
+        "depuis": "Depuis le {{date}} — {{source}}",
+        "historique_one": "{{count}} valeur",
+        "historique_other": "Historique : {{count}} valeurs",
+        "retireeLe": "retirée le {{date}} ({{motif}})",
+        "retirer": "Retirer",
+        "motif": "Motif du retrait",
+        "confirmerRetrait": "Retirer cette valeur",
+        "reviser": "Réviser",
+        "min": "Densité min (t/m³)",
+        "max": "Densité max (t/m³, vide = la même)",
+        "source": "Source (référence, tableau, décision)",
+        "enregistrer": "Ajouter cette valeur",
+        "ajoutee": "Densité ajoutée.",
+        "retiree": "Densité retirée.",
+        "reference": "Valeur de référence — {{source}}",
+        "unite": "t/m³"
       }
     },
     "moyenneNationale": {
@@ -1763,7 +1788,8 @@
       "vues": {
         "saisie": "Saisie du jour",
         "registre": "Registre",
-        "tonnages": "Tonnages"
+        "tonnages": "Tonnages",
+        "estimation": "Estimation"
       },
       "jour": "Journée",
       "aSaisir": "Voyages pesés",
@@ -2628,6 +2654,48 @@
         "jour": "Jour",
         "aucunPointCeJour": "Aucune position de cet engin ce jour-là."
       }
+    },
+    "estimation": {
+      "mois": "Mois",
+      "chapeau": "Pour les voyages attendus qui n'ont pas été pesés : volume de la benne × densité des déchets dans cet équipement, benne pleine. C'est une estimation, en fourchette : elle ne s'ajoute jamais au pesé, qui reste dans sa colonne.",
+      "aucunCircuit": "Aucun circuit en régie : rien à estimer.",
+      "colCircuit": "Circuit",
+      "colBenne": "Benne",
+      "colVoyages": "Voyages",
+      "colEstime": "Estimé (benne pleine)",
+      "colPese": "Pesé",
+      "portePar": "portée par {{immat}}",
+      "provenanceNonDite": "provenance du volume non dite",
+      "voyages": "{{attendus}} attendus · {{peses}} pesés · {{estimes}} estimés",
+      "toutPese": "Tous les voyages attendus sont pesés : rien à estimer.",
+      "formule": "{{volume}} m³ × {{densite}} t/m³ × {{voyages}} voyages",
+      "aucunePesee": "aucune pesée",
+      "noteSource": "Densités : matrice nationale, Paramètres nationaux (guide d'optimisation de la collecte des DMA en Tunisie, USAID TADAEEM, MALE ; décisions des 25 et 26/10/2026). Le taux de remplissage réel n'est pas supposé : il se mesure en pesant.",
+      "manques": {
+        "flux_non_renseigne": "Flux du circuit non renseigné",
+        "flux_sans_densite": "Pas de densité pour ce flux",
+        "circuit_sans_engin": "Circuit sans engin",
+        "remorque_absente": "Tracteur sans remorque attelée",
+        "remorques_multiples": "Plusieurs remorques attelées",
+        "classe": "Classe de l'engin non renseignée",
+        "volume": "Volume de l'engin non renseigné",
+        "classe_et_volume": "Classe et volume de l'engin non renseignés",
+        "aucun_voyage_attendu": "Aucun voyage attendu ce mois",
+        "densite_absente": "Pas de densité pour cette benne"
+      },
+      "quoiFaire": {
+        "flux_non_renseigne": "Indiquer le flux du circuit (ménager, balayage…).",
+        "flux_sans_densite": "La matrice ne couvre que les déchets ménagers et assimilés.",
+        "circuit_sans_engin": "Affecter l'engin du circuit.",
+        "remorque_absente": "Indiquer, dans le Parc, la remorque attelée.",
+        "remorques_multiples": "Ne laisser attelée que la remorque qui fait ce circuit.",
+        "classe": "Choisir la classe de l'engin dans le Parc.",
+        "volume": "Renseigner le volume de la benne dans le Parc.",
+        "classe_et_volume": "Renseigner la classe et le volume de l'engin dans le Parc.",
+        "aucun_voyage_attendu": "Vérifier les jours de passage et la période du circuit.",
+        "densite_absente": "Une benne tasseuse de moins de 7 m³ n'a pas de densité de référence."
+      },
+      "voyagesSansEstimation": "{{attendus}} attendus · {{peses}} pesés"
     }
   },
   "ajout": {

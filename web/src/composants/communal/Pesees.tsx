@@ -30,12 +30,13 @@ import {
 } from '../../lib/api';
 import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
+import { TonnageEstime } from './TonnageEstime';
 
 const TYPES_DECHET = ['menager', 'vert', 'ddc', 'encombrant', 'metal', 'tri', 'autre'] as const;
 type TypeDechet = (typeof TYPES_DECHET)[number];
 
-type Vue = 'saisie' | 'registre' | 'tonnages';
-const VUES: Vue[] = ['saisie', 'registre', 'tonnages'];
+type Vue = 'saisie' | 'registre' | 'tonnages' | 'estimation';
+const VUES: Vue[] = ['saisie', 'registre', 'tonnages', 'estimation'];
 
 // Le nom du mois dans la langue de l'écran. Une liste écrite en français
 // s'affichait telle quelle en arabe ; « ar-TN » donne les noms en usage en
@@ -351,6 +352,9 @@ export function Pesees({ communeId }: { communeId: string }) {
           )}
         </section>
       )}
+
+      {/* Lot 17.2 : pour les voyages qui n'ont pas été pesés, à part du pesé. */}
+      {vue === 'estimation' && <TonnageEstime communeId={communeId} />}
     </div>
   );
 }

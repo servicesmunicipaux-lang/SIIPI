@@ -166,3 +166,17 @@ La liste `docs/specs_metier/sources/sig/NOMS_ARABES_A_VALIDER.md` est tranchée 
   2. pour un attelage, classe et volume se portent sur la remorque ; le tracteur les reprend par `attele_a` ;
   3. le volume dit sa provenance (constructeur, mesuré, déclaré), avec une aide longueur × largeur × hauteur ;
   4. un volume hors de la plage de référence de sa classe est un avis de « À vérifier », jamais un refus.
+
+## Complément du 26 octobre 2026 — Lot 17.2 : les engins absents de la matrice, le plan
+
+- **Correction de la matrice (§ 7)** : les engins que les tableaux de densité du guide ne citent pas — le **pick-up** et
+  l'**ampli-roll avec caisson** — ne compactent pas. Ils prennent la **fourchette des non-compactants, 0,20 – 0,25 t/m³**.
+  Pas de « non renseigné » pour eux. Le reste de la matrice du 25/10 tient : 0,20 – 0,25 pour les poubelles et
+  conteneurs, la benne basculante et le tracteur à remorque agricole ; 0,35 pour la benne tasseuse de 7 à 8 m³ ; 0,5
+  au-delà de 8 m³ ; **rien sous 7 m³** pour une benne tasseuse.
+- Une remorque porte toujours une classe qui a sa densité (agricole 0,20 – 0,25, compactrice 0,3). Reste « non
+  renseigné » l'engin dont la commune n'a pas encore dit la classe : on ne sait pas s'il tasse.
+- **Plan 17.2**, avec les quatre recommandations : calcul **benne pleine** (le taux de remplissage réel viendra du lot K,
+  aucun taux par défaut) ; **seuls les voyages non pesés s'estiment**, le pesé reste à côté, jamais additionné ; la
+  matrice se révise par la **FNCT**, valeur datée et sourcée, jamais effacée ; les **poubelles et conteneurs** sont dans
+  la matrice mais ne servent pas à l'estimation (pré-collecte, plus tard).
