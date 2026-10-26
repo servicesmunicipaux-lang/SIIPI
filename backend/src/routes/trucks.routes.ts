@@ -91,6 +91,8 @@ const vehiculeSchema = z.object({
   valeurAchatTnd: z.number().min(0).nullable().optional(),
   chargeUtileT: z.number().min(0).nullable().optional(),
   capacityM3: z.number().positive().nullable().optional(),
+  // Un engin reçu en don n'est pas amorti (lot C) ; il s'entretient comme un autre.
+  acquisParDon: z.boolean().optional(),
   classeCollecte: z.string().max(40).nullable().optional(),
   volumeProvenance: z.enum(['constructeur', 'mesure', 'declare']).nullable().optional(),
   domaineEmploi: z.string().max(200).nullable().optional(),
@@ -109,6 +111,7 @@ const COLONNES_VEHICULE: Record<string, string> = {
   valeurAchatTnd: 'valeur_achat_tnd',
   chargeUtileT: 'charge_utile_t',
   capacityM3: 'capacity_m3',
+  acquisParDon: 'acquis_par_don',
   classeCollecte: 'classe_collecte',
   volumeProvenance: 'volume_provenance',
   domaineEmploi: 'domaine_emploi',

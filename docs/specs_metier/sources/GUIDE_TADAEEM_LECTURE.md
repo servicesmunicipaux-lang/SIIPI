@@ -34,9 +34,9 @@ tranche par une décision écrite, pas par le choix de celle qui arrange.
 | G4 | Capacité des bennes tasseuses (Tableau 13) | 3,5 t et 2,45 t, soit 7 m³ × 0,5 et 7 m³ × 0,35 : la classe « > 7 m³ » calculée sur 7 m³ ; unité écrite « Tonne/m3 » pour des tonnes | Sans effet : SIIPI calcule avec le volume de chaque engin |
 | G5 | Densité en pré-collecte (§ 2.1.2) | « 0.2 kg/m3 » | Lire t/m³ (coquille) |
 | G6 | Coût unitaire (§ 1.2.7) | « Coût unitaire = Quantité collectée / coût total » | Formule inversée : SIIPI calcule coût ÷ tonnage (lot K) |
-| G7 | Charges salariales | 14,5 % des salaires nets (Tableau 4) ; 32 % (Annexe 14) ; salaire de 10 500 DT dit « net » (Tableau 4) et « brut, charges sociales comprises » (§ 2.4.4) | À trancher au lot C |
-| G8 | Durée d'amortissement selon l'âge | § 2.4.4 : âge < 10 ans → 10 ans, âge > 10 ans → l'âge ; Annexe 14 : l'inverse | À trancher au lot C |
-| G9 | Frais généraux | 20 % des frais d'exploitation (Tableau 4) ; « 20 à 30 % » (§ 2.4.4) | À trancher au lot C ; les clés de répartition réelles passent avant tout forfait |
-| G10 | Lubrifiants | Libellé « 6 % de la consommation de gasoil », valeur 10 % | À trancher au lot C |
+| G7 | Charges salariales | 14,5 % des salaires nets (Tableau 4) ; 32 % (Annexe 14) ; salaire de 10 500 DT dit « net » (Tableau 4) et « brut, charges sociales comprises » (§ 2.4.4) | **Aucun taux ajouté** : la masse salariale saisie est la rémunération publique du budget, charges comprises (26/10/2026) |
+| G8 | Durée d'amortissement selon l'âge | § 2.4.4 : âge < 10 ans → 10 ans, âge > 10 ans → l'âge ; Annexe 14 : l'inverse | **§ 2.4.4 retenu** : la plus grande de 10 ans et de l'âge de l'engin (26/10/2026) |
+| G9 | Frais généraux | 20 % des frais d'exploitation (Tableau 4) ; « 20 à 30 % » (§ 2.4.4) | **Aucun forfait** : frais du parc et de l'administration seulement d'une étude de coût complet (17.5), sinon absents (26/10/2026) |
+| G10 | Lubrifiants | Libellé « 6 % de la consommation de gasoil », valeur 10 % | **Aucun ratio** : les lubrifiants sont dans l'entretien (26/10/2026) |
 | G11 | Prix du gasoil | 1,825 DT/l, valeur figée | Jamais une constante : paramètre national daté (17.3) |
 | G12 | « Tableau 14 » | Avantages et inconvénients des conteneurs, pas un tableau de coût | Les données de coût sont listées ci-dessus |

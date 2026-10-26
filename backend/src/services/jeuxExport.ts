@@ -171,6 +171,7 @@ export const JEU_PARC: JeuExport = {
     { cle: 'volume_provenance', fr: 'Provenance du volume', ar: 'مصدر الحجم', libelles: PROVENANCES_VOLUME, import: 'volumeProvenance' },
     { cle: 'charge_utile_t', fr: 'Charge utile (t)', ar: 'الحمولة (طن)', type: 'nombre', import: 'chargeUtileT' },
     { cle: 'valeur_achat_tnd', fr: "Valeur d'achat (TND)", ar: 'قيمة الشراء (دينار)', type: 'nombre', import: 'valeurAchatTnd' },
+    { cle: 'acquis_par_don', fr: 'Acquis par don', ar: 'مقتنى بهبة', type: 'booleen', import: 'acquisParDon' },
     { cle: 'domaine_emploi', fr: "Domaine d'emploi", ar: 'مجال الاستعمال', import: 'domaineEmploi' },
     // Export seulement : un relevé passe par le contrôle du compteur (qui ne
     // recule pas), pas par un import de masse.
@@ -182,6 +183,35 @@ export const JEU_PARC: JeuExport = {
 };
 
 /** Lot 17.2 — le tonnage estimé d'un mois. Le pesé et l'estimé sont deux colonnes : aucune ne les additionne. */
+/** Lot C — le coût de collecte d'une période, une ligne par circuit, chaque composante avec sa provenance. */
+const PROVENANCES_COUT = {
+  reel: { fr: 'Réel', ar: 'فعلي' },
+  ratio_guide: { fr: 'Ratio du guide', ar: 'نسبة الدليل' },
+  prix_guide: { fr: 'Prix du guide', ar: 'سعر الدليل' },
+  don: { fr: 'Don (non amorti)', ar: 'هبة (دون استهلاك)' },
+  sans_activite: { fr: 'Sans activité', ar: 'دون نشاط' },
+};
+
+export const JEU_COUT_COLLECTE: JeuExport = {
+  nom: 'cout-collecte',
+  titre: { fr: 'Coût de collecte', ar: 'كلفة الجمع' },
+  colonnes: [
+    { cle: 'circuit', fr: 'Circuit', ar: 'الدورة' },
+    { cle: 'vehicule_immat', fr: 'Engin', ar: 'المعدة' },
+    { cle: 'personnel_tnd', fr: 'Personnel (TND)', ar: 'الأعوان (د.ت)', type: 'nombre' },
+    { cle: 'carburant_tnd', fr: 'Carburant (TND)', ar: 'المحروقات (د.ت)', type: 'nombre' },
+    { cle: 'carburant_provenance', fr: 'Carburant : provenance', ar: 'المحروقات: المصدر', libelles: PROVENANCES_COUT },
+    { cle: 'entretien_tnd', fr: 'Entretien (TND)', ar: 'الصيانة (د.ت)', type: 'nombre' },
+    { cle: 'entretien_provenance', fr: 'Entretien : provenance', ar: 'الصيانة: المصدر', libelles: PROVENANCES_COUT },
+    { cle: 'amortissement_tnd', fr: 'Amortissement (TND)', ar: 'الاستهلاك (د.ت)', type: 'nombre' },
+    { cle: 'amortissement_provenance', fr: 'Amortissement : provenance', ar: 'الاستهلاك: المصدر', libelles: PROVENANCES_COUT },
+    { cle: 'redevance_tnd', fr: 'Redevance ANGeD (TND)', ar: 'معلوم الإيداع (د.ت)', type: 'nombre' },
+    { cle: 'total_tnd', fr: 'Coût direct (TND)', ar: 'الكلفة المباشرة (د.ت)', type: 'nombre' },
+    { cle: 'pese_t', fr: 'Pesé (t)', ar: 'الموزون (طن)', type: 'nombre' },
+    { cle: 'cout_tonne', fr: 'Coût à la tonne pesée (TND/t)', ar: 'الكلفة للطن الموزون (د.ت/طن)', type: 'nombre' },
+  ],
+};
+
 export const JEU_TONNAGE_ESTIME: JeuExport = {
   nom: 'tonnage-estime',
   titre: { fr: 'Tonnage estimé', ar: 'الكميات المقدَّرة' },

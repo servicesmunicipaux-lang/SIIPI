@@ -372,6 +372,7 @@ const Vehicule = registry.register(
       }),
       attele_a_immat: z.string().nullable(),
       classe_collecte: z.string().nullable().openapi({ description: "Classe de collecte (lot T). Vide tant que la commune ne l'a pas choisie." }),
+      acquis_par_don: z.boolean().openapi({ description: 'Reçu en don : non amorti (lot C).' }),
       volume_provenance: z.enum(['constructeur', 'mesure', 'declare']).nullable(),
       travail_classe: z.string().nullable().openapi({
         description: "La classe de la benne qui travaille : celle de l'engin, ou pour un tracteur celle de sa seule remorque attelée.",
@@ -860,6 +861,7 @@ const vehiculeSchemaDoc = z.object({
   valeurAchatTnd: z.number().nullable().optional(),
   chargeUtileT: z.number().nullable().optional(),
   capacityM3: z.number().positive().nullable().optional().openapi({ description: 'Volume de la benne (m³). Pour un attelage, il se porte sur la remorque.' }),
+  acquisParDon: z.boolean().optional().openapi({ description: 'Engin reçu en don : il n’est pas amorti dans le coût de collecte (lot C).' }),
   classeCollecte: z.string().nullable().optional().openapi({
     description: "Classe de collecte (GET /trucks/classes). Elle doit convenir au type ; un tracteur n'en porte pas, sa remorque oui. Jamais déduite du type.",
   }),
@@ -3401,6 +3403,123 @@ registry.registerPath({
     ),
     ...REPONSES_COMMUNES,
   },
+});
+
+const ReferenceCoutEngin = registry.register(
+  'ReferenceCoutEngin',
+  z.object({
+    id: z.string().uuid(),
+    classe: z.string(),
+    tranche_m3: z.string().nullable().openapi({ description: 'Tranche de volume de la benne ; vide : tout volume.' }),
+    prix_neuf_tnd: z.number().nullable(),
+    conso_l_seance: z.number().nullable(),
+    date_effet: z.string(),
+    source: z.string(),
+    retire_le: z.string().nullable(),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/cout-collecte/references',
+  tags: ['Volumétrie'],
+  summary: 'Les prix et consommations indicatifs du guide, par classe d’engin',
+  description:
+    'Lot C. Lecture seule : ils ne servent qu’à défaut du prix d’achat réel ou d’un plein enregistré, et le coût le dit (« prix du guide », « ratio du guide »).',
+  security: SECURISE,
+  responses: {
+    200: { description: 'Les références.', content: { 'application/json': { schema: z.array(ReferenceCoutEngin) } } },
+    ...REPONSES_COMMUNES,
+  },
+});
+
+const ProvenanceCout = z.enum(['reel', 'ratio_guide', 'prix_guide', 'don', 'sans_activite']).nullable();
+const CoutCollecteCircuit = z.object({
+  circuit_id: z.string().uuid(),
+  circuit: z.string(),
+  vehicule_immat: z.string().nullable(),
+  cle_engin: z.enum(['km', 'voyages']).nullable().openapi({ description: 'Comment le coût de l’engin se ventile : kilomètres du carnet de bord, sinon voyages attendus.' }),
+  personnel_tnd: z.number().nullable(),
+  personnel_cle: z.enum(['pointage', 'equipe']).nullable(),
+  carburant_tnd: z.number().nullable(),
+  carburant_provenance: ProvenanceCout,
+  entretien_tnd: z.number().nullable(),
+  entretien_provenance: ProvenanceCout,
+  amortissement_tnd: z.number().nullable(),
+  amortissement_provenance: ProvenanceCout,
+  redevance_tnd: z.number().nullable(),
+  total_tnd: z.number().nullable().openapi({ description: 'Coût direct (A + B), seulement si aucune composante ne manque.' }),
+  pese_t: z.number().nullable(),
+  voyages_attendus: z.number().int(),
+  voyages_peses: z.number().int(),
+  cout_tonne: z.number().nullable().openapi({ description: 'Seulement quand tous les voyages attendus sont pesés : jamais sur un tonnage estimé.' }),
+  manque: z.array(z.enum(['personnel', 'engin', 'carburant', 'entretien', 'amortissement', 'redevance'])),
+});
+const CoutCollecteEngin = z.object({
+  vehicule_id: z.string(),
+  immat: z.string(),
+  classe: z.string().nullable(),
+  volume_m3: z.number().nullable(),
+  membres: z.array(z.string()).openapi({ description: 'L’engin et sa remorque attelée : une unité de travail.' }),
+  age_ans: z.number().int().nullable(),
+  valeur_tnd: z.number().nullable(),
+  valeur_provenance: ProvenanceCout,
+  duree_ans: z.number().nullable().openapi({ description: 'La plus grande de la durée de référence et de l’âge (décision du 26/10/2026).' }),
+  amortissement_tnd: z.number().nullable(),
+  amortissement_provenance: ProvenanceCout,
+  entretien_tnd: z.number().nullable(),
+  entretien_provenance: ProvenanceCout,
+  carburant_tnd: z.number().nullable(),
+  carburant_provenance: ProvenanceCout,
+  seances: z.number().int(),
+});
+const CoutCollecte = registry.register(
+  'CoutCollecte',
+  z.object({
+    periode: z.string(),
+    debut: z.string(),
+    fin: z.string(),
+    circuits: z.array(CoutCollecteCircuit),
+    engins: z.array(CoutCollecteEngin),
+    indirects: z
+      .object({
+        etude_id: z.string().uuid(),
+        document: z.string(),
+        exercice: z.number().int(),
+        parc_tnd: z.number().nullable(),
+        administration_tnd: z.number().nullable(),
+        indirects_tnd: z.number().nullable(),
+      })
+      .nullable()
+      .openapi({ description: 'Frais indirects (C + D) d’une étude de coût complet de l’exercice (17.5). Aucun forfait n’en tient lieu.' }),
+    commune: z.object({
+      circuits_complets: z.number().int(),
+      circuits: z.number().int(),
+      cout_direct_tnd: z.number().nullable().openapi({ description: 'Seulement si chaque circuit a son coût.' }),
+      cout_complet_tnd: z.number().nullable(),
+      population: z.number().nullable(),
+      cout_direct_par_habitant: z.number().nullable().openapi({ description: 'Sur une année seulement.' }),
+      cout_complet_par_habitant: z.number().nullable(),
+    }),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/cout-collecte',
+  tags: ['Volumétrie'],
+  summary: 'Le coût de collecte d’une période, par circuit et par engin',
+  description:
+    'Lot C. Personnel, carburant, entretien, amortissement et redevance, chacun avec sa provenance : réel d’abord ; à défaut, ratio ou prix du guide, dit tel ; sinon absent, et le total n’existe pas. Frais indirects seulement d’une étude de coût complet. Coût à la tonne sur le seul pesé, quand tous les voyages sont pesés. L’export (format) rend le tableau des circuits. Hors du périmètre : 404.',
+  security: SECURISE,
+  request: {
+    query: z.object({
+      communeId: paramCommuneId.optional(),
+      periode: z.string().regex(/^\d{4}(-\d{2})?$/).optional().openapi({ description: 'AAAA-MM (un mois) ou AAAA (une année) ; le mois en cours par défaut.' }),
+      ...paramsExport,
+    }),
+  },
+  responses: { 200: jsonOuExport(CoutCollecte, 'Le coût de la période.'), ...REPONSES_COMMUNES },
 });
 
 const DensiteReference = registry.register(
@@ -8358,7 +8477,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.80',
+      version: '0.15.81',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

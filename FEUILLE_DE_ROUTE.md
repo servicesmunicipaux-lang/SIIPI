@@ -83,7 +83,7 @@ prospectif (axes 6 et 7) le suivent.
 - **17.2 et 17.4 restent suspendus.** 17.4 attend la documentation des API GPS ;
   17.2 attend la clôture de 17.3 et la validation, par la FNCT, de la matrice de
   densités qu'il consomme. *(25/10/2026 : la matrice est validée d'après le guide TADAEEM, devenu la
-  référence métier ; son préalable, le lot T — classe et volume de chaque engin —, est fait en v0.15.78. **17.2 est fait** en v0.15.79 : la matrice datée, l'estimation benne pleine des seuls voyages non pesés, jamais additionnée au pesé. **Lot K fait** en v0.15.80 : taux de collecte (mesuré ou estimé, jamais mêlés), de remplissage, de couverture, points noirs.)*
+  référence métier ; son préalable, le lot T — classe et volume de chaque engin —, est fait en v0.15.78. **17.2 est fait** en v0.15.79 : la matrice datée, l'estimation benne pleine des seuls voyages non pesés, jamais additionnée au pesé. **Lot K fait** en v0.15.80 : taux de collecte (mesuré ou estimé, jamais mêlés), de remplissage, de couverture, points noirs. **Lot C fait** en v0.15.81 : le coût de collecte par circuit et par engin, chaque composante réelle ou dite « du guide », le don non amorti, aucun forfait de frais généraux.)*
 
 ### Points de finition avant usage réel
 

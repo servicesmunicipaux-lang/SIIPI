@@ -18,6 +18,7 @@ import {
   type ClasseEngin,
   type CorrectionReferentiel,
   type ParametreNational,
+  type ReferenceCoutEngin,
   type ValeurParametreNational,
 } from '../../lib/api';
 import { useFormats } from '../../lib/formats';
@@ -76,6 +77,7 @@ export function ParametresNationaux() {
       <DistrictsFnct />
       <ClassesEngins />
       <MatriceDensites onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
+      <ReferencesCoutEngins />
       <ServeurCourriel />
       <CadreSecteurInformel onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
       <MoyenneNationaleCaracterisation />
@@ -436,6 +438,72 @@ function ClassesEngins() {
           </li>
         ))}
       </ul>
+    </article>
+  );
+}
+
+
+// Les prix et consommations indicatifs du guide (lot C), en lecture. Ils ne servent
+// qu'à défaut du prix d'achat réel ou d'un plein enregistré, et le coût de collecte
+// le dit ; une nouvelle valeur passe par une migration, avec sa source.
+function ReferencesCoutEngins() {
+  const { t, i18n } = useTranslation();
+  const [references, setReferences] = useState<ReferenceCoutEngin[] | null>(null);
+  const [classes, setClasses] = useState<ClasseEngin[]>([]);
+
+  useEffect(() => {
+    api.referencesCoutEngins().then(setReferences).catch(() => setReferences([]));
+    api.classesEngins().then(setClasses).catch(() => setClasses([]));
+  }, []);
+
+  if (!references || references.length === 0) return null;
+  const libelle = (code: string) => {
+    const k = classes.find((c) => c.code === code);
+    return k ? (i18n.language === 'ar' ? k.libelle_ar : k.libelle_fr) : code;
+  };
+  const m3 = (x: string) => formaterNombre(Number(x), x.includes('.') ? 1 : 0);
+  // « [7,8] », « (8,12] », « (,6.5] », « (6.5,) » : la tranche dite en mots.
+  const tranche = (r: string | null) => {
+    const m = r ? /^([[(])([\d.]*),([\d.]*)([\])])$/.exec(r) : null;
+    if (!m) return t('national.parametres.referencesCout.toutVolume');
+    const [, , bas, haut] = m;
+    if (bas && haut) return t(m[1] === '[' ? 'national.parametres.referencesCout.deA' : 'national.parametres.referencesCout.auDelaJusqua', { bas: m3(bas), haut: m3(haut) });
+    if (haut) return t('national.parametres.referencesCout.jusqua', { haut: m3(haut) });
+    return t('national.parametres.referencesCout.auDela', { bas: m3(bas) });
+  };
+
+  return (
+    <article className="space-y-3 rounded-xl border border-ardoise-200 bg-white p-4">
+      <h3 className="font-semibold text-ardoise-900">{t('national.parametres.referencesCout.titre')}</h3>
+      <p className="text-sm text-ardoise-600">{t('national.parametres.referencesCout.intro')}</p>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-ardoise-50 text-xs uppercase text-ardoise-600">
+            <tr>
+              <th className="p-2 text-start">{t('national.parametres.referencesCout.colClasse')}</th>
+              <th className="p-2 text-end">{t('national.parametres.referencesCout.colPrix')}</th>
+              <th className="p-2 text-end">{t('national.parametres.referencesCout.colConso')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-ardoise-200">
+            {references.map((r) => (
+              <tr key={r.id} className={r.retire_le ? 'text-ardoise-400 line-through' : ''}>
+                <td className="p-2">
+                  {libelle(r.classe)}
+                  <span className="block text-xs text-ardoise-500">{tranche(r.tranche_m3)}</span>
+                  <span className="block text-xs text-ardoise-500">{t('national.parametres.referencesCout.source', { source: r.source })}</span>
+                </td>
+                <td className="p-2 text-end">
+                  {r.prix_neuf_tnd != null ? <span className="chiffres">{formaterNombre(r.prix_neuf_tnd, 0)} TND</span> : <span className="text-xs text-ardoise-500">{t('national.parametres.referencesCout.nonDonne')}</span>}
+                </td>
+                <td className="p-2 text-end">
+                  {r.conso_l_seance != null ? <span className="chiffres">{t('national.parametres.referencesCout.litres', { valeur: formaterNombre(r.conso_l_seance, 0) })}</span> : <span className="text-xs text-ardoise-500">{t('national.parametres.referencesCout.nonDonne')}</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </article>
   );
 }

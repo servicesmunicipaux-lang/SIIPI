@@ -33,6 +33,7 @@ export function FormulaireEngin({ communeId, onFait, onAnnuler }: PropsFormulair
   const [classes, setClasses] = useState<ClasseEngin[]>([]);
   const [chargeUtile, setChargeUtile] = useState('');
   const [valeurAchat, setValeurAchat] = useState('');
+  const [don, setDon] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
@@ -65,6 +66,7 @@ export function FormulaireEngin({ communeId, onFait, onAnnuler }: PropsFormulair
         classeCollecte: typologie.classe,
         chargeUtileT: nombres[0],
         valeurAchatTnd: nombres[1],
+        acquisParDon: don,
       });
       await onFait();
     } catch (err) {
@@ -115,6 +117,13 @@ export function FormulaireEngin({ communeId, onFait, onAnnuler }: PropsFormulair
           <input id="engin-valeur" inputMode="decimal" dir="ltr" value={valeurAchat} onChange={(e) => setValeurAchat(e.target.value)} className={champAjout} />
         </label>
       </div>
+      <label className="flex min-h-11 items-start gap-2 text-sm" htmlFor="engin-don">
+        <input id="engin-don" type="checkbox" checked={don} onChange={(e) => setDon(e.target.checked)} className="mt-1 size-4" />
+        <span>
+          {t('communal.parc.don.libelle')}
+          <span className="block text-xs text-ardoise-500">{t('communal.parc.don.aide')}</span>
+        </span>
+      </label>
       <fieldset className="rounded-lg border border-ardoise-200 p-3">
         <legend className="px-1 text-sm font-medium text-ardoise-700">{t('communal.parc.typologie.titre')}</legend>
         <ChampsTypologie idPrefixe="engin" type={type} classes={classes} valeur={typologie} onChange={setTypologie} />

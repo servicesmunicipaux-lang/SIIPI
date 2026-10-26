@@ -37,6 +37,7 @@ import { PointsSuggeres } from '../composants/communal/PointsSuggeres';
 import { RapportsEtudes } from '../composants/communal/RapportsEtudes';
 import { MesReferences } from '../composants/communal/MesReferences';
 import { CoutComplet } from '../composants/communal/CoutComplet';
+import { CoutCollecte } from '../composants/communal/CoutCollecte';
 import { ActeursInformels } from '../composants/communal/ActeursInformels';
 import { Contacts } from '../composants/communal/Contacts';
 import { TableauPoints } from '../composants/communal/TableauPoints';
@@ -49,7 +50,7 @@ import { MaCommune } from '../composants/communal/MaCommune';
 import { EcranWapla } from '../composants/wapla/EcranWapla';
 import type { EcranAjout } from '../composants/ajout/registre';
 
-type Onglet = 'accueil' | 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'gps' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
+type Onglet = 'accueil' | 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'coutCollecte' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'gps' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -95,6 +96,8 @@ const ENTREES: EntreeNavigation<Onglet>[] = [
   { cle: 'rapports',      pole: 'pilotage' },
   { cle: 'references',    pole: 'pilotage' },
   { cle: 'coutComplet',   pole: 'pilotage' },
+  // Le coût de collecte que SIIPI calcule de ses registres (lot C), à côté de celui d'une étude.
+  { cle: 'coutCollecte',  pole: 'pilotage' },
   // La couche WaPla : des estimations de planification, à part de SIIPI.
   { cle: 'wapla',         pole: 'pilotage' },
 
@@ -348,6 +351,7 @@ export function EspaceCommunal({
         {onglet === 'rapports' && <RapportsEtudes communeId={communeId} />}
         {onglet === 'references' && <MesReferences communeId={communeId} fnct={estFnct} />}
         {onglet === 'coutComplet' && <CoutComplet communeId={communeId} />}
+        {onglet === 'coutCollecte' && <CoutCollecte communeId={communeId} />}
         {onglet === 'wapla' && <EcranWapla communeId={communeId} fnct={estFnct} />}
         {onglet === 'acteursInformels' && cadreInformelActif && <ActeursInformels communeId={communeId} />}
         {onglet === 'contacts' && <Contacts communeId={communeId} />}
