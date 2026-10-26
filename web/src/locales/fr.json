@@ -1991,6 +1991,13 @@
         "faitLe": "Fait le",
         "cocherFait": "Marquer {{nom}} comme fait",
         "lieu": "lieu : {{nom}}"
+      },
+      "resorption": {
+        "marquer": "Marquer résorbé…",
+        "date": "Résorbé le",
+        "confirmer": "Enregistrer",
+        "resorbeLe": "Résorbé le {{date}}",
+        "rouvrir": "Rouvrir"
       }
     },
     "navigationOuvrir": "Menu",
@@ -3371,7 +3378,9 @@
       "serie": {
         "valeur": "Valeur",
         "n1": "Année précédente",
-        "reference": "Moyenne du gouvernorat"
+        "reference": "Moyenne du gouvernorat",
+        "borneBasse": "Borne basse",
+        "borneHaute": "Borne haute"
       },
       "referenceAbsente": "Pas de repère du gouvernorat : moins de cinq communes y ont une valeur sur cette période.",
       "donnees": "Les données du graphique",

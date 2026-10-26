@@ -19,7 +19,7 @@ import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
-import { agreger, calculerCommune, catalogue, charger, parametres, repartition, type Niveau } from '../services/kpi5Axes.js';
+import { agreger, calculerCommune, catalogue, charger, parametres, repartition, type Niveau, borneHaute } from '../services/kpi5Axes.js';
 import { exportable } from '../services/export.js';
 import { JEU_REPARTITION_COMMUNES, JEU_SERIE_INDICATEUR } from '../services/jeuxExport.js';
 
@@ -715,6 +715,7 @@ kpi5AxesRouter.get(
             statut: r?.statut ?? 'non_renseigne',
             source: r?.source ?? null,
             valeur: r?.valeur ?? null,
+            valeur_max: r ? borneHaute(r) : null,
             taux_atteinte: r?.taux_atteinte ?? null,
           };
         })

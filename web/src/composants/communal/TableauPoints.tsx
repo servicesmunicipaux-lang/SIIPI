@@ -372,6 +372,14 @@ export function TableauPoints({ communeId }: { communeId: string }) {
                       <td className="px-3 py-2 font-medium text-ardoise-900">{p.nom ?? '—'}</td>
                       <td className="px-3 py-2 text-ardoise-600">
                         {t(`communal.circuits.typesPoint.${p.type}`, { defaultValue: p.type })}
+                        {p.type === 'point_noir' && (
+                          <Resorption
+                            point={p}
+                            peutEcrire={peutEcrire}
+                            onEnregistre={(resorbeLe) => setPoints((l) => l?.map((x) => (x.id === p.id ? { ...x, resorbe_le: resorbeLe } : x)) ?? l)}
+                            onErreur={signaler}
+                          />
+                        )}
                       </td>
                       <td className="px-3 py-2">
                         <span className="flex flex-wrap gap-1">
@@ -687,5 +695,84 @@ function BarreLot({
         </form>
       )}
     </section>
+  );
+}
+
+// --- La résorption d'un point noir (lot K) -------------------------------------
+//
+// Un point noir résorbé ne disparaît pas de l'inventaire : il garde sa date, et
+// l'indicateur « Points noirs » compte ceux qui restent en fin de mois. Le
+// supprimer effacerait qu'il a existé, et la commune ne pourrait plus montrer le
+// chemin parcouru.
+function Resorption({
+  point,
+  peutEcrire,
+  onEnregistre,
+  onErreur,
+}: {
+  point: PointDeCommune;
+  peutEcrire: boolean;
+  onEnregistre: (resorbeLe: string | null) => void;
+  onErreur: (err: unknown) => void;
+}) {
+  const { t } = useTranslation();
+  const [ouvert, setOuvert] = useState(false);
+  // Le jour à Tunis (UTC+1) : une résorption ne se date pas dans l'avenir.
+  const aujourdhui = new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
+  const [jour, setJour] = useState(aujourdhui);
+  const [envoi, setEnvoi] = useState(false);
+
+  const enregistrer = async (resorbeLe: string | null) => {
+    setEnvoi(true);
+    try {
+      const r = await api.modifierPoint(point.circuit_id, point.id, { resorbeLe });
+      onEnregistre(r.resorbe_le ?? null);
+      setOuvert(false);
+    } catch (err) {
+      onErreur(err);
+    } finally {
+      setEnvoi(false);
+    }
+  };
+
+  if (point.resorbe_le) {
+    return (
+      <span className="mt-0.5 block text-xs text-siipi-700">
+        {t('communal.points.resorption.resorbeLe', { date: point.resorbe_le.split('-').reverse().join('/') })}
+        {peutEcrire && (
+          <button type="button" disabled={envoi} onClick={() => void enregistrer(null)} className="ms-2 text-ardoise-600 underline">
+            {t('communal.points.resorption.rouvrir')}
+          </button>
+        )}
+      </span>
+    );
+  }
+  if (!peutEcrire) return null;
+  return ouvert ? (
+    <span className="mt-1 flex flex-wrap items-center gap-1.5">
+      <input
+        type="date"
+        value={jour}
+        max={aujourdhui}
+        onChange={(e) => setJour(e.target.value)}
+        aria-label={t('communal.points.resorption.date')}
+        className="min-h-9 rounded border border-ardoise-300 px-2 text-xs"
+      />
+      <button
+        type="button"
+        disabled={envoi || !jour}
+        onClick={() => void enregistrer(jour)}
+        className="min-h-9 rounded bg-siipi-700 px-2 text-xs font-medium text-white disabled:opacity-40"
+      >
+        {t('communal.points.resorption.confirmer')}
+      </button>
+      <button type="button" onClick={() => setOuvert(false)} className="min-h-9 px-1 text-xs text-ardoise-600 underline">
+        {t('commun.annuler')}
+      </button>
+    </span>
+  ) : (
+    <button type="button" onClick={() => setOuvert(true)} className="mt-0.5 block text-xs text-siipi-700 underline">
+      {t('communal.points.resorption.marquer')}
+    </button>
   );
 }

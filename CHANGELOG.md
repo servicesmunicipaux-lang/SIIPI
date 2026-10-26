@@ -5,6 +5,51 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.80] — 2026-10-26 — Lot K : les indicateurs du guide de référence
+
+`DECISIONS_2026-10-20.md`, complément du 26/10/2026 (suite). Les cinq indicateurs de performance de la collecte du
+guide (§ 1.2.7) : quatre entrent, le cinquième (coût à la tonne) existait. Ils prennent place dans le catalogue des
+indicateurs (lot 3a) : carte, courbe de douze mois, « ce qui manque », répartition nationale, arabe.
+
+### Ajouté
+- **Migration 089** :
+  - **Taux de collecte** (pesé ménager ÷ production théorique, kg/hab/j × population, la population de saison en
+    saison) — **seulement quand tous les voyages attendus sont pesés** ;
+  - **Taux de collecte estimé** — pour une commune qui ne pèse **aucun** voyage, la fourchette estimée (17.2) ÷
+    production ; incomplet dès qu'un circuit ménager ne s'estime pas ou est confié à un prestataire. Un mois mêlé n'a ni
+    l'un ni l'autre : **une estimation ne s'ajoute jamais à une pesée** ;
+  - **Taux de remplissage** — pesé ÷ capacité de la benne pleine (volume × densité du jour), sur les voyages pesés, en
+    fourchette ;
+  - **Taux de couverture** — population des secteurs desservis ÷ population, mesuré quand chaque secteur a sa
+    population ; sinon déclaré ;
+  - **Points noirs** — non résorbés en fin de période, dès qu'un inventaire existe ; sinon déclaré. `points_collecte.resorbe_le`
+    : un point résorbé reste à l'inventaire, daté (réservé aux points noirs, jamais dans l'avenir).
+  - `indicateurs_kpi.fourchette` : la borne haute dans `detail.valeur_max` ; pas de repère de gouvernorat pour une
+    fourchette.
+  - Les sources et dépendances de chacun (« ce qui manque »), rattachées aux éléments de « Ma commune dans SIIPI »
+    (les points noirs restent dehors, exprès).
+  - « À vérifier » : des voyages pesés au-delà de la benne pleine sur les 30 derniers jours (information), avec son arabe.
+  - Les calculs de la migration 070 gardent leur corps (`…_base`) ; les fonctions du même nom y ajoutent ceux du guide.
+- API : la répartition nationale rend la moyenne des bornes hautes (`valeur_max_moyenne`) et, par commune, `valeur_max` ;
+  la résorption se pose par la modification d'un point.
+- **Écrans** (FR, AR) : la fourchette dans la carte, le panneau (deux courbes, borne basse et borne haute) et la
+  répartition ; « Marquer résorbé » dans l'écran des points.
+- Campagne **`indicateurs-guide`** (76e), 51 contrôles, contre un témoin indépendant (`tests/indicateurs_guide_attendus.py`) :
+  les refus ; trois communes (tout pesé, rien de pesé, mois mêlé) ; le prestataire qui rend l'estimation incomplète ;
+  « non renseigné » et « ce qui manque » ensemble ; le zéro de points noirs seulement déclaré ; la répartition ; l'avis.
+  Le mutant qui calcule un taux de collecte sur un mois à moitié pesé la fait échouer.
+
+### Modifié
+- `completude` : la population et la production théorique débloquent aussi les taux du guide ; les pesées, la
+  collecte et le remplissage ; un circuit, la collecte estimée.
+
+### Corrigé
+- **La compilation à la volée (JIT) de PostgreSQL rendait les calculs lents** : le tonnage estimé d'un mois (17.2) prenait
+  3,4 s, la fiche annuelle d'une commune et ses séries près d'une minute. Le planificateur surestime le coût de ces
+  requêtes à fonctions imbriquées et compile ; sans compilation, 33 ms et une demi-seconde. Les fonctions de la
+  volumétrie et des indicateurs portent `jit = off` (la campagne `indicateurs-guide` le vérifie) ; le reste de la base
+  garde son réglage.
+
 ## [0.15.79] — 2026-10-26 — Lot 17.2 : le moteur volumétrique
 
 `DECISIONS_2026-10-20.md`, compléments des 25 et 26/10/2026 ; `SPEC_v0.16.md`, R4. Une commune sans pont-bascule n'avait

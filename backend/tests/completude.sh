@@ -150,9 +150,12 @@ echo "3. Ce qu'un élément débloque — lu dans les dépendances du catalogue"
 # Le témoin : la règle des dépendances (070) écrite à la main.
 completude
 trie() { indicateurs "$1" | tr ',' '\n' | sort | paste -sd, -; }
-chk "les pesées débloquent le tonnage, la production par habitant, le coût à la tonne et DMA-4" "COUT_TONNE,DMA-4,KG_HAB_J,TONNAGE_T" "$(trie pesees)"
-chk "un circuit suffit à M1-3 (communication) et M3-3 (usage du numérique)" "CIRCUITS,M1-3,M3-3" "$(trie circuits)"
-chk "la population débloque la production par habitant" KG_HAB_J "$(indicateurs population)"
+chk "les pesées débloquent le tonnage, la production par habitant, le coût à la tonne, DMA-4, et la collecte et le remplissage (lot K)" \
+    "COUT_TONNE,DMA-4,KG_HAB_J,TAUX_COLLECTE,TAUX_REMPLISSAGE,TONNAGE_T" "$(trie pesees)"
+chk "un circuit suffit à M1-3 (communication), M3-3 (usage du numérique), et sert à la collecte estimée (lot K)" \
+    "CIRCUITS,M1-3,M3-3,TAUX_COLLECTE_ESTIME" "$(trie circuits)"
+chk "la population (et la production théorique) débloque la production par habitant et les taux du guide (lot K)" \
+    "KG_HAB_J,TAUX_COLLECTE,TAUX_COLLECTE_ESTIME,TAUX_COUVERTURE" "$(trie population)"
 chk "le carburant : son indicateur et le coût à la tonne" "COUT_TONNE,ECO-CARBURANT" "$(trie carburant)"
 chk "le PCGD, la caractérisation, le périmètre ne débloquent aucun indicateur (ils servent ailleurs, l'aide le dit)" "||" \
     "$(indicateurs pcgd)|$(indicateurs caracterisation)|$(indicateurs perimetre)"
@@ -163,9 +166,10 @@ chk "aucun élément ne prétend débloquer un indicateur absent du catalogue" 0
 # décide alors, exprès, si elle entre dans la liste. Restent dehors : les
 # incidents (un mois sans accident est une bonne nouvelle), les réclamations
 # résolues (elles suivent les citoyens), la dotation EPI et les nettoyages des
-# lieux (cimetière, marché, abattoir), qui ne valent que pour certaines communes.
+# lieux (cimetière, marché, abattoir), qui ne valent que pour certaines communes,
+# et les points noirs (lot K) : une commune qui n'en a aucun le déclare.
 chk "les sources tenues par la commune sans élément sont exactement celles écartées exprès" \
-    "epi,incidents,nettoyages_abattoirs,nettoyages_cimetieres,nettoyages_marches,reclamations_resolues" \
+    "epi,incidents,nettoyages_abattoirs,nettoyages_cimetieres,nettoyages_marches,points_noirs,reclamations_resolues" \
     "$(sql "SELECT string_agg(s.code, ',' ORDER BY s.code) FROM sources_indicateurs s
              WHERE s.nature IN ('formulaire', 'ecran', 'parametre')
                AND s.code NOT IN (SELECT source FROM sources_elements_completude)")"

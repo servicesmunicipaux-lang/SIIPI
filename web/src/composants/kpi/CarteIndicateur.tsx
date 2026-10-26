@@ -29,6 +29,18 @@ export function texteValeur(valeur: number): string {
   return formaterNombre(valeur, Number.isInteger(valeur) ? 0 : valeur < 10 ? 3 : 1);
 }
 
+/** La borne haute d'une fourchette (lot K : detail.valeur_max), ou null pour une valeur simple. */
+export function borneHaute(detail: unknown): number | null {
+  const v = detail && typeof detail === 'object' ? (detail as Record<string, unknown>).valeur_max : null;
+  return typeof v === 'number' ? v : v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null;
+}
+
+/** « 80 – 100 » pour une fourchette, la valeur seule sinon : jamais un point milieu. */
+export function texteValeurOuFourchette(valeur: number, detail: unknown): string {
+  const max = borneHaute(detail);
+  return max === null || max === valeur ? texteValeur(valeur) : `${texteValeur(valeur)} – ${texteValeur(max)}`;
+}
+
 /** La source d'une valeur retenue, en toutes lettres : « mesuré » ou « déclaré ». */
 export function PastilleSource({ r }: { r: ResultatIndicateur }) {
   const { t } = useTranslation();
@@ -110,7 +122,7 @@ export function CarteIndicateur({
 
       {renseigne ? (
         <span className="flex flex-wrap items-baseline gap-x-2">
-          <ChiffreCle valeur={texteValeur(r.valeur as number)} unite={unite} />
+          <ChiffreCle valeur={texteValeurOuFourchette(r.valeur as number, r.detail)} unite={unite} />
           {r.cible != null && <span className="chiffre-cle text-sm text-ardoise-500">/ {formaterNombre(r.cible, 0)}</span>}
         </span>
       ) : (

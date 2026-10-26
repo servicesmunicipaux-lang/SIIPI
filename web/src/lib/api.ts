@@ -382,6 +382,8 @@ export interface PointCollecte {
   heure_estimee: string | null;
   observation: string | null;
   source: 'import_kml' | 'saisie';
+  /** Pour un point noir : le jour de sa résorption (lot K). Vide : toujours là. */
+  resorbe_le?: string | null;
 }
 
 export interface ApercuImport {

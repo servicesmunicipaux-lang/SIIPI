@@ -2052,6 +2052,13 @@
         "faitLe": "أُنجز في",
         "cocherFait": "تأشير {{nom}} كمنجزة",
         "lieu": "المكان: {{nom}}"
+      },
+      "resorption": {
+        "marquer": "تسجيل الإزالة…",
+        "date": "أُزيلت بتاريخ",
+        "confirmer": "حفظ",
+        "resorbeLe": "أُزيلت بتاريخ {{date}}",
+        "rouvrir": "إعادة الفتح"
       }
     },
     "navigationOuvrir": "القائمة",
@@ -3460,7 +3467,9 @@
       "serie": {
         "valeur": "القيمة",
         "n1": "السنة السابقة",
-        "reference": "معدل الولاية"
+        "reference": "معدل الولاية",
+        "borneBasse": "الحد الأدنى",
+        "borneHaute": "الحد الأقصى"
       },
       "referenceAbsente": "لا معلم للولاية: أقل من خمس بلديات لها قيمة خلال هذه الفترة.",
       "donnees": "معطيات الرسم البياني",

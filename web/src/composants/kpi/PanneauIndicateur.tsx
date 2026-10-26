@@ -35,11 +35,20 @@ import { formaterNombre } from '../../i18n';
 import { BoutonExport } from '../BoutonExport';
 import { Chargement } from '../Elements';
 import { ChiffreCle } from '../ui/ChiffreCle';
-import { AtteinteObjectif, PastilleSource, texteValeur } from './CarteIndicateur';
+import { AtteinteObjectif, borneHaute, PastilleSource, texteValeur } from './CarteIndicateur';
 import { boutonCompleter as bouton, LigneACompleter } from './LigneACompleter';
 import { bornesFenetre, decalerMois, finDeMois, libelleMois, type Fenetre } from './temps';
 
-type Ligne = { cle: string; libelle: string; valeur: number | null; source: PointSerie['source'] | null; n1: number | null; reference: number | null };
+// Pour une fourchette (lot K), `valeur` est la borne basse et `valeurMax` la haute.
+type Ligne = {
+  cle: string;
+  libelle: string;
+  valeur: number | null;
+  valeurMax: number | null;
+  source: PointSerie['source'] | null;
+  n1: number | null;
+  reference: number | null;
+};
 
 export function PanneauIndicateur({
   communeId,
@@ -138,6 +147,7 @@ export function PanneauIndicateur({
         cle: m,
         libelle: libelleMois(m, i18n.language),
         valeur: (s.get(m) as PointSerie | undefined)?.valeur ?? null,
+        valeurMax: borneHaute((s.get(m) as PointSerie | undefined)?.detail),
         source: (s.get(m) as PointSerie | undefined)?.source ?? null,
         n1: (s1.get(decalerMois(m, -12)) as PointSerie | undefined)?.valeur ?? null,
         reference: (ref.get(m) as PointReference | undefined)?.moyenne ?? null,
@@ -150,6 +160,7 @@ export function PanneauIndicateur({
       cle: a,
       libelle: a,
       valeur: (s.get(a) as PointSerie | undefined)?.valeur ?? null,
+      valeurMax: borneHaute((s.get(a) as PointSerie | undefined)?.detail),
       source: (s.get(a) as PointSerie | undefined)?.source ?? null,
       n1: null,
       reference: (ref.get(a) as PointReference | undefined)?.moyenne ?? null,
@@ -158,8 +169,14 @@ export function PanneauIndicateur({
 
   const avecValeur = lignes.some((l) => l.valeur !== null);
   const avecReference = lignes.some((l) => l.reference !== null);
+  const fourchette = lignes.some((l) => l.valeurMax !== null);
   const unite = r.unite ?? '';
-  const nombre = (v: number | null) => (v === null ? '—' : `${formaterNombre(v, Math.abs(v) < 10 && !Number.isInteger(v) ? 2 : Number.isInteger(v) ? 0 : 1)}${unite ? ` ${unite}` : ''}`);
+  const chiffre = (v: number) => formaterNombre(v, Math.abs(v) < 10 && !Number.isInteger(v) ? 2 : Number.isInteger(v) ? 0 : 1);
+  const nombre = (v: number | null) => (v === null ? '—' : `${chiffre(v)}${unite ? ` ${unite}` : ''}`);
+  // « 80 – 100 % » : les deux bornes, jamais un point milieu.
+  const nombreFourchette = (v: number, max: number | null) =>
+    max === null || max === v ? nombre(v) : `${chiffre(v)} – ${nombre(max)}`;
+  const valeurMaxR = borneHaute(r.detail);
 
   const sources = dependances.filter((d) => d.indicateur_code === r.code);
   const groupes = (liste: { groupe: number }[]) => [...new Set(liste.map((d) => d.groupe))];
@@ -171,7 +188,10 @@ export function PanneauIndicateur({
           <h2 className="text-lg font-semibold leading-snug text-ardoise-900">{ar ? r.libelle_ar : r.libelle_fr}</h2>
           {r.statut === 'renseigne' && r.valeur != null ? (
             <p className="flex flex-wrap items-center gap-x-3 gap-y-2">
-              <ChiffreCle valeur={texteValeur(r.valeur)} unite={r.unite && r.unite.trim() !== '' ? r.unite : null} />
+              <ChiffreCle
+                valeur={valeurMaxR !== null && valeurMaxR !== r.valeur ? `${texteValeur(r.valeur)} – ${texteValeur(valeurMaxR)}` : texteValeur(r.valeur)}
+                unite={r.unite && r.unite.trim() !== '' ? r.unite : null}
+              />
               <PastilleSource r={r} />
             </p>
           ) : (
@@ -274,7 +294,10 @@ export function PanneauIndicateur({
                   contentStyle={{ direction: ar ? 'rtl' : 'ltr', fontSize: 12 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Line type="monotone" dataKey="valeur" name={t('kpi.panneau.serie.valeur')} stroke="#13784f" strokeWidth={2} connectNulls={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="valeur" name={t(fourchette ? 'kpi.panneau.serie.borneBasse' : 'kpi.panneau.serie.valeur')} stroke="#13784f" strokeWidth={2} connectNulls={false} isAnimationActive={false} />
+                {fourchette && (
+                  <Line type="monotone" dataKey="valeurMax" name={t('kpi.panneau.serie.borneHaute')} stroke="#13784f" strokeWidth={2} strokeDasharray="6 3" connectNulls={false} isAnimationActive={false} />
+                )}
                 {comparer && b.pas === 'mois' && (
                   <Line type="monotone" dataKey="n1" name={t('kpi.panneau.serie.n1')} stroke="#6f7c8d" strokeDasharray="5 4" connectNulls={false} isAnimationActive={false} />
                 )}
@@ -310,7 +333,7 @@ export function PanneauIndicateur({
                 {lignes.map((l) => (
                   <tr key={l.cle} className="border-t border-ardoise-100">
                     <td className="px-2 py-1.5">{l.libelle}</td>
-                    <td className="chiffres px-2 py-1.5 text-end">{l.valeur === null ? <span className="text-ardoise-400">{t('kpi.statuts.non_renseigne')}</span> : nombre(l.valeur)}</td>
+                    <td className="chiffres px-2 py-1.5 text-end">{l.valeur === null ? <span className="text-ardoise-400">{t('kpi.statuts.non_renseigne')}</span> : nombreFourchette(l.valeur, l.valeurMax)}</td>
                     <td className="px-2 py-1.5 text-xs">{l.source ? t(`kpi.sources.${l.source}`) : ''}</td>
                     {comparer && b.pas === 'mois' && <td className="chiffres px-2 py-1.5 text-end">{nombre(l.n1)}</td>}
                     {avecReference && <td className="chiffres px-2 py-1.5 text-end">{nombre(l.reference)}</td>}
