@@ -199,6 +199,11 @@ export type EtatDuParc = Reponse<'/trucks/etat', 'get'>;
 export type ClasseEngin = Reponse<'/trucks/classes', 'get'>[number];
 export type DensiteReference = Reponse<'/volumetrie/densites', 'get'>[number];
 export type TonnageEstimeCircuit = Reponse<'/volumetrie/tonnage', 'get'>[number];
+// Lot C : le coût de collecte, et les références du guide sur lesquelles il s'appuie à défaut du réel.
+export type CoutCollecte = Reponse<'/cout-collecte', 'get'>;
+export type CoutCollecteCircuit = CoutCollecte['circuits'][number];
+export type CoutCollecteEngin = CoutCollecte['engins'][number];
+export type ReferenceCoutEngin = Reponse<'/cout-collecte/references', 'get'>[number];
 export type Agent = Reponse<'/personnel', 'get'>[number];
 // --- Lot 16.3 : carnet de bord, carburant, consommation ----------------------
 export type SortieCarnet = Reponse<'/exploitation/carnets', 'get'>[number];
@@ -1298,6 +1303,10 @@ export const api = {
     requete<DensiteReference>(`/volumetrie/densites/${id}/retrait`, { method: 'POST', body: JSON.stringify({ motif }) }),
   tonnageEstime: (communeId: string, mois: string) =>
     requete<TonnageEstimeCircuit[]>(`/volumetrie/tonnage?communeId=${encodeURIComponent(communeId)}&mois=${mois}`),
+  // --- Lot C : le coût de collecte ---------------------------------------------
+  coutCollecte: (communeId: string, periode: string) =>
+    requete<CoutCollecte>(`/cout-collecte?communeId=${encodeURIComponent(communeId)}&periode=${periode}`),
+  referencesCoutEngins: () => requete<ReferenceCoutEngin[]>('/cout-collecte/references'),
   coherencePesees: (communeId: string) =>
     requete<Incoherence[]>(`/pesees/coherence?communeId=${encodeURIComponent(communeId)}`),
   creerPesee: (communeId: string, saisie: Record<string, unknown>) =>

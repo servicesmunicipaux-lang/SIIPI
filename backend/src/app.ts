@@ -21,6 +21,7 @@ import { accueilRouter } from './routes/accueil.routes.js';
 import { bibliothequeRouter } from './routes/bibliotheque.routes.js';
 import { trucksRouter } from './routes/trucks.routes.js';
 import { volumetrieRouter } from './routes/volumetrie.routes.js';
+import { coutCollecteRouter } from './routes/coutCollecte.routes.js';
 import { containersRouter } from './routes/containers.routes.js';
 import { ticketsRouter } from './routes/tickets.routes.js';
 import { weighbridgeRouter } from './routes/weighbridge.routes.js';
@@ -277,6 +278,8 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/gps', gpsRouter],
   // Le moteur volumétrique : la matrice des densités, le tonnage estimé (lot 17.2).
   ['/volumetrie', volumetrieRouter],
+  // Le coût de collecte, par circuit et par engin (lot C).
+  ['/cout-collecte', coutCollecteRouter],
 ];
 
 for (const [prefixe, routeur] of ROUTEURS) {

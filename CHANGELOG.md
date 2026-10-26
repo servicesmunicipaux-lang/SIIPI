@@ -5,6 +5,47 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.81] — 2026-10-26 — Lot C : le coût de collecte, par circuit et par engin
+
+`DECISIONS_2026-10-20.md`, complément du 26/10/2026 (lot C). SIIPI calcule de ses propres registres le coût direct de
+chaque circuit — `Z = A + B + C + D` de la méthode du coût complet (17.5) — et dit, composante par composante, d'où vient
+chaque chiffre : **le réel d'abord**, un ratio ou un prix du guide de référence à défaut, **dit tel** ; sans l'un ni
+l'autre, la composante est absente et le total n'existe pas.
+
+### Ajouté
+- **Migration 090** :
+  - `vehicules.acquis_par_don` : un engin reçu en don **n'est pas amorti** ; son entretien se compte ;
+  - quatre paramètres nationaux datés (17.3) : `prix_gasoil` (**sans valeur** : jamais un prix figé), `taux_entretien_neuf`
+    (6 %), `taux_entretien_fin_de_vie` (14 %), `duree_amortissement_engins` (10 ans), avec leur source ;
+  - `references_cout_engins` : le prix indicatif à neuf et la consommation de gasoil par séance du guide, par classe
+    d'engin et tranche de volume, datés et sourcés, en lecture seule pour l'application ;
+  - `app.cout_collecte_engins` — chaque engin de circuit **avec sa remorque attelée** (une unité) : amortissement (valeur
+    réelle, sinon prix du guide ; sur la plus grande de la durée de référence et de l'âge), entretien (les interventions
+    de la période dès qu'il en existe une, **jamais remplacées par le ratio** ; sinon le ratio du guide selon l'âge),
+    carburant (les pleins ; sinon la consommation du guide × séances × prix du gasoil) ;
+  - `app.cout_collecte_circuits` — la ventilation au kilomètre du carnet de bord, sinon au voyage attendu ; le personnel
+    au pointage, sinon à l'équipe ; la redevance ANGeD au taux de la date de chaque pesée ; « ce qui manque » ; le total
+    seulement si rien ne manque ; **le coût à la tonne seulement sur un circuit dont tous les voyages sont pesés** ;
+  - `app.cout_collecte_indirects` — les frais du parc et de l'administration **seulement d'une étude de coût complet**
+    (17.5) de l'exercice, rapportés à la période : **aucun forfait**.
+- API : `GET /cout-collecte` (mois ou année ; total de la commune seulement si chaque circuit a le sien, coût par
+  habitant sur une année seulement ; export Excel/CSV des circuits), `GET /cout-collecte/references` ; `acquisParDon`
+  sur l'engin (création, modification, import et export du parc).
+- **Écrans** (FR, AR) : *Coût de collecte* au pôle Pilotage — coût direct, frais indirects et coût complet ; par circuit
+  et par engin, chaque montant avec sa pastille de provenance (Réel, Ratio du guide, Prix du guide, Don) ou « non
+  renseigné » ; « acquis par don » dans le formulaire et la fiche de l'engin ; les références du guide dans
+  *Paramètres nationaux*.
+- Campagne **`cout-collecte`** (77e), 73 contrôles, contre un témoin indépendant (`tests/cout_collecte_attendus.py`) :
+  les refus ; trois engins (réel, prix du guide d'un attelage de 21 ans, don entretenu) et cinq circuits ; le prix du
+  gasoil absent puis posé ; une intervention sans coût ; les pesées complètes, l'étude, l'année ; le don par l'API ;
+  l'export. Le mutant qui donne un coût à la tonne sur un circuit pesé une fois sur neuf la fait échouer.
+
+### Décidé (26/10/2026)
+- Aucun taux de charges sociales : la masse salariale saisie est la rémunération publique, charges comprises (G7).
+- Durée d'amortissement = la plus grande de 10 ans et de l'âge de l'engin (G8).
+- Aucun forfait de frais généraux : C + D seulement d'une étude de coût complet (G9).
+- Aucun ratio de lubrifiants : ils sont dans l'entretien (G10).
+
 ## [0.15.80] — 2026-10-26 — Lot K : les indicateurs du guide de référence
 
 `DECISIONS_2026-10-20.md`, complément du 26/10/2026 (suite). Les cinq indicateurs de performance de la collecte du

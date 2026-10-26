@@ -110,6 +110,15 @@ export function Parc({ communeId }: { communeId: string }) {
     }
   };
 
+  const changerDon = async (v: Vehicule, don: boolean) => {
+    try {
+      await api.modifierEngin(v.id, { acquisParDon: don });
+      await charger();
+    } catch (err) {
+      setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
+    }
+  };
+
   return (
     <div className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -308,7 +317,10 @@ export function Parc({ communeId }: { communeId: string }) {
                         [
                           ['miseEnCirculation', f.date(v.date_premiere_circulation)],
                           ['etatDepuis', v.etat_depuis ? f.date(v.etat_depuis) : t('communal.parc.nonRenseigne')],
-                          ['valeur', v.valeur_achat_tnd != null ? `${nombre(v.valeur_achat_tnd)} TND` : '—'],
+                          [
+                            'valeur',
+                            `${v.valeur_achat_tnd != null ? `${nombre(v.valeur_achat_tnd)} TND` : '—'}${v.acquis_par_don ? ` · ${t('communal.parc.don.court')}` : ''}`,
+                          ],
                           ['domaine', v.domaine_emploi ?? '—'],
                         ] as const
                       ).map(([cle, valeur]) => (
@@ -318,6 +330,20 @@ export function Parc({ communeId }: { communeId: string }) {
                         </div>
                       ))}
                     </dl>
+
+                    {/* Un don n'est pas amorti dans le coût de collecte (lot C) ; il s'entretient comme un autre. */}
+                    <label className="flex min-h-11 items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={v.acquis_par_don}
+                        onChange={(e) => void changerDon(v, e.target.checked)}
+                        className="mt-1 size-4"
+                      />
+                      <span>
+                        {t('communal.parc.don.libelle')}
+                        <span className="block text-xs text-ardoise-500">{t('communal.parc.don.aide')}</span>
+                      </span>
+                    </label>
 
                     <FicheTypologie
                       v={v}

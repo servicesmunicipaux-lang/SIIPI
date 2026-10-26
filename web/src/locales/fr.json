@@ -271,6 +271,21 @@
         "retiree": "Densité retirée.",
         "reference": "Valeur de référence — {{source}}",
         "unite": "t/m³"
+      },
+      "referencesCout": {
+        "titre": "Prix et consommations indicatifs des engins",
+        "intro": "Les valeurs du guide de référence, par classe d'engin. Elles ne servent qu'à défaut du prix d'achat réel ou d'un plein enregistré, et le coût de collecte le dit. Lecture seule : une nouvelle valeur s'ajoute avec sa source.",
+        "colClasse": "Classe",
+        "colPrix": "Prix à neuf",
+        "colConso": "Gasoil par séance",
+        "toutVolume": "Tout volume",
+        "deA": "De {{bas}} à {{haut}} m³",
+        "auDelaJusqua": "Plus de {{bas}} m³, jusqu'à {{haut}} m³",
+        "jusqua": "Jusqu'à {{haut}} m³",
+        "auDela": "Plus de {{bas}} m³",
+        "source": "Source : {{source}}",
+        "nonDonne": "Non donné par le guide",
+        "litres": "{{valeur}} l"
       }
     },
     "moyenneNationale": {
@@ -915,6 +930,7 @@
       "rapports": "Rapports et études",
       "references": "Mes références",
       "coutComplet": "Coût complet",
+      "coutCollecte": "Coût de collecte",
       "pesees": "Pesées",
       "contacts": "Contacts",
       "carburant": "Carnet & carburant",
@@ -1416,6 +1432,11 @@
           "remorque_absente": "Aucune remorque n'est attelée à ce tracteur : le volume de ses circuits est inconnu. Indiquez, sur la fiche de la remorque, à quel tracteur elle est attelée.",
           "remorques_multiples": "Plusieurs remorques sont attelées à ce tracteur : SIIPI ne choisit pas laquelle travaille. Ne laissez attelée que la remorque qui fait ses circuits."
         }
+      },
+      "don": {
+        "libelle": "Acquis par don",
+        "aide": "Un engin reçu en don n'est pas amorti dans le coût de collecte ; son entretien, lui, se compte.",
+        "court": "don"
       }
     },
     "entretien": {
@@ -2355,6 +2376,70 @@
         "aucun": "aucun écart",
         "non_verifiable": "non vérifiable",
         "declare": "relevé à la lecture"
+      }
+    },
+    "coutCollecte": {
+      "periode": "Période",
+      "mois": "Un mois",
+      "annee": "Une année",
+      "chapeau": "Le coût direct de chaque circuit, calculé à partir des registres de SIIPI : masse salariale et pointage, pleins, interventions d'entretien, valeur des engins, pesées. Le réel d'abord ; à défaut, un ratio ou un prix du guide de référence, et la pastille le dit. Ce qui n'est tenu nulle part reste « non renseigné » : le total n'est alors pas calculé.",
+      "aucunCircuit": "Aucun circuit en régie : il n'y a pas de coût de collecte à calculer.",
+      "coutDirect": "Coût direct de la collecte",
+      "tnd": "TND",
+      "directIncomplet": "Non calculé : {{complets}} circuits sur {{circuits}} ont leur coût. Voyez ce qui manque dans le tableau.",
+      "indirects": "Frais indirects (parc, administration)",
+      "depuisEtude": "D'après l'étude « {{document}} » ({{exercice}}), rapportée à la période.",
+      "sansEtude": "Aucune étude de coût complet pour {{exercice}} : les frais indirects ne sont pas estimés, aucun forfait n'en tient lieu.",
+      "coutComplet": "Coût complet",
+      "parHabitant": "{{valeur}} TND par habitant sur l'année",
+      "completAbsent": "Non calculé : il faut le coût direct de chaque circuit et une étude de coût complet.",
+      "titreCircuits": "Par circuit",
+      "colCircuit": "Circuit",
+      "colPersonnel": "Personnel",
+      "colCarburant": "Carburant",
+      "colEntretien": "Entretien",
+      "colAmortissement": "Amortissement",
+      "colRedevance": "Redevance ANGeD",
+      "colTotal": "Coût direct (TND)",
+      "colTonne": "Par tonne pesée",
+      "noteCircuits": "Le coût d'un engin se partage entre ses circuits au prorata des kilomètres du carnet de bord, sinon des voyages attendus. Le personnel se partage au prorata des jours de pointage, sinon des équipiers. Le coût à la tonne ne se donne que sur un circuit dont tous les voyages sont pesés.",
+      "titreEngins": "Par engin",
+      "colEngin": "Engin",
+      "colValeur": "Valeur retenue",
+      "sansClasse": "Classe non renseignée",
+      "attelage": "avec sa remorque",
+      "ageDuree": "{{age}} ans · amorti sur {{duree}} ans",
+      "ageInconnu": "Âge non renseigné",
+      "seances": "séances : {{n}}",
+      "valeurAbsente": "Ni valeur d'achat ni prix du guide",
+      "nonRenseigne": "Non renseigné",
+      "sansPesee": "Aucune pesée",
+      "manque": "Il manque : {{liste}}",
+      "manques": {
+        "personnel": "la masse salariale ou le pointage",
+        "engin": "l'engin du circuit",
+        "carburant": "le carburant",
+        "entretien": "le coût d'une intervention",
+        "amortissement": "la valeur de l'engin",
+        "redevance": "les pesées"
+      },
+      "tonneAbsente": "Voyages pesés : {{peses}} sur {{attendus}}",
+      "tonneSansTotal": "Sans coût direct",
+      "noteEngins": "Un engin reçu en don n'est pas amorti. Sans valeur d'achat, le prix indicatif du guide sert, et l'engin s'amortit sur 10 ans ou sur son âge s'il est plus vieux. Sans intervention enregistrée, l'entretien suit le ratio du guide (6 % du prix à neuf, 14 % à 10 ans) ; sans plein, le carburant suit la consommation du guide par séance et le prix du gasoil.",
+      "provenances": {
+        "reel": "Réel",
+        "ratio_guide": "Ratio du guide",
+        "prix_guide": "Prix du guide",
+        "don": "Don, non amorti",
+        "sans_activite": "Sans activité"
+      },
+      "cles": {
+        "km": "engin au kilomètre",
+        "voyages": "engin au voyage"
+      },
+      "clesPersonnel": {
+        "pointage": "personnel au pointage",
+        "equipe": "personnel à l'équipe"
       }
     },
     "acteursInformels": {

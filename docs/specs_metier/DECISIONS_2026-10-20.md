@@ -195,3 +195,24 @@ La liste `docs/specs_metier/sources/sig/NOMS_ARABES_A_VALIDER.md` est tranchée 
 4. **Couverture** : mesurée par les secteurs (chacun avec sa population, desservis par des circuits), sinon déclarée.
 
 Le **coût à la tonne** reste celui de SIIPI (coût ÷ tonnage pesé) : le guide écrit la formule à l'envers (G6).
+
+## Complément du 26 octobre 2026 (fin) — Lot C : le coût de collecte
+
+**Lot C, plan validé** avec ses six recommandations. SIIPI calcule le coût direct de chaque circuit de ses registres ;
+chaque composante est réelle, ou tirée du guide et dite telle, ou absente — et alors le total n'existe pas.
+
+1. **Charges salariales (G7)** : aucun taux ajouté. La masse salariale saisie (`effectifs_service`) est la rémunération
+   publique du budget, charges comprises ; y ajouter 14,5 % ou 32 % compterait les charges deux fois.
+2. **Durée d'amortissement (G8)** : la plus grande de 10 ans et de l'âge de l'engin (§ 2.4.4 du guide).
+3. **Frais généraux (G9)** : aucun forfait. Les frais du parc et de l'administration (C + D) ne viennent que d'une étude
+   de coût complet de l'exercice (17.5), rapportés à la période ; sans étude, absents, et le coût complet aussi.
+4. **Lubrifiants (G10)** : aucun ratio ; ils sont dans l'entretien enregistré.
+5. **Acquis par don** : un engin reçu en don n'est pas amorti ; il s'entretient comme un autre (le ratio d'entretien porte
+   sur sa valeur).
+6. **Prix d'achat absent** : le prix indicatif du guide (Tableau 3) pour la classe et le volume de l'engin, dit « prix du
+   guide » ; un attelage (tracteur et remorque) est une unité, au prix du guide de l'unité si l'une des deux valeurs manque.
+
+Le réel passe toujours avant le guide : une seule intervention enregistrée suffit pour que l'entretien soit celui du
+registre (et absent si l'une d'elles n'a pas de coût) ; un seul plein, pour que le carburant soit celui des pleins. Le
+prix du gasoil est un paramètre national daté, sans valeur posée par la migration (G11). Le coût à la tonne ne se
+rapporte qu'au pesé, et seulement quand tous les voyages attendus du circuit sont pesés.

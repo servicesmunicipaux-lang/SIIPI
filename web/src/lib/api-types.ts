@@ -1022,6 +1022,8 @@ export interface paths {
                         chargeUtileT?: number | null;
                         /** @description Volume de la benne (m³). Pour un attelage, il se porte sur la remorque. */
                         capacityM3?: number | null;
+                        /** @description Engin reçu en don : il n’est pas amorti dans le coût de collecte (lot C). */
+                        acquisParDon?: boolean;
                         /** @description Classe de collecte (GET /trucks/classes). Elle doit convenir au type ; un tracteur n'en porte pas, sa remorque oui. Jamais déduite du type. */
                         classeCollecte?: string | null;
                         /**
@@ -1285,6 +1287,8 @@ export interface paths {
                         chargeUtileT?: number | null;
                         /** @description Volume de la benne (m³). Pour un attelage, il se porte sur la remorque. */
                         capacityM3?: number | null;
+                        /** @description Engin reçu en don : il n’est pas amorti dans le coût de collecte (lot C). */
+                        acquisParDon?: boolean;
                         /** @description Classe de collecte (GET /trucks/classes). Elle doit convenir au type ; un tracteur n'en porte pas, sa remorque oui. Jamais déduite du type. */
                         classeCollecte?: string | null;
                         /**
@@ -12667,6 +12671,163 @@ export interface paths {
                             a_venir: components["schemas"]["ValeurParametreNational"][];
                             historique: components["schemas"]["ValeurParametreNational"][];
                         }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cout-collecte/references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les prix et consommations indicatifs du guide, par classe d’engin
+         * @description Lot C. Lecture seule : ils ne servent qu’à défaut du prix d’achat réel ou d’un plein enregistré, et le coût le dit (« prix du guide », « ratio du guide »).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les références. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReferenceCoutEngin"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cout-collecte": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le coût de collecte d’une période, par circuit et par engin
+         * @description Lot C. Personnel, carburant, entretien, amortissement et redevance, chacun avec sa provenance : réel d’abord ; à défaut, ratio ou prix du guide, dit tel ; sinon absent, et le total n’existe pas. Frais indirects seulement d’une étude de coût complet. Coût à la tonne sur le seul pesé, quand tous les voyages sont pesés. L’export (format) rend le tableau des circuits. Hors du périmètre : 404.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    periode?: string;
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Le coût de la période. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CoutCollecte"];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                     };
                 };
                 /** @description Requête invalide — le détail indique les champs en cause. */
@@ -28181,6 +28342,8 @@ export interface components {
             attele_a_immat: string | null;
             /** @description Classe de collecte (lot T). Vide tant que la commune ne l'a pas choisie. */
             classe_collecte: string | null;
+            /** @description Reçu en don : non amorti (lot C). */
+            acquis_par_don: boolean;
             /** @enum {string|null} */
             volume_provenance: "constructeur" | "mesure" | "declare" | null;
             /** @description La classe de la benne qui travaille : celle de l'engin, ou pour un tracteur celle de sa seule remorque attelée. */
@@ -29054,6 +29217,100 @@ export interface components {
             created_at: string;
             retire_le: string | null;
             motif_retrait: string | null;
+        };
+        ReferenceCoutEngin: {
+            /** Format: uuid */
+            id: string;
+            classe: string;
+            /** @description Tranche de volume de la benne ; vide : tout volume. */
+            tranche_m3: string | null;
+            prix_neuf_tnd: number | null;
+            conso_l_seance: number | null;
+            date_effet: string;
+            source: string;
+            retire_le: string | null;
+        };
+        CoutCollecte: {
+            periode: string;
+            debut: string;
+            fin: string;
+            circuits: {
+                /** Format: uuid */
+                circuit_id: string;
+                circuit: string;
+                vehicule_immat: string | null;
+                /**
+                 * @description Comment le coût de l’engin se ventile : kilomètres du carnet de bord, sinon voyages attendus.
+                 * @enum {string|null}
+                 */
+                cle_engin: "km" | "voyages" | null;
+                personnel_tnd: number | null;
+                /** @enum {string|null} */
+                personnel_cle: "pointage" | "equipe" | null;
+                carburant_tnd: number | null;
+                /** @enum {string|null} */
+                carburant_provenance: "reel" | "ratio_guide" | "prix_guide" | "don" | "sans_activite" | null;
+                entretien_tnd: number | null;
+                /** @enum {string|null} */
+                entretien_provenance: "reel" | "ratio_guide" | "prix_guide" | "don" | "sans_activite" | null;
+                amortissement_tnd: number | null;
+                /** @enum {string|null} */
+                amortissement_provenance: "reel" | "ratio_guide" | "prix_guide" | "don" | "sans_activite" | null;
+                redevance_tnd: number | null;
+                /** @description Coût direct (A + B), seulement si aucune composante ne manque. */
+                total_tnd: number | null;
+                pese_t: number | null;
+                voyages_attendus: number;
+                voyages_peses: number;
+                /** @description Seulement quand tous les voyages attendus sont pesés : jamais sur un tonnage estimé. */
+                cout_tonne: number | null;
+                manque: ("personnel" | "engin" | "carburant" | "entretien" | "amortissement" | "redevance")[];
+            }[];
+            engins: {
+                vehicule_id: string;
+                immat: string;
+                classe: string | null;
+                volume_m3: number | null;
+                /** @description L’engin et sa remorque attelée : une unité de travail. */
+                membres: string[];
+                age_ans: number | null;
+                valeur_tnd: number | null;
+                /** @enum {string|null} */
+                valeur_provenance: "reel" | "ratio_guide" | "prix_guide" | "don" | "sans_activite" | null;
+                /** @description La plus grande de la durée de référence et de l’âge (décision du 26/10/2026). */
+                duree_ans: number | null;
+                amortissement_tnd: number | null;
+                /** @enum {string|null} */
+                amortissement_provenance: "reel" | "ratio_guide" | "prix_guide" | "don" | "sans_activite" | null;
+                entretien_tnd: number | null;
+                /** @enum {string|null} */
+                entretien_provenance: "reel" | "ratio_guide" | "prix_guide" | "don" | "sans_activite" | null;
+                carburant_tnd: number | null;
+                /** @enum {string|null} */
+                carburant_provenance: "reel" | "ratio_guide" | "prix_guide" | "don" | "sans_activite" | null;
+                seances: number;
+            }[];
+            /** @description Frais indirects (C + D) d’une étude de coût complet de l’exercice (17.5). Aucun forfait n’en tient lieu. */
+            indirects: {
+                /** Format: uuid */
+                etude_id: string;
+                document: string;
+                exercice: number;
+                parc_tnd: number | null;
+                administration_tnd: number | null;
+                indirects_tnd: number | null;
+            } | null;
+            commune: {
+                circuits_complets: number;
+                circuits: number;
+                /** @description Seulement si chaque circuit a son coût. */
+                cout_direct_tnd: number | null;
+                cout_complet_tnd: number | null;
+                population: number | null;
+                /** @description Sur une année seulement. */
+                cout_direct_par_habitant: number | null;
+                cout_complet_par_habitant: number | null;
+            };
         };
         DensiteReference: {
             /** Format: uuid */
