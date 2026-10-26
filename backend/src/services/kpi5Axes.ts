@@ -40,6 +40,8 @@ export interface Indicateur {
   granularite: 'mensuelle' | 'annuelle' | 'actuelle';
   /** La formule et les sources en arabe ; `description` les donne en français. */
   description_ar: string | null;
+  /** La valeur est une fourchette : sa borne haute est detail.valeur_max (migration 089). */
+  fourchette: boolean;
 }
 
 /** Ce que la commune a dit d'elle-même, et qui rend un indicateur « sans objet ». */
@@ -505,6 +507,8 @@ export interface GroupeRepartition {
   communes_mesurees: number;
   communes_declarees: number;
   valeur_moyenne: number | null;
+  /** Pour une fourchette : la moyenne des bornes hautes, à lire avec valeur_moyenne (les bornes basses). */
+  valeur_max_moyenne: number | null;
   /** Moyenne des taux d'atteinte (0 à 1), pour les indicateurs rapportés à un objectif. */
   taux_moyen: number | null;
 }
@@ -535,10 +539,17 @@ export function repartition(
         communes_mesurees: valeurs.filter((r) => r.source === 'mesure').length,
         communes_declarees: valeurs.filter((r) => r.source === 'declare').length,
         valeur_moyenne: moyenneDecimale(valeurs.map((r) => r.valeur)),
+        valeur_max_moyenne: moyenneDecimale(valeurs.map((r) => borneHaute(r))),
         taux_moyen: moyenneDecimale(valeurs.map((r) => r.taux_atteinte), 3),
       };
     })
     .sort((a, b) => (a.cle === 'non_rattache' ? 1 : b.cle === 'non_rattache' ? -1 : (a.nom ?? a.cle).localeCompare(b.nom ?? b.cle)));
+}
+
+/** La borne haute d'une fourchette (detail.valeur_max), ou null pour une valeur simple. */
+export function borneHaute(r: Resultat): number | null {
+  const v = r.detail?.valeur_max;
+  return typeof v === 'number' ? v : v != null ? Number(v) : null;
 }
 
 /** Une moyenne arrondie, ou null quand aucune valeur n'existe (règle d'or 1.1). */

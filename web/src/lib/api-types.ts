@@ -18716,6 +18716,8 @@ export interface paths {
                         ordre?: number;
                         heureEstimee?: string;
                         observation?: string;
+                        /** @description Pour un point noir : le jour où il a été résorbé (lot K). Il reste à l’inventaire ; null le rouvre. Refusé pour un autre type, ou dans l’avenir. */
+                        resorbeLe?: string | null;
                     };
                 };
             };
@@ -19310,6 +19312,8 @@ export interface paths {
                         ordre?: number;
                         heureEstimee?: string;
                         observation?: string;
+                        /** @description Pour un point noir : le jour où il a été résorbé (lot K). Il reste à l’inventaire ; null le rouvre. Refusé pour un autre type, ou dans l’avenir. */
+                        resorbeLe?: string | null;
                     };
                 };
             };
@@ -28508,6 +28512,8 @@ export interface components {
              * @enum {string}
              */
             granularite: "mensuelle" | "annuelle" | "actuelle";
+            /** @description La valeur est une fourchette : « valeur » en est la borne basse, detail.valeur_max la haute. Aucun point milieu, aucun repère de gouvernorat. */
+            fourchette: boolean;
         };
         PointSerie: {
             /** Format: date */
@@ -28579,6 +28585,8 @@ export interface components {
             communes_mesurees: number;
             communes_declarees: number;
             valeur_moyenne: number | null;
+            /** @description Pour une fourchette : la moyenne des bornes hautes ; valeur_moyenne est celle des basses. */
+            valeur_max_moyenne: number | null;
             /** @description Moyenne des taux d’atteinte (0 à 1). */
             taux_moyen: number | null;
         };
@@ -28593,6 +28601,8 @@ export interface components {
             /** @enum {string|null} */
             source: "mesure" | "declare" | null;
             valeur: number | null;
+            /** @description Pour une fourchette : la borne haute. */
+            valeur_max: number | null;
             taux_atteinte: number | null;
         };
         Caracterisation: {
@@ -29758,6 +29768,8 @@ export interface components {
             /** @enum {string} */
             source: "import_kml" | "saisie";
             actif: boolean;
+            /** @description Pour un point noir : le jour où il a été résorbé. Vide : toujours là. */
+            resorbe_le: string | null;
             /** @description Valeurs des champs libres de la commune (Jalon 6), indexées par l’identifiant du champ (GET /points/champs). Une clé absente est une case vide. */
             attributs: {
                 [key: string]: string | number | boolean;

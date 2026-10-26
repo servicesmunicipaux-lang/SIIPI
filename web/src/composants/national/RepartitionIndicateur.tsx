@@ -80,6 +80,11 @@ export function RepartitionIndicateur({ annee, onOuvrirCommune }: { annee: numbe
   const mesure = (g: Groupe) => (enTaux ? (g.taux_moyen == null ? null : 100 * g.taux_moyen) : g.valeur_moyenne);
   const unite = enTaux ? '%' : (indicateur?.unite ?? '');
   const affiche = (v: number | null) => (v == null ? t('kpi.statuts.non_renseigne') : `${formaterNombre(v, Math.abs(v) < 10 && !Number.isInteger(v) ? 2 : 1)}${unite ? ` ${unite}` : ''}`);
+  // Une fourchette (lot K) se lit avec ses deux bornes : la moyenne des basses et celle des hautes.
+  const afficheFourchette = (v: number | null, max: number | null | undefined) =>
+    v == null || max == null || enTaux || max === v
+      ? affiche(v)
+      : `${formaterNombre(v, Math.abs(v) < 10 && !Number.isInteger(v) ? 2 : 1)} – ${affiche(max)}`;
   const nomGroupe = (g: Groupe) => (g.cle === 'non_rattache' ? t('kpi.national.nonRattache') : (g.nom ?? g.cle));
 
   // Les classes de couleur : cinq intervalles égaux entre la plus petite et la
@@ -191,7 +196,7 @@ export function RepartitionIndicateur({ annee, onOuvrirCommune }: { annee: numbe
                         const titre = document.createElement('strong');
                         titre.textContent = niveau === 'district' && g ? `${gouv} — ${nomGroupe(g)}` : gouv;
                         bulle.append(titre);
-                        for (const ligne of [affiche(g ? mesure(g) : null), g ? t('national.repartition.couverture', { n: g.communes_renseignees, total: g.communes }) : '']) {
+                        for (const ligne of [afficheFourchette(g ? mesure(g) : null, g?.valeur_max_moyenne), g ? t('national.repartition.couverture', { n: g.communes_renseignees, total: g.communes }) : '']) {
                           if (!ligne) continue;
                           const div = document.createElement('div');
                           div.textContent = ligne;
@@ -274,7 +279,7 @@ export function RepartitionIndicateur({ annee, onOuvrirCommune }: { annee: numbe
                   {groupes.map((g) => (
                     <tr key={g.cle} className="border-t border-ardoise-100">
                       <td className="px-3 py-2 font-medium text-ardoise-900">{nomGroupe(g)}</td>
-                      <td className={`chiffres px-3 py-2 text-end ${mesure(g) == null ? 'text-ardoise-400' : ''}`}>{affiche(mesure(g))}</td>
+                      <td className={`chiffres px-3 py-2 text-end ${mesure(g) == null ? 'text-ardoise-400' : ''}`}>{afficheFourchette(mesure(g), g.valeur_max_moyenne)}</td>
                       <td className="px-3 py-2 text-ardoise-700">{t('national.repartition.couverture', { n: g.communes_renseignees, total: g.communes })}</td>
                       <td className="chiffres px-3 py-2 text-end">{formaterNombre(g.communes_mesurees)}</td>
                       <td className="chiffres px-3 py-2 text-end">{formaterNombre(g.communes_declarees)}</td>
@@ -325,7 +330,7 @@ export function RepartitionIndicateur({ annee, onOuvrirCommune }: { annee: numbe
                       </td>
                       <td className="px-3 py-1.5 text-ardoise-700">{c.gouvernorat}</td>
                       <td className={`chiffres px-3 py-1.5 text-end ${c.valeur == null ? 'text-ardoise-400' : ''}`}>
-                        {c.statut === 'sans_objet' ? t('kpi.statuts.sans_objet') : c.valeur == null ? t('kpi.statuts.non_renseigne') : affiche(enTaux && c.taux_atteinte != null ? 100 * c.taux_atteinte : c.valeur)}
+                        {c.statut === 'sans_objet' ? t('kpi.statuts.sans_objet') : c.valeur == null ? t('kpi.statuts.non_renseigne') : enTaux && c.taux_atteinte != null ? affiche(100 * c.taux_atteinte) : afficheFourchette(c.valeur, c.valeur_max)}
                       </td>
                       <td className="px-3 py-1.5 text-xs">{c.source ? t(`kpi.sources.${c.source}`) : ''}</td>
                     </tr>

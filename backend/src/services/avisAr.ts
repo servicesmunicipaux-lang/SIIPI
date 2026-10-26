@@ -84,6 +84,8 @@ export const MODELES: Modele[] = [
 
   // --- Volumétrie (lot 17.2) ------------------------------------------------------------------
   { fr: 'Benne de %s m³ à %s – %s t/m³ : de %s à %s t par voyage, au-delà de la charge utile de %s t.', ar: 'صندوق حجمه {0} م³ بكثافة {1} – {2} طن/م³: من {3} إلى {4} طن في الرحلة، أكثر من الحمولة النافعة البالغة {5} طن.' },
+  { fr: '%s voyage(s) pesé(s) au-delà de la benne pleine (%s m³ à %s t/m³ au plus) sur les 30 derniers jours.', ar: '{0} رحلة موزونة تتجاوز الصندوق الممتلئ ({1} م³ بكثافة {2} طن/م³ على الأكثر) خلال الثلاثين يومًا الأخيرة.' },
+  { fr: "Vérifier le volume ou la classe de la benne, ou les pesées. SIIPI ne corrige rien : il signale l'écart.", ar: 'التثبّت من حجم الصندوق أو صنفه، أو من عمليات الوزن. لا تصحّح المنظومة شيئًا، بل تشير إلى الفارق.' },
   { fr: "Vérifier le volume, la classe ou la charge utile de l'engin. SIIPI ne corrige pas l'estimation : il signale l'écart.", ar: 'التثبّت من حجم المعدة أو صنفها أو حمولتها النافعة. لا تصحّح المنظومة التقدير، بل تشير إلى الفارق.' },
 
   // --- Acteurs informels ----------------------------------------------------------------------

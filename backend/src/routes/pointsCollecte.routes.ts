@@ -37,7 +37,7 @@ const POINT_SELECT = `
          ST_Y(p.geom)::double precision AS lat,
          ST_X(p.geom)::double precision AS lng,
          p.precision_m, p.heure_observee, p.heure_estimee,
-         p.observation, p.source, p.actif, p.created_at, p.updated_at,
+         p.observation, p.source, p.actif, p.created_at, p.updated_at, p.resorbe_le,
          -- Champs libres et étiquettes (Jalon 6). Une étiquette retirée
          -- n'est plus rendue : elle reste seulement dans l'historique.
          p.attributs,
@@ -234,6 +234,8 @@ const pointSchema = z.object({
   ordre: z.number().int().positive().optional(),
   heureEstimee: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/).optional(),
   observation: z.string().optional(),
+  // Un point noir résorbé reste à l'inventaire, daté (lot K) ; null le rouvre.
+  resorbeLe: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.').nullable().optional(),
 });
 
 pointsRouter.post(
@@ -286,6 +288,22 @@ pointsRouter.patch(
     if (d.voyage !== undefined) champs.push(['voyage = $N', d.voyage]);
     if (d.heureEstimee !== undefined) champs.push(['heure_estimee = $N::time', d.heureEstimee]);
     if (d.observation !== undefined) champs.push(['observation = $N', d.observation]);
+    if (d.resorbeLe !== undefined) {
+      // Le jour à Tunis (UTC+1, sans heure d'été) : une résorption ne se date pas dans l'avenir.
+      const aujourdhui = new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
+      if (d.resorbeLe !== null && d.resorbeLe > aujourdhui) {
+        throw new ApiError(400, "Une résorption se date au jour où elle a été constatée, pas dans l'avenir.");
+      }
+      const actuel = await queryOne<{ type: string }>(
+        'SELECT type FROM points_collecte WHERE id = $1 AND circuit_id = $2 AND deleted_at IS NULL',
+        [req.params.pointId, req.params.id]
+      );
+      if (!actuel) throw new ApiError(404, 'Point introuvable.');
+      if ((d.type ?? actuel.type) !== 'point_noir') {
+        throw new ApiError(400, 'Seul un point noir se résorbe. Changez le type du point, ou laissez la date vide.');
+      }
+      champs.push(['resorbe_le = $N::date', d.resorbeLe]);
+    }
     if (d.lat !== undefined && d.lng !== undefined) {
       champs.push(['geom = ST_SetSRID(ST_MakePoint($N, $M), 4326)', [d.lng, d.lat]]);
     }

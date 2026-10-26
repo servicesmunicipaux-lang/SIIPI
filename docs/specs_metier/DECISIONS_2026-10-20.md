@@ -180,3 +180,18 @@ La liste `docs/specs_metier/sources/sig/NOMS_ARABES_A_VALIDER.md` est tranchée 
   aucun taux par défaut) ; **seuls les voyages non pesés s'estiment**, le pesé reste à côté, jamais additionné ; la
   matrice se révise par la **FNCT**, valeur datée et sourcée, jamais effacée ; les **poubelles et conteneurs** sont dans
   la matrice mais ne servent pas à l'estimation (pré-collecte, plus tard).
+
+## Complément du 26 octobre 2026 (suite) — Lot K : les indicateurs du guide
+
+**Lot K, plan validé** avec ses quatre recommandations (indicateurs du § 1.2.7 du guide de référence) :
+
+1. **Taux de collecte** mesuré (pesé ÷ production théorique) seulement quand **tous** les voyages attendus de la période
+   sont pesés ; un **taux estimé**, à part, quand **aucun** ne l'est (fourchette estimée de 17.2 ÷ production) ; un mois
+   mêlé : « non renseigné », il manque des pesées.
+2. **Fourchettes** : la mesure porte une borne haute ; cartes, courbes et répartition montrent « 62 – 78 % », jamais un
+   point milieu ; une fourchette n'a pas de repère de gouvernorat.
+3. **Points noirs** : un zéro ne s'affiche qu'avec un inventaire (au moins un point noir relevé) ou une déclaration
+   (« inventaire fait le … : aucun point noir ») ; un point résorbé reste à l'inventaire, daté.
+4. **Couverture** : mesurée par les secteurs (chacun avec sa population, desservis par des circuits), sinon déclarée.
+
+Le **coût à la tonne** reste celui de SIIPI (coût ÷ tonnage pesé) : le guide écrit la formule à l'envers (G6).

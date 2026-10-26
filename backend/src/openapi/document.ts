@@ -1673,6 +1673,9 @@ const IndicateurCatalogue = registry.register(
     granularite: z.enum(['mensuelle', 'annuelle', 'actuelle']).openapi({
       description: 'Le pas le plus fin auquel la valeur a un sens : mensuelle (registres datés), annuelle, actuelle (un état d’aujourd’hui).',
     }),
+    fourchette: z.boolean().openapi({
+      description: 'La valeur est une fourchette : « valeur » en est la borne basse, detail.valeur_max la haute. Aucun point milieu, aucun repère de gouvernorat.',
+    }),
   }).passthrough()
 );
 
@@ -1896,6 +1899,7 @@ const GroupeRepartitionDoc = registry.register(
     communes_mesurees: z.number().int(),
     communes_declarees: z.number().int(),
     valeur_moyenne: z.number().nullable(),
+    valeur_max_moyenne: z.number().nullable().openapi({ description: 'Pour une fourchette : la moyenne des bornes hautes ; valeur_moyenne est celle des basses.' }),
     taux_moyen: z.number().nullable().openapi({ description: 'Moyenne des taux d’atteinte (0 à 1).' }),
   })
 );
@@ -1910,6 +1914,7 @@ const ValeurCommuneDoc = registry.register(
     statut: z.enum(['renseigne', 'non_renseigne', 'sans_objet']),
     source: z.enum(['mesure', 'declare']).nullable(),
     valeur: z.number().nullable(),
+    valeur_max: z.number().nullable().openapi({ description: 'Pour une fourchette : la borne haute.' }),
     taux_atteinte: z.number().nullable(),
   })
 );
@@ -5559,6 +5564,7 @@ const PointCollecte = registry.register(
       observation: z.string().nullable(),
       source: z.enum(['import_kml', 'saisie']),
       actif: z.boolean(),
+      resorbe_le: z.string().nullable().openapi({ description: 'Pour un point noir : le jour où il a été résorbé. Vide : toujours là.' }),
       attributs: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).openapi({
         description:
           'Valeurs des champs libres de la commune (Jalon 6), indexées par l’identifiant du champ (GET /points/champs). Une clé absente est une case vide.',
@@ -5623,6 +5629,9 @@ const pointCreateSchema = z.object({
   ordre: z.number().int().optional(),
   heureEstimee: z.string().optional(),
   observation: z.string().optional(),
+  resorbeLe: z.string().nullable().optional().openapi({
+    description: 'Pour un point noir : le jour où il a été résorbé (lot K). Il reste à l’inventaire ; null le rouvre. Refusé pour un autre type, ou dans l’avenir.',
+  }),
 });
 
 const importKmlSchema = z.object({
@@ -8349,7 +8358,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.79',
+      version: '0.15.80',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
