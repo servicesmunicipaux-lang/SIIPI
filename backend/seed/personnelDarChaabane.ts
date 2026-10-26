@@ -33,6 +33,7 @@
 
 process.env.SIIPI_DB_CONTEXT = 'server';
 const { pool, query, queryOne } = await import('../src/db.js');
+const { enProduction } = await import('./gardeProduction.js');
 
 /**
  * La commune se retrouve par son nom, pas par un identifiant écrit en dur :
@@ -158,6 +159,26 @@ const MASSE_SALARIALE: Array<{
 
 const SOURCE = 'Projet de budget communal — كتلة أجور عملة النظافة 2021-2024';
 
+// La masse salariale du service, par exercice : un chiffre du budget, sans personne derrière.
+async function chargerMasseSalariale(COMMUNE: string): Promise<void> {
+  for (const a of MASSE_SALARIALE) {
+    await query(
+      `INSERT INTO effectifs_service
+         (commune_id, annee, service, effectif_ouvriers, effectif_encadrement,
+          masse_salariale_tnd, masse_salariale_ouvriers_tnd, source)
+       VALUES ($1, $2::smallint, 'proprete', $3::smallint, $4::smallint, $5, $6, $7)
+       ON CONFLICT (commune_id, annee, service) DO UPDATE
+          SET effectif_ouvriers = EXCLUDED.effectif_ouvriers,
+              effectif_encadrement = EXCLUDED.effectif_encadrement,
+              masse_salariale_tnd = EXCLUDED.masse_salariale_tnd,
+              masse_salariale_ouvriers_tnd = EXCLUDED.masse_salariale_ouvriers_tnd,
+              source = EXCLUDED.source,
+              updated_at = now()`,
+      [COMMUNE, a.annee, a.ouvriers, a.encadrement, a.masse, a.masseOuvriers, SOURCE]
+    );
+  }
+}
+
 async function charger(): Promise<void> {
   const COMMUNE = await trouverCommune();
   if (!COMMUNE) {
@@ -166,6 +187,16 @@ async function charger(): Promise<void> {
     return;
   }
   console.log(`[personnel] commune : ${COMMUNE}`);
+
+  // En production, seule la masse salariale du service se charge : c'est un
+  // chiffre du budget, réel et sans personne derrière. Les noms ci-dessous sont
+  // fabriqués ; posés dans le registre réel, ils seraient pointés comme des agents.
+  if (await enProduction()) {
+    await chargerMasseSalariale(COMMUNE);
+    console.log(`Base de production : masse salariale seule (${MASSE_SALARIALE.length} exercices), aucun agent créé.`);
+    console.log('Les agents réels s’importent depuis le portail de la commune : Personnel → Importer (Nom, Prénom, Fonction, Statut).');
+    return;
+  }
 
   // --- Les agents -----------------------------------------------------------
   const classementMelange = melangeDeterministe(CLASSEMENT, 20240419);
@@ -251,23 +282,7 @@ async function charger(): Promise<void> {
     crees += 1;
   }
 
-  // --- La masse salariale ---------------------------------------------------
-  for (const a of MASSE_SALARIALE) {
-    await query(
-      `INSERT INTO effectifs_service
-         (commune_id, annee, service, effectif_ouvriers, effectif_encadrement,
-          masse_salariale_tnd, masse_salariale_ouvriers_tnd, source)
-       VALUES ($1, $2::smallint, 'proprete', $3::smallint, $4::smallint, $5, $6, $7)
-       ON CONFLICT (commune_id, annee, service) DO UPDATE
-          SET effectif_ouvriers = EXCLUDED.effectif_ouvriers,
-              effectif_encadrement = EXCLUDED.effectif_encadrement,
-              masse_salariale_tnd = EXCLUDED.masse_salariale_tnd,
-              masse_salariale_ouvriers_tnd = EXCLUDED.masse_salariale_ouvriers_tnd,
-              source = EXCLUDED.source,
-              updated_at = now()`,
-      [COMMUNE, a.annee, a.ouvriers, a.encadrement, a.masse, a.masseOuvriers, SOURCE]
-    );
-  }
+  await chargerMasseSalariale(COMMUNE);
 
   // --- Les agents fictifs du module 2 -----------------------------------------
   //

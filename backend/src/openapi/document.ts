@@ -26,6 +26,7 @@ import { z } from 'zod';
 import { loginSchema } from '../routes/auth.routes.js';
 import { communeUpdateSchema } from '../routes/communes.routes.js';
 import { truckPositionSchema, importParcSchema } from '../routes/trucks.routes.js';
+import { importPersonnelSchema } from '../routes/personnel.routes.js';
 import {
   ticketCreateSchema,
   ticketRefuseSchema,
@@ -4680,7 +4681,7 @@ registry.registerPath({
   tags: ['Personnel'],
   summary: 'Déclarer effectif et masse salariale d’un exercice',
   description:
-    "Le seul endroit du module où figure de l'argent, et il est au niveau du service. Un chiffre sans origine n'étant pas opposable, le champ « source » dit d'où il vient en clair.",
+    "Le seul endroit du module où figure de l'argent, et il est au niveau du service. Un chiffre sans origine n'étant pas opposable, le champ « source » dit d'où il vient en clair. Sur un exercice déjà déclaré, un champ absent du corps garde sa valeur ; un champ envoyé à null l'efface.",
   security: SECURISE,
   request: {
     query: z.object({ communeId: paramCommuneId.optional() }),
@@ -4700,6 +4701,25 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: agentSchemaDoc } } },
   },
   responses: { 201: json(Agent, 'Agent inscrit.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/personnel/import',
+  tags: ['Personnel'],
+  summary: 'Importer le registre du personnel depuis un CSV',
+  description:
+    "Préparation de la recette R1. Quatre colonnes : Nom, Prénom, Fonction, Statut (en-têtes et valeurs en français, en arabe ou par leur code). Un fichier qui porte un salaire, un numéro de CIN, une donnée de santé, une adresse ou un téléphone est refusé en entier (400), la colonne nommée ; une case de huit chiffres aussi. Un agent déjà au registre (même nom et prénom, dans un ordre ou dans l'autre) n'est pas créé une seconde fois : sa fonction et son statut sont mis à jour s'ils ont changé. Sans « valider », rien n'est écrit. Hors du périmètre : 404.",
+  security: SECURISE,
+  request: {
+    query: z.object({ communeId: paramCommuneId.optional() }),
+    body: { content: { 'application/json': { schema: importPersonnelSchema } } },
+  },
+  responses: {
+    200: json(ApercuImportCsv, "Aperçu : rien n'a été écrit."),
+    201: json(ApercuImportCsv, 'Registre mis à jour.'),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 registry.registerPath({
@@ -8477,7 +8497,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.81',
+      version: '0.15.82',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

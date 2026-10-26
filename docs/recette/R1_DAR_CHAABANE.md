@@ -1,14 +1,18 @@
-# Recette R1 — Dar Chaâbane El Fehri
+# Recette R1 — Dar Chaâbane El Fehri, ou une commune qui part de zéro
 
-> Le dossier de préparation de la recette terrain du **jalon 11** (v0.16 : barbechas,
-> documents à numérotation scellée, carnet de bord et carburant, dossier de déclassement).
-> Source : `FEUILLE_DE_ROUTE.md` § 0 (ligne R1), § 5 (Recette R1) et § 6 (Niveau 2).
-> Préparé le 9 octobre 2026. **La recette n'a pas commencé** : la commune n'est pas encore
-> disponible.
+> Le dossier de la recette terrain du **jalon 11** (v0.16 : barbechas, documents à numérotation
+> scellée, carnet de bord et carburant, dossier de déclassement), avec l'écran *Coût de collecte* (lot C)
+> en lecture. Source : `FEUILLE_DE_ROUTE.md` § 0 (ligne R1), § 5 (Recette R1) et § 6 (Niveau 2).
+> Préparé le 9 octobre 2026 ; **mis à jour le 26 octobre 2026** (v0.15.82) après les décisions R1-a à R1-d
+> (§ 2). **La recette n'a pas commencé** : elle attend le serveur de production et la commune.
+
+**La commune n'est pas encore choisie** (décision du 26/10/2026). Ce sera Dar Chaâbane El Fehri, qui a un jeu
+de démarrage réel, ou une commune du Grand Tunis qui part de zéro, pour éprouver la saisie depuis rien. Ce
+dossier vaut pour les deux : là où ils diffèrent, il le dit.
 
 Tant que R1 n'a pas eu lieu, le jalon 11 est **développé**, pas **livré**. Il le devient quand
 trois conditions sont réunies (FEUILLE_DE_ROUTE § 5) : le critère d'acceptation passe ; le jalon a
-tourné **un mois complet** chez Dar Chaâbane avec de vrais agents ; les défauts trouvés sont
+tourné **un mois complet** dans la commune avec de vrais agents ; les défauts trouvés sont
 consignés au [journal des corrections](JOURNAL_DES_CORRECTIONS.md), avec leur portée.
 
 Pièces du dossier :
@@ -18,20 +22,21 @@ Pièces du dossier :
 | Ce document | La FNCT et l'exploitant : préparer, conduire et clore la recette |
 | [Fiche quotidienne](FICHE_QUOTIDIENNE_R1.md), français et arabe | Le chef de dépôt, imprimée et affichée au dépôt |
 | [Journal des corrections](JOURNAL_DES_CORRECTIONS.md) | Tout défaut trouvé, avec sa portée |
-| `npm run recette:etat -- <commune>` | L'état de la commune, en une page, à relancer chaque semaine |
+| `recette:etat -- <commune>` | L'état de la commune, en une page, à relancer chaque semaine |
+| `docs/exploitation/INSTALLATION.md` § 7 | Démarrer la commune sur l'instance de production |
 
 ---
 
-## 1. Avant de commencer : l'état de la commune
+## 1. L'état de la commune
 
-Une commande dit si la commune peut commencer, et sinon ce qui l'en empêche. Elle **ne modifie
-rien** (elle lit dans une transaction en lecture seule) :
+Une commande dit si la commune peut commencer, et sinon ce qui l'en empêche, avec le geste de chaque
+préalable. Elle **ne modifie rien** (elle lit dans une transaction en lecture seule). Sur l'instance de
+production :
 
 ```bash
-docker compose exec -T api npm run recette:etat -- nabeul_dar_chaabane_el_fehri
+docker compose --env-file .env -p siipi -f docker-compose.prod.yml run --rm --no-deps api npm run -s recette:etat:prod -- <identifiant de la commune>
 ```
 
-Sur une instance de production : `npm run recette:etat:prod -- nabeul_dar_chaabane_el_fehri`.
 Code de sortie : **0** prête, **3** pas prête, **1** commune introuvable, **2** usage.
 
 Elle distingue trois choses :
@@ -42,110 +47,130 @@ Elle distingue trois choses :
 2. **Ce qui se recueille en route**, sans empêcher de commencer ;
 3. **Les registres que la recette remplira**, vides avant elle — c'est attendu.
 
-**État lu le 9 octobre 2026** sur la pile d'essai, base chargée dans l'ordre de référence
-(`CLAUDE.md` § 7) : **PAS PRÊTE — 3 préalables**.
+**État lu le 26 octobre 2026** pour Dar Chaâbane, sur la base de développement chargée dans l'ordre de
+référence : **PAS PRÊTE — 2 préalables**.
 
 | Préalable | État | Ce qu'il faut faire |
 |---|---|---|
-| Compte propre de la commune | **0** | § 2.1 |
-| Compte de démonstration rattaché | **1** (`directeur.marsa@siipi.tn`) | § 2.2 |
-| Registres chargés | OK : 29 engins, 78 agents actifs, 13 circuits | — |
-| Incohérences bloquantes | **13** : les 13 circuits en régie n'ont aucun agent affecté | § 2.3 |
+| Compte propre de la commune | **0** | § 3.1 |
+| Compte de démonstration rattaché | OK : aucun (le rattachement de JC-001 n'existe plus) | — |
+| Registres chargés | OK : 29 engins, 61 agents, 13 circuits | — |
+| Incohérences bloquantes | **13** : les 13 circuits en régie n'ont aucun agent affecté | § 3.3 |
 
-Ces chiffres valent pour la base d'essai. **Relancer la commande sur l'instance où se fera la
-recette** avant de fixer la date avec la commune.
+Jusqu'à la v0.15.81, la commande comptait **78** agents : les 17 agents fictifs retirés du jeu de
+développement comptaient encore. Elle ne compte plus que les agents en service (v0.15.82).
 
-## 2. Lever les préalables
+Ces chiffres valent pour la base de développement, dont les 61 agents portent des **noms fabriqués**. Sur
+l'instance de la recette, il n'y en aura aucun avant l'import du personnel (§ 3.2). **Relancer la commande sur
+l'instance de la recette** avant de fixer la date avec la commune.
 
-### 2.1 Ouvrir le compte du chef de dépôt
+## 2. Les décisions du 26 octobre 2026
 
-La FNCT l'ouvre depuis le portail de la commune : *Annuaire des communes* → Dar Chaâbane →
-*Administration* → *Comptes*. Le mot de passe provisoire s'affiche une fois ; il est **remis en main
-propre**, jamais par message. Le chef de dépôt le remplace à sa première connexion.
+| # | Décision |
+|---|---|
+| R1-a | La recette se fait sur une **instance de production neuve** (`installer.sh`), jamais sur la base de développement. Elle attend le serveur de la DSI, ou un serveur virtuel temporaire |
+| R1-b | Le personnel s'importe en **CSV** : Nom, Prénom, Fonction, Statut. Le fichier qui porte un salaire, un CIN, une donnée de santé, une adresse ou un téléphone est **refusé** |
+| R1-c | Périmètre : le jalon 11, plus l'écran *Coût de collecte* en lecture (parcours P4). Le reste du jalon 12 (estimation, indicateurs du guide) est éprouvé à R2, chez M'hamdia |
+| R1-d | Les quatre parcours du § 6 sont validés, P4 sur le coût de collecte |
 
-Les comptes de démonstration ne servent pas à la recette : leur mot de passe est publié avec le
-code, et en production il n'ouvre aucun compte (v0.15.15).
+**Règle de la recette : aucune campagne de tests ne tourne sur l'instance de la recette.** Le lanceur le
+refuse de lui-même sur une base de production (v0.15.69). Les campagnes se lancent sur une pile d'essai
+séparée.
 
-### 2.2 Clore le rattachement du compte de démonstration
+## 3. Lever les préalables
 
-Le compte de démonstration `directeur.marsa@siipi.tn` est rattaché à Dar Chaâbane, avec droit
-d'écriture. Ce rattachement n'a pas été voulu : jusqu'à la v0.15.16, la campagne de tests
-`module2` le posait pour tourner sur une base neuve, et ne le retirait pas
-([JC-001](JOURNAL_DES_CORRECTIONS.md#jc-001)). Depuis la v0.15.17, les campagnes ont chacune leur
-propre directeur temporaire et n'en posent plus ; mais celui qui a été posé reste tant qu'on ne le
-clôt pas. Tant qu'il est ouvert, quiconque connaît le mot de passe public écrit dans le registre
-réel de la commune.
+### 3.1 Ouvrir le compte du chef de dépôt
 
-Il se **clôt**, il ne s'efface pas (règle d'or 1.4) : l'historique garde qui a eu accès, et
-quand. Aucun écran ne le fait encore ; l'exploitant l'exécute dans Adminer ou `psql` :
+La FNCT l'ouvre depuis le portail de la commune : *Annuaire et carte* → la commune → *Administration* →
+*Comptes*. Le mot de passe provisoire s'affiche une fois ; il est **remis en main propre**, jamais par
+message (aucun serveur de courriel n'est encore désigné). Le chef de dépôt le remplace à sa première connexion.
 
-```sql
-UPDATE utilisateur_communes
-   SET date_fin = CURRENT_DATE - 1
- WHERE commune_id = 'nabeul_dar_chaabane_el_fehri'
-   AND user_id IN (SELECT id FROM users WHERE email = 'directeur.marsa@siipi.tn');
+Les comptes de démonstration ne servent pas à la recette : sur une instance de production, ils n'existent pas.
+
+### 3.2 Charger les registres
+
+**Dar Chaâbane.** L'exploitant charge le jeu de démarrage réel (`INSTALLATION.md` § 7) :
+
+```bash
+docker compose --env-file .env -p siipi -f docker-compose.prod.yml run --rm --no-deps api npm run -s charger:dar-chaabane:prod
 ```
 
-Puis relancer `recette:etat` : la ligne doit passer à `[OK]`. Le clore ne gêne plus aucune
-campagne de tests (v0.15.17).
+Les 13 circuits, les 29 engins et la masse salariale 2021-2024 du service entrent. **Aucun agent** : en
+production, la commande refuse les noms fabriqués du jeu de développement, et les contenus de communication
+d'exemple. Le chef de dépôt importe ensuite le personnel, comme ci-dessous.
 
-> **Règle de la recette : ne jamais lancer `MIGRER.bat`, `TESTS.bat` ni `npm test` sur la base
-> de la recette.** Les campagnes `module2` à `module6` éprouvent les données réelles de
-> Dar Chaâbane — c'est leur objet — et y écrivent puis effacent leurs lignes de test (JC-001).
-> Les campagnes se lancent sur une pile d'essai séparée, jamais sur des données réelles en cours
-> de recette.
+**Une commune qui part de zéro.** Rien n'est chargé par l'exploitant ; la commune saisit depuis son portail :
 
-### 2.3 Affecter les équipes aux 13 circuits
+| Registre | Le geste |
+|---|---|
+| Parc | « + Ajouter » → *Le parc (fichier CSV)*, ou un engin à la fois depuis *Parc* |
+| Personnel | « + Ajouter » → *Le personnel (fichier CSV)*, ou *Personnel* → *Importer le personnel* |
+| Circuits | *Circuits* → créer chaque circuit, ou importer le tracé d'un relevé de terrain (KML, GPX) |
+| Masse salariale de l'année | *Personnel* → *Coût du service* → *Effectif et masse salariale du service* |
+
+**L'import du personnel**, dans les deux cas. Un fichier CSV de quatre colonnes : `Nom`, `Prénom`, `Fonction`,
+`Statut` (en-têtes en français ou en arabe : `اللقب`, `الاسم`, `الخطة`, `الصفة`). La fonction et le statut
+s'écrivent en mots (« Chauffeur », « سائق ») ou par leur code ; un statut vide vaut « Titulaire ». L'écran montre
+un aperçu ligne par ligne **sans rien écrire**, puis enregistre. Un agent déjà inscrit (même nom et prénom,
+dans un ordre ou dans l'autre) n'est pas créé une seconde fois.
+
+Le fichier est **refusé en entier**, la colonne nommée, s'il porte un salaire ou une prime, un numéro de CIN
+ou de pièce d'identité, une donnée de santé, une adresse ou un téléphone — en-tête en français ou en arabe — ou
+une case de huit chiffres (la forme d'un CIN ou d'un téléphone). C'est le cas d'une feuille de paie telle
+quelle : en retirer ces colonnes avant l'envoi.
+
+### 3.3 Affecter les équipes aux circuits
 
 C'est le seul préalable que **seule la commune** peut lever : le registre du personnel dit qui
-travaille au service, pas qui fait quelle tournée. Le dossier reçu de la commune ne le dit pas non
-plus — deux feuilles du registre annoncent 48 et 39 agents, la paie en compte 60 (migration 038).
-La plateforme ne devine pas (règle d'or 1.5).
+travaille au service, pas qui fait quelle tournée. La plateforme ne devine pas (règle d'or 1.5).
+À Dar Chaâbane, deux feuilles du registre annoncent 48 et 39 agents, la paie en compte 60 (migration 038).
 
-Avec le chef de dépôt, pour chacun des 13 circuits en régie (*Terrain & opérations* →
-*Circuits* → le circuit, ou *Flotte, GMAO & dépôt* → *Personnel*) : le chauffeur, le chef
-d'équipe s'il y en a un, les agents. Ou, si un circuit est
-confié à un prestataire, le prestataire. Les 13 lignes bloquantes du panneau « À vérifier »
+Avec le chef de dépôt, pour chaque circuit en régie (*Terrain & opérations* → *Circuits* → le circuit, ou
+*Flotte, GMAO & dépôt* → *Personnel* → *Équipes*) : le chauffeur, le chef d'équipe s'il y en a un, les agents.
+Ou, si un circuit est confié à un prestataire, le prestataire. Les lignes bloquantes du panneau « À vérifier »
 disparaissent à mesure.
 
 Compter une demi-journée sur place, liste du personnel en main.
 
-## 3. Ce qui se recueille en route
+## 4. Ce qui se recueille en route
 
 Ces écarts n'empêchent pas de commencer. Ils se complètent pendant le mois, et la commande les
-recompte chaque semaine (état du 9 octobre 2026 sur la base d'essai) :
+recompte chaque semaine (état du 26 octobre 2026, Dar Chaâbane, base de développement) :
 
-| À recueillir | Combien | Où |
+| À recueillir | État | Où |
 |---|---|---|
+| Masse salariale de l'année du service | non renseignée (le jeu s'arrête à 2024) | *Personnel* → *Coût du service*. Sans elle, le personnel du coût de collecte est « non renseigné » |
+| Prix du gasoil | non renseigné | Observatoire → *Paramètres nationaux* (FNCT). Sans lui, le carburant d'un engin sans plein enregistré est « non renseigné » |
+| Classe et volume de benne des engins de circuit | à compléter dès qu'un engin est affecté à un circuit | *Parc* → la fiche de l'engin (lot T) |
 | Prix d'achat d'un engin | 1 engin | *Parc* — sans prix, le seuil de 80 % du déclassement reste « non calculable » |
 | En-tête des documents : ministère de tutelle, formule d'en-tête de l'État | non renseignés | Observatoire → *Paramètres nationaux* (FNCT) |
-| Modèles des documents (ordre de mission, bon de carburant, bon de travail, déclaration de panne) | à valider sur pièce | Avec le chef de dépôt : la numérotation scellée est faite (16.2), la mise en page attend ces modèles |
+| Modèles des quatre documents (ordre de mission, bon de carburant, bon de travail, déclaration de panne) | provisoires | Avec le chef de dépôt, sur pièce : la validation se fait en changeant leur statut dans le code (décision du 16/10/2026) |
 | Circuits sans exécutant ni engin | 13 | *Circuits* |
 | Circuits sans point de collecte | 13 | *Circuits* — importer la trace ou saisir les arrêts principaux |
 | Engins immobilisés sans date de début | 13 | *Déclassement* → immobilisations |
 | Engin immobilisé sans motif | 1 | *Déclassement* → immobilisations |
 | Engins en service affectés à aucun circuit | 10 | *Parc* — affecter, ou noter l'emploi réel (réserve, appui, atelier) |
 | Engins « à réformer » sans dossier de déclassement | 3 | *Déclassement* → dossiers (parcours P3) |
-| Fiche d'évaluation de l'année | pas commencée | *Indicateurs* |
 
-## 4. Le déroulé
+Pour une commune qui part de zéro, la commande dresse la même liste une fois ses registres saisis.
+
+## 5. Le déroulé
 
 | Quand | Quoi | Qui |
 |---|---|---|
-| **Semaine 0** — un jour sur place | Préalables levés (§ 2) ; `recette:etat` rend « PRÊTE » ; deux heures de prise en main ; [fiche quotidienne](FICHE_QUOTIDIENNE_R1.md) imprimée et affichée | FNCT, exploitant, chef de dépôt |
+| **Avant** | Le serveur est installé (`installer.sh`) ; la commune est choisie ; la FNCT pose le prix du gasoil et l'en-tête des documents | DSI, FNCT |
+| **Semaine 0** — un jour sur place | Compte du chef de dépôt ; registres chargés ou saisis, personnel importé, masse salariale de l'année déclarée (§ 3.2) ; équipes affectées (§ 3.3) ; `recette:etat` rend « PRÊTE » ; deux heures de prise en main ; [fiche quotidienne](FICHE_QUOTIDIENNE_R1.md) imprimée et affichée | FNCT, exploitant, chef de dépôt |
 | **Semaines 1 à 4** | Usage quotidien **sans assistance**, sur le registre réel de la commune | Chef de dépôt et son équipe |
 | **Chaque semaine** — 30 minutes | Point au téléphone : relancer `recette:etat`, lire « À vérifier », relever les défauts au journal, cocher les parcours tracés | FNCT avec le chef de dépôt |
-| **Fin du mois** | Bilan : critère de sortie (§ 6), défauts ouverts, décision de clôture | FNCT, commune |
+| **Fin du mois** | Bilan : critère de sortie (§ 7), défauts ouverts, décision de clôture | FNCT, commune |
 
 « Sans assistance » veut dire : on ne montre pas comment faire pendant le mois. Une question
 posée au téléphone est un constat — l'écran ne disait pas quoi faire — et se consigne au journal.
 
-## 5. Quatre parcours de bout en bout
+Une commune qui part de zéro compte une semaine 0 plus longue : la saisie de ses registres est elle-même
+éprouvée. Une donnée saisie deux fois, ou une saisie qui n'a pas trouvé son écran, se consigne au journal.
 
-Le § 6 de la feuille de route demande trois parcours complets ; ils y sont écrits pour une commune
-qui utiliserait tout le portail (signalement citoyen, pointage, prestataire). Dar Chaâbane éprouve
-le **jalon 11** : les parcours ci-dessous en sont l'adaptation. **Adaptation à valider par la
-FNCT** avant la semaine 0.
+## 6. Quatre parcours de bout en bout (validés le 26/10/2026)
 
 Chacun doit être tracé **au moins une fois en entier** pendant le mois, avec de vraies données.
 
@@ -175,18 +200,20 @@ Immobilisation datée et motivée (*Déclassement* → immobilisations) → doss
 *Ce qu'on doit voir* : la plateforme affiche « seuil atteint » ou « non atteint » ; **elle ne
 déclasse jamais** un engin. Sans prix d'achat : « non calculable », pas un calcul à vide.
 
-### P4 — Une journée de pointage jusqu'au coût à la tonne
+### P4 — Une journée de pointage jusqu'au coût de collecte
 
 Pointage du matin (*Personnel*) → équipes du jour sur les circuits → pesées de la journée →
-*Indicateurs* → « Coût global à la tonne » (masse salariale, carburant, maintenance et redevances,
-divisés par le tonnage pesé).
+*Coût de collecte* (pôle Pilotage), le mois en cours : par circuit, le personnel, le carburant, l'entretien,
+l'amortissement et la redevance, chacun avec sa provenance.
 
-*Ce qu'on doit voir* : aucun salaire individuel (le coût existe au niveau du service et de
-l'année) ; aucun terme médical dans les motifs d'absence ; tant qu'une des quatre composantes du
-coût manque, l'indicateur dit **non renseigné**, jamais 0 — c'est un résultat attendu des
-premières semaines, pas un défaut.
+*Ce qu'on doit voir* : aucun salaire individuel (la masse salariale est celle du service et de l'année,
+répartie au prorata des jours pointés) ; aucun terme médical dans les motifs d'absence ; chaque montant dit
+s'il est **réel** (un plein, une intervention) ou **tiré du guide** (« ratio du guide », « prix du guide ») ;
+tant qu'une composante manque, le circuit n'a **pas de total**, et le coût à la tonne n'existe que pour un
+circuit dont **tous** les voyages sont pesés. Des circuits « non renseignés » les premières semaines sont un
+résultat attendu, pas un défaut.
 
-## 6. Critère de sortie
+## 7. Critère de sortie
 
 La recette est réussie quand, à la fin du mois :
 
@@ -200,18 +227,20 @@ La recette est réussie quand, à la fin du mois :
 
 Alors le jalon 11 passe de *développé* à *livré*, et le CHANGELOG le dit.
 
-## 7. Ce que R1 ne vérifie pas
+## 8. Ce que R1 ne vérifie pas
 
 | Hors de R1 | Pourquoi |
 |---|---|
 | Identités nominatives des pré-collecteurs (16.1) | L'hébergement des identités n'est pas accrédité : la base refuse toute identité. Le registre pseudonyme, lui, s'éprouve |
 | Registre des acteurs informels (18.1) | Le cadre du secteur informel n'est pas en vigueur : l'écran n'apparaît pas |
-| Mise en page des documents (16.2) | Elle attend les modèles validés sur pièce pendant R1 ; la numérotation scellée s'éprouve, elle |
-| Coût complet, paramètres étendus (jalon 12) | Recette R2, chez M'hamdia |
+| Estimation sans pont-bascule (17.2), indicateurs du guide (K), coût complet d'un bureau d'études (17.5) | Recette R2, chez M'hamdia (R1-c) |
+| Connecteur GPS (17.4) | Sa recette se fait avec le fournisseur de Menzel Chaker, quand sa documentation sera reçue |
 
-## 8. Données personnelles
+## 9. Données personnelles
 
 La recette se fait sur le registre réel de la commune, dans son instance : les noms des agents y
-sont saisis par la commune, pour son usage (loi organique n° 2004-63). **Rien n'en sort** : le
-journal des corrections décrit un défaut sans nom d'agent, sans matricule, sans capture d'écran
-qui en montrerait un. Une capture utile se recadre ou se floute avant d'être jointe.
+sont saisis ou importés par la commune, pour son usage (loi organique n° 2004-63). L'import refuse tout ce que
+le registre ne garde jamais (§ 3.2). **Rien n'en sort** : le journal des corrections décrit un défaut sans nom
+d'agent, sans matricule, sans capture d'écran qui en montrerait un. Une capture utile se recadre ou se floute
+avant d'être jointe. Un fichier du personnel transmis pour la recette ne se dépose ni dans le dépôt de code ni
+dans un message : il reste à la commune, qui l'importe elle-même.

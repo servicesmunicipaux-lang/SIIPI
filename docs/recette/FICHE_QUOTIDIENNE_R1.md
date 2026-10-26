@@ -1,6 +1,6 @@
 # Fiche quotidienne — recette R1 · البطاقة اليومية — الاختبار الميداني
 
-Dar Chaâbane El Fehri · دار شعبان الفهري — à imprimer et afficher au dépôt · تُطبع وتُعلّق بالمستودع
+La commune de la recette · بلدية الاختبار — à imprimer et afficher au dépôt · تُطبع وتُعلّق بالمستودع
 
 Les noms d'écrans sont ceux du menu, dans la langue choisie. · أسماء الشاشات هي نفسها الواردة في القائمة، حسب اللغة المختارة.
 
@@ -20,7 +20,8 @@ Les noms d'écrans sont ceux du menu, dans la langue choisie. · أسماء ال
 
 | Écran · الشاشة | Le geste | الإجراء |
 |---|---|---|
-| Indicateurs · المؤشرات | Regarder la consommation (L/100 km) et le coût à la tonne. « Non renseigné » veut dire qu'une donnée manque, pas zéro. | الاطلاع على الاستهلاك (لتر/100 كلم) وكلفة الطن. « غير معمّر » يعني أن معطى ناقص، وليس صفرا. |
+| Carnet & carburant · دفتر الجولان والمحروقات | Regarder la consommation (L/100 km). | الاطلاع على الاستهلاك (لتر/100 كلم). |
+| Coût de collecte · كلفة الجمع | Regarder le coût de chaque circuit. « Non renseigné » veut dire qu'une donnée manque, pas zéro ; « Ratio du guide » veut dire que le chiffre n'est pas encore le vôtre. | الاطلاع على كلفة كل دورة. « غير مُدخَل » يعني أن معطى ناقص، وليس صفرا؛ « نسبة الدليل » تعني أن الرقم ليس رقمكم بعد. |
 | — | Point au téléphone avec la FNCT (30 minutes). | نقطة هاتفية مع الجامعة الوطنية للبلديات التونسية (30 دقيقة). |
 
 ## Quand quelque chose ne va pas · عند حدوث إشكال

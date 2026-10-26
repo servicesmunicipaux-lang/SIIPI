@@ -152,6 +152,47 @@ export const JEU_COMMUNES: JeuExport = {
   ],
 };
 
+const FONCTIONS_AGENT = {
+  chauffeur: { fr: 'Chauffeur', ar: 'سائق' },
+  agent: { fr: 'Agent de collecte', ar: 'عون جمع' },
+  chef_equipe: { fr: 'Chef d’équipe', ar: 'رئيس فريق' },
+  agent_balayage: { fr: 'Agent de balayage', ar: 'عون كنس' },
+  encadrement: { fr: 'Encadrement', ar: 'إطار' },
+  ripeur: { fr: 'Ripeur', ar: 'عون رفع' },
+  tractoriste: { fr: 'Tractoriste', ar: 'سائق جرّار' },
+  mecanicien: { fr: 'Mécanicien', ar: 'ميكانيكي' },
+  jardinier: { fr: 'Jardinier', ar: 'بستاني' },
+  agent_hygiene: { fr: 'Agent d’hygiène', ar: 'عون حفظ صحة' },
+  magasinier: { fr: 'Magasinier', ar: 'خازن' },
+  gardien: { fr: 'Gardien', ar: 'حارس' },
+  administratif: { fr: 'Administratif', ar: 'إداري' },
+};
+
+const STATUTS_AGENT = {
+  titulaire: { fr: 'Titulaire', ar: 'مرسّم' },
+  contractuel: { fr: 'Contractuel', ar: 'متعاقد' },
+  occasionnel: { fr: 'Occasionnel', ar: 'عرضي' },
+  mise_a_disposition: { fr: 'Mis à disposition', ar: 'موضوع على الذمة' },
+  prestataire: { fr: 'Agent d’un prestataire', ar: 'عون متعهد' },
+};
+
+/**
+ * R1 — l'import du personnel d'une commune : quatre colonnes, rien d'autre. Ce
+ * jeu ne sert qu'à l'import (aucun export ne le sert) ; le registre ne garde ni
+ * salaire, ni CIN, ni santé, ni adresse, et l'import refuse le fichier qui en
+ * porte (services/importPersonnel.ts).
+ */
+export const JEU_PERSONNEL: JeuExport = {
+  nom: 'personnel',
+  titre: { fr: 'Personnel', ar: 'الأعوان' },
+  colonnes: [
+    { cle: 'nom', fr: 'Nom', ar: 'اللقب', import: 'nom', alias: ['nom de famille', 'patronyme'] },
+    { cle: 'prenom', fr: 'Prénom', ar: 'الاسم', import: 'prenom' },
+    { cle: 'fonction', fr: 'Fonction', ar: 'الخطة', import: 'fonction', alias: ['الوظيفة', 'poste'], libelles: FONCTIONS_AGENT },
+    { cle: 'statut', fr: 'Statut', ar: 'الصفة', import: 'statut', alias: ['الوضعية'], libelles: STATUTS_AGENT },
+  ],
+};
+
 /** B2.4 — le parc d'une commune. */
 export const JEU_PARC: JeuExport = {
   nom: 'parc',

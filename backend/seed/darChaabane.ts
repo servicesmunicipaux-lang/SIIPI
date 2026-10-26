@@ -20,6 +20,7 @@
 
 process.env.SIIPI_DB_CONTEXT = 'server';
 const { pool, query, queryOne } = await import('../src/db.js');
+const { enProduction } = await import('./gardeProduction.js');
 
 interface CircuitRegistre {
   numero: number;
@@ -117,9 +118,14 @@ async function main() {
     [commune]
   );
   const avecRegistreReel = (registreReel?.n ?? 0) > 0;
+  // En production, jamais d'agent fictif : la commune importe son registre
+  // (Personnel → Importer), puis affecte ses équipes. Les circuits arrivent seuls,
+  // et le panneau « À vérifier » réclame leur équipe.
+  const production = await enProduction();
+  const sansAgentsFictifs = avecRegistreReel || production;
 
   const personnel: Record<string, string> = {};
-  for (const [matricule, nom, fonction] of (avecRegistreReel ? [] : AGENTS_FICTIFS)) {
+  for (const [matricule, nom, fonction] of (sansAgentsFictifs ? [] : AGENTS_FICTIFS)) {
     const existant = await queryOne<{ id: string }>(
       'SELECT id FROM personnel WHERE commune_id = $1 AND matricule = $2 AND deleted_at IS NULL',
       [commune, matricule]
@@ -136,7 +142,10 @@ async function main() {
     personnel[matricule] = cree!.id;
   }
   console.log(
-    avecRegistreReel
+    production
+      ? '[dar-chaabane] personnel : base de production, aucun agent créé. La commune importe son registre ' +
+        '(Personnel → Importer), puis affecte ses équipes.'
+      : avecRegistreReel
       ? `[dar-chaabane] personnel : registre réel présent (${registreReel!.n} agents DCF-), ` +
         'aucun agent fictif créé. Les équipes de circuit sont à affecter depuis l\'écran Personnel.'
       : `[dar-chaabane] personnel : ${Object.keys(personnel).length} agents (noms fictifs, ` +
@@ -199,7 +208,7 @@ async function main() {
     // « 2 agents par engin » du registre. Sautée dès que le registre réel est
     // chargé — mieux vaut un circuit que la plateforme signale comme non
     // pourvu qu'un circuit pourvu par un agent imaginaire.
-    if (avecRegistreReel) continue;
+    if (sansAgentsFictifs) continue;
     const chauffeur = AGENTS_FICTIFS[c.numero - 1];
     const ripeur = AGENTS_FICTIFS[7 + c.numero];
     for (const [agent, role] of [

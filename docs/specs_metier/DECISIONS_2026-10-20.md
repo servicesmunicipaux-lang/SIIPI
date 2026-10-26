@@ -216,3 +216,22 @@ Le réel passe toujours avant le guide : une seule intervention enregistrée suf
 registre (et absent si l'une d'elles n'a pas de coût) ; un seul plein, pour que le carburant soit celui des pleins. Le
 prix du gasoil est un paramètre national daté, sans valeur posée par la migration (G11). Le coût à la tonne ne se
 rapporte qu'au pesé, et seulement quand tous les voyages attendus du circuit sont pesés.
+
+## Complément du 26 octobre 2026 (soir) — La recette R1
+
+**Plan de recette validé**, avec ses quatre décisions (`docs/recette/R1_DAR_CHAABANE.md` § 2) :
+
+- **R1-a — L'instance.** Une instance de production neuve, installée par `installer.sh` ; jamais la base de
+  développement, où les campagnes écrivent et où les comptes de démonstration ouvrent une session. La recette
+  attend le serveur de la DSI, ou un serveur virtuel temporaire.
+- **R1-b — Le personnel.** Il s'importe en CSV, au format simple Nom, Prénom, Fonction, Statut. Le fichier qui
+  porte un salaire, un CIN, une donnée de santé, une adresse ou un téléphone est refusé en entier. Sans cet
+  import, la saisie agent par agent ferait échouer le critère « aucune donnée saisie deux fois ».
+- **R1-c — Le périmètre.** Le jalon 11, plus l'écran *Coût de collecte* en lecture. Le reste du jalon 12 est
+  éprouvé à R2, chez M'hamdia.
+- **R1-d — Les parcours.** Les quatre parcours du dossier sont validés ; P4 va du pointage au coût de collecte.
+
+**La commune n'est pas tranchée** : Dar Chaâbane El Fehri, qui a un jeu de démarrage réel, ou une commune du
+Grand Tunis qui part de zéro, pour éprouver la saisie depuis rien. Les outils servent les deux cas ; la FNCT
+tranchera quand le serveur sera là.
+

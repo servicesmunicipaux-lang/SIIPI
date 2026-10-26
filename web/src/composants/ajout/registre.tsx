@@ -34,7 +34,7 @@ import { FormulairePublication } from './FormulairePublication';
 import { FormulaireRapport } from './FormulaireRapport';
 import { FormulaireRegistre } from './FormulaireRegistre';
 import { FormulaireSortieCarnet } from './FormulaireSortieCarnet';
-import { ImportContacts, ImportParc } from './ImportsCsv';
+import { ImportContacts, ImportParc, ImportPersonnel } from './ImportsCsv';
 
 /** Les rubriques du catalogue, dans l'ordre où le directeur les cherche (SPEC § 2.2). */
 export const RUBRIQUES = ['equipe', 'moyens', 'territoire', 'references', 'actions', 'registres', 'partenaires', 'imports'] as const;
@@ -105,6 +105,7 @@ const FORMULAIRES: Record<TypeFormulaire, Omit<EntreeFormulaire, 'type'>> = {
   convention: { rubrique: 'partenaires', roles: COMMUNE_ET_FNCT, Formulaire: registre('conventions') },
   'import-contacts': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportContacts },
   'import-parc': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportParc },
+  'import-personnel': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportPersonnel },
   'ordre-mission': { rubrique: 'equipe', roles: COMMUNE, Formulaire: document('ordre_mission') },
   'bon-travail': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('bon_travail') },
   'declaration-panne': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('declaration_panne') },

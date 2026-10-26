@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { query, queryOne } from '../db.js';
+import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { communeDemandee } from '../perimetre.js';
+import { JEU_PERSONNEL } from '../services/jeuxExport.js';
+import { decoder, lireCsv, lireTableau, messageLecture, normaliser } from '../services/import.js';
+import { clesAgent, refusFichierPersonnel } from '../services/importPersonnel.js';
 
 export const personnelRouter = Router();
 
@@ -252,6 +255,24 @@ personnelRouter.put(
     const d = effectifSchema.parse(req.body);
     const communeId = communeDemandee(req);
     if (!communeId) throw new ApiError(400, 'Commune requise.');
+    // Un champ ABSENT du corps garde sa valeur ; un champ envoyé à null l'efface.
+    // Sans cela, déclarer la masse salariale d'une année effaçait l'effectif déjà
+    // déclaré pour elle : la ligne entière était remplacée.
+    const corps = req.body as Record<string, unknown>;
+    const maj = (
+      [
+        ['effectifOuvriers', 'effectif_ouvriers'],
+        ['effectifEncadrement', 'effectif_encadrement'],
+        ['effectifContractuels', 'effectif_contractuels'],
+        ['masseSalarialeTnd', 'masse_salariale_tnd'],
+        ['masseSalarialeOuvriersTnd', 'masse_salariale_ouvriers_tnd'],
+        ['source', 'source'],
+        ['observation', 'observation'],
+      ] as const
+    )
+      .filter(([cle]) => cle in corps)
+      .map(([, colonne]) => `${colonne} = EXCLUDED.${colonne},`)
+      .join(' ');
 
     res.json(
       await queryOne(
@@ -261,13 +282,7 @@ personnelRouter.put(
             source, observation, saisi_par)
          VALUES ($1, $2, COALESCE($3, 'proprete'), $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (commune_id, annee, service) DO UPDATE
-            SET effectif_ouvriers = EXCLUDED.effectif_ouvriers,
-                effectif_encadrement = EXCLUDED.effectif_encadrement,
-                effectif_contractuels = EXCLUDED.effectif_contractuels,
-                masse_salariale_tnd = EXCLUDED.masse_salariale_tnd,
-                masse_salariale_ouvriers_tnd = EXCLUDED.masse_salariale_ouvriers_tnd,
-                source = EXCLUDED.source,
-                observation = EXCLUDED.observation,
+            SET ${maj}
                 saisi_par = EXCLUDED.saisi_par,
                 updated_at = now()
          RETURNING *`,
@@ -277,6 +292,126 @@ personnelRouter.put(
          d.source ?? null, d.observation ?? null, req.user!.sub]
       )
     );
+  })
+);
+
+// --- Import du registre (préparation de la recette R1) -----------------------
+//
+// Quatre colonnes : Nom, Prénom, Fonction, Statut. Une commune qui démarre saisit
+// soixante agents d'un fichier, pas un par un — saisir deux fois ce que sa paie
+// tient déjà ferait échouer la recette dès le premier jour. Même déroulé que le
+// parc : un aperçu qui n'écrit rien, puis la validation.
+
+export const importPersonnelSchema = z.object({
+  nomFichier: z.string().min(1).max(255),
+  contenu: z.string().min(1).max(4_000_000),
+  valider: z.boolean().default(false),
+});
+
+personnelRouter.post(
+  '/import',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const communeId = communeDemandee(req);
+    if (!communeId) throw new ApiError(400, 'Commune requise.');
+    const d = importPersonnelSchema.parse(req.body);
+    const ecrit = await queryOne<{ ok: boolean }>('SELECT app.can_write_commune($1) AS ok', [communeId]);
+    if (!ecrit?.ok) throw new ApiError(404, 'Commune introuvable.');
+
+    const octets = Buffer.from(d.contenu, 'base64');
+    // Le refus passe avant toute lecture : un fichier qui porte un salaire ou un
+    // CIN n'est pas lu à moitié.
+    const refus = refusFichierPersonnel(lireCsv(decoder(octets, [])));
+    if (refus) throw new ApiError(400, refus);
+    let tableau;
+    try {
+      tableau = lireTableau(JEU_PERSONNEL, octets);
+    } catch (err) {
+      throw new ApiError(400, messageLecture(err));
+    }
+
+    const existants = new Map<string, { id: string; fonction: string; statut: string }>();
+    for (const a of await query<{ id: string; nom_complet: string; fonction: string; statut: string }>(
+      'SELECT id, nom_complet, fonction, statut FROM personnel WHERE commune_id = $1 AND deleted_at IS NULL',
+      [communeId]
+    )) {
+      existants.set(normaliser(a.nom_complet), a);
+    }
+    const vusDansLeFichier = new Map<string, number>();
+
+    const lignes = tableau.lignes.map((l) => {
+      const v = l.valeurs;
+      const nom = String(v.nom ?? '').trim();
+      const prenom = String(v.prenom ?? '').trim();
+      const libelle = `${prenom} ${nom}`.trim();
+      const erreur = (erreurs: string[]) => ({ numero: l.numero, action: 'erreur' as const, libelle, erreurs, champs: [] as string[], saisie: null });
+      const erreurs = [...l.erreurs];
+      if (!nom) erreurs.push('« Nom » est obligatoire.');
+      if (!prenom) erreurs.push('« Prénom » est obligatoire.');
+      if (!v.fonction && !l.erreurs.some((e) => e.startsWith('« Fonction »'))) erreurs.push('« Fonction » est obligatoire.');
+      // Un nom ne porte pas de chiffres : c'est un matricule, un CIN ou un téléphone égaré dans la mauvaise case.
+      if (/\d/.test(`${nom}${prenom}`)) erreurs.push('Le nom ou le prénom contient des chiffres : un nom n’en porte pas.');
+      if (`${prenom} ${nom}`.length > 120) erreurs.push('Le nom complet dépasse 120 caractères.');
+      if (erreurs.length > 0) return erreur(erreurs);
+
+      const [cle, cleInverse] = clesAgent(prenom, nom);
+      const deja = vusDansLeFichier.get(cle) ?? vusDansLeFichier.get(cleInverse);
+      if (deja) return erreur([`Même agent que la ligne ${deja} du fichier.`]);
+      vusDansLeFichier.set(cle, l.numero);
+
+      const fonction = String(v.fonction);
+      const statut = v.statut ? String(v.statut) : null;
+      const existant = existants.get(cle) ?? existants.get(cleInverse);
+      if (!existant) {
+        return {
+          numero: l.numero, action: 'creer' as const, libelle, erreurs: [], champs: [] as string[],
+          saisie: { nomComplet: `${prenom} ${nom}`, fonction, statut: statut ?? 'titulaire' } as Record<string, string>,
+        };
+      }
+      // Un agent déjà au registre n'est pas créé une seconde fois ; seules sa fonction
+      // et son statut, s'ils ont changé, sont mis à jour. Un statut laissé vide ne
+      // remplace rien.
+      const champs: string[] = [];
+      if (fonction !== existant.fonction) champs.push('Fonction');
+      if (statut && statut !== existant.statut) champs.push('Statut');
+      if (champs.length === 0) return { numero: l.numero, action: 'inchange' as const, libelle, erreurs: [], champs, saisie: null };
+      return {
+        numero: l.numero, action: 'maj' as const, libelle, erreurs: [], champs,
+        saisie: { id: existant.id, fonction, statut: statut ?? existant.statut } as Record<string, string>,
+      };
+    });
+
+    const compter = (a: string) => lignes.filter((l) => l.action === a).length;
+    const resume = { creer: compter('creer'), maj: compter('maj'), inchange: compter('inchange'), erreur: compter('erreur') };
+    const apercu = {
+      fichier: d.nomFichier,
+      colonnesReconnues: tableau.colonnesReconnues,
+      colonnesIgnorees: tableau.colonnesIgnorees,
+      avertissements: tableau.avertissements,
+      resume,
+      lignes: lignes.map(({ saisie: _saisie, ...l }) => l),
+    };
+    if (!d.valider) return res.json({ ...apercu, ecrit: false });
+    if (resume.creer + resume.maj === 0) throw new ApiError(400, 'Rien à créer ni à modifier dans ce fichier.');
+
+    await withTransaction(async (client) => {
+      for (const l of lignes) {
+        if (!l.saisie) continue;
+        if (l.action === 'creer') {
+          await client.query(
+            'INSERT INTO personnel (commune_id, nom_complet, fonction, statut) VALUES ($1, $2, $3, $4)',
+            [communeId, l.saisie.nomComplet, l.saisie.fonction, l.saisie.statut]
+          );
+        } else {
+          await client.query(
+            'UPDATE personnel SET fonction = $2, statut = $3, updated_at = now() WHERE id = $1 AND commune_id = $4 AND deleted_at IS NULL',
+            [l.saisie.id, l.saisie.fonction, l.saisie.statut, communeId]
+          );
+        }
+      }
+    });
+    res.status(201).json({ ...apercu, ecrit: true, crees: resume.creer, modifies: resume.maj });
   })
 );
 

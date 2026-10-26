@@ -1601,7 +1601,21 @@
       "retirer": "Retirer",
       "retirerConfirme": "Confirmer le retrait",
       "pasPointe": "pas encore pointé",
-      "noteAffectation": "Retirer quelqu’un clôt son affectation à la date affichée ; la tournée de la semaine dernière garde l’équipe qui l’a réellement faite. Le rôle tenu sur la tournée est proposé d’après la fonction au registre, et reste modifiable — c’est la commune qui sait qui conduit quoi."
+      "noteAffectation": "Retirer quelqu’un clôt son affectation à la date affichée ; la tournée de la semaine dernière garde l’équipe qui l’a réellement faite. Le rôle tenu sur la tournée est proposé d’après la fonction au registre, et reste modifiable — c’est la commune qui sait qui conduit quoi.",
+      "declaration": {
+        "titre": "Effectif et masse salariale du service",
+        "aide": "Un seul montant pour le service et l’année : la rémunération publique du budget, charges comprises — jamais un salaire individuel. Une case laissée vide ne change pas ce qui est déjà déclaré.",
+        "annee": "Année",
+        "effectifOuvriers": "Ouvriers",
+        "effectifEncadrement": "Encadrement",
+        "effectifContractuels": "Contractuels",
+        "masseSalarialeTnd": "Masse salariale (TND)",
+        "source": "Source",
+        "sourceExemple": "Budget communal 2026, chapitre propreté",
+        "invalide": "Une année sur quatre chiffres, des effectifs entiers et des montants positifs.",
+        "enregistrer": "Enregistrer",
+        "enregistree": "Déclaration {{annee}} enregistrée."
+      }
     },
     "communication": {
       "titre": "Communication & relation citoyen",
@@ -2884,6 +2898,7 @@
       "prestataire": "Un prestataire",
       "import-contacts": "Des contacts (fichier CSV)",
       "import-parc": "Le parc (fichier CSV)",
+      "import-personnel": "Le personnel (fichier CSV)",
       "import-geographique": "Des fichiers géographiques d'un circuit",
       "ordre-mission": "Un ordre de mission",
       "bon-travail": "Un bon de travail",
@@ -2972,6 +2987,11 @@
       "engin": "Engin",
       "choisirEngin": "Choisir un engin",
       "aucunEngin": "La commune n’a encore aucun engin au parc."
+    },
+    "importPersonnel": {
+      "bouton": "Importer le personnel",
+      "format": "Un fichier CSV de quatre colonnes : Nom, Prénom, Fonction, Statut (en-têtes en français ou en arabe). Un agent déjà inscrit n’est pas créé une seconde fois.",
+      "jamais": "Le fichier est refusé s’il porte un salaire, un numéro de CIN, une donnée de santé, une adresse ou un téléphone : SIIPI ne les garde jamais (loi organique n° 2004-63). Retirez ces colonnes avant l’envoi."
     }
   },
   "prestataire": {
