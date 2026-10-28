@@ -5,6 +5,37 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.84] — 2026-10-28 — La carte de pré-collecteur (lot I2, 18.2)
+
+`DECISIONS_2026-10-20.md`, compléments du 28/10/2026 : la carte de l'article 13.1 du projet de décret, sur les règles
+datées du lot I1. Derrière l'interrupteur du cadre du secteur informel, éteint en production.
+
+### Ajouté
+- **La demande** (migration 092, `demandes_carte_precollecteur`, `zones_demande_carte`, `pieces_demande_carte`) :
+  l'acteur, déclaré pré-collecteur, la date de dépôt, les secteurs d'accès de la commune, et, pour un renouvellement,
+  la carte renouvelée. Les pièces : leur date et leur référence, jamais le scan ; **la liste exigée est celle du jour
+  de la demande**.
+- **L'accord** (`app.accorder_carte`) : une seule transaction qui vérifie la catégorie, les pièces, les secteurs et
+  la **durée de validité en vigueur le jour de la décision** — sans elle, pas de carte —, puis émet la carte comme
+  document scellé de 16.2 (`carte_precollecteur`, numéro `CP-AAAA-NNNNN`, gabarit bilingue « modèle provisoire »,
+  bandeau « projet de décret — non en vigueur » quand la règle appliquée est provisoire). Un acteur dont la carte vaut
+  encore ne reçoit qu'un renouvellement, qui commence le lendemain de sa fin. Le **refus** est motivé ; le **retrait**
+  d'une carte aussi, et la carte reste au registre ; une annulation reste l'erreur d'émission.
+- **Aucun nom n'est scellé** : la carte porte le pseudonyme ; le nom s'imprime pour le seul directeur de la commune,
+  lu dans la table d'identité, lecture journalisée ; pour la FNCT, la case reste vide. Aucune colonne de paiement.
+- « À vérifier » annonce une carte qui expire dans les 30 jours sans renouvellement demandé (FR, AR).
+- API `/cartes-precollecteur` (lecture : commune et FNCT ; écriture : directeur de la commune) ; la route générique
+  `POST /documents` n'émet pas de carte. Écran *Acteurs informels*, section *Cartes de pré-collecteur* : état de
+  chaque demande, pièces du jour, accord, refus, impression, retrait, renouvellement — FR/AR, vérifiée sur téléphone.
+
+### Vérifié
+- Campagne `carte-precollecteur` : les refus d'abord (cadre éteint, intermédiaire, sans catégorie, secteur ou acteur
+  d'une autre commune, pièce hors liste, accord incomplet, sans durée en vigueur, par la FNCT ou un prestataire,
+  décision rejouée, carte réécrite, émission générique, colonne de paiement) ; puis la liste du jour de la demande, la
+  durée du jour de la décision (témoin de dates), le renouvellement sans chevauchement, le nom imprimé pour le seul
+  directeur et absent du registre comme du journal d'audit, l'avis d'échéance et son retrait. La campagne `documents`
+  compte désormais cinq gabarits.
+
 ## [0.15.83] — 2026-10-28 — Les règles du secteur informel, en paramètres nationaux (lot I1)
 
 `DECISIONS_2026-10-20.md`, complément du 28/10/2026 : les lots 18.2 et 18.3 se développent sans attendre l'article 13

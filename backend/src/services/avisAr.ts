@@ -89,6 +89,9 @@ export const MODELES: Modele[] = [
   { fr: "Vérifier le volume, la classe ou la charge utile de l'engin. SIIPI ne corrige pas l'estimation : il signale l'écart.", ar: 'التثبّت من حجم المعدة أو صنفها أو حمولتها النافعة. لا تصحّح المنظومة التقدير، بل تشير إلى الفارق.' },
 
   // --- Acteurs informels ----------------------------------------------------------------------
+  // Les cartes de pré-collecteur (lot I2).
+  { fr: 'La carte %s expire le %s.', ar: 'تنتهي صلوحية البطاقة {0} بتاريخ {1}.' },
+  { fr: "Si l'acteur poursuit son activité, enregistrer sa demande de renouvellement.", ar: 'إذا واصل الفاعل نشاطه، يُسجَّل مطلب تجديد بطاقته.' },
   { fr: "Déclaré pré-collecteur, mais achète à d'autres pré-collecteurs : relève de la catégorie intermédiaire.", ar: 'مصرَّح به كمجمّع أولي، لكنه يشتري من مجمّعين أوليين آخرين: يندرج ضمن فئة الوسطاء.' },
   { fr: "Déclaré pré-collecteur, mais dispose d'un local de stockage : relève de la catégorie intermédiaire.", ar: 'مصرَّح به كمجمّع أولي، لكنه يملك محلاًّ للخزن: يندرج ضمن فئة الوسطاء.' },
   { fr: "Vérifier les faits relevés, ou la catégorie déclarée. SIIPI ne change pas la catégorie : il signale l'écart.", ar: 'التثبّت من الوقائع المسجَّلة أو من الفئة المصرَّح بها. لا تغيّر المنظومة الفئة، بل تشير إلى الفارق.' },

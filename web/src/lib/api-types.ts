@@ -10188,7 +10188,7 @@ export interface paths {
             parameters: {
                 query?: {
                     communeId?: string;
-                    type?: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne";
+                    type?: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur";
                     exercice?: number;
                     statut?: "emis" | "annule";
                 };
@@ -10418,7 +10418,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Les gabarits des quatre documents (lot 16.2)
+         * Les gabarits des documents scellés (lot 16.2 ; carte de pré-collecteur, lot I2)
          * @description Pour chaque type : titres FR/AR, référence, champs (clé, libellés, nature, obligatoire, unité), signatures, et statut — « provisoire » jusqu’à la validation par un chef de dépôt (décision du 16/10/2026). Le contenu d’un document émis doit suivre son gabarit.
          */
         get: {
@@ -10438,7 +10438,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             /** @enum {string} */
-                            type: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne";
+                            type: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur";
                             /** @enum {string} */
                             statut: "provisoire" | "valide";
                             fr: string;
@@ -10455,6 +10455,16 @@ export interface paths {
                                 nature: "texte" | "texte_long" | "date" | "nombre" | "oui_non";
                                 requis?: boolean;
                                 unite?: string;
+                                /**
+                                 * @description Imprimé, jamais scellé : la valeur s’ajoute à l’impression pour qui a le droit de la lire (le nom du titulaire d’une carte).
+                                 * @enum {boolean}
+                                 */
+                                imprimeSeulement?: true;
+                                /**
+                                 * @description Scellé, jamais imprimé en case (sert un bandeau).
+                                 * @enum {boolean}
+                                 */
+                                cache?: true;
                             }[];
                             signatures: {
                                 fr: string;
@@ -10565,7 +10575,7 @@ export interface paths {
         };
         /**
          * Imprimer un document : page A4 bilingue (HTML)
-         * @description En-tête de l’État, du gouvernorat et de la commune ; numéro d’ordre ; référence ; champs du gabarit (un champ vide reste vide) ; signatures ; mention d’édition (heure de Tunis, auteur) et empreinte du contenu. Bandeau « modèle provisoire » tant que le gabarit n’est pas validé ; un document annulé s’imprime barré, avec son motif.
+         * @description En-tête de l’État, du gouvernorat et de la commune ; numéro d’ordre ; référence ; champs du gabarit (un champ vide reste vide) ; signatures ; mention d’édition (heure de Tunis, auteur) et empreinte du contenu. Bandeau « modèle provisoire » tant que le gabarit n’est pas validé ; un document annulé s’imprime barré, avec son motif. Une carte de pré-collecteur porte le nom de son titulaire pour le seul directeur de la commune (lu dans la table d’identité, lecture journalisée) ; pour la FNCT, la case reste vide. Une carte accordée sur une règle provisoire le dit en bandeau.
          */
         get: {
             parameters: {
@@ -13799,6 +13809,721 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cartes-precollecteur": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les demandes de carte de la commune, leur état du jour, leurs pièces et leurs secteurs
+         * @description Projet de décret, art. 13.1 (lot 18.2). Derrière l’interrupteur du cadre du secteur informel : tant qu’il est éteint, toute écriture est refusée (409). Écrire est l’acte du directeur de la commune ; la FNCT lit. Gratuite : aucun champ de paiement.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Demandes, la plus récente d’abord. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            cadre_actif: boolean;
+                            demandes: components["schemas"]["DemandeCarte"][];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cartes-precollecteur/demandes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enregistrer une demande de carte : l’acteur, la date de dépôt, les secteurs d’accès
+         * @description Projet de décret, art. 13.1 (lot 18.2). Derrière l’interrupteur du cadre du secteur informel : tant qu’il est éteint, toute écriture est refusée (409). Écrire est l’acte du directeur de la commune ; la FNCT lit. Gratuite : aucun champ de paiement. L’acteur doit être déclaré pré-collecteur ; une seule demande en attente par acteur (409). Un renouvellement nomme la carte renouvelée.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        acteurId: string;
+                        dateDemande: string;
+                        zones: string[];
+                        /** Format: uuid */
+                        cartePrecedenteId?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Demande enregistrée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemandeCarte"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Refusée en l’état. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cartes-precollecteur/demandes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer une demande saisie à tort, avant sa décision
+         * @description Retrait logique. Une demande décidée ne se retire pas (409) : une carte accordée se retire, motivée.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Demande retirée. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Demande décidée. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cartes-precollecteur/demandes/{id}/pieces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enregistrer une pièce reçue : sa date, sa référence
+         * @description La pièce doit figurer dans la liste nationale en vigueur le jour de la demande (400 sinon). Jamais le document lui-même : l’original reste au dossier papier de la commune.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        pieceCode: string;
+                        datePiece: string;
+                        reference?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Pièce enregistrée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemandeCarte"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Pièce déjà enregistrée, ou demande décidée. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cartes-precollecteur/demandes/{id}/pieces/{pieceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Retirer une pièce enregistrée à tort, avant la décision */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    pieceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Pièce retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemandeCarte"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Demande décidée. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cartes-precollecteur/demandes/{id}/accord": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accorder la carte : elle est émise, scellée et numérotée
+         * @description Dans une seule transaction (app.accorder_carte) : pré-collecteur déclaré, toutes les pièces exigées le jour de la demande, au moins un secteur, une durée de validité en vigueur le jour de la décision (sinon 409 : aucune validité n’est inventée). Un acteur dont la carte est encore valable ne reçoit qu’un renouvellement, qui commence le lendemain de sa fin. Aucun nom n’est scellé.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateDecision: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Carte accordée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemandeCarte"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Refusé en l’état. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cartes-precollecteur/demandes/{id}/refus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refuser une demande, motivée
+         * @description Aucun document n’est émis. Une décision ne se change pas.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateDecision: string;
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Demande refusée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemandeCarte"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Déjà décidée. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/cartes-precollecteur/demandes/{id}/retrait": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retirer une carte accordée, à une date et pour un motif
+         * @description La carte a valu jusqu’à la veille ; elle reste au registre des documents, numéro compris. Un retrait n’est pas une annulation (erreur d’émission, POST /documents/{id}/annuler).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateRetrait: string;
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Carte retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DemandeCarte"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Pas de carte accordée, ou déjà retirée. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -29489,7 +30214,7 @@ export interface components {
             id: string;
             commune_id: string;
             /** @enum {string} */
-            type_document: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne";
+            type_document: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur";
             exercice: number;
             /** @description Rang continu dans le registre commune × type × exercice. Jamais réutilisé. */
             numero: number;
@@ -29976,6 +30701,48 @@ export interface components {
             /** @description Le texte publié qui met le cadre en vigueur. */
             reference: string | null;
             depuis: string | null;
+        };
+        DemandeCarte: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            acteur_id: string;
+            /** @description Le pseudonyme de l’acteur ; aucun nom. */
+            id_precollecteur: string;
+            date_demande: string;
+            /** Format: uuid */
+            carte_precedente_id: string | null;
+            /** @description Numéro de la carte renouvelée. */
+            carte_precedente: string | null;
+            /** @enum {string|null} */
+            decision: "accordee" | "refusee" | null;
+            date_decision: string | null;
+            motif_refus: string | null;
+            /** Format: uuid */
+            document_id: string | null;
+            /** @example CP-2026-00001 */
+            numero_affiche: string | null;
+            date_debut: string | null;
+            date_fin: string | null;
+            retrait_le: string | null;
+            motif_retrait: string | null;
+            /** @enum {string} */
+            etat: "demandee" | "refusee" | "annulee" | "retiree" | "a_venir" | "expiree" | "valide";
+            zones: {
+                /** Format: uuid */
+                id: string;
+                nom: string;
+            }[];
+            /** @description Les pièces exigées le jour de la demande ; « piece_id » null : pas encore reçue. */
+            pieces: {
+                code: string;
+                libelle_fr: string;
+                libelle_ar: string;
+                /** Format: uuid */
+                piece_id: string | null;
+                date_piece: string | null;
+                reference: string | null;
+            }[];
         };
         ElementListeNationale: {
             /** Format: uuid */
