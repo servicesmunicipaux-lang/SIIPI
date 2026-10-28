@@ -34,11 +34,16 @@ export interface TableauImporte {
   avertissements: string[];
 }
 
-/** Sans accent, sans casse, espaces réduits : « Réf. » et « ref. » se valent. */
+/**
+ * Sans accent, sans casse, espaces réduits : « Réf. » et « ref. » se valent. Sans
+ * voyelles brèves ni chadda en arabe non plus : « مرسّم » et « مرسم » se valent, et
+ * un agent qui tape sans signes diacritiques est reconnu.
+ */
 export function normaliser(s: string): string {
   return s
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
+    .replace(/[ً-ٰٟ]/g, '')
     .replace(/[’']/g, "'")
     .toLowerCase()
     .replace(/\s+/g, ' ')

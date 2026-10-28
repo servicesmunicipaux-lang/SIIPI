@@ -5,6 +5,47 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.82] — 2026-10-26 — La préparation de la recette R1
+
+`DECISIONS_2026-10-20.md`, complément du 26/10/2026 (soir) : décisions R1-a à R1-d. La recette se fera sur une
+instance de production neuve, chez Dar Chaâbane ou dans une commune du Grand Tunis qui part de zéro ; les outils
+servent les deux cas.
+
+### Ajouté
+- **L'import du personnel** (`POST /personnel/import`) : un CSV de quatre colonnes — Nom, Prénom, Fonction, Statut,
+  en-têtes en français ou en arabe —, un aperçu sans écriture, puis l'enregistrement. Un agent déjà inscrit (même nom
+  et prénom, dans un ordre ou dans l'autre) n'est pas créé une seconde fois. **Le fichier est refusé en entier**, la
+  colonne nommée, s'il porte un salaire ou une prime, un numéro de CIN ou de pièce d'identité, une donnée de santé,
+  une adresse ou un téléphone, ou une case de huit chiffres (`services/importPersonnel.ts`). Écran *Personnel* →
+  *Importer le personnel*, et le catalogue « + Ajouter » (*Le personnel (fichier CSV)*).
+- **L'effectif et la masse salariale de l'année** se saisissent enfin : *Personnel* → *Coût du service*. L'API les
+  recevait depuis le module 4 ; aucun écran ne les demandait, et « Ma commune dans SIIPI » renvoyait vers un écran
+  qui n'avait pas de formulaire.
+- **`charger:dar-chaabane` et `charger:dar-chaabane:prod`** : les circuits, le parc et la masse salariale réels de
+  Dar Chaâbane, d'une commande. Sur une base de production, **aucun agent fictif** n'est créé et les contenus de
+  communication d'exemple sont **refusés** (`seed/gardeProduction.ts`) ; en développement, rien ne change.
+- `recette:etat` dit à une commune vide le geste de chaque registre (import du parc, import du personnel, circuits),
+  propose le jeu de démarrage à Dar Chaâbane seule, et recense ce qu'il faut recueillir pour le coût de collecte :
+  masse salariale de l'année, prix du gasoil, classe et volume des engins de circuit, modèles des documents encore
+  provisoires.
+- `docs/exploitation/INSTALLATION.md` § 7, « Démarrer une commune ». Le dossier de recette
+  (`docs/recette/R1_DAR_CHAABANE.md`) et la fiche quotidienne sont mis à jour pour les deux cas ; P4 va du pointage
+  au coût de collecte.
+- Campagne **`preparation-recette`** (78e), 60 contrôles : treize refus de fichier (en-têtes français et arabes,
+  huit chiffres), les rôles et le périmètre, les erreurs de ligne, l'import, le réimport sans double, l'arabe sans
+  chadda ; la masse salariale déclarée sans effacer l'effectif ; `recette:etat` sur une commune vide ; une base de
+  production jetable (13 circuits, 29 engins, 0 agent, 4 exercices de masse salariale, exemples refusés) et une base
+  de développement (17 agents fictifs, comme avant). Le mutant qui ne regarde plus les en-têtes la fait échouer.
+
+### Modifié
+- `PUT /personnel/effectifs` : sur un exercice déjà déclaré, un champ absent du corps **garde** sa valeur ; un
+  champ envoyé à null l'efface. Déclarer la masse salariale effaçait l'effectif de l'année.
+- L'import lit l'arabe sans voyelles brèves ni chadda : « مرسم » vaut « مرسّم ».
+
+### Corrigé
+- `recette:etat` comptait les agents et les engins retirés : 78 agents à Dar Chaâbane pour 61 en service (les 17
+  agents fictifs retirés du jeu de développement).
+
 ## [0.15.81] — 2026-10-26 — Lot C : le coût de collecte, par circuit et par engin
 
 `DECISIONS_2026-10-20.md`, complément du 26/10/2026 (lot C). SIIPI calcule de ses propres registres le coût direct de

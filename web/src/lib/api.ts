@@ -1603,6 +1603,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(saisie),
     }),
+  // Préparation de R1 : le registre du personnel en quatre colonnes (Nom, Prénom, Fonction, Statut).
+  importerPersonnel: (communeId: string, saisie: Corps<'/personnel/import', 'post'>) =>
+    requete<ApercuImportCsv>(`/personnel/import?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
   // --- Tableau des points : champs libres, étiquettes, actions (Jalon 6) -----
   pointsFiltres: (communeId: string, f: FiltresPoints) => requete<PointDeCommune[]>(cheminPoints(communeId, f)),
   champsPoints: (communeId: string) =>

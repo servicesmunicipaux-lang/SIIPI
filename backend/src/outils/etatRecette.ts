@@ -18,6 +18,7 @@
 process.env.SIIPI_DB_CONTEXT = 'server';
 const { pool } = await import('../db.js');
 const { COMPTES_DE_DEMONSTRATION } = await import('../motDePassePublic.js');
+const { GABARITS } = await import('../documents/gabarits.js');
 
 const communeId = process.argv[2]?.trim();
 if (!communeId) {
@@ -73,8 +74,10 @@ try {
     const demonstration = comptes.filter((c) => (COMPTES_DE_DEMONSTRATION as readonly string[]).includes(c.email));
     const propres = comptes.filter((c) => !demonstration.includes(c));
 
-    const engins = await nombre('SELECT count(*) AS n FROM vehicules WHERE commune_id = $1');
-    const agents = await nombre('SELECT count(*) AS n FROM personnel WHERE commune_id = $1 AND actif');
+    // Un engin ou un agent retiré (suppression logique) ne compte pas : jusqu'à la
+    // v0.15.82, les 17 agents fictifs retirés de Dar Chaâbane comptaient encore (78 pour 61).
+    const engins = await nombre('SELECT count(*) AS n FROM vehicules WHERE commune_id = $1 AND deleted_at IS NULL');
+    const agents = await nombre('SELECT count(*) AS n FROM personnel WHERE commune_id = $1 AND actif AND deleted_at IS NULL');
     const circuits = await nombre('SELECT count(*) AS n FROM circuits WHERE commune_id = $1 AND actif AND deleted_at IS NULL');
     const ecarts = (
       await client.query<{ gravite: string; domaine: string; sujet: string; constat: string; quoi_faire: string }>(
@@ -102,7 +105,20 @@ try {
       [
         engins > 0 && agents > 0 && circuits > 0,
         `Registres chargés : ${engins} engin(s), ${agents} agent(s) actif(s), ${circuits} circuit(s)`,
-        engins > 0 && agents > 0 && circuits > 0 ? [] : ['Charger le parc, le personnel et les circuits de la commune avant la recette.'],
+        // Une commune qui part de zéro saisit ses trois registres depuis son portail ;
+        // chacun a son geste, dit ici plutôt qu'un « charger » qui ne dit pas comment.
+        [
+          ...(engins > 0 ? [] : ['Parc vide : « + Ajouter » → Importer le parc (CSV), ou un engin à la fois depuis Parc.']),
+          ...(agents > 0
+            ? []
+            : ['Personnel vide : « + Ajouter » → Importer le personnel (CSV : Nom, Prénom, Fonction, Statut ; jamais de salaire, de CIN, de santé ni d’adresse).']),
+          ...(circuits > 0
+            ? []
+            : ['Aucun circuit : Circuits → créer chaque circuit, ou importer son tracé (fichier KML ou GPX du relevé de terrain).']),
+          ...(engins > 0 || agents > 0 || circuits > 0 || !communeId.includes('dar_chaabane')
+            ? []
+            : ['Dar Chaâbane a un jeu de démarrage réel (circuits, parc, masse salariale) : npm run charger:dar-chaabane:prod — jamais d’agent fictif en production.']),
+        ],
       ],
       [
         bloquants.length === 0,
@@ -113,6 +129,20 @@ try {
 
     const sansPrix = await nombre('SELECT count(*) AS n FROM vehicules WHERE commune_id = $1 AND valeur_achat_tnd IS NULL');
     const sansDate = await nombre('SELECT count(*) AS n FROM vehicules WHERE commune_id = $1 AND date_premiere_circulation IS NULL');
+    // Le coût de collecte (lot C) : la masse salariale de l'année et le prix du gasoil.
+    const masseAnnee = await nombre(
+      `SELECT count(*) AS n FROM effectifs_service
+        WHERE commune_id = $1 AND service = 'proprete' AND masse_salariale_tnd IS NOT NULL
+          AND annee = extract(year FROM (now() AT TIME ZONE 'Africa/Tunis'))`
+    );
+    const annee = new Date(Date.now() + 3_600_000).getUTCFullYear();
+    // La classe et le volume d'un engin de circuit (lot T) : sans eux, ni estimation ni coût.
+    const enginsIncomplets = await nombre(
+      `SELECT count(*) AS n FROM vehicules v CROSS JOIN LATERAL app.engin_de_travail(v.id) t
+        WHERE v.commune_id = $1 AND v.deleted_at IS NULL AND t.manque IS NOT NULL
+          AND v.id IN (SELECT vehicule_id FROM circuits WHERE commune_id = $1 AND actif AND deleted_at IS NULL)`
+    );
+    const gabaritsProvisoires = Object.values(GABARITS).filter((g) => g.statut === 'provisoire').length;
     const entete = async (cle: string) =>
       (await nombre('SELECT count(*) AS n FROM app.parametre_national($1, CURRENT_DATE)', [cle])) > 0;
     const autres = new Map<string, number>();
@@ -135,6 +165,19 @@ try {
     l.push(
       `  - En-tête des documents (paramètres nationaux, FNCT) : ministère de tutelle ${(await entete('ministere_tutelle')) ? 'renseigné' : 'non renseigné'} ; ` +
         `formule d’en-tête ${(await entete('entete_etat')) ? 'renseignée' : 'non renseignée'}`
+    );
+    l.push(
+      `  - Masse salariale ${annee} du service propreté : ${masseAnnee > 0 ? 'renseignée' : 'non renseignée'} ` +
+        '(Personnel → Effectif et masse salariale ; sans elle, le personnel du coût de collecte est « non renseigné »)'
+    );
+    l.push(
+      `  - Prix du gasoil (paramètres nationaux, FNCT) : ${(await entete('prix_gasoil')) ? 'renseigné' : 'non renseigné'} ` +
+        '(sans lui, le carburant d’un engin sans plein enregistré est « non renseigné »)'
+    );
+    l.push(`  - Engins de circuit sans classe ou sans volume de benne : ${enginsIncomplets} (Parc → la fiche de l’engin ; estimation et coût de collecte)`);
+    l.push(
+      `  - Modèles des documents encore provisoires : ${gabaritsProvisoires} sur ${Object.keys(GABARITS).length} ` +
+        '(à valider sur pièce avec le chef de dépôt)'
     );
     if (autres.size === 0) l.push('  - Panneau « À vérifier » : rien d’autre');
     for (const [cle, n] of [...autres.entries()].sort()) l.push(`  - ${cle} (${n})`);

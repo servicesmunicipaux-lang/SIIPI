@@ -24,6 +24,12 @@
 
 process.env.SIIPI_DB_CONTEXT = 'server';
 const { pool, query, queryOne } = await import('../src/db.js');
+const { refuserEnProduction } = await import('./gardeProduction.js');
+
+await refuserEnProduction(
+  'communication',
+  'Ces sondages, projets et notifications sont des exemples : la commune écrira les siens.'
+);
 
 async function trouverCommune(): Promise<string | null> {
   const ligne = await queryOne<{ id: string }>(

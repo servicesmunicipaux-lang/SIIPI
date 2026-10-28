@@ -29,6 +29,7 @@ import {
 } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
 import { useAjoutEnLigne } from '../ajout/useAjoutEnLigne';
+import { EffectifService } from './EffectifService';
 
 const MOTIFS = [
   'conge', 'repos', 'formation', 'absence_justifiee',
@@ -85,6 +86,8 @@ export function Personnel({ communeId }: { communeId: string }) {
 
   // Le formulaire du registre d'ajout : le même que celui du catalogue « + Ajouter ».
   const ajoutAgent = useAjoutEnLigne('agent', communeId, t('ajout.agent.ajouter'), charger);
+  // Le registre entier d'un fichier : une commune qui démarre n'inscrit pas soixante agents un par un.
+  const importAgents = useAjoutEnLigne('import-personnel', communeId, t('ajout.importPersonnel.bouton'), charger);
 
   const compteurs = useMemo(() => {
     const l = presences ?? [];
@@ -186,10 +189,14 @@ export function Personnel({ communeId }: { communeId: string }) {
           <h1 className="text-xl font-semibold text-ardoise-900">{t('communal.personnel.titre')}</h1>
           <p className="mt-1 text-sm text-ardoise-600">{t('communal.personnel.chapeau')}</p>
         </div>
-        {ajoutAgent.bouton}
+        <div className="flex flex-wrap gap-2">
+          {importAgents.bouton}
+          {ajoutAgent.bouton}
+        </div>
       </header>
 
       {ajoutAgent.formulaire}
+      {importAgents.formulaire}
 
       {erreur && (
         <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900">
@@ -383,6 +390,7 @@ export function Personnel({ communeId }: { communeId: string }) {
       {/* --- Le coût du service --------------------------------------------- */}
       {vue === 'cout' && (
         <section className="space-y-3">
+          <EffectifService communeId={communeId} onFait={charger} />
           <div className="overflow-x-auto rounded-xl border border-ardoise-200 bg-white">
             <table className="w-full text-sm">
               <thead className="bg-ardoise-50 text-left text-xs uppercase text-ardoise-600">

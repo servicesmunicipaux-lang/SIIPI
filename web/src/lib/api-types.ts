@@ -15841,7 +15841,7 @@ export interface paths {
         get?: never;
         /**
          * Déclarer effectif et masse salariale d’un exercice
-         * @description Le seul endroit du module où figure de l'argent, et il est au niveau du service. Un chiffre sans origine n'étant pas opposable, le champ « source » dit d'où il vient en clair.
+         * @description Le seul endroit du module où figure de l'argent, et il est au niveau du service. Un chiffre sans origine n'étant pas opposable, le champ « source » dit d'où il vient en clair. Sur un exercice déjà déclaré, un champ absent du corps garde sa valeur ; un champ envoyé à null l'efface.
          */
         put: {
             parameters: {
@@ -15917,6 +15917,101 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/personnel/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer le registre du personnel depuis un CSV
+         * @description Préparation de la recette R1. Quatre colonnes : Nom, Prénom, Fonction, Statut (en-têtes et valeurs en français, en arabe ou par leur code). Un fichier qui porte un salaire, un numéro de CIN, une donnée de santé, une adresse ou un téléphone est refusé en entier (400), la colonne nommée ; une case de huit chiffres aussi. Un agent déjà au registre (même nom et prénom, dans un ordre ou dans l'autre) n'est pas créé une seconde fois : sa fonction et son statut sont mis à jour s'ils ont changé. Sans « valider », rien n'est écrit. Hors du périmètre : 404.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomFichier: string;
+                        contenu: string;
+                        /** @default false */
+                        valider?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Aperçu : rien n'a été écrit. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuImportCsv"];
+                    };
+                };
+                /** @description Registre mis à jour. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuImportCsv"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
