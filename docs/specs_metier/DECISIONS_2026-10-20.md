@@ -260,3 +260,17 @@ transitoire, 18.3). Six décisions validées :
 **aucune date de départ** posée : le projet ne la donne pas, et sans elle aucune échéance ne se calcule. Pièces exigées
 (trois attestations) et étapes d'accompagnement (six) en listes nationales datées : un élément se **ferme** à une date
 quand le texte change, se **retire** quand il a été saisi à tort.
+
+**I2 (v0.15.84), plan validé avec quatre décisions :**
+
+1. **Les pièces** : leur date et leur référence, jamais le scan — l'original reste au dossier papier de la commune.
+2. **Un pré-collecteur déclaré dont les faits indiquent un intermédiaire** reçoit sa carte si la commune la décide ;
+   l'écart reste dans « À vérifier ». La plateforme signale, elle ne corrige pas.
+3. **Un renouvellement décidé avant l'échéance** commence le lendemain de la fin de la carte en cours : un acteur n'a
+   jamais deux cartes valables.
+4. **Le format** : une page A4 qui porte la carte ; un format carte de crédit viendra si la commune le demande en
+   validant le modèle.
+
+**I2 fait (v0.15.84).** La carte naît d'un accord (`app.accorder_carte`) qui vérifie tout et l'émet scellée (`CP-…`),
+avec la liste des pièces du jour de la demande et la durée de validité du jour de la décision ; sans durée en vigueur,
+pas de carte. Aucun nom n'est scellé ; il s'imprime pour le seul directeur de la commune.

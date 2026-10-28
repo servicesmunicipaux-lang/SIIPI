@@ -24,7 +24,11 @@ import { rendreDocument, type DocumentAImprimer } from '../documents/impression.
 
 export const documentsRouter = Router();
 
-const TYPES = ['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne'] as const;
+const TYPES = ['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur'] as const;
+// La carte de pré-collecteur ne s'émet pas ici : elle naît d'un accord
+// (POST /cartes-precollecteur/demandes/{id}/accord, app.accorder_carte), qui
+// vérifie les pièces, les secteurs et la règle de validité du jour.
+const TYPES_EMISSIBLES = ['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne'] as const;
 
 const filtresSchema = z.object({
   type: z.enum(TYPES).optional(),
@@ -94,8 +98,19 @@ documentsRouter.get(
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
     if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) throw new ApiError(404, 'Document introuvable.');
-    const doc = await queryOne<DocumentAImprimer & { commune: string; commune_ar: string | null; gouvernorat: string; gouvernorat_ar: string | null }>(
+    const doc = await queryOne<
+      DocumentAImprimer & {
+        commune: string;
+        commune_ar: string | null;
+        gouvernorat: string;
+        gouvernorat_ar: string | null;
+        commune_id: string;
+        objet_type: string | null;
+        objet_id: string | null;
+      }
+    >(
       `SELECT d.type_document, d.numero_affiche, d.exercice, d.statut, d.contenu, d.motif_annulation, d.empreinte_contenu,
+              d.commune_id, d.objet_type, d.objet_id,
               to_char(d.emis_le AT TIME ZONE 'Africa/Tunis', 'YYYY-MM-DD') AS emis_le,
               c.name AS commune, c.name_ar AS commune_ar, c.gouvernorat, g.nom_ar AS gouvernorat_ar
          FROM documents_emis d
@@ -106,16 +121,35 @@ documentsRouter.get(
     );
     if (!doc) throw new ApiError(404, 'Document introuvable.');
     const auteur = await queryOne<{ full_name: string | null }>('SELECT full_name FROM users WHERE id = $1', [req.user?.sub ?? null]);
+    // Le nom du titulaire d'une carte n'est pas scellé (décision du 28/10/2026) :
+    // il se lit ici, sous la politique de la table d'identité — le seul
+    // directeur de la commune le voit ; pour la FNCT, la ligne n'existe pas et la
+    // case reste vide. Une lecture qui a exposé un nom est journalisée.
+    const imprime: Record<string, string> = {};
+    if (doc.type_document === 'carte_precollecteur' && doc.objet_type === 'acteur_informel' && doc.objet_id) {
+      const identite = await queryOne<{ nom_complet: string }>(
+        'SELECT nom_complet FROM donnees_personnelles_barbechas WHERE barbecha_id = $1',
+        [doc.objet_id]
+      );
+      if (identite) {
+        imprime.nom = identite.nom_complet;
+        await query('SELECT app.enregistrer_acces_identites($1, ARRAY[$2]::uuid[], $3)', [
+          'GET /documents/:id/impression',
+          doc.objet_id,
+          doc.commune_id,
+        ]);
+      }
+    }
     res
       .type('html')
       .set('Cache-Control', 'no-store')
-      .send(rendreDocument(doc, doc, auteur?.full_name ?? '—'));
+      .send(rendreDocument(doc, doc, auteur?.full_name ?? '—', imprime));
   })
 );
 
 export const emissionSchema = z
   .object({
-    type: z.enum(TYPES),
+    type: z.enum(TYPES_EMISSIBLES),
     // Les champs du gabarit. Tant que les gabarits ne sont pas validés, le
     // contenu reste libre — mais jamais vide : un numéro sans contenu
     // prouverait l'existence d'une pièce sans dire laquelle.

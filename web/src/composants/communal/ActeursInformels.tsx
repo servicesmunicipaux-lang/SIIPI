@@ -23,6 +23,7 @@ import { api, ErreurApi, type ActeurInformel, type DemarcheFormalisation, type R
 import { useAuth } from '../../lib/auth';
 import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
+import { CartesPrecollecteur } from './CartesPrecollecteur';
 
 const champ = 'mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-3 text-base';
 const bouton = 'min-h-11 rounded-lg bg-siipi-600 px-4 text-sm font-medium text-white disabled:opacity-40';
@@ -118,6 +119,8 @@ export function ActeursInformels({ communeId }: { communeId: string }) {
       )}
 
       {peutEcrire && <Inscription communeId={communeId} onFait={charger} onErreur={onErreur} />}
+
+      <CartesPrecollecteur communeId={communeId} acteurs={registre.acteurs} peutEcrire={peutEcrire} onErreur={onErreur} />
     </section>
   );
 }

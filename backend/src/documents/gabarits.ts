@@ -14,7 +14,7 @@
 
 import { z } from 'zod';
 
-export type TypeDocument = 'ordre_mission' | 'bon_carburant' | 'bon_travail' | 'declaration_panne';
+export type TypeDocument = 'ordre_mission' | 'bon_carburant' | 'bon_travail' | 'declaration_panne' | 'carte_precollecteur';
 
 type NatureChamp = 'texte' | 'texte_long' | 'date' | 'nombre' | 'oui_non';
 
@@ -26,6 +26,14 @@ export type ChampGabarit = {
   requis?: boolean;
   /** Unité affichée après la valeur (« L », « TND »). */
   unite?: string;
+  /**
+   * Imprimé, jamais scellé : la valeur s'ajoute au moment d'imprimer, pour qui a le
+   * droit de la lire (le nom du titulaire d'une carte, décision du 28/10/2026). Le
+   * contenu émis qui la porterait est refusé.
+   */
+  imprimeSeulement?: true;
+  /** Scellé, jamais imprimé en ligne : l'impression s'en sert (un bandeau), sans l'afficher en case. */
+  cache?: true;
 };
 
 export type Gabarit = {
@@ -113,6 +121,35 @@ export const GABARITS: Record<TypeDocument, Gabarit> = {
       { fr: 'L’atelier / le prestataire', ar: 'الورشة / المزوّد' },
     ],
   },
+  // La carte de pré-collecteur (lot I2, 18.2) : émise par app.accorder_carte
+  // (migration 092) seulement, jamais par le formulaire générique — les clés
+  // ci-dessous sont celles qu'écrit la fonction. Aucun nom n'est scellé : il
+  // s'imprime pour le directeur de la commune, depuis la table d'identité.
+  carte_precollecteur: {
+    type: 'carte_precollecteur',
+    statut: 'provisoire',
+    fr: 'CARTE DE PRÉ-COLLECTEUR',
+    ar: 'بطاقة مجمّع أولي',
+    reference: { fr: 'Registre communal des acteurs informels — carte gratuite', ar: 'السجلّ البلدي للفاعلين غير المنظمين — بطاقة مجانية' },
+    champs: [
+      { cle: 'identifiant', fr: 'Identifiant au registre', ar: 'المعرّف بالسجلّ', nature: 'texte', requis: true },
+      { cle: 'nom', fr: 'Nom et prénom', ar: 'الاسم واللقب', nature: 'texte', imprimeSeulement: true },
+      { cle: 'zones', fr: 'Secteurs d’accès', ar: 'القطاعات المسموح بها', nature: 'texte_long', requis: true },
+      { cle: 'date_debut', fr: 'Valable du', ar: 'صالحة من', nature: 'date', requis: true },
+      { cle: 'date_fin', fr: 'Au', ar: 'إلى', nature: 'date', requis: true },
+      { cle: 'duree_mois', fr: 'Durée de validité', ar: 'مدة الصلوحية', nature: 'nombre', requis: true, unite: 'mois' },
+      { cle: 'regle', fr: 'Règle appliquée', ar: 'القاعدة المطبّقة', nature: 'texte_long', requis: true },
+      { cle: 'regle_provisoire', fr: 'Règle provisoire', ar: 'قاعدة مؤقتة', nature: 'oui_non', cache: true },
+      { cle: 'date_demande', fr: 'Demande déposée le', ar: 'تاريخ تقديم المطلب', nature: 'date', requis: true },
+      { cle: 'pieces', fr: 'Pièces reçues', ar: 'الوثائق المقدّمة', nature: 'texte_long', requis: true },
+      { cle: 'carte_precedente', fr: 'Carte renouvelée', ar: 'البطاقة المجدَّدة', nature: 'texte' },
+      OBSERVATIONS,
+    ],
+    signatures: [
+      { fr: 'Le titulaire', ar: 'صاحب البطاقة' },
+      { fr: 'Le Président de la commune', ar: 'رئيس البلدية' },
+    ],
+  },
   declaration_panne: {
     type: 'declaration_panne',
     statut: 'provisoire',
@@ -141,7 +178,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** Le schéma du contenu d'un type : ses champs, et eux seuls ; les obligatoires présents. */
 export function schemaContenu(type: TypeDocument) {
   const forme: Record<string, z.ZodTypeAny> = {};
-  for (const c of GABARITS[type].champs) {
+  for (const c of GABARITS[type].champs.filter((x) => !x.imprimeSeulement)) {
     let s: z.ZodTypeAny =
       c.nature === 'nombre'
         ? z.number().finite().nonnegative()

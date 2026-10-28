@@ -84,6 +84,13 @@ import { valeurDensiteSchema, retraitDensiteSchema } from '../routes/volumetrie.
 import { chargementEtudeSchema } from '../routes/coutComplet.routes.js';
 import { inscriptionActeurSchema, faitsActeurSchema, demarcheSchema } from '../routes/acteursInformels.routes.js';
 import { elementListeSchema, finElementSchema, retraitElementSchema } from '../routes/reglesInformel.routes.js';
+import {
+  demandeCarteSchema,
+  pieceCarteSchema,
+  accordCarteSchema,
+  refusCarteSchema,
+  retraitCarteSchema,
+} from '../routes/cartesPrecollecteur.routes.js';
 import { demandeRestaurationSchema, fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { depotLogoSchema } from '../routes/logosCommunes.routes.js';
 import { elementSchema as elementBibliothequeSchema, qLignesSchema as qLignesBibliothequeSchema } from '../routes/bibliotheque.routes.js';
@@ -2729,7 +2736,7 @@ const DocumentEmis = registry.register(
   z.object({
     id: z.string().uuid(),
     commune_id: z.string(),
-    type_document: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne']),
+    type_document: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur']),
     exercice: z.number().int(),
     numero: z.number().int().openapi({ description: 'Rang continu dans le registre commune × type × exercice. Jamais réutilisé.' }),
     numero_affiche: z.string().openapi({ example: 'BC-2026-00042' }),
@@ -2761,7 +2768,7 @@ registry.registerPath({
   request: {
     query: z.object({
       communeId: paramCommuneId.optional(),
-      type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne']).optional(),
+      type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur']).optional(),
       exercice: z.number().int().optional(),
       statut: z.enum(['emis', 'annule']).optional(),
     }),
@@ -2787,7 +2794,7 @@ registry.registerPath({
   method: 'get',
   path: '/documents/gabarits',
   tags: ['Documents'],
-  summary: 'Les gabarits des quatre documents (lot 16.2)',
+  summary: 'Les gabarits des documents scellés (lot 16.2 ; carte de pré-collecteur, lot I2)',
   description:
     'Pour chaque type : titres FR/AR, référence, champs (clé, libellés, nature, obligatoire, unité), signatures, et statut — « provisoire » jusqu’à la validation par un chef de dépôt (décision du 16/10/2026). Le contenu d’un document émis doit suivre son gabarit.',
   security: SECURISE,
@@ -2795,7 +2802,7 @@ registry.registerPath({
     200: json(
       z.array(
         z.object({
-          type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne']),
+          type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur']),
           statut: z.enum(['provisoire', 'valide']),
           fr: z.string(),
           ar: z.string(),
@@ -2808,6 +2815,10 @@ registry.registerPath({
               nature: z.enum(['texte', 'texte_long', 'date', 'nombre', 'oui_non']),
               requis: z.boolean().optional(),
               unite: z.string().optional(),
+              imprimeSeulement: z.literal(true).optional().openapi({
+                description: 'Imprimé, jamais scellé : la valeur s’ajoute à l’impression pour qui a le droit de la lire (le nom du titulaire d’une carte).',
+              }),
+              cache: z.literal(true).optional().openapi({ description: 'Scellé, jamais imprimé en case (sert un bandeau).' }),
             })
           ),
           signatures: z.array(z.object({ fr: z.string(), ar: z.string() })),
@@ -2835,7 +2846,9 @@ registry.registerPath({
   tags: ['Documents'],
   summary: 'Imprimer un document : page A4 bilingue (HTML)',
   description:
-    'En-tête de l’État, du gouvernorat et de la commune ; numéro d’ordre ; référence ; champs du gabarit (un champ vide reste vide) ; signatures ; mention d’édition (heure de Tunis, auteur) et empreinte du contenu. Bandeau « modèle provisoire » tant que le gabarit n’est pas validé ; un document annulé s’imprime barré, avec son motif.',
+    'En-tête de l’État, du gouvernorat et de la commune ; numéro d’ordre ; référence ; champs du gabarit (un champ vide reste vide) ; signatures ; mention d’édition (heure de Tunis, auteur) et empreinte du contenu. Bandeau « modèle provisoire » tant que le gabarit n’est pas validé ; un document annulé s’imprime barré, avec son motif. ' +
+    'Une carte de pré-collecteur porte le nom de son titulaire pour le seul directeur de la commune (lu dans la table d’identité, ' +
+    'lecture journalisée) ; pour la FNCT, la case reste vide. Une carte accordée sur une règle provisoire le dit en bandeau.',
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: {
@@ -3878,6 +3891,159 @@ registry.registerPath({
   security: SECURISE,
   request: { body: { content: { 'application/json': { schema: cadreInformelSchema } } } },
   responses: { 200: json(CadreInformel, 'État mis à jour.'), ...REPONSES_COMMUNES },
+});
+
+// --- La carte de pré-collecteur (lot I2, 18.2) -------------------------------
+
+const DemandeCarte = registry.register(
+  'DemandeCarte',
+  z.object({
+    id: z.string().uuid(),
+    acteur_id: z.string().uuid(),
+    id_precollecteur: z.string().openapi({ description: 'Le pseudonyme de l’acteur ; aucun nom.' }),
+    date_demande: z.string(),
+    carte_precedente_id: z.string().uuid().nullable(),
+    carte_precedente: z.string().nullable().openapi({ description: 'Numéro de la carte renouvelée.' }),
+    decision: z.enum(['accordee', 'refusee']).nullable(),
+    date_decision: z.string().nullable(),
+    motif_refus: z.string().nullable(),
+    document_id: z.string().uuid().nullable(),
+    numero_affiche: z.string().nullable().openapi({ example: 'CP-2026-00001' }),
+    date_debut: z.string().nullable(),
+    date_fin: z.string().nullable(),
+    retrait_le: z.string().nullable(),
+    motif_retrait: z.string().nullable(),
+    etat: z.enum(['demandee', 'refusee', 'annulee', 'retiree', 'a_venir', 'expiree', 'valide']),
+    zones: z.array(z.object({ id: z.string().uuid(), nom: z.string() })),
+    pieces: z
+      .array(
+        z.object({
+          code: z.string(),
+          libelle_fr: z.string(),
+          libelle_ar: z.string(),
+          piece_id: z.string().uuid().nullable(),
+          date_piece: z.string().nullable(),
+          reference: z.string().nullable(),
+        })
+      )
+      .openapi({ description: 'Les pièces exigées le jour de la demande ; « piece_id » null : pas encore reçue.' }),
+  })
+);
+
+const DESCRIPTION_CARTE =
+  'Projet de décret, art. 13.1 (lot 18.2). Derrière l’interrupteur du cadre du secteur informel : tant qu’il est éteint, toute ' +
+  'écriture est refusée (409). Écrire est l’acte du directeur de la commune ; la FNCT lit. Gratuite : aucun champ de paiement.';
+
+registry.registerPath({
+  method: 'get',
+  path: '/cartes-precollecteur',
+  tags: ['Secteur informel'],
+  summary: 'Les demandes de carte de la commune, leur état du jour, leurs pièces et leurs secteurs',
+  description: DESCRIPTION_CARTE,
+  security: SECURISE,
+  request: { query: z.object({ communeId: paramCommuneId.optional() }) },
+  responses: {
+    200: json(z.object({ cadre_actif: z.boolean(), demandes: z.array(DemandeCarte) }), 'Demandes, la plus récente d’abord.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/cartes-precollecteur/demandes',
+  tags: ['Secteur informel'],
+  summary: 'Enregistrer une demande de carte : l’acteur, la date de dépôt, les secteurs d’accès',
+  description:
+    DESCRIPTION_CARTE +
+    ' L’acteur doit être déclaré pré-collecteur ; une seule demande en attente par acteur (409). Un renouvellement nomme la carte renouvelée.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: demandeCarteSchema } } } },
+  responses: { 201: json(DemandeCarte, 'Demande enregistrée.'), 409: json(Erreur, 'Refusée en l’état.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/cartes-precollecteur/demandes/{id}',
+  tags: ['Secteur informel'],
+  summary: 'Retirer une demande saisie à tort, avant sa décision',
+  description: 'Retrait logique. Une demande décidée ne se retire pas (409) : une carte accordée se retire, motivée.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: { 204: { description: 'Demande retirée.' }, 409: json(Erreur, 'Demande décidée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/cartes-precollecteur/demandes/{id}/pieces',
+  tags: ['Secteur informel'],
+  summary: 'Enregistrer une pièce reçue : sa date, sa référence',
+  description:
+    'La pièce doit figurer dans la liste nationale en vigueur le jour de la demande (400 sinon). Jamais le document lui-même : ' +
+    'l’original reste au dossier papier de la commune.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: pieceCarteSchema } } },
+  },
+  responses: { 201: json(DemandeCarte, 'Pièce enregistrée.'), 409: json(Erreur, 'Pièce déjà enregistrée, ou demande décidée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/cartes-precollecteur/demandes/{id}/pieces/{pieceId}',
+  tags: ['Secteur informel'],
+  summary: 'Retirer une pièce enregistrée à tort, avant la décision',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid(), pieceId: z.string().uuid() }) },
+  responses: { 200: json(DemandeCarte, 'Pièce retirée.'), 409: json(Erreur, 'Demande décidée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/cartes-precollecteur/demandes/{id}/accord',
+  tags: ['Secteur informel'],
+  summary: 'Accorder la carte : elle est émise, scellée et numérotée',
+  description:
+    'Dans une seule transaction (app.accorder_carte) : pré-collecteur déclaré, toutes les pièces exigées le jour de la demande, ' +
+    'au moins un secteur, une durée de validité en vigueur le jour de la décision (sinon 409 : aucune validité n’est inventée). ' +
+    'Un acteur dont la carte est encore valable ne reçoit qu’un renouvellement, qui commence le lendemain de sa fin. Aucun nom ' +
+    'n’est scellé.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: accordCarteSchema } } },
+  },
+  responses: { 200: json(DemandeCarte, 'Carte accordée.'), 409: json(Erreur, 'Refusé en l’état.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/cartes-precollecteur/demandes/{id}/refus',
+  tags: ['Secteur informel'],
+  summary: 'Refuser une demande, motivée',
+  description: 'Aucun document n’est émis. Une décision ne se change pas.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: refusCarteSchema } } },
+  },
+  responses: { 200: json(DemandeCarte, 'Demande refusée.'), 409: json(Erreur, 'Déjà décidée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/cartes-precollecteur/demandes/{id}/retrait',
+  tags: ['Secteur informel'],
+  summary: 'Retirer une carte accordée, à une date et pour un motif',
+  description:
+    'La carte a valu jusqu’à la veille ; elle reste au registre des documents, numéro compris. Un retrait n’est pas une annulation ' +
+    '(erreur d’émission, POST /documents/{id}/annuler).',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: retraitCarteSchema } } },
+  },
+  responses: { 200: json(DemandeCarte, 'Carte retirée.'), 409: json(Erreur, 'Pas de carte accordée, ou déjà retirée.'), ...REPONSES_COMMUNES },
 });
 
 // --- Les règles du secteur informel (lot I1) --------------------------------
@@ -8611,7 +8777,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.83',
+      version: '0.15.84',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

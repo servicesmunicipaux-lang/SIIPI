@@ -53,14 +53,19 @@ function maintenantTunis() {
   return { date: dateFr(t.slice(0, 10)), heure: t.slice(11, 16) };
 }
 
-export function rendreDocument(doc: DocumentAImprimer, entete: EnTete, editePar: string): string {
+/**
+ * `imprime` : les valeurs qui s'ajoutent à l'impression sans être scellées (le nom
+ * du titulaire d'une carte, pour le seul directeur de la commune). Absentes, leur
+ * case reste vide — à remplir à la main.
+ */
+export function rendreDocument(doc: DocumentAImprimer, entete: EnTete, editePar: string, imprime: Record<string, string> = {}): string {
   const g = GABARITS[doc.type_document];
   const edite = maintenantTunis();
   const lignes = g.champs
-    .filter((c) => c.cle !== 'observations')
+    .filter((c) => c.cle !== 'observations' && !c.cache)
     .map(
       (c) => `      <tr><th scope="row">${echapper(c.fr)}<span class="ar">${echapper(c.ar)}</span></th>` +
-        `<td>${valeur(doc.contenu[c.cle], c.nature, c.unite)}</td></tr>`
+        `<td>${valeur(c.imprimeSeulement ? imprime[c.cle] : doc.contenu[c.cle], c.nature, c.unite)}</td></tr>`
     )
     .join('\n');
   const observations = valeur(doc.contenu.observations, 'texte_long');
@@ -105,6 +110,13 @@ export function rendreDocument(doc: DocumentAImprimer, entete: EnTete, editePar:
 ${
   g.statut === 'provisoire'
     ? '<p class="provisoire">MODÈLE PROVISOIRE — en attente de validation par le chef de dépôt<span class="ar">نموذج مؤقت — في انتظار مصادقة رئيس المستودع</span></p>'
+    : ''
+}
+${
+  // Une carte accordée sur une règle du projet de décret le dit en tête : elle ne
+  // doit pas passer pour un titre fondé sur un texte en vigueur.
+  doc.contenu.regle_provisoire === true
+    ? '<p class="provisoire">PROJET DE DÉCRET — NON EN VIGUEUR : règle appliquée provisoire<span class="ar">مشروع أمر — غير نافذ: القاعدة المطبّقة مؤقتة</span></p>'
     : ''
 }
 <header class="entete">

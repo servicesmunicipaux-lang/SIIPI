@@ -258,6 +258,8 @@ export type AccueilCommune = Reponse<'/communes/{id}/accueil', 'get'>;
 // --- Lot 18.1 : registre des acteurs informels, derrière le cadre national ---
 export type RegistreActeursInformels = Reponse<'/acteurs-informels', 'get'>;
 export type ActeurInformel = RegistreActeursInformels['acteurs'][number];
+export type CartesPrecollecteur = Reponse<'/cartes-precollecteur', 'get'>;
+export type DemandeCarte = CartesPrecollecteur['demandes'][number];
 export type DemarcheFormalisation = Reponse<'/acteurs-informels/{id}/demarches', 'get'>[number];
 export type CadreSecteurInformel = Reponse<'/observatoire/cadre-secteur-informel', 'get'>;
 export type ReglesInformel = Reponse<'/regles-informel', 'get'>;
@@ -1273,6 +1275,22 @@ export const api = {
     requete<DemarcheFormalisation[]>(`/acteurs-informels/${id}/demarches`, { method: 'POST', body: JSON.stringify(saisie) }),
   retirerDemarche: (id: string, demarcheId: string) =>
     requete<void>(`/acteurs-informels/${id}/demarches/${demarcheId}`, { method: 'DELETE' }),
+  // --- Lot I2 : la carte de pré-collecteur (écriture : directeur de la commune) --
+  cartesPrecollecteur: (communeId: string) =>
+    requete<CartesPrecollecteur>(`/cartes-precollecteur?communeId=${encodeURIComponent(communeId)}`),
+  demanderCarte: (saisie: Corps<'/cartes-precollecteur/demandes', 'post'>) =>
+    requete<DemandeCarte>('/cartes-precollecteur/demandes', { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerDemandeCarte: (id: string) => requete<void>(`/cartes-precollecteur/demandes/${id}`, { method: 'DELETE' }),
+  ajouterPieceCarte: (id: string, saisie: Corps<'/cartes-precollecteur/demandes/{id}/pieces', 'post'>) =>
+    requete<DemandeCarte>(`/cartes-precollecteur/demandes/${id}/pieces`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerPieceCarte: (id: string, pieceId: string) =>
+    requete<DemandeCarte>(`/cartes-precollecteur/demandes/${id}/pieces/${pieceId}`, { method: 'DELETE' }),
+  accorderCarte: (id: string, dateDecision: string) =>
+    requete<DemandeCarte>(`/cartes-precollecteur/demandes/${id}/accord`, { method: 'POST', body: JSON.stringify({ dateDecision }) }),
+  refuserCarte: (id: string, saisie: Corps<'/cartes-precollecteur/demandes/{id}/refus', 'post'>) =>
+    requete<DemandeCarte>(`/cartes-precollecteur/demandes/${id}/refus`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerCarte: (id: string, saisie: Corps<'/cartes-precollecteur/demandes/{id}/retrait', 'post'>) =>
+    requete<DemandeCarte>(`/cartes-precollecteur/demandes/${id}/retrait`, { method: 'POST', body: JSON.stringify(saisie) }),
   cadreSecteurInformel: () => requete<CadreSecteurInformel>('/observatoire/cadre-secteur-informel'),
   // D-FNCT-3 : les corrections du référentiel des communes, avec leur source.
   correctionsReferentiel: () => requete<CorrectionReferentiel[]>('/observatoire/corrections-referentiel'),
