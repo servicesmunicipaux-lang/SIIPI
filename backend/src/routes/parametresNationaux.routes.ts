@@ -23,7 +23,7 @@ const dateIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
 const COLONNES_VALEUR = `
-  v.id, v.code, v.date_effet, v.valeur_nombre::float, v.valeur_fr, v.valeur_ar, v.provisoire, v.reference,
+  v.id, v.code, v.date_effet, v.valeur_nombre::float, v.valeur_fr, v.valeur_ar, v.valeur_date, v.provisoire, v.reference,
   v.created_at, v.retire_le, v.motif_retrait`;
 
 parametresNationauxRouter.get(
@@ -32,7 +32,7 @@ parametresNationauxRouter.get(
   asyncHandler(async (_req, res) => {
     const jour = aujourdhui();
     const definitions = await query<{ code: string }>(
-      `SELECT code, nature, unite, borne_min::float, borne_max::float, libelle_fr, libelle_ar, description
+      `SELECT code, nature, unite, borne_min::float, borne_max::float, entier, rubrique, libelle_fr, libelle_ar, description
          FROM definitions_parametres_nationaux ORDER BY ordre, code`
     );
     const valeurs = await query<{ id: string; code: string; date_effet: string; retire_le: string | null }>(
@@ -84,6 +84,8 @@ export const valeurParametreSchema = z
     valeurNombre: z.number().nullable().optional(),
     valeurFr: z.string().trim().max(300).nullable().optional(),
     valeurAr: z.string().trim().max(300).nullable().optional(),
+    // Pour un paramètre de nature date (la date de départ de la période transitoire, lot I1).
+    valeurDate: dateIso.nullable().optional(),
     // Provisoire par défaut : une valeur ne devient officielle qu'en citant sa pièce.
     provisoire: z.boolean().default(true),
     reference: z.string().trim().max(500).nullable().optional(),
@@ -106,11 +108,11 @@ parametresNationauxRouter.post(
       res.status(201).json(
         await queryOne(
           `INSERT INTO valeurs_parametres_nationaux AS v
-             (code, date_effet, valeur_nombre, valeur_fr, valeur_ar, provisoire, reference, saisi_par)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, app.current_user_id())
+             (code, date_effet, valeur_nombre, valeur_fr, valeur_ar, valeur_date, provisoire, reference, saisi_par)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, app.current_user_id())
            RETURNING ${COLONNES_VALEUR}`,
-          [req.params.code, d.dateEffet, d.valeurNombre ?? null, d.valeurFr || null, d.valeurAr || null, d.provisoire,
-           d.reference || null]
+          [req.params.code, d.dateEffet, d.valeurNombre ?? null, d.valeurFr || null, d.valeurAr || null, d.valeurDate ?? null,
+           d.provisoire, d.reference || null]
         )
       );
     } catch (err) {

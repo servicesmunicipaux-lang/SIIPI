@@ -28,6 +28,7 @@ import { MoyenneNationaleCaracterisation } from './MoyenneNationaleCaracterisati
 import { DistrictsFnct } from './DistrictsFnct';
 import { ServeurCourriel } from './ServeurCourriel';
 import { MatriceDensites } from './MatriceDensites';
+import { ReglesSecteurInformel } from './ReglesSecteurInformel';
 
 const champ = 'mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-3 text-base';
 const bouton = 'min-h-11 rounded-lg bg-siipi-600 px-4 text-sm font-medium text-white disabled:opacity-40';
@@ -40,12 +41,16 @@ export function ParametresNationaux() {
   const [parametres, setParametres] = useState<ParametreNational[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  // Les règles du secteur informel se rechargent avec les paramètres : une
+  // durée ou une date de départ ajoutée change la période qu'elles affichent.
+  const [version, setVersion] = useState(0);
 
   const charger = useCallback(() => {
     api
       .parametresNationaux()
       .then((p) => {
         setParametres(p);
+        setVersion((v) => v + 1);
         setErreur(null);
       })
       .catch((e) => setErreur(message(e, t('commun.erreur'))));
@@ -60,6 +65,8 @@ export function ParametresNationaux() {
 
   if (erreur && !parametres) return <Erreur message={erreur} onReessayer={charger} />;
   if (!parametres) return <Chargement />;
+  const surErreur = (e: unknown) => setErreur(message(e, t('commun.erreur')));
+  const reglesInformel = parametres.filter((p) => p.rubrique === 'secteur_informel');
 
   return (
     <section className="space-y-4">
@@ -79,20 +86,45 @@ export function ParametresNationaux() {
       <MatriceDensites onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
       <ReferencesCoutEngins />
       <ServeurCourriel />
-      <CadreSecteurInformel onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
       <MoyenneNationaleCaracterisation />
-      {parametres.map((p) => (
-        <FicheParametre key={p.code} p={p} onFait={apres} onErreur={(e) => setErreur(message(e, t('commun.erreur')))} />
-      ))}
+      {parametres
+        .filter((p) => p.rubrique === 'general')
+        .map((p) => (
+          <FicheParametre key={p.code} p={p} onFait={apres} onErreur={surErreur} />
+        ))}
+      {/* Le projet de décret en un seul lieu : l'interrupteur, puis les règles
+          qu'il fixe. Elles se règlent d'avance, l'interrupteur éteint. */}
+      <section aria-labelledby="titre-secteur-informel" className="space-y-3 rounded-2xl border border-ardoise-300 bg-ardoise-50/60 p-3 sm:p-4">
+        <header>
+          <h3 id="titre-secteur-informel" className="text-lg font-semibold text-ardoise-900">{t('national.parametres.informel.titre')}</h3>
+          <p className="mt-1 max-w-3xl text-sm text-ardoise-600">{t('national.parametres.informel.intro')}</p>
+        </header>
+        <CadreSecteurInformel onFait={apres} onErreur={surErreur} />
+        <ReglesSecteurInformel parametres={reglesInformel} version={version} onFait={apres} onErreur={surErreur}>
+          {reglesInformel.map((p) => (
+            <FicheParametre key={p.code} p={p} onFait={apres} onErreur={surErreur} />
+          ))}
+        </ReglesSecteurInformel>
+      </section>
     </section>
   );
 }
 
+// L'unité vient de la base, en français ; une unité en mots (« mois ») se
+// traduit, un symbole (« TND/t », « % ») reste tel quel.
+const useUnite = () => {
+  const { t } = useTranslation();
+  return (unite: string | null) => (unite ? t(`national.parametres.unites.${unite}`, { defaultValue: unite }) : '');
+};
+
 function Valeur({ p, v }: { p: ParametreNational; v: ValeurParametreNational }) {
+  const f = useFormats();
+  const unite = useUnite();
+  if (p.nature === 'date') return <span className="tabular-nums">{v.valeur_date ? f.date(v.valeur_date) : ''}</span>;
   if (p.nature === 'nombre') {
     return (
       <span className="tabular-nums">
-        {formaterNombre(v.valeur_nombre, 3)} {p.unite ?? ''}
+        {formaterNombre(v.valeur_nombre, p.entier ? 0 : 3)} {unite(p.unite)}
       </span>
     );
   }
@@ -108,7 +140,8 @@ function FicheParametre(props: { p: ParametreNational; onFait: (m: string) => vo
   const { p, onFait, onErreur } = props;
   const { t, i18n } = useTranslation();
   const f = useFormats();
-  const vide = { dateEffet: '', nombre: '', fr: '', ar: '', provisoire: true, reference: '' };
+  const unite = useUnite();
+  const vide = { dateEffet: '', nombre: '', fr: '', ar: '', date: '', provisoire: true, reference: '' };
   const [s, setS] = useState(vide);
   const [retrait, setRetrait] = useState<{ id: string; motif: string } | null>(null);
   const [envoi, setEnvoi] = useState(false);
@@ -122,6 +155,7 @@ function FicheParametre(props: { p: ParametreNational; onFait: (m: string) => vo
         valeurNombre: p.nature === 'nombre' ? Number(s.nombre) : null,
         valeurFr: p.nature === 'texte' ? s.fr : null,
         valeurAr: p.nature === 'texte' ? s.ar : null,
+        valeurDate: p.nature === 'date' ? s.date : null,
         provisoire: s.provisoire,
         reference: s.reference || null,
       });
@@ -145,7 +179,8 @@ function FicheParametre(props: { p: ParametreNational; onFait: (m: string) => vo
     }
   }
 
-  const valeurSaisie = p.nature === 'nombre' ? s.nombre !== '' : s.fr.trim() !== '' && s.ar.trim() !== '';
+  const valeurSaisie =
+    p.nature === 'nombre' ? s.nombre !== '' : p.nature === 'date' ? s.date !== '' : s.fr.trim() !== '' && s.ar.trim() !== '';
 
   return (
     <article className="space-y-3 rounded-xl border border-ardoise-200 bg-white p-4">
@@ -237,10 +272,22 @@ function FicheParametre(props: { p: ParametreNational; onFait: (m: string) => vo
           <span className="font-medium">{t('national.parametres.dateEffet')}</span>
           <input type="date" min="2000-01-01" value={s.dateEffet} onChange={(e) => setS({ ...s, dateEffet: e.target.value })} className={champ} />
         </label>
-        {p.nature === 'nombre' ? (
+        {p.nature === 'date' ? (
           <label className="text-sm">
-            <span className="font-medium">{t('national.parametres.valeur')} ({p.unite})</span>
-            <input type="number" inputMode="decimal" step="0.001" value={s.nombre} onChange={(e) => setS({ ...s, nombre: e.target.value })} className={champ} />
+            <span className="font-medium">{t('national.parametres.valeurDate')}</span>
+            <input type="date" min="2000-01-01" value={s.date} onChange={(e) => setS({ ...s, date: e.target.value })} className={champ} />
+          </label>
+        ) : p.nature === 'nombre' ? (
+          <label className="text-sm">
+            <span className="font-medium">{t('national.parametres.valeur')} ({unite(p.unite)})</span>
+            <input
+              type="number"
+              inputMode={p.entier ? 'numeric' : 'decimal'}
+              step={p.entier ? '1' : '0.001'}
+              value={s.nombre}
+              onChange={(e) => setS({ ...s, nombre: e.target.value })}
+              className={champ}
+            />
           </label>
         ) : (
           <>

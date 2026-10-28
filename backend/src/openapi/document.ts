@@ -83,6 +83,7 @@ import { valeurParametreSchema, retraitValeurSchema } from '../routes/parametres
 import { valeurDensiteSchema, retraitDensiteSchema } from '../routes/volumetrie.routes.js';
 import { chargementEtudeSchema } from '../routes/coutComplet.routes.js';
 import { inscriptionActeurSchema, faitsActeurSchema, demarcheSchema } from '../routes/acteursInformels.routes.js';
+import { elementListeSchema, finElementSchema, retraitElementSchema } from '../routes/reglesInformel.routes.js';
 import { demandeRestaurationSchema, fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { depotLogoSchema } from '../routes/logosCommunes.routes.js';
 import { elementSchema as elementBibliothequeSchema, qLignesSchema as qLignesBibliothequeSchema } from '../routes/bibliotheque.routes.js';
@@ -3366,6 +3367,7 @@ const ValeurParametreNational = registry.register(
     valeur_nombre: z.number().nullable(),
     valeur_fr: z.string().nullable(),
     valeur_ar: z.string().nullable(),
+    valeur_date: z.string().nullable().openapi({ description: 'Pour un paramètre de nature date : la date elle-même (AAAA-MM-JJ).' }),
     provisoire: z.boolean(),
     reference: z.string().nullable(),
     created_at: z.string(),
@@ -3380,18 +3382,22 @@ registry.registerPath({
   tags: ['Paramètres nationaux'],
   summary: 'Les paramètres nationaux : valeur en vigueur, valeurs à venir, historique',
   description:
-    'Redevance ANGeD, ministère de tutelle, formule d’en-tête des documents. Chaque valeur porte sa date d’effet ; la valeur d’une ' +
-    'date est la dernière entrée en vigueur. « en_vigueur » est null tant qu’aucune ne s’applique. Lisible par tout utilisateur authentifié.',
+    'Redevance ANGeD, ministère de tutelle, formule d’en-tête des documents, coût de collecte, et les règles du secteur informel ' +
+    '(rubrique « secteur_informel » : durées du projet de décret, date de départ de la période transitoire). Chaque valeur porte ' +
+    'sa date d’effet ; la valeur d’une date est la dernière entrée en vigueur. « en_vigueur » est null tant qu’aucune ne ' +
+    's’applique. Lisible par tout utilisateur authentifié.',
   security: SECURISE,
   responses: {
     200: json(
       z.array(
         z.object({
           code: z.string(),
-          nature: z.enum(['nombre', 'texte']),
+          nature: z.enum(['nombre', 'texte', 'date']),
           unite: z.string().nullable(),
           borne_min: z.number().nullable(),
           borne_max: z.number().nullable(),
+          entier: z.boolean().openapi({ description: 'Un nombre entier est exigé (une durée en mois).' }),
+          rubrique: z.enum(['general', 'secteur_informel']),
           libelle_fr: z.string(),
           libelle_ar: z.string(),
           description: z.string(),
@@ -3654,8 +3660,9 @@ registry.registerPath({
   summary: 'Ajouter une valeur datée à un paramètre national',
   description:
     'Une valeur ne se réécrit pas : un changement s’ajoute avec sa date d’effet. Un nombre pour la redevance (strictement entre ses ' +
-    'bornes) ; un intitulé en français ET en arabe pour un texte. Provisoire par défaut ; une valeur officielle cite sa pièce (la base ' +
-    'le refuse sinon). Une seconde valeur à la même date : 409. Réservé à la FNCT.',
+    'bornes, entier pour une durée) ; un intitulé en français ET en arabe pour un texte ; une date pour la date de départ de la ' +
+    'période transitoire. Provisoire par défaut ; une valeur officielle cite sa pièce (la base le refuse sinon). Une seconde valeur ' +
+    'à la même date : 409. Réservé à la FNCT.',
   security: SECURISE,
   request: {
     params: z.object({ code: z.string() }),
@@ -3871,6 +3878,113 @@ registry.registerPath({
   security: SECURISE,
   request: { body: { content: { 'application/json': { schema: cadreInformelSchema } } } },
   responses: { 200: json(CadreInformel, 'État mis à jour.'), ...REPONSES_COMMUNES },
+});
+
+// --- Les règles du secteur informel (lot I1) --------------------------------
+
+const LISTE_NATIONALE = z.enum(['pieces_carte_precollecteur', 'jalons_accompagnement']);
+
+const ElementListeNationale = registry.register(
+  'ElementListeNationale',
+  z.object({
+    id: z.string().uuid(),
+    liste: LISTE_NATIONALE,
+    code: z.string(),
+    libelle_fr: z.string(),
+    libelle_ar: z.string(),
+    ordre: z.number().int(),
+    date_effet: z.string(),
+    date_fin: z.string().nullable().openapi({ description: 'Premier jour où l’élément ne s’applique plus ; null : toujours en vigueur.' }),
+    reference_fin: z.string().nullable(),
+    provisoire: z.boolean(),
+    reference: z.string().nullable(),
+    created_at: z.string(),
+    retire_le: z.string().nullable(),
+    motif_retrait: z.string().nullable(),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/regles-informel',
+  tags: ['Paramètres nationaux'],
+  summary: 'Les règles du secteur informel : interrupteur, période transitoire, pièces exigées, étapes d’accompagnement',
+  description:
+    'Ce que le projet de décret fixe (art. 13.1), tenu en données nationales datées. La période transitoire est calculée avec les ' +
+    'paramètres en vigueur ce jour ; sans date de départ, « fin » et « fin_etalonnage » sont null et « manque » nomme ce qui ' +
+    'manque — jamais une date inventée. Chaque élément de liste porte son état du jour. Lisible par tout utilisateur authentifié.',
+  security: SECURISE,
+  responses: {
+    200: json(
+      z.object({
+        jour: z.string(),
+        cadre: z.object({ actif: z.boolean(), reference: z.string().nullable() }),
+        periode: z.object({
+          debut: z.string().nullable(),
+          duree_mois: z.number().int().nullable(),
+          fin: z.string().nullable().openapi({ description: 'Dernier jour de la période.' }),
+          delai_etalonnage_mois: z.number().int().nullable(),
+          fin_etalonnage: z.string().nullable(),
+          provisoire: z.boolean().openapi({ description: 'Une règle utilisée repose sur le projet de décret.' }),
+          manque: z.array(z.string()).openapi({ description: 'Codes des paramètres sans valeur en vigueur.' }),
+        }),
+        listes: z.array(
+          z.object({
+            liste: LISTE_NATIONALE,
+            elements: z.array(ElementListeNationale.extend({ etat: z.enum(['en_vigueur', 'a_venir', 'ferme', 'retire']) })),
+          })
+        ),
+      }),
+      'Règles.'
+    ),
+    401: REPONSES_COMMUNES[401],
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/regles-informel/listes/{liste}',
+  tags: ['Paramètres nationaux'],
+  summary: 'Ajouter un élément daté à une liste nationale du secteur informel',
+  description:
+    'Une pièce exigée pour la carte, ou une étape d’accompagnement. Provisoire par défaut ; un élément officiel cite son texte. ' +
+    'Un élément de même code déjà en vigueur : 409. Réservé à la FNCT.',
+  security: SECURISE,
+  request: {
+    params: z.object({ liste: LISTE_NATIONALE }),
+    body: { content: { 'application/json': { schema: elementListeSchema } } },
+  },
+  responses: { 201: json(ElementListeNationale, 'Élément ajouté.'), 409: json(Erreur, 'Code déjà en vigueur.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/regles-informel/elements/{id}/fin',
+  tags: ['Paramètres nationaux'],
+  summary: 'Fermer un élément à une date : il cesse de s’appliquer',
+  description:
+    'Le texte a changé. Avec la pièce qui le fonde ; une fois. Ce qui a été décidé avant cette date garde la liste de son jour. ' +
+    'Réservé à la FNCT.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: finElementSchema } } },
+  },
+  responses: { 200: json(ElementListeNationale, 'Élément fermé.'), 409: json(Erreur, 'Déjà fermé.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/regles-informel/elements/{id}/retrait',
+  tags: ['Paramètres nationaux'],
+  summary: 'Retirer un élément saisi à tort',
+  description: 'Avec un motif. L’élément reste lisible ; il ne s’applique plus à aucune date. Réservé à la FNCT.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: retraitElementSchema } } },
+  },
+  responses: { 200: json(ElementListeNationale, 'Élément retiré.'), ...REPONSES_COMMUNES },
 });
 
 const ActeurInformel = registry.register(
@@ -8497,7 +8611,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.82',
+      version: '0.15.83',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

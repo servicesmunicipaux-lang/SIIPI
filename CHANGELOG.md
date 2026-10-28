@@ -5,6 +5,40 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.83] — 2026-10-28 — Les règles du secteur informel, en paramètres nationaux (lot I1)
+
+`DECISIONS_2026-10-20.md`, complément du 28/10/2026 : les lots 18.2 et 18.3 se développent sans attendre l'article 13
+du projet de décret, et **chaque règle légale est une donnée nationale datée, jamais du code**. I1 en pose le socle ;
+la carte (I2) et la période transitoire (I3) suivent.
+
+### Ajouté
+- **Cinq paramètres nationaux du secteur informel** (migration 091, rubrique *Secteur informel* de l'écran
+  *Paramètres nationaux*) : validité de la carte de pré-collecteur (12 mois), durée de l'agrément d'un intermédiaire
+  (24 mois), durée de la période transitoire (36 mois), délai d'étalonnage (6 mois) — toutes **provisoires**,
+  rattachées au projet de décret — et la **date de départ de la période transitoire, sans valeur** : le projet ne la
+  donne pas. Un paramètre peut désormais être une **date** ; une durée en mois est un **entier** (« 12,5 mois » est
+  refusé par la base).
+- **Les listes nationales datées** (`elements_listes_nationales`, `app.liste_nationale(liste, date)`) : les pièces
+  exigées pour la carte (déclaration d'activité simplifiée, engagement d'hygiène et de sécurité, acceptation de
+  l'accompagnement) et les étapes d'accompagnement (formation, statut d'auto-entrepreneur, régularisation fiscale,
+  immatriculation, cahier des charges, étalonnage). Un élément **se ferme** à une date, avec le texte qui en décide —
+  une demande d'avant reste jugée sur la liste de son jour — ou **se retire** s'il a été saisi à tort ; il ne se
+  réécrit ni ne s'efface (`GET /regles-informel`, `POST /regles-informel/listes/{liste}`,
+  `POST /regles-informel/elements/{id}/fin`, `POST /regles-informel/elements/{id}/retrait` ; écriture : FNCT).
+- **La période transitoire calculée** (`app.periode_transitoire(date)`) : départ, dernier jour, échéance d'étalonnage,
+  avec les règles en vigueur ce jour-là. **Sans date de départ, aucune échéance** : l'écran dit « date de départ non
+  fixée » et nomme ce qui manque.
+- L'écran de la FNCT regroupe l'interrupteur du cadre, la période, les durées et les deux listes, en français et en
+  arabe ; une unité en mots (« mois ») se traduit.
+
+### Vérifié
+- Campagne `informel-parametres` : les refus (une commune qui règle, une durée non entière ou hors bornes, une date
+  pour un nombre, un élément sans arabe, en double, réécrit, effacé, fermé deux fois) ; la période qui n'a pas
+  d'échéance sans départ, en a une dès qu'il est posé, et suit une durée allongée **à sa date d'effet seulement**
+  (témoin de dates écrit dans la campagne) ; la validité d'une carte décidée aujourd'hui qui garde la durée
+  d'aujourd'hui ; une pièce fermée qui cesse d'être exigée à sa date. Les deux tables nationales touchées sont
+  rendues ligne entière.
+
 ## [0.15.82] — 2026-10-26 — La préparation de la recette R1
 
 `DECISIONS_2026-10-20.md`, complément du 26/10/2026 (soir) : décisions R1-a à R1-d. La recette se fera sur une

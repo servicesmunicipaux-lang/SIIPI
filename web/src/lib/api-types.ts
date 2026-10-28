@@ -12640,7 +12640,7 @@ export interface paths {
         };
         /**
          * Les paramètres nationaux : valeur en vigueur, valeurs à venir, historique
-         * @description Redevance ANGeD, ministère de tutelle, formule d’en-tête des documents. Chaque valeur porte sa date d’effet ; la valeur d’une date est la dernière entrée en vigueur. « en_vigueur » est null tant qu’aucune ne s’applique. Lisible par tout utilisateur authentifié.
+         * @description Redevance ANGeD, ministère de tutelle, formule d’en-tête des documents, coût de collecte, et les règles du secteur informel (rubrique « secteur_informel » : durées du projet de décret, date de départ de la période transitoire). Chaque valeur porte sa date d’effet ; la valeur d’une date est la dernière entrée en vigueur. « en_vigueur » est null tant qu’aucune ne s’applique. Lisible par tout utilisateur authentifié.
          */
         get: {
             parameters: {
@@ -12660,10 +12660,14 @@ export interface paths {
                         "application/json": {
                             code: string;
                             /** @enum {string} */
-                            nature: "nombre" | "texte";
+                            nature: "nombre" | "texte" | "date";
                             unite: string | null;
                             borne_min: number | null;
                             borne_max: number | null;
+                            /** @description Un nombre entier est exigé (une durée en mois). */
+                            entier: boolean;
+                            /** @enum {string} */
+                            rubrique: "general" | "secteur_informel";
                             libelle_fr: string;
                             libelle_ar: string;
                             description: string;
@@ -13253,7 +13257,7 @@ export interface paths {
         put?: never;
         /**
          * Ajouter une valeur datée à un paramètre national
-         * @description Une valeur ne se réécrit pas : un changement s’ajoute avec sa date d’effet. Un nombre pour la redevance (strictement entre ses bornes) ; un intitulé en français ET en arabe pour un texte. Provisoire par défaut ; une valeur officielle cite sa pièce (la base le refuse sinon). Une seconde valeur à la même date : 409. Réservé à la FNCT.
+         * @description Une valeur ne se réécrit pas : un changement s’ajoute avec sa date d’effet. Un nombre pour la redevance (strictement entre ses bornes, entier pour une durée) ; un intitulé en français ET en arabe pour un texte ; une date pour la date de départ de la période transitoire. Provisoire par défaut ; une valeur officielle cite sa pièce (la base le refuse sinon). Une seconde valeur à la même date : 409. Réservé à la FNCT.
          */
         post: {
             parameters: {
@@ -13271,6 +13275,7 @@ export interface paths {
                         valeurNombre?: number | null;
                         valeurFr?: string | null;
                         valeurAr?: string | null;
+                        valeurDate?: string | null;
                         /** @default true */
                         provisoire?: boolean;
                         reference?: string | null;
@@ -13794,6 +13799,356 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/regles-informel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les règles du secteur informel : interrupteur, période transitoire, pièces exigées, étapes d’accompagnement
+         * @description Ce que le projet de décret fixe (art. 13.1), tenu en données nationales datées. La période transitoire est calculée avec les paramètres en vigueur ce jour ; sans date de départ, « fin » et « fin_etalonnage » sont null et « manque » nomme ce qui manque — jamais une date inventée. Chaque élément de liste porte son état du jour. Lisible par tout utilisateur authentifié.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Règles. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            jour: string;
+                            cadre: {
+                                actif: boolean;
+                                reference: string | null;
+                            };
+                            periode: {
+                                debut: string | null;
+                                duree_mois: number | null;
+                                /** @description Dernier jour de la période. */
+                                fin: string | null;
+                                delai_etalonnage_mois: number | null;
+                                fin_etalonnage: string | null;
+                                /** @description Une règle utilisée repose sur le projet de décret. */
+                                provisoire: boolean;
+                                /** @description Codes des paramètres sans valeur en vigueur. */
+                                manque: string[];
+                            };
+                            listes: {
+                                /** @enum {string} */
+                                liste: "pieces_carte_precollecteur" | "jalons_accompagnement";
+                                elements: (components["schemas"]["ElementListeNationale"] & {
+                                    /** @enum {string} */
+                                    etat: "en_vigueur" | "a_venir" | "ferme" | "retire";
+                                })[];
+                            }[];
+                        };
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/regles-informel/listes/{liste}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter un élément daté à une liste nationale du secteur informel
+         * @description Une pièce exigée pour la carte, ou une étape d’accompagnement. Provisoire par défaut ; un élément officiel cite son texte. Un élément de même code déjà en vigueur : 409. Réservé à la FNCT.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    liste: "pieces_carte_precollecteur" | "jalons_accompagnement";
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        code: string;
+                        libelleFr: string;
+                        libelleAr: string;
+                        /** @default 0 */
+                        ordre?: number;
+                        dateEffet: string;
+                        /** @default true */
+                        provisoire?: boolean;
+                        reference?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Élément ajouté. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ElementListeNationale"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Code déjà en vigueur. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/regles-informel/elements/{id}/fin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fermer un élément à une date : il cesse de s’appliquer
+         * @description Le texte a changé. Avec la pièce qui le fonde ; une fois. Ce qui a été décidé avant cette date garde la liste de son jour. Réservé à la FNCT.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateFin: string;
+                        reference: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Élément fermé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ElementListeNationale"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Déjà fermé. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/regles-informel/elements/{id}/retrait": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retirer un élément saisi à tort
+         * @description Avec un motif. L’élément reste lisible ; il ne s’applique plus à aucune date. Réservé à la FNCT.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Élément retiré. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ElementListeNationale"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -29307,6 +29662,8 @@ export interface components {
             valeur_nombre: number | null;
             valeur_fr: string | null;
             valeur_ar: string | null;
+            /** @description Pour un paramètre de nature date : la date elle-même (AAAA-MM-JJ). */
+            valeur_date: string | null;
             provisoire: boolean;
             reference: string | null;
             created_at: string;
@@ -29619,6 +29976,25 @@ export interface components {
             /** @description Le texte publié qui met le cadre en vigueur. */
             reference: string | null;
             depuis: string | null;
+        };
+        ElementListeNationale: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            liste: "pieces_carte_precollecteur" | "jalons_accompagnement";
+            code: string;
+            libelle_fr: string;
+            libelle_ar: string;
+            ordre: number;
+            date_effet: string;
+            /** @description Premier jour où l’élément ne s’applique plus ; null : toujours en vigueur. */
+            date_fin: string | null;
+            reference_fin: string | null;
+            provisoire: boolean;
+            reference: string | null;
+            created_at: string;
+            retire_le: string | null;
+            motif_retrait: string | null;
         };
         ActeurInformel: {
             /** Format: uuid */
