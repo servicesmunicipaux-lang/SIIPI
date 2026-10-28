@@ -16,6 +16,7 @@ import { AgregatsWapla } from '../composants/national/AgregatsWapla';
 import { CarteCommunes } from '../composants/national/CarteCommunes';
 import { CarteDeploiement } from '../composants/national/CarteDeploiement';
 import { BibliothequeDonnees } from '../composants/national/BibliothequeDonnees';
+import { SecteurInformelNational } from '../composants/national/SecteurInformelNational';
 import { EtatExploitation } from '../composants/national/EtatExploitation';
 import { Pastille } from '../composants/ui/Pastille';
 import { IndicateursCommune } from '../composants/kpi/IndicateursCommune';
@@ -88,7 +89,7 @@ function sansAccent(texte: string): string {
 // performance, tableau par gouvernorat, puis l'annuaire des 350 communes tout en
 // bas. Même défaut que les dix-sept onglets du portail communal — ce qu'on ne
 // voit pas, on ne sait pas que ça existe — et même remède : la barre latérale.
-type OngletNational = 'synthese' | 'communes' | 'performance' | 'bibliotheque' | 'deploiement' | 'wapla' | 'exploitation' | 'parametres' | 'conservation' | 'demo';
+type OngletNational = 'synthese' | 'communes' | 'performance' | 'bibliotheque' | 'deploiement' | 'wapla' | 'informel' | 'exploitation' | 'parametres' | 'conservation' | 'demo';
 
 const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   { cle: 'synthese',    pole: 'cockpit' },
@@ -102,6 +103,8 @@ const ENTREES_NATIONAL: EntreeNavigation<OngletNational>[] = [
   { cle: 'deploiement', pole: 'pilotage' },
   // Les bilans WaPla étayés, additionnés par territoire (lot W5) : sans rang.
   { cle: 'wapla',       pole: 'pilotage' },
+  // Le secteur informel par gouvernorat (lot I3) : masqué sous 5 acteurs, sans rang.
+  { cle: 'informel',    pole: 'pilotage' },
   // L'état de l'exploitation (chantier P, lot P5) : ce que la surveillance a constaté.
   { cle: 'exploitation', pole: 'pilotage' },
   // Le jumeau numérique (lot S1) : un outil de la FNCT, pas une donnée nationale.
@@ -358,6 +361,7 @@ export function TableauDeBordNational() {
       {onglet === 'demo' && <ModeDemo />}
       {onglet === 'parametres' && <ParametresNationaux />}
       {onglet === 'wapla' && <AgregatsWapla />}
+      {onglet === 'informel' && <SecteurInformelNational />}
       {onglet === 'conservation' && <ConservationPhotos />}
 
       {onglet === 'deploiement' && (

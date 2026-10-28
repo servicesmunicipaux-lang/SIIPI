@@ -538,3 +538,24 @@ export const JEU_BIBLIOTHEQUE: JeuExport = {
     { cle: 'mois_couverts', fr: 'Mois couverts', ar: 'الأشهر المغطاة', type: 'nombre' },
   ],
 };
+
+// Le bilan de la conversion du secteur informel (lot I3) : déclaré, jamais
+// additionné au tonnage pesé — le titre et la première colonne le disent.
+export const JEU_CONVERSION_INFORMEL: JeuExport = {
+  nom: 'conversion-secteur-informel',
+  titre: { fr: 'Bilan de la conversion du secteur informel (déclaré)', ar: 'حصيلة إدماج القطاع غير المنظم (مصرّح بها)' },
+  colonnes: [
+    { cle: 'annee', fr: 'Année', ar: 'السنة', type: 'nombre' },
+    { cle: 'mois', fr: 'Mois', ar: 'الشهر', type: 'nombre' },
+    { cle: 'acteurs', fr: 'Acteurs ayant livré', ar: 'الفاعلون الذين سلّموا', type: 'nombre' },
+    { cle: 'livraisons', fr: 'Livraisons', ar: 'التسليمات', type: 'nombre' },
+    { cle: 'tonnes_detournees', fr: 'Tonnes détournées (déclarées)', ar: 'الأطنان المحوَّلة (مصرّح بها)', type: 'nombre' },
+    { cle: 'tonnes_sans_taux', fr: 'Dont tonnes sans taux de redevance', ar: 'منها أطنان دون معلوم', type: 'nombre' },
+    { cle: 'redevance_evitee_tnd', fr: 'Redevance ANGeD évitée (TND)', ar: 'معلوم الإيداع المُتفادى (د.ت)', type: 'nombre' },
+    { cle: 'redevance_provisoire', fr: 'Taux provisoire', ar: 'معلوم وقتي', type: 'booleen' },
+    { cle: 'voyages_peses', fr: 'Voyages pesés du mois', ar: 'الرحلات الموزونة في الشهر', type: 'nombre' },
+    { cle: 'poids_moyen_voyage_t', fr: 'Poids moyen d’un voyage pesé (t)', ar: 'معدل وزن الرحلة الموزونة (طن)', type: 'nombre' },
+    { cle: 'voyages_economises', fr: 'Voyages économisés', ar: 'الرحلات المُوفَّرة', type: 'nombre' },
+    { cle: 'masque', fr: 'Masqué (moins de 5 acteurs)', ar: 'محجوب (أقل من 5 فاعلين)', type: 'booleen' },
+  ],
+};

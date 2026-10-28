@@ -23,7 +23,9 @@ import { api, ErreurApi, type ActeurInformel, type DemarcheFormalisation, type R
 import { useAuth } from '../../lib/auth';
 import { useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
+import { AccompagnementActeur } from './AccompagnementActeur';
 import { CartesPrecollecteur } from './CartesPrecollecteur';
+import { BilanConversion, PeriodeTransitoire } from './PeriodeTransitoire';
 
 const champ = 'mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-3 text-base';
 const bouton = 'min-h-11 rounded-lg bg-siipi-600 px-4 text-sm font-medium text-white disabled:opacity-40';
@@ -45,6 +47,9 @@ export function ActeursInformels({ communeId }: { communeId: string }) {
   const [registre, setRegistre] = useState<RegistreActeursInformels | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [ouvert, setOuvert] = useState<string | null>(null);
+  // Chaque écriture recharge le registre ; la période transitoire, qui en
+  // dépend (étapes, démarches, agréments), se relit avec lui.
+  const [version, setVersion] = useState(0);
 
   const charger = useCallback(() => {
     api
@@ -52,6 +57,7 @@ export function ActeursInformels({ communeId }: { communeId: string }) {
       .then((r) => {
         setRegistre(r);
         setErreur(null);
+        setVersion((v) => v + 1);
       })
       .catch((e) => setErreur(message(e, t('commun.erreur'))));
   }, [communeId, t]);
@@ -121,6 +127,9 @@ export function ActeursInformels({ communeId }: { communeId: string }) {
       {peutEcrire && <Inscription communeId={communeId} onFait={charger} onErreur={onErreur} />}
 
       <CartesPrecollecteur communeId={communeId} acteurs={registre.acteurs} peutEcrire={peutEcrire} onErreur={onErreur} />
+
+      <PeriodeTransitoire key={version} communeId={communeId} onErreur={onErreur} />
+      <BilanConversion communeId={communeId} onErreur={onErreur} />
     </section>
   );
 }
@@ -200,6 +209,7 @@ function LigneActeur(props: {
           <td colSpan={7} className="space-y-4 px-3 py-3">
             {peutEcrire && <Requalification a={a} onFait={onFait} onErreur={onErreur} />}
             <Demarches acteurId={a.id} peutEcrire={peutEcrire} onFait={onFait} onErreur={onErreur} />
+            <AccompagnementActeur acteurId={a.id} categorie={a.categorie} peutEcrire={peutEcrire} onFait={onFait} onErreur={onErreur} />
           </td>
         </tr>
       )}

@@ -14530,6 +14530,708 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/periode-transitoire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les règles de la période à une date, et l’état de chaque acteur de la commune
+         * @description Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit. Avec « date », la situation telle qu’on l’aurait lue ce jour-là.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    date?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La situation. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            communeId: string;
+                            jour: string;
+                            cadre_actif: boolean;
+                            periode: {
+                                debut: string | null;
+                                duree_mois: number | null;
+                                /** @description Dernier jour de la période ; null sans départ ou sans durée. */
+                                fin: string | null;
+                                delai_etalonnage_mois: number | null;
+                                fin_etalonnage: string | null;
+                                /** @description Une règle repose sur le projet de décret. */
+                                provisoire: boolean;
+                                /** @description Les paramètres sans valeur en vigueur à la date. */
+                                manque: string[];
+                            };
+                            /** @description Le nombre d’acteurs par état ; ni total, ni pourcentage. */
+                            etats: {
+                                [key: string]: number;
+                            };
+                            acteurs: components["schemas"]["SituationActeur"][];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/periode-transitoire/conversion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le bilan de la conversion, mois par mois (provenance déclarée)
+         * @description Tonnes détournées (livraisons du registre des acteurs), redevance ANGeD évitée, voyages économisés. Un mois sans livraison n’a pas de ligne.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    annee?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Le bilan ; en fichier, le tableau des mois. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            communeId: string;
+                            annee: number;
+                            /** @enum {string} */
+                            provenance: "declaree";
+                            mois: components["schemas"]["MoisConversionInformel"][];
+                        };
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/periode-transitoire/national": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La vue nationale, par gouvernorat (FNCT)
+         * @description Par gouvernorat, dans l’ordre alphabétique, « N communes sur M » : acteurs inscrits, cartes valables, démarches en cours, formalisés, agréments valables, tonnes détournées de l’année. Tout compte de 1 à 4 est masqué (null, nommé dans « masques »). Aucun rang, aucune ligne par commune.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    date?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La vue nationale. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            jour: string;
+                            cadre_actif: boolean;
+                            gouvernorats: {
+                                gouvernorat: string;
+                                gouvernorat_ar: string | null;
+                                communes_avec_acteurs: number;
+                                communes: number;
+                                acteurs: number | null;
+                                cartes_valables: number | null;
+                                demarches_en_cours: number | null;
+                                formalises: number | null;
+                                agrements_valables: number | null;
+                                tonnes_detournees: number | null;
+                                masques: string[];
+                            }[];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/periode-transitoire/acteurs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * L’accompagnement d’un acteur : étapes franchies, agréments
+         * @description Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description L’accompagnement. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccompagnementActeur"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/periode-transitoire/acteurs/{id}/jalons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inscrire une étape d’accompagnement franchie : sa date, sa pièce
+         * @description Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit. L’étape doit figurer dans la liste nationale en vigueur à sa date (400), suivre une démarche entamée (409), et n’être inscrite qu’une fois (409).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        jalonCode: string;
+                        dateJalon: string;
+                        reference?: string | null;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Étape inscrite. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccompagnementActeur"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Refusée en l’état. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/periode-transitoire/acteurs/{id}/jalons/{jalonId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer une étape inscrite à tort
+         * @description Retrait logique ; une étape ne se réécrit pas.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    jalonId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Étape retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccompagnementActeur"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/periode-transitoire/acteurs/{id}/agrements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enregistrer l’agrément délivré à un intermédiaire, tel que l’organisme l’a délivré
+         * @description Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit. Pour un acteur déclaré intermédiaire seulement (409). L’échéance est celle de la pièce ; un écart avec la durée nationale en vigueur à la délivrance est signalé dans « À vérifier », jamais corrigé.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        organisme: string;
+                        reference: string;
+                        dateDelivrance: string;
+                        dateEcheance: string;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Agrément enregistré. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccompagnementActeur"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Refusé en l’état. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/periode-transitoire/acteurs/{id}/agrements/{agrementId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Retirer un agrément enregistré à tort
+         * @description Retrait logique ; un agrément enregistré ne se réécrit pas.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    agrementId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Agrément retiré. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccompagnementActeur"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/regles-informel": {
         parameters: {
             query?: never;
@@ -30743,6 +31445,81 @@ export interface components {
                 date_piece: string | null;
                 reference: string | null;
             }[];
+        };
+        SituationActeur: {
+            /** Format: uuid */
+            acteur_id: string;
+            /** @description Le pseudonyme ; aucun nom. */
+            id_precollecteur: string;
+            /** @enum {string|null} */
+            categorie: "pre_collecteur" | "intermediaire" | null;
+            derniere_demarche: string | null;
+            date_derniere_demarche: string | null;
+            /** @description Étapes franchies parmi celles de la liste en vigueur à la date. */
+            jalons_franchis: number;
+            jalons_en_vigueur: number;
+            /** @description Intermédiaire seulement. */
+            agrement_echeance: string | null;
+            agrement_valable: boolean | null;
+            etalonnage_enregistre: boolean | null;
+            /** @enum {string} */
+            etat: "date_depart_non_fixee" | "regles_incompletes" | "formalise" | "avant_periode" | "peut_exercer" | "sans_demarche" | "a_regulariser";
+        };
+        AccompagnementActeur: {
+            acteur: {
+                /** Format: uuid */
+                id: string;
+                id_precollecteur: string;
+                categorie: string | null;
+            };
+            /** @description La liste nationale des étapes en vigueur aujourd’hui. Une étape se juge sur la liste du jour où elle a été franchie. */
+            jalons_possibles: {
+                code: string;
+                libelle_fr: string;
+                libelle_ar: string;
+            }[];
+            jalons: {
+                /** Format: uuid */
+                id: string;
+                jalon_code: string;
+                libelle_fr: string | null;
+                libelle_ar: string | null;
+                date_jalon: string;
+                reference: string | null;
+                observation: string | null;
+            }[];
+            agrements: {
+                /** Format: uuid */
+                id: string;
+                organisme: string;
+                reference: string;
+                date_delivrance: string;
+                /** @description Celle de la pièce, recopiée telle quelle. */
+                date_echeance: string;
+                observation: string | null;
+                duree_mois_en_vigueur: number | null;
+                /** @description Ce que la durée nationale en vigueur à la délivrance donnerait ; montrée à côté, jamais à la place. */
+                echeance_selon_duree: string | null;
+            }[];
+        };
+        MoisConversionInformel: {
+            annee: number;
+            mois: number;
+            acteurs: number | null;
+            livraisons: number | null;
+            /** @description Déclarées ; jamais additionnées au tonnage pesé. */
+            tonnes_detournees: number | null;
+            tonnes_sans_taux: number | null;
+            /** @description Au taux en vigueur le jour de chaque livraison ; hypothèse : ces tonnes seraient parties en décharge. */
+            redevance_evitee_tnd: number | null;
+            taux_appliques: number[] | null;
+            redevance_provisoire: boolean;
+            voyages_peses: number;
+            /** @description Voyages pesés de circuit, ordures ménagères, du même mois ; null sans pesée. */
+            poids_moyen_voyage_t: number | null;
+            voyages_economises: number | null;
+            /** @description Lu par la FNCT, un mois de moins de 5 acteurs est masqué. */
+            masque: boolean;
         };
         ElementListeNationale: {
             /** Format: uuid */

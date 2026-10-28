@@ -5,6 +5,43 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.85] — 2026-10-28 — La période transitoire du secteur informel (lot I3, 18.3)
+
+`DECISIONS_2026-10-20.md`, compléments du 28/10/2026 : le suivi de la période transitoire de l'article 13 du projet
+de décret, sur les règles datées du lot I1. Derrière l'interrupteur du cadre du secteur informel, éteint en production.
+
+### Ajouté
+- **Les étapes d'accompagnement** (migration 093, `jalons_acteurs`) : formation, statut, régularisation… franchies
+  par un acteur, datées, avec leur pièce ; chacune doit figurer dans la liste nationale **en vigueur à sa date** et
+  suivre la démarche entamée. Une étape ne se réécrit pas ; saisie à tort, elle se retire.
+- **Les agréments des intermédiaires** (`agrements_intermediaires`) : l'organisme, la référence, la délivrance et
+  l'échéance portées par la pièce. **SIIPI n'agrée pas** : aucune route ne délivre un agrément. « À vérifier »
+  annonce une échéance dans les 60 jours, signale un agrément expiré, et montre l'écart entre l'échéance et la durée
+  nationale en vigueur à la délivrance, sans la corriger.
+- **L'état de chaque acteur** (`app.situation_transitoire`, rejouable à une date) : peut exercer, formalisé, sans
+  démarche, puis **à régulariser** après la fin — un avertissement, jamais un blocage ; un intermédiaire sans
+  étalonnage après son échéance est signalé. **Sans date de départ, aucun état ni aucun avis.**
+- **Le bilan de la conversion** (`app.conversion_informel`), mois par mois, **en provenance déclarée** : tonnes
+  détournées (livraisons du registre des acteurs, jour de Tunis), redevance ANGeD évitée au taux du jour de chaque
+  livraison (tonnes sans taux à part), voyages économisés au poids moyen d'un voyage pesé de circuit du même mois
+  (non renseigné sans pesée). Jamais additionné au tonnage pesé ; export Excel/CSV.
+- **La vue de la FNCT** (`app.secteur_informel_national`, entrée *Secteur informel* de l'observatoire) : par
+  gouvernorat, « N communes sur M », acteurs, cartes valables, démarches en cours, formalisés, agréments valables,
+  tonnes de l'année. **Tout compte de 1 à 4 est masqué** (aussi dans le bilan d'une commune lu par la FNCT) ; aucun
+  rang, aucune ligne par commune, ordre alphabétique de la langue affichée.
+- API `/periode-transitoire` (8 routes) ; écran *Acteurs informels* : volet *Accompagnement* (et *Agrément* pour un
+  intermédiaire) dans chaque acteur, sections *La période transitoire* et *Le bilan de la conversion* — FR/AR, vérifié
+  sur téléphone. Avis de « À vérifier » rendus en arabe.
+
+### Vérifié
+- Campagne `periode-transitoire` : les refus d'abord (cadre éteint, étape sans démarche, antérieure, de demain, hors
+  liste du jour, en double, réécrite ; agrément d'un pré-collecteur, sans organisme, à l'échéance qui ne suit pas la
+  délivrance, de demain, réécrit ; écritures de la FNCT, d'un prestataire, d'une autre commune ; vue nationale à un
+  directeur) ; puis aucun état sans date de départ, la fin de période contre un témoin de dates, le rejeu à une date,
+  « à régulariser » sans blocage, l'étalonnage, les avis d'agrément FR/AR, le bilan de la conversion recalculé par un
+  témoin indépendant (`periode_transitoire_attendus.py`), le masquage sous 5 et l'absence de rang. Mutant (taux du
+  jour du calcul) : 2 échecs, rétabli.
+
 ## [0.15.84] — 2026-10-28 — La carte de pré-collecteur (lot I2, 18.2)
 
 `DECISIONS_2026-10-20.md`, compléments du 28/10/2026 : la carte de l'article 13.1 du projet de décret, sur les règles
