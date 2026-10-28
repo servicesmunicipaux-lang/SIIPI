@@ -235,3 +235,28 @@ rapporte qu'au pesé, et seulement quand tous les voyages attendus du circuit so
 Grand Tunis qui part de zéro, pour éprouver la saisie depuis rien. Les outils servent les deux cas ; la FNCT
 tranchera quand le serveur sera là.
 
+## Complément du 28 octobre 2026 — Le secteur informel sans attendre l'article 13
+
+**Décision stratégique.** Les lots 18.2 (carte de pré-collecteur) et 18.3 (période transitoire) se développent
+maintenant : la vision intégrée, secteur informel compris, est un argument pour les communes. **Règle d'or : toute
+règle légale de l'article 13 — durées, dates, pièces, étapes — est un paramètre national daté, jamais du code.** Si la
+loi change, la FNCT change le paramètre, à sa date d'effet ; ce qui a été décidé avant garde la règle de son jour.
+
+Trois lots : **I1** (les règles en paramètres et l'écran de la FNCT), **I2** (la carte, 18.2), **I3** (la période
+transitoire, 18.3). Six décisions validées :
+
+1. **L'interrupteur reste éteint en production** tant que le texte n'est pas publié ; pour les démonstrations, la FNCT
+   l'allume sur l'instance de **formation**, en citant « projet de décret — démonstration ».
+2. **Le nom sur la carte** : le document scellé ne garde que le pseudonyme, les zones et les dates ; le nom s'imprime à
+   l'impression, pour le seul directeur de la commune, depuis la table d'identité.
+3. **Un renouvellement émet une nouvelle carte** (nouveau numéro, renvoi à la précédente) ; un document scellé ne se
+   prolonge pas.
+4. **Les voyages économisés** se calculent sur le tonnage moyen d'un voyage **pesé** de la commune ; sans pesée,
+   « non renseigné » — jamais une densité supposée.
+5. **La carte d'une personne morale** n'est pas modélisée avant l'article 13.
+6. **La vue de la FNCT** masque un compte sous 5 acteurs, comme les revenus des pré-collecteurs (décision du 02/10/2026).
+
+**I1 fait (v0.15.83).** Durées du projet posées provisoires (carte 12 mois, agrément 24, période 36, étalonnage 6) ;
+**aucune date de départ** posée : le projet ne la donne pas, et sans elle aucune échéance ne se calcule. Pièces exigées
+(trois attestations) et étapes d'accompagnement (six) en listes nationales datées : un élément se **ferme** à une date
+quand le texte change, se **retire** quand il a été saisi à tort.

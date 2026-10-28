@@ -260,6 +260,8 @@ export type RegistreActeursInformels = Reponse<'/acteurs-informels', 'get'>;
 export type ActeurInformel = RegistreActeursInformels['acteurs'][number];
 export type DemarcheFormalisation = Reponse<'/acteurs-informels/{id}/demarches', 'get'>[number];
 export type CadreSecteurInformel = Reponse<'/observatoire/cadre-secteur-informel', 'get'>;
+export type ReglesInformel = Reponse<'/regles-informel', 'get'>;
+export type ElementListeNationale = ReglesInformel['listes'][number]['elements'][number];
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
 export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
@@ -1292,6 +1294,20 @@ export const api = {
     }),
   retirerValeurParametre: (id: string, motif: string) =>
     requete<ValeurParametreNational>(`/parametres-nationaux/valeurs/${id}/retrait`, {
+      method: 'POST',
+      body: JSON.stringify({ motif }),
+    }),
+  // --- Lot I1 : les règles du secteur informel (écriture : FNCT) --------------
+  reglesInformel: () => requete<ReglesInformel>('/regles-informel'),
+  ajouterElementListe: (
+    liste: ElementListeNationale['liste'],
+    saisie: Corps<'/regles-informel/listes/{liste}', 'post'>
+  ) =>
+    requete<ElementListeNationale>(`/regles-informel/listes/${liste}`, { method: 'POST', body: JSON.stringify(saisie) }),
+  fermerElementListe: (id: string, saisie: Corps<'/regles-informel/elements/{id}/fin', 'post'>) =>
+    requete<ElementListeNationale>(`/regles-informel/elements/${id}/fin`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerElementListe: (id: string, motif: string) =>
+    requete<ElementListeNationale>(`/regles-informel/elements/${id}/retrait`, {
       method: 'POST',
       body: JSON.stringify({ motif }),
     }),

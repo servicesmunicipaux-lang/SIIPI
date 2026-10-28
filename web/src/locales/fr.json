@@ -215,7 +215,12 @@
       "descriptions": {
         "redevance_anged": "Montant par tonne pesée. Chaque pesée est valorisée au taux en vigueur à sa date.",
         "ministere_tutelle": "Intitulé porté en tête des documents administratifs des communes.",
-        "entete_etat": "Première ligne de l’en-tête des documents administratifs."
+        "entete_etat": "Première ligne de l’en-tête des documents administratifs.",
+        "informel_validite_carte_mois": "Comptée de la délivrance. La durée en vigueur le jour de la décision fixe la fin de la carte ; une carte délivrée ne change plus.",
+        "informel_duree_agrement_mois": "Durée de référence d’un agrément délivré par l’éco-organisme. SIIPI n’agrée pas : il enregistre l’échéance portée par l’agrément et signale un écart avec cette durée.",
+        "informel_duree_periode_transitoire_mois": "Pendant la période, l’activité est permise à qui a entamé une démarche de formalisation auprès de la commune.",
+        "informel_delai_etalonnage_mois": "Les instruments de pesée sont étalonnés dans ce délai, compté de la fin de la période transitoire.",
+        "informel_debut_periode_transitoire": "Aucune valeur tant que le texte ne la fixe pas : sans elle, aucune échéance ne se calcule."
       },
       "cadreInformel": {
         "titre": "Cadre du secteur informel",
@@ -286,6 +291,52 @@
         "source": "Source : {{source}}",
         "nonDonne": "Non donné par le guide",
         "litres": "{{valeur}} l"
+      },
+      "valeurDate": "Date",
+      "informel": {
+        "titre": "Secteur informel",
+        "intro": "Le projet de décret sur le tri à la source (art. 13.1) n’est pas en vigueur. Ses règles se tiennent ici, datées : durées, date de départ de la période transitoire, pièces exigées pour la carte de pré-collecteur, étapes d’accompagnement. Elles se règlent d’avance, le cadre suspendu ; quand le texte paraît, ajoutez la valeur officielle avec sa date d’effet — aucune mise à jour de la plateforme n’est nécessaire.",
+        "projet": "projet de décret — non en vigueur",
+        "periode": {
+          "titre": "Période transitoire",
+          "du": "Du {{debut}} au {{fin}} ({{mois}} mois).",
+          "etalonnage": "Instruments de pesée étalonnés au plus tard le {{date}}.",
+          "nonFixee": "Date de départ non fixée : aucune échéance ne se calcule.",
+          "manque": "Il manque : {{liste}}."
+        },
+        "listes": {
+          "pieces_carte_precollecteur": {
+            "titre": "Pièces exigées pour la carte de pré-collecteur",
+            "description": "Une carte ne s’accorde pas sans chacune des pièces en vigueur le jour de la demande. Une pièce qui cesse d’être exigée se ferme à une date ; les demandes d’avant restent jugées sur la liste de leur jour."
+          },
+          "jalons_accompagnement": {
+            "titre": "Étapes d’accompagnement",
+            "description": "Les étapes de la formalisation qu’une commune peut enregistrer, acteur par acteur, pendant la période transitoire."
+          }
+        },
+        "etats": {
+          "en_vigueur": "en vigueur depuis le {{date}}",
+          "a_venir": "à partir du {{date}}",
+          "ferme": "ne s’applique plus depuis le {{date}}",
+          "retire": "retiré — {{motif}}"
+        },
+        "finPar": "Fin décidée par : {{texte}}",
+        "fermer": "Fermer à une date",
+        "dateFin": "Ne s’applique plus à partir du",
+        "texteFin": "Texte qui y met fin",
+        "confirmerFin": "Confirmer la fin",
+        "libelleFr": "Libellé en français",
+        "libelleAr": "Libellé en arabe",
+        "code": "Code (minuscules, tiret bas)",
+        "ordre": "Ordre d’affichage",
+        "texte": "Texte qui fonde l’élément",
+        "ajouter": "Ajouter à la liste",
+        "elementAjoute": "Élément ajouté à la liste.",
+        "elementFerme": "Élément fermé : il ne s’applique plus à partir de la date choisie.",
+        "elementRetire": "Élément retiré. Il reste lisible dans la liste."
+      },
+      "unites": {
+        "mois": "mois"
       }
     },
     "moyenneNationale": {
