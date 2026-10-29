@@ -29,7 +29,15 @@ import { communeDemandee } from '../perimetre.js';
 export const periodeTransitoireRouter = Router();
 
 const LECTEURS = ['admin_commune', 'super_admin_fnct'] as const;
-const dateIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.');
+// Une date bien formée doit aussi exister : « 2026-02-30 » passerait le motif et
+// ferait échouer PostgreSQL (500) au lieu d'un refus qui dit quoi corriger.
+const dateIso = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.')
+  .refine((d) => {
+    const t = new Date(`${d}T00:00:00Z`);
+    return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === d;
+  }, 'Cette date n’existe pas au calendrier : vérifiez le jour et le mois (AAAA-MM-JJ).');
 // Le jour à Tunis (UTC+1, sans heure d'été).
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 const pasDansLAvenir = { message: "Cette date porte sur ce qui a eu lieu : elle ne peut pas être dans l'avenir." };
@@ -53,6 +61,8 @@ const REFUS: Record<string, number> = {
   AGREMENT_CATEGORIE: 409,
   AGREMENT_AVENIR: 400,
 };
+// Les trois contraintes d'agrément sont aussi contrôlées par zod, avec les mêmes
+// messages : celles-ci ne servent que de filet si les deux venaient à diverger.
 const CONTRAINTES: Record<string, string> = {
   uq_jalon_acteur: 'Cette étape est déjà inscrite pour cet acteur : retirez-la pour en corriger la date ou la pièce.',
   agrements_organisme_nomme: 'Nommez l’organisme qui a délivré l’agrément (3 caractères au moins).',
@@ -78,9 +88,12 @@ function communeRequise(req: Parameters<typeof communeDemandee>[0]) {
   return c;
 }
 
+// La commune doit exister : can_read_commune est vrai pour la FNCT quelle que soit
+// la chaîne, et une faute de frappe se serait lue « aucun acteur, 0 par état ». La
+// politique de lecture de `communes` écarte aussi une commune retirée.
 async function communeLisible(communeId: string) {
-  const l = await queryOne<{ ok: boolean }>('SELECT app.can_read_commune($1) AS ok', [communeId]);
-  if (!l?.ok) throw new ApiError(404, 'Commune introuvable.');
+  const l = await queryOne('SELECT id FROM communes WHERE id = $1 AND app.can_read_commune(id)', [communeId]);
+  if (!l) throw new ApiError(404, 'Commune introuvable.');
 }
 
 async function cadreActif() {
@@ -102,7 +115,7 @@ async function acteur(id: string) {
 
 // --- Les règles du jour et l'état de chaque acteur -------------------------
 
-const situationQuery = z.object({ date: dateIso.optional() }).passthrough();
+export const situationQuery = z.object({ date: dateIso.optional() }).passthrough();
 
 periodeTransitoireRouter.get(
   '/',
@@ -123,8 +136,15 @@ periodeTransitoireRouter.get(
 
 // --- Le bilan de la conversion ------------------------------------------------
 
-const conversionQuery = z
-  .object({ annee: z.coerce.number().int().min(2000).max(2100).optional() })
+export const conversionQuery = z
+  .object({
+    annee: z.coerce
+      .number({ invalid_type_error: 'Année attendue : un nombre de quatre chiffres (AAAA).' })
+      .int('Année attendue : un nombre de quatre chiffres (AAAA).')
+      .min(2000, 'Année attendue entre 2000 et 2100.')
+      .max(2100, 'Année attendue entre 2000 et 2100.')
+      .optional(),
+  })
   .passthrough();
 
 periodeTransitoireRouter.get(
@@ -143,9 +163,10 @@ periodeTransitoireRouter.get(
       ),
       taux_appliques: Array.isArray(m.taux_appliques) ? (m.taux_appliques as unknown[]).map(Number) : null,
     }));
-    // L'export (Excel, CSV) est le tableau des mois.
+    // L'export (Excel, CSV) est le tableau des mois ; les taux appliqués y
+    // deviennent un texte, une cellule ne portant pas de liste.
     if (req.query.format !== undefined) {
-      res.json(mois);
+      res.json(mois.map((m) => ({ ...m, taux_appliques: m.taux_appliques?.join(' ; ') ?? null })));
       return;
     }
     res.json({ communeId, annee, provenance: 'declaree', mois });
@@ -171,32 +192,56 @@ periodeTransitoireRouter.get(
 
 // --- L'accompagnement d'un acteur --------------------------------------------
 
-async function accompagnement(a: { id: string; id_precollecteur: string; categorie: string | null }) {
+// Les étapes proposées sont celles de la liste en vigueur à la date de l'étape
+// que la commune s'apprête à inscrire (aujourd'hui sans date) : c'est sur elle que
+// la base jugera. Deux éléments du même code peuvent se chevaucher un jour, quand
+// la FNCT ferme l'ancien après l'entrée en vigueur du nouveau : un seul par code,
+// le plus récent.
+async function accompagnement(a: { id: string; id_precollecteur: string; categorie: string | null }, date?: string) {
   const jalonsPossibles = await query(
-    `SELECT code, libelle_fr, libelle_ar FROM app.liste_nationale('jalons_accompagnement', app.jour_tunis())`
+    `SELECT code, libelle_fr, libelle_ar FROM (
+       SELECT DISTINCT ON (code) code, libelle_fr, libelle_ar, ordre
+         FROM app.liste_nationale('jalons_accompagnement', COALESCE($1::date, app.jour_tunis()))
+        ORDER BY code, date_effet DESC) l
+      ORDER BY ordre, code`,
+    [date ?? null]
   );
   // Le libellé d'une étape est celui de la liste du jour où elle a été franchie.
   const jalons = await query(
     `SELECT j.id, j.jalon_code, l.libelle_fr, l.libelle_ar, j.date_jalon, j.reference, j.observation
        FROM jalons_acteurs j
-       LEFT JOIN LATERAL app.liste_nationale('jalons_accompagnement', j.date_jalon) l ON l.code = j.jalon_code
+       LEFT JOIN LATERAL (
+         SELECT x.libelle_fr, x.libelle_ar FROM app.liste_nationale('jalons_accompagnement', j.date_jalon) x
+          WHERE x.code = j.jalon_code ORDER BY x.date_effet DESC LIMIT 1
+       ) l ON true
       WHERE j.acteur_id = $1 AND j.deleted_at IS NULL
       ORDER BY j.date_jalon, j.created_at`,
     [a.id]
   );
   // L'échéance que la durée en vigueur à la délivrance donnerait : montrée à
-  // côté de celle de la pièce, jamais à sa place.
+  // côté de celle de la pièce, jamais à sa place. L'écart se juge avec les bornes
+  // de « À vérifier » (la veille du même quantième, ou ce jour-là) : l'écran et
+  // l'avis ne doivent pas se contredire.
   const agrements = await query(
     `SELECT g.id, g.organisme, g.reference, g.date_delivrance, g.date_echeance, g.observation,
             v.valeur_nombre::int AS duree_mois_en_vigueur,
-            (g.date_delivrance + make_interval(months => v.valeur_nombre::int) - interval '1 day')::date::text AS echeance_selon_duree
+            (g.date_delivrance + make_interval(months => v.valeur_nombre::int) - interval '1 day')::date::text AS echeance_selon_duree,
+            CASE WHEN v.valeur_nombre IS NOT NULL THEN
+              g.date_echeance NOT BETWEEN (g.date_delivrance + make_interval(months => v.valeur_nombre::int) - interval '1 day')::date
+                                      AND (g.date_delivrance + make_interval(months => v.valeur_nombre::int))::date
+            END AS ecart_duree
        FROM agrements_intermediaires g
        LEFT JOIN LATERAL app.parametre_national('informel_duree_agrement_mois', g.date_delivrance) v ON true
       WHERE g.acteur_id = $1 AND g.deleted_at IS NULL
       ORDER BY g.date_delivrance, g.created_at`,
     [a.id]
   );
-  return { acteur: a, jalons_possibles: jalonsPossibles, jalons, agrements };
+  return {
+    acteur: { id: a.id, id_precollecteur: a.id_precollecteur, categorie: a.categorie },
+    jalons_possibles: jalonsPossibles,
+    jalons,
+    agrements,
+  };
 }
 
 periodeTransitoireRouter.get(
@@ -204,16 +249,17 @@ periodeTransitoireRouter.get(
   requireAuth,
   requireRole(...LECTEURS),
   asyncHandler(async (req, res) => {
-    res.json(await accompagnement(await acteur(req.params.id)));
+    const { date } = situationQuery.parse(req.query);
+    res.json(await accompagnement(await acteur(req.params.id), date));
   })
 );
 
 export const jalonActeurSchema = z
   .object({
-    jalonCode: z.string().trim().min(1).max(60),
+    jalonCode: z.string().trim().min(1, 'Choisissez l’étape franchie.').max(60, 'Code d’étape trop long (60 caractères au plus).'),
     dateJalon: dateIso.refine((d) => d <= aujourdhui(), pasDansLAvenir),
-    reference: z.string().trim().max(200).nullable().optional(),
-    observation: z.string().trim().max(1000).nullable().optional(),
+    reference: z.string().trim().max(200, 'La référence tient en 200 caractères au plus.').nullable().optional(),
+    observation: z.string().trim().max(1000, 'L’observation tient en 1000 caractères au plus.').nullable().optional(),
   })
   .strict();
 
@@ -260,11 +306,19 @@ periodeTransitoireRouter.delete(
 
 export const agrementSchema = z
   .object({
-    organisme: z.string().trim().min(3).max(200),
-    reference: z.string().trim().min(1).max(200),
+    organisme: z
+      .string()
+      .trim()
+      .min(3, 'Nommez l’organisme qui a délivré l’agrément (3 caractères au moins).')
+      .max(200, 'Le nom de l’organisme tient en 200 caractères au plus.'),
+    reference: z
+      .string()
+      .trim()
+      .min(1, 'Indiquez la référence de l’agrément, telle qu’elle figure sur la pièce.')
+      .max(200, 'La référence tient en 200 caractères au plus.'),
     dateDelivrance: dateIso.refine((d) => d <= aujourdhui(), pasDansLAvenir),
     dateEcheance: dateIso,
-    observation: z.string().trim().max(1000).nullable().optional(),
+    observation: z.string().trim().max(1000, 'L’observation tient en 1000 caractères au plus.').nullable().optional(),
   })
   .strict()
   .refine((d) => d.dateEcheance > d.dateDelivrance, { message: 'L’échéance d’un agrément suit sa délivrance.', path: ['dateEcheance'] });

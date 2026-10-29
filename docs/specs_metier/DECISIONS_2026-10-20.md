@@ -288,3 +288,16 @@ pas de carte. Aucun nom n'est scellé ; il s'imprime pour le seul directeur de l
 l'organisme les a délivrés (SIIPI n'agrée pas ; écart avec la durée en vigueur signalé), état de chaque acteur face à
 la période (aucun sans date de départ), bilan de la conversion en provenance déclarée, vue de la FNCT par gouvernorat
 masquée sous 5 acteurs. Les lots 18.2 et 18.3 sont faits ; les règles restent provisoires jusqu'au texte publié.
+
+**I3, précisions après la relecture du lot (29/10/2026) :**
+
+- **Portée du masquage sous 5 (décision 6).** Il vaut pour ce que la vue nationale et le bilan de la conversion
+  publient. La FNCT lit par ailleurs, commune par commune, la situation pseudonyme de chaque acteur, comme elle lit le
+  registre du lot 18.1 depuis la v0.15.13 ; le lui retirer serait une décision à part.
+- **Les tonnes nationales se lisent par mois clos.** Un cumul à une date libre se soustrait d'un autre et rendrait
+  la livraison d'un seul acteur : le gouvernorat ne publie que la somme des mois civils clos où une commune a eu au
+  moins 5 acteurs livreurs, et compte les mois écartés.
+- **Le rejeu à une date** applique les règles de cette date aux faits datés de cette date ou avant, tels qu'ils sont
+  inscrits aujourd'hui : une commune qui reporte ses dossiers papier inscrit les démarches à leur vraie date.
+- **L'étalonnage** se reconnaît à l'étape de code `etalonnage_instruments` ; la FNCT qui révise cette étape la ferme
+  et en ouvre une sous le même code.

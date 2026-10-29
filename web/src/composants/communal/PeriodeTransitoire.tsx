@@ -154,7 +154,15 @@ export function PeriodeTransitoire({
                   <td className="px-3 py-2 font-mono text-xs">{a.id_precollecteur}</td>
                   <td className="px-3 py-2">
                     {sansEtat ? (
-                      <span className="text-ardoise-400">{t('communal.transition.sansEtat')}</span>
+                      // Sans départ, ou départ fixé mais durée absente : l'écran
+                      // dit lequel, il ne prétend pas que le départ manque.
+                      <span className="text-ardoise-400">
+                        {t(
+                          p.debut === null
+                            ? 'communal.transition.sansEtat'
+                            : 'communal.transition.sansEtatRegles'
+                        )}
+                      </span>
                     ) : (
                       <PastilleEtat etat={a.etat} />
                     )}
@@ -166,7 +174,11 @@ export function PeriodeTransitoire({
                     })}
                   </td>
                   <td className="px-3 py-2 text-xs">
-                    {a.categorie !== 'intermediaire' ? (
+                    {a.categorie === null ? (
+                      <span className="text-ardoise-400">
+                        {t('communal.transition.categorieNonDeclaree')}
+                      </span>
+                    ) : a.categorie !== 'intermediaire' ? (
                       <span className="text-ardoise-400">{t('communal.transition.sansObjet')}</span>
                     ) : a.agrement_echeance === null ? (
                       <span className="text-ardoise-500">
@@ -217,7 +229,20 @@ export function BilanConversion({
 
   useEffect(() => {
     setBilan(null);
-    api.conversionInformel(communeId, annee).then(setBilan).catch(onErreur);
+    // Une réponse d'une année quittée entre-temps ne s'affiche pas sous la
+    // nouvelle : le tableau et l'export porteraient deux années différentes.
+    let annule = false;
+    api
+      .conversionInformel(communeId, annee)
+      .then((b) => {
+        if (!annule) setBilan(b);
+      })
+      .catch((e) => {
+        if (!annule) onErreur(e);
+      });
+    return () => {
+      annule = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [communeId, annee]);
 

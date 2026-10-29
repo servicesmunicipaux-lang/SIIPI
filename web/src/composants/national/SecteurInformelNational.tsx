@@ -46,14 +46,36 @@ export function SecteurInformelNational() {
     nom(x).localeCompare(nom(y), ar ? 'ar' : 'fr')
   );
 
-  const cellule = (l: Ligne, cle: (typeof COMPTES)[number] | 'tonnes_detournees') => {
+  const cellule = (l: Ligne, cle: (typeof COMPTES)[number]) => {
     if (l.masques.includes(cle))
       return <span className="text-ardoise-500">{t('national.informel.moinsDe5')}</span>;
     const v = l[cle];
     if (v === null)
       return <span className="text-ardoise-400">{t('national.informel.nonRenseigne')}</span>;
-    return cle === 'tonnes_detournees' ? f.masse(v, 3) : v;
+    return v;
   };
+  // Les tonnes : « moins de 5 » s'y lirait « moins de 5 tonnes » ; un masque y dit
+  // donc « acteurs », et une somme partielle dit combien de mois elle écarte.
+  const tonnes = (l: Ligne) => {
+    if (l.tonnes_detournees === null)
+      return l.masques.includes('tonnes_detournees') ? (
+        <span className="text-ardoise-500">{t('national.informel.tonnesMasquees')}</span>
+      ) : (
+        <span className="text-ardoise-400">{t('national.informel.nonRenseigne')}</span>
+      );
+    return (
+      <>
+        {f.masse(l.tonnes_detournees, 3)}
+        {l.mois_masques > 0 && (
+          <span className="block text-xs text-ardoise-500">
+            {t('national.informel.moisEcartes', { n: l.mois_masques })}
+          </span>
+        )}
+      </>
+    );
+  };
+  // Les tonnes portent sur les mois clos : la même période pour tous les gouvernorats.
+  const periodeTonnes = donnees.gouvernorats[0];
 
   return (
     <section aria-labelledby="titre-informel-national" className="space-y-4">
@@ -84,6 +106,14 @@ export function SecteurInformelNational() {
               ))}
               <th className="px-3 py-2 text-end">
                 {t('national.informel.colonnes.tonnes_detournees')}
+                {periodeTonnes && (
+                  <span className="block font-normal">
+                    {t('national.informel.periodeTonnes', {
+                      du: f.date(periodeTonnes.tonnes_du),
+                      au: f.date(periodeTonnes.tonnes_au),
+                    })}
+                  </span>
+                )}
               </th>
             </tr>
           </thead>
@@ -107,9 +137,7 @@ export function SecteurInformelNational() {
                         {cellule(l, c)}
                       </td>
                     ))}
-                    <td className="px-3 py-2 text-end tabular-nums">
-                      {cellule(l, 'tonnes_detournees')}
-                    </td>
+                    <td className="px-3 py-2 text-end tabular-nums">{tonnes(l)}</td>
                   </>
                 )}
               </tr>

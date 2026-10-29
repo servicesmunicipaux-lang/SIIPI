@@ -110,11 +110,11 @@ export const MODELES: Modele[] = [
   { fr: "Vérifier la date d'échéance portée par l'agrément. SIIPI ne la corrige pas.", ar: 'التثبّت من تاريخ الأجل المضمَّن في الترخيص. لا تصحّحه المنظومة.' },
   {
     fr: "La période transitoire a pris fin le %s ; la démarche de cet acteur n'est pas formalisée.",
-    ar: 'انتهت الفترة الانتقالية بتاريخ {0}؛ ولم تُستكمل إجراءات هيكلة هذا الفاعل.',
+    ar: 'انتهت الفترة الانتقالية بتاريخ {0}؛ ولم يُستكمل مسار هيكلة هذا الفاعل.',
   },
   {
     fr: "Régulariser la situation de l'acteur avec lui, ou inscrire l'aboutissement de sa démarche. SIIPI ne bloque rien : il constate.",
-    ar: 'تسوية وضعية الفاعل معه، أو تسجيل استكمال إجراءاته. لا تمنع المنظومة شيئًا، بل تعاين.',
+    ar: 'تسوية وضعية الفاعل معه، أو تسجيل استكمال مساره. لا تمنع المنظومة شيئًا، بل تعاين.',
   },
   {
     fr: "L'échéance d'étalonnage des instruments de pesée (%s) est passée ; aucun étalonnage n'est enregistré.",

@@ -8,24 +8,32 @@
 # datée de demain, hors de la liste nationale du jour de l'étape, inscrite deux
 # fois ; un agrément pour un pré-collecteur, sans organisme, à l'échéance
 # antérieure à la délivrance, délivré demain ; une étape ou un agrément réécrits ;
-# toute écriture de la FNCT, d'un prestataire, du directeur d'une autre commune ;
-# la vue nationale à un directeur.
+# toute écriture de la FNCT, d'un prestataire, du directeur d'une autre commune,
+# à la route ET en base (RLS, sous le rôle de l'application) ; une date qui
+# n'existe pas ; une commune inconnue ou retirée ; la vue nationale à un directeur.
 #
 # Puis les règles du lot :
 #   - SANS DATE DE DÉPART, AUCUN ÉTAT ni aucun avis de période ; avec elle, les
 #     états (peut exercer, formalisé, sans démarche) ; après la fin, « à
 #     régulariser » — un avertissement, jamais un blocage ; la fin de la période
 #     se vérifie contre un calcul de dates écrit ici ;
-#   - la situation se rejoue à une date, sur les règles de cette date ;
+#   - la situation se rejoue à une date, sur les règles de cette date et les
+#     faits datés de cette date ou avant ;
+#   - les étapes proposées sont celles de la liste en vigueur à la date de
+#     l'étape, un élément par code même quand deux se chevauchent ;
 #   - l'agrément est enregistré, jamais délivré : son échéance s'annonce 60 jours
 #     avant, son expiration se signale, un écart avec la durée en vigueur à sa
-#     délivrance se montre sans être corrigé ;
+#     délivrance (pas celle d'aujourd'hui) se montre sans être corrigé ; un
+#     acteur requalifié pré-collecteur n'a plus d'avis d'agrément ;
 #   - un intermédiaire sans étalonnage après son échéance est signalé ;
 #   - le bilan de la conversion (déclaré) est recalculé par un témoin
 #     indépendant (periode_transitoire_attendus.py) : jour de Tunis, taux du
-#     jour de chaque livraison, poids moyen d'un voyage pesé du même mois ;
-#   - la FNCT ne voit aucun compte de 1 à 4 acteurs, ni dans la vue nationale,
-#     ni dans le bilan d'une commune ; aucun rang.
+#     jour de chaque livraison (un barème qui change en cours de mois), poids
+#     moyen d'un voyage pesé du même mois ; jamais ajouté au tonnage pesé ;
+#   - la vue nationale masque tout compte de 1 à 4 acteurs, ne publie les tonnes
+#     que par mois clos de commune non masquée (rien ne s'y déduit par
+#     différence de deux dates), et le bilan d'une commune lu par la FNCT masque
+#     un mois de moins de 5 acteurs ; aucun rang.
 #
 # Communes et comptes de test seulement. Les tables nationales touchées
 # (interrupteur, règles, redevance, listes) sont gardées avant le premier geste
@@ -62,7 +70,8 @@ appel() { # méthode chemin jeton [corps] -> code HTTP, corps dans $T/r.json
 A=test_transition_a
 B=test_transition_b
 C=test_transition_c
-ESSAI="'$A','$B','$C'"
+R=test_transition_r
+ESSAI="'$A','$B','$C','$R'"
 REGLES="'informel_debut_periode_transitoire','informel_duree_periode_transitoire_mois','informel_delai_etalonnage_mois','informel_duree_agrement_mois','redevance_anged'"
 T_FNCT=$(tok admin.national@siipi.tn)
 [ -n "$T_FNCT" ] || { echo "API injoignable sur $API" >&2; exit 1; }
@@ -84,6 +93,12 @@ nettoyer() {
              WHERE motif_retrait = '$MOTIF_RETRAIT';
             ALTER TABLE valeurs_parametres_nationaux ENABLE TRIGGER trg_controler_valeur_parametre;
             COMMIT;" >/dev/null 2>&1
+  # Un passage tué sans piège (SIGKILL) laisserait l'interrupteur allumé et
+  # l'étape de test dans la liste nationale : le suivant les garderait comme
+  # état de référence. Ses traces portent toutes une référence « TEST ».
+  $PSQL -c "UPDATE parametres_nationaux SET valeur = 'false', reference = NULL
+             WHERE cle = 'cadre_secteur_informel_actif' AND reference LIKE 'TEST%';
+            DELETE FROM elements_listes_nationales WHERE liste = 'jalons_accompagnement' AND reference LIKE 'TEST %';" >/dev/null 2>&1
   effacer_communes_essai "$ESSAI"
 }
 nettoyer
@@ -95,8 +110,11 @@ releve_base_reelle
 commune_essai "$A" "TEST Commune de la transition"
 commune_essai "$B" "TEST Autre commune de la transition"
 commune_essai "$C" "TEST Commune sans acteur"
+commune_essai "$R" "TEST Commune retirée"
 $PSQL -c "UPDATE communes SET gouvernorat = 'TEST-TR-G1' WHERE id = '$A';
-          UPDATE communes SET gouvernorat = 'TEST-TR-G2' WHERE id IN ('$B', '$C');" >/dev/null
+          UPDATE communes SET gouvernorat = 'TEST-TR-G2' WHERE id IN ('$B', '$C');
+          UPDATE communes SET gouvernorat = 'TEST-TR-G2', deleted_at = now(), motif_retrait = 'TEST commune retirée du référentiel'
+           WHERE id = '$R';" >/dev/null
 compte_temporaire admin_commune "$A" "Directeur de la transition"; T_A=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
 compte_temporaire admin_commune "$B" "Directeur de l'autre commune"; T_B=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
 compte_temporaire gestionnaire_prestataire "$A" "Prestataire de la commune"; T_P=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
@@ -118,7 +136,8 @@ $PSQL -c "UPDATE parametres_nationaux SET valeur = 'false', reference = NULL WHE
             ('informel_delai_etalonnage_mois', '$J400', 6, false, 'TEST délai'),
             ('informel_duree_agrement_mois', '$J400', 24, false, 'TEST agrément'),
             ('redevance_anged', '2025-02-01', 6.516, true, 'TEST provisoire'),
-            ('redevance_anged', '2025-04-01', 7, false, 'TEST barème');" >/dev/null
+            ('redevance_anged', '2025-04-01', 7, false, 'TEST barème'),
+            ('redevance_anged', '2025-04-16', 8, false, 'TEST barème révisé');" >/dev/null
 # Les acteurs et leurs démarches : posés en base, le cadre le temps de le faire
 # (la catégorie et la démarche sont le lot 18.1, éprouvé par sa campagne).
 $PSQL -c "UPDATE parametres_nationaux SET valeur = 'true', reference = 'TEST cadre' WHERE cle = 'cadre_secteur_informel_actif';
@@ -147,6 +166,15 @@ jalon() { # acteur code date [jeton] -> code HTTP
 agrement() { # acteur référence délivrance échéance [jeton] [organisme] -> code HTTP
   appel POST "/periode-transitoire/acteurs/$1/agrements" "${5:-$T_A}" \
     "{\"organisme\":\"${6:-TEST Agence nationale}\",\"reference\":\"$2\",\"dateDelivrance\":\"$3\",\"dateEcheance\":\"$4\"}"
+}
+# Une écriture tentée en base sous le rôle de l'application, avec l'identité
+# donnée, dans une transaction annulée : « refusee » si la RLS l'arrête.
+en_base() { # rôle commune requête -> refusee | acceptee | autre
+  $PSQL -c "BEGIN; SELECT set_config('app.role', '$1', true), set_config('app.commune_id', '$2', true);
+            SET LOCAL ROLE siipi_app; $3; ROLLBACK;" >"$T/rls.txt" 2>&1
+  if grep -qiE "row-level security|sécurité au niveau ligne|42501" "$T/rls.txt"; then echo refusee
+  elif grep -qiE "error|erreur" "$T/rls.txt"; then echo autre
+  else echo acceptee; fi
 }
 situation() { appel GET "/periode-transitoire?communeId=$A${1:+&date=$1}" "${2:-$T_A}"; }
 etat() { val "[a['etat'] for a in d['acteurs'] if a['id_precollecteur']=='$1'][0]"; }
@@ -187,6 +215,12 @@ chk "la FNCT n'accompagne pas à la place de la commune" 403 "$(jalon "$P1" form
 chk "un prestataire non plus" 403 "$(jalon "$P1" formation "$J15" "$T_P")"
 chk "le directeur d'une autre commune : acteur introuvable" 404 "$(jalon "$P1" formation "$J15" "$T_B")"
 chk "un acteur inconnu : introuvable" 404 "$(jalon "00000000-0000-0000-0000-000000000000" formation "$J15")"
+chk "une date qui n'existe pas (30 février) : refusée (400), le message le dit" "400|1" \
+    "$(jalon "$P1" formation "2026-02-30")|$(val "int('calendrier' in json.dumps(d, ensure_ascii=False))")"
+INS_JALON="INSERT INTO jalons_acteurs (commune_id, acteur_id, jalon_code, date_jalon) VALUES ('$A', '$P1', 'formation', '$J15')"
+chk "en base, sous le rôle de l'application : la FNCT, le prestataire, l'autre directeur refusés ; le directeur accepté" \
+    "refusee|refusee|refusee|acceptee" \
+    "$(en_base super_admin_fnct "" "$INS_JALON")|$(en_base gestionnaire_prestataire "$A" "$INS_JALON")|$(en_base admin_commune "$B" "$INS_JALON")|$(en_base admin_commune "$A" "$INS_JALON")"
 
 echo
 echo "3. Les étapes : la liste du jour de l'étape"
@@ -202,6 +236,18 @@ CODE=$(jalon "$P1" test_jalon_recent "$J2")
 TJ=$(val "[j['id'] for j in d['jalons'] if j['jalon_code']=='test_jalon_recent'][0]")
 chk "… elle vaut pour une étape d'avant-hier, et la liste du jour la propose" "201|2|1" \
     "$CODE|$(val "len(d['jalons'])")|$(val "len([x for x in d['jalons_possibles'] if x['code']=='test_jalon_recent'])")"
+chk "les étapes proposées pour une étape datée d'il y a dix jours sont celles de ce jour-là : pas l'étape récente" "200|0|200|1" \
+    "$(appel GET "/periode-transitoire/acteurs/$P1?date=$J10" "$T_A")|$(val "len([x for x in d['jalons_possibles'] if x['code']=='test_jalon_recent'])")|$(appel GET "/periode-transitoire/acteurs/$P1?date=$J2" "$T_A")|$(val "len([x for x in d['jalons_possibles'] if x['code']=='test_jalon_recent'])")"
+# La FNCT révise l'étape : l'ancien élément fermé demain, le nouveau en vigueur
+# depuis hier — les deux valent aujourd'hui.
+$PSQL -c "UPDATE elements_listes_nationales SET date_fin = '$DEMAIN', reference_fin = 'TEST texte révisé'
+           WHERE code = 'test_jalon_recent' AND date_fin IS NULL;
+          INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, ordre, date_effet, provisoire, reference)
+          VALUES ('jalons_accompagnement', 'test_jalon_recent', 'TEST Étape récente révisée', 'TEST مرحلة', 70, '$J1', true, 'TEST circulaire révisée');" >/dev/null
+CODE=$(jalon "$P3" test_jalon_recent "$J")
+chk "deux éléments du même code en vigueur le même jour : une seule étape proposée, une seule ligne inscrite, le libellé le plus récent" \
+    "201|1|1|TEST Étape récente révisée" \
+    "$CODE|$(val "len([x for x in d['jalons_possibles'] if x['code']=='test_jalon_recent'])")|$(val "len([j for j in d['jalons'] if j['jalon_code']=='test_jalon_recent'])")|$(val "[j['libelle_fr'] for j in d['jalons'] if j['jalon_code']=='test_jalon_recent'][0]")"
 chk "une étape inscrite ne se réécrit pas, même au super-utilisateur" 1 \
     "$(refus "UPDATE jalons_acteurs SET date_jalon = '$J3' WHERE id = '$TJ';" JALON_FIGE)"
 CODE=$(appel DELETE "/periode-transitoire/acteurs/$P1/jalons/$TJ" "$T_A")
@@ -219,6 +265,10 @@ chk "un agrément délivré demain : refusé" 400 "$(agrement "$I1" TEST-AG-000 
 chk "un organisme non nommé : refusé" 400 "$(agrement "$I1" TEST-AG-000 "$J30" "$J40" "$T_A" "AB")"
 chk "la FNCT n'enregistre pas d'agrément" 403 "$(agrement "$I1" TEST-AG-000 "$J30" "$J40" "$T_FNCT")"
 chk "le directeur d'une autre commune : acteur introuvable" 404 "$(agrement "$I1" TEST-AG-000 "$J30" "$J40" "$T_B")"
+INS_AGREMENT="INSERT INTO agrements_intermediaires (commune_id, acteur_id, organisme, reference, date_delivrance, date_echeance) VALUES ('$A', '$I1', 'TEST org', 'TEST-AG-RLS', '$J30', '$J40')"
+chk "en base, sous le rôle de l'application : la FNCT, le prestataire, l'autre directeur refusés ; le directeur accepté" \
+    "refusee|refusee|refusee|acceptee" \
+    "$(en_base super_admin_fnct "" "$INS_AGREMENT")|$(en_base gestionnaire_prestataire "$A" "$INS_AGREMENT")|$(en_base admin_commune "$B" "$INS_AGREMENT")|$(en_base admin_commune "$A" "$INS_AGREMENT")"
 chk "aucune route ne délivre un agrément : SIIPI enregistre celui d'un organisme" 0 \
     "$(curl -s "$API/openapi.json" | python3 -c "import sys,json;print(len([p for p in json.load(sys.stdin)['paths'] if 'agree' in p or 'delivrer' in p]))")"
 
@@ -239,12 +289,33 @@ AG2=$(val "[g['id'] for g in d['agrements'] if g['reference']=='TEST-AG-002'][0]
 chk "l'agrément de I2, expiré il y a 10 jours : signalé en avertissement, en arabe aussi" "201|1|1" \
     "$CODE|$(avis "L'agrément TEST-AG-002 a expiré le $(fr "$J10")")|$(avis_ar "L'agrément TEST-AG-002 a expiré")"
 chk "… un agrément échu ne porte plus d'avis d'écart" 0 "$(avis "L'agrément TEST-AG-002 court")"
-CODE=$(agrement "$I1" TEST-AG-003 "$J1" "$(fin "$J1" 24)")
-chk "le renouvellement de I1, à la durée en vigueur : l'échéance de I1 ne s'annonce plus, aucun écart sur lui" "201|0|0|1" \
-    "$CODE|$(avis "L'agrément TEST-AG-001 expire")|$(avis "L'agrément TEST-AG-003")|$(avis "L'agrément TEST-AG-001 court")"
+# Le texte ramène la durée d'un agrément à 12 mois, il y a cinq jours.
+$PSQL -c "INSERT INTO valeurs_parametres_nationaux (code, date_effet, valeur_nombre, provisoire, reference)
+          VALUES ('informel_duree_agrement_mois', '$J5', 12, false, 'TEST durée ramenée');" >/dev/null
+CODE=$(agrement "$I1" TEST-AG-003 "$J1" "$(fin "$J1" 12)")
+chk "le renouvellement de I1, à la durée en vigueur à SA délivrance (12 mois) : l'échéance de I1 ne s'annonce plus, aucun écart sur lui" "201|0|0" \
+    "$CODE|$(avis "L'agrément TEST-AG-001 expire")|$(avis "L'agrément TEST-AG-003")"
+ECART1=$(avis "L'agrément TEST-AG-001 court jusqu'au $(fr "$J40") ; la durée en vigueur à sa délivrance (24 mois)")
+appel GET "/periode-transitoire/acteurs/$I1" "$T_A" >/dev/null
+chk "l'agrément de 30 jours reste jugé sur la durée de sa délivrance (24 mois), pas sur celle d'aujourd'hui" "1|24|True|12|False" \
+    "$ECART1|$(val "[g['duree_mois_en_vigueur'] for g in d['agrements'] if g['reference']=='TEST-AG-001'][0]")|$(val "[g['ecart_duree'] for g in d['agrements'] if g['reference']=='TEST-AG-001'][0]")|$(val "[g['duree_mois_en_vigueur'] for g in d['agrements'] if g['reference']=='TEST-AG-003'][0]")|$(val "[g['ecart_duree'] for g in d['agrements'] if g['reference']=='TEST-AG-003'][0]")"
 CODE=$(appel DELETE "/periode-transitoire/acteurs/$I2/agrements/$AG2" "$T_A")
 chk "un agrément saisi à tort se retire : son avis d'expiration disparaît" "200|0|0" \
     "$CODE|$(val "len(d['agrements'])")|$(avis "L'agrément TEST-AG-002")"
+J60=$(jour 60); J61=$(jour 61)
+CODE=$(agrement "$I2" TEST-AG-004 "$J1" "$J61")
+AG4=$(val "[g['id'] for g in d['agrements'] if g['reference']=='TEST-AG-004'][0]")
+chk "une échéance dans 61 jours ne s'annonce pas encore" "201|0" "$CODE|$(avis "L'agrément TEST-AG-004 expire")"
+appel DELETE "/periode-transitoire/acteurs/$I2/agrements/$AG4" "$T_A" >/dev/null
+CODE=$(agrement "$I2" TEST-AG-005 "$J1" "$J60")
+AG5=$(val "[g['id'] for g in d['agrements'] if g['reference']=='TEST-AG-005'][0]")
+chk "… une échéance dans 60 jours s'annonce" "201|1" "$CODE|$(avis "L'agrément TEST-AG-005 expire le $(fr "$J60")")"
+chk "son échéance s'écarte de la durée en vigueur à sa délivrance (12 mois) : l'écart est signalé" 1 "$(avis "L'agrément TEST-AG-005 court")"
+$PSQL -c "UPDATE barbechas SET categorie = 'pre_collecteur' WHERE id = '$I2';" >/dev/null
+chk "I2 requalifié pré-collecteur : plus aucun avis sur son agrément, qui reste lisible et retirable" "0|0|200|1" \
+    "$(avis "L'agrément TEST-AG-005 expire")|$(avis "L'agrément TEST-AG-005 court")|$(appel GET "/periode-transitoire/acteurs/$I2" "$T_A")|$(val "len(d['agrements'])")"
+$PSQL -c "UPDATE barbechas SET categorie = 'intermediaire' WHERE id = '$I2';" >/dev/null
+appel DELETE "/periode-transitoire/acteurs/$I2/agrements/$AG5" "$T_A" >/dev/null
 
 # -----------------------------------------------------------------------------
 echo
@@ -264,11 +335,15 @@ chk "P1, démarche entamée : peut exercer ; P4 : formalisé ; P5 : sans démarc
 chk "le décompte par état : 5 peuvent exercer, 1 formalisé, 1 sans démarche — ni total ni pourcentage" "5|1|1|0" \
     "$(val "d['etats']['peut_exercer']")|$(val "d['etats']['formalise']")|$(val "d['etats']['sans_demarche']")|$(val "int(any(k in d for k in ('total', 'pourcentage', 'taux')))")"
 chk "P1 a franchi 1 étape de la liste en vigueur ; I1 a un agrément valable et son étalonnage ; I2 ni l'un ni l'autre" \
-    "1|$(sql "SELECT count(*) FROM app.liste_nationale('jalons_accompagnement', '$J')")|True|True|False|False" \
+    "1|$(sql "SELECT count(DISTINCT code) FROM app.liste_nationale('jalons_accompagnement', '$J')")|True|True|False|False" \
     "$(val "[a['jalons_franchis'] for a in d['acteurs'] if a['id_precollecteur']=='TEST-TR-P1'][0]")|$(val "[a['jalons_en_vigueur'] for a in d['acteurs'] if a['id_precollecteur']=='TEST-TR-P1'][0]")|$(val "[a['agrement_valable'] for a in d['acteurs'] if a['id_precollecteur']=='TEST-TR-I1'][0]")|$(val "[a['etalonnage_enregistre'] for a in d['acteurs'] if a['id_precollecteur']=='TEST-TR-I1'][0]")|$(val "[a['agrement_valable'] for a in d['acteurs'] if a['id_precollecteur']=='TEST-TR-I2'][0]")|$(val "[a['etalonnage_enregistre'] for a in d['acteurs'] if a['id_precollecteur']=='TEST-TR-I2'][0]")"
 chk "un pré-collecteur n'a ni agrément ni étalonnage à suivre (null, pas « non »)" "None|None" \
     "$(val "[a['agrement_valable'] for a in d['acteurs'] if a['id_precollecteur']=='TEST-TR-P1'][0]")|$(val "[a['etalonnage_enregistre'] for a in d['acteurs'] if a['id_precollecteur']=='TEST-TR-P1'][0]")"
 chk "pendant la période, aucun avis « à régulariser »" 0 "$(avis "La période transitoire")"
+chk "une date de rejeu qui n'existe pas : refusée (400), pas une erreur du serveur" "400|1" \
+    "$(situation "2026-02-30")|$(val "int('calendrier' in json.dumps(d, ensure_ascii=False))")"
+chk "une commune inconnue, ou retirée, est introuvable pour la FNCT aussi (404), jamais « aucun acteur »" "404|404|404" \
+    "$(appel GET "/periode-transitoire?communeId=test_transition_inconnue" "$T_FNCT")|$(appel GET "/periode-transitoire?communeId=$R" "$T_FNCT")|$(appel GET "/periode-transitoire/conversion?communeId=$R&annee=2025" "$T_FNCT")"
 CODE=$(situation "$J18")
 chk "rejouée il y a 18 jours : P4 n'était pas encore formalisé, P1 n'avait franchi aucune étape" "200|$J18|peut_exercer|0" \
     "$CODE|$(val "d['jour']")|$(etat TEST-TR-P4)|$(val "[a['jalons_franchis'] for a in d['acteurs'] if a['id_precollecteur']=='TEST-TR-P1'][0]")"
@@ -308,7 +383,8 @@ cat > "$T/entrees.json" <<'JSON'
 {
   "taux": [
     {"date_effet": "2025-02-01", "valeur": 6.516, "provisoire": true},
-    {"date_effet": "2025-04-01", "valeur": 7, "provisoire": false}
+    {"date_effet": "2025-04-01", "valeur": 7, "provisoire": false},
+    {"date_effet": "2025-04-16", "valeur": 8, "provisoire": false}
   ],
   "livraisons": [
     {"acteur": "TEST-TR-P1", "horodatage": "2024-12-31T23:30:00Z", "kg": 50},
@@ -317,6 +393,7 @@ cat > "$T/entrees.json" <<'JSON'
     {"acteur": "TEST-TR-P2", "horodatage": "2025-03-20T09:00:00Z", "kg": 200},
     {"acteur": "TEST-TR-P3", "horodatage": "2025-03-31T23:30:00Z", "kg": 1000},
     {"acteur": "TEST-TR-P4", "horodatage": "2025-04-15T09:00:00Z", "kg": 500},
+    {"acteur": "TEST-TR-P2", "horodatage": "2025-04-20T09:00:00Z", "kg": 300},
     {"acteur": "TEST-TR-P5", "horodatage": "2025-05-10T09:00:00Z", "kg": 2000},
     {"acteur": "TEST-TR-P5", "horodatage": "2025-05-12T09:00:00Z", "kg": 777, "retiree": true},
     {"acteur": "TEST-TR-P1", "horodatage": "2025-06-05T09:00:00Z", "kg": 100},
@@ -352,7 +429,7 @@ for p in e['pesees']:
               f"VALUES ('{commune}', '{p['jour']}', 'TEST-123', '{p['type']}', {p['kg']}, 'TEST apport ponctuel');")
 PY
 $PSQL -f "$T/entrees.sql" >"$T/entrees.log" 2>&1
-chk "les livraisons et les pesées de l'année 2025 sont inscrites" "13|6" \
+chk "les livraisons et les pesées de l'année 2025 sont inscrites" "14|6" \
     "$(sql "SELECT count(*) FROM barbecha_deliveries d JOIN barbechas b ON b.id = d.barbecha_id WHERE b.commune_id = '$A'")|$(sql "SELECT count(*) FROM pesees WHERE commune_id = '$A'")"
 python3 "$TEMOIN" conversion "$T/entrees.json" 2025 > "$T/attendu.json"
 CODE=$(appel GET "/periode-transitoire/conversion?communeId=$A&annee=2025" "$T_A")
@@ -363,13 +440,14 @@ chk "chaque mois est celui du témoin indépendant (jour de Tunis, taux du jour,
     "$(python3 -c "import json;a=json.load(open('$T/attendu.json'));d=json.load(open('$T/conversion.json'))['mois'];print(int(a==d))")"
 chk "janvier : la livraison du 31/12 à 23 h 30 UTC compte en janvier ; avant tout taux, ses tonnes sont à part, sans montant" "2|0.17|0.17|None" \
     "$(val "d['mois'][0]['livraisons']")|$(val "d['mois'][0]['tonnes_detournees']")|$(val "d['mois'][0]['tonnes_sans_taux']")|$(val "d['mois'][0]['redevance_evitee_tnd']")"
-chk "avril : la livraison du 31/03 à 23 h 30 UTC est au taux du 1er avril (7 TND/t), non provisoire" "10.5|[7.0]|False" \
+chk "avril : la livraison du 31/03 à 23 h 30 UTC est au taux du 1er avril (7), celle du 20 au barème du 16 (8) : le taux du jour, pas du mois" "12.9|[7.0, 8.0]|False" \
     "$(val "d['mois'][2]['redevance_evitee_tnd']")|$(val "[float(x) for x in d['mois'][2]['taux_appliques']]")|$(val "d['mois'][2]['redevance_provisoire']")"
 chk "mars : le voyage moyen ne retient que les pesées de circuit en ordures ménagères (4,5 t)" "2|4.5|0.1" \
     "$(val "d['mois'][1]['voyages_peses']")|$(val "d['mois'][1]['poids_moyen_voyage_t']")|$(val "d['mois'][1]['voyages_economises']")"
 chk "mai : sans voyage pesé, les voyages économisés ne sont pas renseignés (null, pas 0)" "0|None|None" \
     "$(val "d['mois'][3]['voyages_peses']")|$(val "d['mois'][3]['poids_moyen_voyage_t']")|$(val "d['mois'][3]['voyages_economises']")"
-chk "les tonnes détournées n'entrent pas dans le registre des pesées" 6 "$(sql "SELECT count(*) FROM pesees WHERE commune_id = '$A'")"
+chk "les tonnes détournées n'entrent pas dans le tonnage pesé : la redevance ANGeD de la commune porte sur ses 32 t pesées seules" "32.000" \
+    "$($PSQL -c "BEGIN; SELECT set_config('app.role', 'super_admin_fnct', true); SELECT sum(tonnes) FROM app.redevance_anged('$A', 2025); ROLLBACK;" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+$' | head -1)"
 CODE=$(appel GET "/periode-transitoire/conversion?communeId=$A&annee=2025" "$T_FNCT")
 chk "lu par la FNCT, un mois de moins de 5 acteurs est masqué ; juin (5 acteurs) se lit" "200|True,True,True,True,False|None|None|0.5|5" \
     "$CODE|$(val "','.join(str(m['masque']) for m in d['mois'])")|$(val "d['mois'][0]['tonnes_detournees']")|$(val "d['mois'][0]['acteurs']")|$(val "d['mois'][4]['tonnes_detournees']")|$(val "d['mois'][4]['acteurs']")"
@@ -393,12 +471,26 @@ chk "… aucune tonne livrée cette année : non renseigné, pas 0, et pas « ma
     "$(g TEST-TR-G1 tonnes_detournees)|$(val "int('tonnes_detournees' in [x for x in d['gouvernorats'] if x['gouvernorat']=='TEST-TR-G1'][0]['masques'])")"
 chk "TEST-TR-G2 : 1 commune sur 2 a des acteurs ; ses 2 acteurs sont masqués" "1|2|None|1" \
     "$(g TEST-TR-G2 communes_avec_acteurs)|$(g TEST-TR-G2 communes)|$(g TEST-TR-G2 acteurs)|$(val "int('acteurs' in [x for x in d['gouvernorats'] if x['gouvernorat']=='TEST-TR-G2'][0]['masques'])")"
-chk "aucune ligne par commune, aucun rang ; l'ordre est alphabétique" "0|0|1" \
-    "$(val "int(any('commune_id' in x or 'communeId' in x for x in d['gouvernorats']))")|$(val "int(any('rang' in x for x in d['gouvernorats']))")|$(val "int([x['gouvernorat'] for x in d['gouvernorats'] if x['gouvernorat'].startswith('TEST-TR')]==['TEST-TR-G1','TEST-TR-G2'])")"
-CODE=$(appel GET "/periode-transitoire/national?date=2025-12-31" "$T_FNCT")
-chk "au 31/12/2025 : les tonnes de 2025, livrées par 5 acteurs, se lisent — la somme du témoin" \
-    "200|$(python3 -c "import json;print(round(sum(m['tonnes_detournees'] for m in json.load(open('$T/attendu.json'))),3))")" \
-    "$CODE|$(g TEST-TR-G1 tonnes_detournees)"
+# L'ordre de toute la liste, accents ignorés : « Béja » avant « Ben Arous » — ce
+# que l'ordre brut de la base (Bizerte avant Béja) ou un classement ne donnent pas.
+chk "aucune ligne par commune, aucun rang ; toute la liste est dans l'ordre alphabétique" "0|0|1" \
+    "$(val "int(any('commune_id' in x or 'communeId' in x for x in d['gouvernorats']))")|$(val "int(any('rang' in x for x in d['gouvernorats']))")|$(python3 -c "
+import json, unicodedata
+d = json.load(open('$T/r.json'))
+cle = lambda n: ''.join(c for c in unicodedata.normalize('NFD', n) if not unicodedata.combining(c)).casefold()
+noms = [x['gouvernorat'] for x in d['gouvernorats']]
+print(int(noms == sorted(noms, key=cle) and noms.index('Béja') < noms.index('Ben Arous') if 'Béja' in noms else noms == sorted(noms, key=cle)))")"
+CODE=$(appel GET "/periode-transitoire/national?date=2026-01-15" "$T_FNCT")
+chk "lue en janvier 2026 : les mois clos de 2025, la seule somme des mois de 5 acteurs au moins (juin), les autres mois comptés à part — le témoin" \
+    "200|2025-01-01|2025-12-31|$(python3 -c "import json;a=json.load(open('$T/attendu.json'));print(round(sum(m['tonnes_detournees'] for m in a if m['acteurs']>=5),3))")|$(python3 -c "import json;print(len([m for m in json.load(open('$T/attendu.json')) if m['acteurs']<5]))")" \
+    "$CODE|$(g TEST-TR-G1 tonnes_du)|$(g TEST-TR-G1 tonnes_au)|$(g TEST-TR-G1 tonnes_detournees)|$(g TEST-TR-G1 mois_masques)"
+appel GET "/periode-transitoire/national?date=2025-06-10" "$T_FNCT" >/dev/null
+AVANT="$(g TEST-TR-G1 tonnes_detournees)|$(g TEST-TR-G1 mois_masques)|$(g TEST-TR-G1 tonnes_au)"
+appel GET "/periode-transitoire/national?date=2025-06-30" "$T_FNCT" >/dev/null
+chk "deux lectures du même mois (10 et 30 juin) rendent les mêmes tonnes : rien ne se déduit par différence ; des mois tous masqués se disent masqués" \
+    "None|4|2025-05-31|None|4|2025-05-31|1" \
+    "$AVANT|$(g TEST-TR-G1 tonnes_detournees)|$(g TEST-TR-G1 mois_masques)|$(g TEST-TR-G1 tonnes_au)|$(val "int('tonnes_detournees' in [x for x in d['gouvernorats'] if x['gouvernorat']=='TEST-TR-G1'][0]['masques'])")"
+chk "une commune retirée ne compte pas dans « N communes sur M »" 2 "$(g TEST-TR-G2 communes)"
 
 # -----------------------------------------------------------------------------
 echo

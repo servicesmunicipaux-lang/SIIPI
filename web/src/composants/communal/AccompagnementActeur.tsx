@@ -1,14 +1,15 @@
 // L'accompagnement d'un acteur pendant la période transitoire (lot I3, 18.3) —
 // dans la ligne ouverte d'un acteur de l'écran des acteurs informels.
 //
-// LA LISTE DES ÉTAPES EST NATIONALE ET DATÉE. L'écran propose celle du jour ; la
-// base juge chaque étape sur la liste en vigueur à sa date, et le refus qu'elle
-// rend s'affiche tel quel.
+// LA LISTE DES ÉTAPES EST NATIONALE ET DATÉE. L'écran propose celle en vigueur à
+// la date saisie pour l'étape (aujourd'hui tant qu'aucune date n'est choisie) :
+// c'est sur elle que la base jugera, et un refus s'affiche tel qu'elle le rend.
 //
 // SIIPI N'AGRÉE PAS. Pour un intermédiaire, l'écran enregistre l'agrément qu'un
 // organisme a délivré, échéance de la pièce comprise ; à côté, l'échéance que la
 // durée nationale en vigueur à la délivrance donnerait — montrée, jamais
-// substituée.
+// substituée. Un acteur requalifié pré-collecteur garde ses agréments à l'écran,
+// pour qu'on puisse les lire ou retirer une saisie fausse ; il n'en reçoit plus.
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -39,6 +40,30 @@ export function AccompagnementActeur(props: {
   const videAgrement = { organisme: '', reference: '', delivrance: '', echeance: '' };
   const [agrement, setAgrement] = useState(videAgrement);
   const [envoi, setEnvoi] = useState(false);
+  // La liste en vigueur à la date choisie pour l'étape ; null : celle du jour.
+  const [possibles, setPossibles] = useState<Donnees['jalons_possibles'] | null>(null);
+
+  useEffect(() => {
+    if (!jalon.date) {
+      setPossibles(null);
+      return;
+    }
+    let annule = false;
+    api
+      .accompagnementActeur(acteurId, jalon.date)
+      .then((d) => {
+        if (annule) return;
+        setPossibles(d.jalons_possibles);
+        // Une étape choisie qui n'existait pas à cette date ne reste pas choisie.
+        setJalon((j) =>
+          j.code && !d.jalons_possibles.some((x) => x.code === j.code) ? { ...j, code: '' } : j
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      annule = true;
+    };
+  }, [acteurId, jalon.date]);
 
   // Chargé une fois à l'ouverture : onErreur change à chaque rendu du parent,
   // et le suivre rechargerait en boucle.
@@ -69,6 +94,7 @@ export function AccompagnementActeur(props: {
   }) => (ar ? x.libelle_ar : x.libelle_fr) ?? x.jalon_code ?? x.code ?? '';
   const franchis = new Set(donnees.jalons.map((j) => j.jalon_code));
   const intermediaire = categorie === 'intermediaire';
+  const proposees = possibles ?? donnees.jalons_possibles;
 
   return (
     <div className="space-y-4">
@@ -114,7 +140,7 @@ export function AccompagnementActeur(props: {
                 className={champ}
               >
                 <option value="">—</option>
-                {donnees.jalons_possibles
+                {proposees
                   .filter((x) => !franchis.has(x.code))
                   .map((x) => (
                     <option key={x.code} value={x.code}>
@@ -168,21 +194,25 @@ export function AccompagnementActeur(props: {
         )}
       </div>
 
-      {intermediaire && (
+      {(intermediaire || donnees.agrements.length > 0) && (
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-ardoise-800">
             {t('communal.transition.agrement')}
           </h4>
           <p className="max-w-3xl text-xs text-ardoise-600">
-            {t('communal.transition.agrementIntro')}
+            {t(
+              intermediaire
+                ? 'communal.transition.agrementIntro'
+                : 'communal.transition.agrementHorsCategorie'
+            )}
           </p>
           {donnees.agrements.length === 0 ? (
             <p className="text-sm text-ardoise-500">{t('communal.transition.aucunAgrement')}</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {donnees.agrements.map((g) => {
-                const ecart =
-                  g.echeance_selon_duree !== null && g.echeance_selon_duree !== g.date_echeance;
+                // Les bornes de « À vérifier », calculées par l'API : l'écran ne les refait pas.
+                const ecart = g.ecart_duree === true;
                 return (
                   <li key={g.id} className="rounded-lg border border-ardoise-200 bg-white p-2">
                     <div className="flex flex-wrap items-center gap-2">
@@ -228,7 +258,7 @@ export function AccompagnementActeur(props: {
               })}
             </ul>
           )}
-          {peutEcrire && (
+          {peutEcrire && intermediaire && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
               <label className="text-sm">
                 <span className="font-medium">{t('communal.transition.organisme')}</span>

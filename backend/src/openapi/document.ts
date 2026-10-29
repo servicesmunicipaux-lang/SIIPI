@@ -4054,6 +4054,12 @@ const DESCRIPTION_TRANSITION =
   'paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et ' +
   'n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit.';
 
+const paramDateTransition = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .optional()
+  .openapi({ description: 'Une date du calendrier, AAAA-MM-JJ (aujourd’hui à Tunis par défaut). Une date inexistante est refusée (400).' });
+
 const PeriodeTransitoireDoc = z.object({
   debut: z.string().nullable(),
   duree_mois: z.number().int().nullable(),
@@ -4086,7 +4092,8 @@ const Accompagnement = registry.register(
   z.object({
     acteur: z.object({ id: z.string().uuid(), id_precollecteur: z.string(), categorie: z.string().nullable() }),
     jalons_possibles: z.array(z.object({ code: z.string(), libelle_fr: z.string(), libelle_ar: z.string() })).openapi({
-      description: 'La liste nationale des étapes en vigueur aujourd’hui. Une étape se juge sur la liste du jour où elle a été franchie.',
+      description:
+        'La liste nationale des étapes en vigueur à la date demandée (aujourd’hui par défaut), un élément par code : une étape se juge sur la liste du jour où elle a été franchie.',
     }),
     jalons: z.array(
       z.object({
@@ -4112,6 +4119,10 @@ const Accompagnement = registry.register(
           .string()
           .nullable()
           .openapi({ description: 'Ce que la durée nationale en vigueur à la délivrance donnerait ; montrée à côté, jamais à la place.' }),
+        ecart_duree: z
+          .boolean()
+          .nullable()
+          .openapi({ description: 'L’échéance de la pièce sort des bornes de la durée en vigueur à la délivrance (celles de « À vérifier ») ; null sans durée en vigueur.' }),
       })
     ),
   })
@@ -4147,9 +4158,13 @@ registry.registerPath({
   path: '/periode-transitoire',
   tags: ['Secteur informel'],
   summary: 'Les règles de la période à une date, et l’état de chaque acteur de la commune',
-  description: DESCRIPTION_TRANSITION + ' Avec « date », la situation telle qu’on l’aurait lue ce jour-là.',
+  description:
+    DESCRIPTION_TRANSITION +
+    ' Avec « date », la situation à ce jour-là : les règles en vigueur à cette date, et les faits datés de cette date ou avant, ' +
+    'tels qu’ils sont inscrits aujourd’hui — une démarche reportée après coup avec sa vraie date compte au jour où elle a eu lieu. ' +
+    'Commune inconnue ou retirée : 404.',
   security: SECURISE,
-  request: { query: z.object({ communeId: paramCommuneId.optional(), date: z.string().optional() }) },
+  request: { query: z.object({ communeId: paramCommuneId.optional(), date: paramDateTransition }) },
   responses: {
     200: json(
       z.object({
@@ -4172,9 +4187,16 @@ registry.registerPath({
   tags: ['Secteur informel'],
   summary: 'Le bilan de la conversion, mois par mois (provenance déclarée)',
   description:
-    'Tonnes détournées (livraisons du registre des acteurs), redevance ANGeD évitée, voyages économisés. Un mois sans livraison n’a pas de ligne.',
+    'Tonnes détournées (livraisons du registre des acteurs), redevance ANGeD évitée, voyages économisés. Un mois sans livraison n’a pas de ligne. ' +
+    'Commune inconnue ou retirée : 404.',
   security: SECURISE,
-  request: { query: z.object({ communeId: paramCommuneId.optional(), annee: z.number().int().optional() }) },
+  request: {
+    query: z.object({
+      communeId: paramCommuneId.optional(),
+      annee: z.number().int().min(2000).max(2100).optional().openapi({ description: 'L’année civile (défaut : l’année en cours à Tunis).' }),
+      ...paramsExport,
+    }),
+  },
   responses: {
     200: jsonOuExport(
       z.object({ communeId: z.string(), annee: z.number().int(), provenance: z.literal('declaree'), mois: z.array(MoisConversion) }),
@@ -4191,9 +4213,11 @@ registry.registerPath({
   summary: 'La vue nationale, par gouvernorat (FNCT)',
   description:
     'Par gouvernorat, dans l’ordre alphabétique, « N communes sur M » : acteurs inscrits, cartes valables, démarches en cours, formalisés, ' +
-    'agréments valables, tonnes détournées de l’année. Tout compte de 1 à 4 est masqué (null, nommé dans « masques »). Aucun rang, aucune ligne par commune.',
+    'agréments valables au jour demandé — tout compte de 1 à 4 est masqué (null, nommé dans « masques »). Puis les tonnes détournées ' +
+    '(déclarées) des mois civils clos de l’année du dernier mois clos, sommées sur les seuls mois où une commune a eu au moins 5 acteurs ' +
+    'livreurs ; les mois écartés sont comptés (mois_masques). Aucun rang, aucune ligne par commune.',
   security: SECURISE,
-  request: { query: z.object({ date: z.string().optional() }) },
+  request: { query: z.object({ date: paramDateTransition }) },
   responses: {
     200: json(
       z.object({
@@ -4210,7 +4234,10 @@ registry.registerPath({
             demarches_en_cours: z.number().int().nullable(),
             formalises: z.number().int().nullable(),
             agrements_valables: z.number().int().nullable(),
-            tonnes_detournees: z.number().nullable(),
+            tonnes_detournees: z.number().nullable().openapi({ description: 'null : aucune livraison, ou rien que des mois masqués.' }),
+            tonnes_du: z.string().openapi({ description: '1er janvier de l’année du dernier mois clos.' }),
+            tonnes_au: z.string().openapi({ description: 'Dernier jour du dernier mois clos.' }),
+            mois_masques: z.number().int().openapi({ description: 'Mois de commune écartés des tonnes : moins de 5 acteurs livreurs.' }),
             masques: z.array(z.string()),
           })
         ),
@@ -4226,9 +4253,9 @@ registry.registerPath({
   path: '/periode-transitoire/acteurs/{id}',
   tags: ['Secteur informel'],
   summary: 'L’accompagnement d’un acteur : étapes franchies, agréments',
-  description: DESCRIPTION_TRANSITION,
+  description: DESCRIPTION_TRANSITION + ' Avec « date », les étapes proposées sont celles de la liste en vigueur à cette date.',
   security: SECURISE,
-  request: { params: z.object({ id: z.string().uuid() }) },
+  request: { params: z.object({ id: z.string().uuid() }), query: z.object({ date: paramDateTransition }) },
   responses: { 200: json(Accompagnement, 'L’accompagnement.'), ...REPONSES_COMMUNES },
 });
 

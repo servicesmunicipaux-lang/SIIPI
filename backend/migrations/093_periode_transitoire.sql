@@ -26,7 +26,10 @@
 -- moyen d'un voyage pesé du même mois, sans repli sur un autre (décision 2).
 --
 -- La FNCT voit des agrégats par gouvernorat, sans rang ni ligne par commune ;
--- tout compte de 1 à 4 acteurs y est masqué (décision 6).
+-- tout compte de 1 à 4 acteurs y est masqué (décision 6), et les tonnes ne s'y
+-- lisent que par mois clos de commune non masquée. Le masquage vaut pour ce que
+-- la vue nationale et le bilan publient : la FNCT lit par ailleurs, commune par
+-- commune, la situation pseudonyme de chaque acteur, comme le registre de 18.1.
 -- =========================================================================
 
 -- -------------------------------------------------------------------------
@@ -202,8 +205,16 @@ REVOKE UPDATE, DELETE, TRUNCATE ON agrements_intermediaires FROM siipi_app;
 -- 3. La situation de chaque acteur face à la période transitoire
 -- -------------------------------------------------------------------------
 -- Tout se juge à la date demandée (aujourd'hui par défaut), sur les règles en
--- vigueur à cette date et sur ce qui était inscrit à cette date : rejouer le
--- 1er mars rend ce qu'on aurait lu le 1er mars.
+-- vigueur à cette date et sur les faits DATÉS DE CETTE DATE OU AVANT, tels
+-- qu'ils sont inscrits aujourd'hui. Ce n'est pas une photographie de ce qu'on
+-- lisait ce jour-là : une démarche inscrite après coup avec sa vraie date compte
+-- au jour où elle a eu lieu, et une étape retirée parce qu'elle était fausse ne
+-- compte plus. Une commune qui reporte ses dossiers papier le fait ainsi.
+--
+-- L'étalonnage se reconnaît à son code dans la liste nationale,
+-- « etalonnage_instruments » : la FNCT qui change le libellé ou la date d'effet
+-- de cette étape ferme l'élément et en ouvre un sous le MÊME code ; une étape
+-- d'étalonnage ouverte sous un autre code ne lèverait pas l'avertissement.
 CREATE OR REPLACE FUNCTION app.situation_transitoire(p_commune text, p_date date DEFAULT NULL)
   RETURNS TABLE (
     acteur_id               uuid,
@@ -222,7 +233,9 @@ CREATE OR REPLACE FUNCTION app.situation_transitoire(p_commune text, p_date date
 $$
   WITH jour AS (SELECT COALESCE(p_date, app.jour_tunis()) AS d),
   p AS (SELECT t.* FROM jour j, app.periode_transitoire(j.d) t),
-  liste AS (SELECT l.code FROM jour j, app.liste_nationale('jalons_accompagnement', j.d) l),
+  -- Un code une fois : deux éléments du même code peuvent se chevaucher un jour,
+  -- quand la FNCT ferme l'ancien après l'entrée en vigueur du nouveau.
+  liste AS (SELECT DISTINCT l.code FROM jour j, app.liste_nationale('jalons_accompagnement', j.d) l),
   a AS (
     SELECT b.id, b.id_precollecteur, b.categorie,
            dem.statut, dem.date_statut,
@@ -261,7 +274,7 @@ $$
    ORDER BY a.id_precollecteur
 $$;
 COMMENT ON FUNCTION app.situation_transitoire(text, date) IS
-  'Chaque acteur informel de la commune face à la période transitoire, à une date (aujourd''hui par défaut) : dernière étape de sa démarche, étapes d''accompagnement franchies sur celles de la liste en vigueur, agrément et étalonnage (intermédiaires), et son état — date_depart_non_fixee | regles_incompletes (aucun état sans les règles), formalise, avant_periode, peut_exercer (démarche en cours), sans_demarche, a_regulariser (après la fin). Un constat, jamais un blocage.';
+  'Chaque acteur informel de la commune face à la période transitoire, à une date (aujourd''hui par défaut), d''après les règles en vigueur à cette date et les faits datés de cette date ou avant, tels qu''inscrits aujourd''hui : dernière étape de sa démarche, étapes d''accompagnement franchies sur celles de la liste en vigueur, agrément et étalonnage (intermédiaires ; l''étalonnage est l''étape de code etalonnage_instruments), et son état — date_depart_non_fixee | regles_incompletes (aucun état sans les règles), formalise, avant_periode, peut_exercer (démarche en cours), sans_demarche, a_regulariser (après la fin). Un constat, jamais un blocage.';
 GRANT EXECUTE ON FUNCTION app.situation_transitoire(text, date) TO siipi_app;
 
 -- -------------------------------------------------------------------------
@@ -305,7 +318,9 @@ $$
                 to_char((g.date_delivrance + make_interval(months => v.valeur_nombre::int) - interval '1 day')::date, 'DD/MM/YYYY')),
          'Vérifier la date d''échéance portée par l''agrément. SIIPI ne la corrige pas.'
     FROM agrements_intermediaires g
-    JOIN barbechas b ON b.id = g.acteur_id AND b.deleted_at IS NULL
+    -- Comme l'échéance : un acteur requalifié pré-collecteur n'a plus d'agrément
+    -- à suivre ; ses agréments restent lisibles, sans avis.
+    JOIN barbechas b ON b.id = g.acteur_id AND b.deleted_at IS NULL AND b.categorie = 'intermediaire'
     JOIN LATERAL app.parametre_national('informel_duree_agrement_mois', g.date_delivrance) v ON true
    WHERE g.commune_id = p_commune AND g.deleted_at IS NULL AND g.date_echeance >= app.jour_tunis()
      AND g.date_echeance NOT BETWEEN (g.date_delivrance + make_interval(months => v.valeur_nombre::int) - interval '1 day')::date
@@ -453,7 +468,20 @@ GRANT EXECUTE ON FUNCTION app.conversion_informel(text, integer) TO siipi_app;
 -- -------------------------------------------------------------------------
 -- 6. La vue nationale : par gouvernorat, « N communes sur M », masquée sous 5
 -- -------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION app.secteur_informel_national(p_date date DEFAULT NULL)
+-- LES TONNES NE SE LISENT QUE PAR MOIS CLOS ET PAR COMMUNE NON MASQUÉE. Un cumul
+-- à une date libre se soustrait d'un autre : deux lectures à deux jours d'écart
+-- rendraient la livraison d'un seul acteur. Le gouvernorat ne publie donc que la
+-- somme des mois civils CLOS de l'année du dernier mois clos, et seulement les
+-- mois où une commune a eu au moins 5 acteurs livreurs — exactement les chiffres
+-- que le bilan de chaque commune montre déjà à la FNCT. Rien ne s'y déduit par
+-- différence qui ne soit déjà publié ; ce qui est écarté est compté (mois_masques).
+--
+-- Les effectifs (acteurs, cartes, démarches…) sont ceux du jour demandé. La FNCT
+-- lit par ailleurs, commune par commune, la situation pseudonyme de chaque acteur
+-- (registre du lot 18.1) : le masquage sous 5 vaut pour ce que la vue nationale
+-- publie, pas pour ce registre.
+DROP FUNCTION IF EXISTS app.secteur_informel_national(date);
+CREATE FUNCTION app.secteur_informel_national(p_date date DEFAULT NULL)
   RETURNS TABLE (
     gouvernorat            text,
     gouvernorat_ar         text,
@@ -465,6 +493,9 @@ CREATE OR REPLACE FUNCTION app.secteur_informel_national(p_date date DEFAULT NUL
     formalises             integer,
     agrements_valables     integer,
     tonnes_detournees      numeric,
+    tonnes_du              date,
+    tonnes_au              date,
+    mois_masques           integer,
     masques                text[]
   )
   LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS
@@ -472,6 +503,9 @@ $$
 #variable_conflict use_column
 DECLARE
   v_jour date := COALESCE(p_date, app.jour_tunis());
+  -- Le dernier jour du dernier mois clos, et le 1er janvier de son année.
+  v_au date := (date_trunc('month', COALESCE(p_date, app.jour_tunis())) - interval '1 day')::date;
+  v_du date := date_trunc('year', (date_trunc('month', COALESCE(p_date, app.jour_tunis())) - interval '1 day'))::date;
 BEGIN
   IF NOT app.is_fnct() THEN
     RAISE EXCEPTION 'ACCES_REFUSE' USING ERRCODE = 'insufficient_privilege';
@@ -490,12 +524,28 @@ BEGIN
                       AND app.etat_carte(dc, e.statut, v_jour) = 'valide') AS carte,
            EXISTS (SELECT 1 FROM agrements_intermediaires g
                     WHERE g.acteur_id = b.id AND g.deleted_at IS NULL
-                      AND v_jour BETWEEN g.date_delivrance AND g.date_echeance) AS agrement,
-           (SELECT sum(d.weight_kg) / 1000.0 FROM barbecha_deliveries d
-             WHERE d.barbecha_id = b.id AND d.deleted_at IS NULL
-               AND (d.delivered_at AT TIME ZONE 'Africa/Tunis')::date BETWEEN date_trunc('year', v_jour)::date AND v_jour) AS tonnes
+                      AND v_jour BETWEEN g.date_delivrance AND g.date_echeance) AS agrement
       FROM barbechas b JOIN c ON c.id = b.commune_id
      WHERE b.deleted_at IS NULL
+  ),
+  -- Une ligne par commune et par mois clos : ses livreurs et ses tonnes, comme
+  -- le bilan de la commune (app.conversion_informel) les compte.
+  cm AS (
+    SELECT b.commune_id, date_trunc('month', (d.delivered_at AT TIME ZONE 'Africa/Tunis')) AS mois,
+           count(DISTINCT d.barbecha_id) AS livreurs, sum(d.weight_kg) / 1000.0 AS t
+      FROM barbecha_deliveries d
+      JOIN barbechas b ON b.id = d.barbecha_id AND b.deleted_at IS NULL
+      JOIN c ON c.id = b.commune_id
+     WHERE d.deleted_at IS NULL
+       AND (d.delivered_at AT TIME ZONE 'Africa/Tunis')::date BETWEEN v_du AND v_au
+     GROUP BY 1, 2
+  ),
+  tg AS (
+    SELECT c.gouvernorat,
+           round(sum(cm.t) FILTER (WHERE cm.livreurs >= 5), 3) AS tonnes,
+           count(*) FILTER (WHERE cm.livreurs < 5)::int AS masques
+      FROM cm JOIN c ON c.id = cm.commune_id
+     GROUP BY c.gouvernorat
   ),
   g AS (
     SELECT c.gouvernorat,
@@ -505,9 +555,7 @@ BEGIN
            count(a.id) FILTER (WHERE a.carte)::int AS cartes,
            count(a.id) FILTER (WHERE a.statut IN ('demarche_entamee', 'en_accompagnement'))::int AS en_cours,
            count(a.id) FILTER (WHERE a.statut = 'formalisee')::int AS formalises,
-           count(a.id) FILTER (WHERE a.categorie = 'intermediaire' AND a.agrement)::int AS agrements,
-           count(a.id) FILTER (WHERE a.tonnes IS NOT NULL)::int AS livreurs,
-           round(sum(a.tonnes), 3) AS tonnes
+           count(a.id) FILTER (WHERE a.categorie = 'intermediaire' AND a.agrement)::int AS agrements
       FROM c LEFT JOIN a ON a.commune_id = c.id
      GROUP BY c.gouvernorat
   )
@@ -518,21 +566,26 @@ BEGIN
          CASE WHEN g.avec = 0 OR g.en_cours BETWEEN 1 AND 4 THEN NULL ELSE g.en_cours END,
          CASE WHEN g.avec = 0 OR g.formalises BETWEEN 1 AND 4 THEN NULL ELSE g.formalises END,
          CASE WHEN g.avec = 0 OR g.agrements BETWEEN 1 AND 4 THEN NULL ELSE g.agrements END,
-         -- Des tonnes livrées par moins de 5 acteurs sont le rendement de quelques personnes.
-         CASE WHEN g.livreurs < 5 THEN NULL ELSE g.tonnes END,
+         -- Aucune livraison, ou rien que des mois masqués : NULL, jamais 0.
+         tg.tonnes,
+         v_du,
+         v_au,
+         COALESCE(tg.masques, 0),
          CASE WHEN g.avec = 0 THEN ARRAY[]::text[] ELSE array_remove(ARRAY[
            CASE WHEN g.acteurs BETWEEN 1 AND 4 THEN 'acteurs' END,
            CASE WHEN g.cartes BETWEEN 1 AND 4 THEN 'cartes_valables' END,
            CASE WHEN g.en_cours BETWEEN 1 AND 4 THEN 'demarches_en_cours' END,
            CASE WHEN g.formalises BETWEEN 1 AND 4 THEN 'formalises' END,
            CASE WHEN g.agrements BETWEEN 1 AND 4 THEN 'agrements_valables' END,
-           CASE WHEN g.livreurs BETWEEN 1 AND 4 THEN 'tonnes_detournees' END], NULL) END
-    FROM g LEFT JOIN gouvernorats_noms n ON n.gouvernorat = g.gouvernorat
+           CASE WHEN tg.tonnes IS NULL AND COALESCE(tg.masques, 0) > 0 THEN 'tonnes_detournees' END], NULL) END
+    FROM g
+    LEFT JOIN tg ON tg.gouvernorat = g.gouvernorat
+    LEFT JOIN gouvernorats_noms n ON n.gouvernorat = g.gouvernorat
    ORDER BY g.gouvernorat;
 END
 $$;
 COMMENT ON FUNCTION app.secteur_informel_national(date) IS
-  'La vue nationale du secteur informel (lot I3, FNCT seule), par gouvernorat et dans l''ordre alphabétique : communes qui ont des acteurs inscrits sur les communes réelles, acteurs inscrits, cartes valables, démarches en cours, formalisés, agréments valables, tonnes détournées de l''année (déclarées). Tout compte de 1 à 4 est masqué (NULL, nommé dans « masques ») ; un gouvernorat sans acteur n''a que des NULL. Aucun rang, aucune ligne par commune.';
+  'La vue nationale du secteur informel (lot I3, FNCT seule), par gouvernorat : communes qui ont des acteurs inscrits sur les communes réelles, acteurs inscrits, cartes valables, démarches en cours, formalisés, agréments valables au jour demandé — tout compte de 1 à 4 masqué (NULL, nommé dans « masques ») ; puis les tonnes détournées (déclarées) des mois civils clos de l''année du dernier mois clos (tonnes_du, tonnes_au), sommées sur les seuls mois où une commune a eu au moins 5 acteurs livreurs ; les mois écartés sont comptés (mois_masques). Un gouvernorat sans acteur n''a que des NULL. Aucun rang, aucune ligne par commune.';
 REVOKE ALL ON FUNCTION app.secteur_informel_national(date) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.secteur_informel_national(date) TO siipi_app;
 

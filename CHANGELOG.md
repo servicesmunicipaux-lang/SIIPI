@@ -13,22 +13,31 @@ de décret, sur les règles datées du lot I1. Derrière l'interrupteur du cadre
 ### Ajouté
 - **Les étapes d'accompagnement** (migration 093, `jalons_acteurs`) : formation, statut, régularisation… franchies
   par un acteur, datées, avec leur pièce ; chacune doit figurer dans la liste nationale **en vigueur à sa date** et
-  suivre la démarche entamée. Une étape ne se réécrit pas ; saisie à tort, elle se retire.
+  suivre la démarche entamée, et l'écran propose la liste de la date saisie (un élément par code). Une étape ne se
+  réécrit pas ; saisie à tort, elle se retire.
 - **Les agréments des intermédiaires** (`agrements_intermediaires`) : l'organisme, la référence, la délivrance et
   l'échéance portées par la pièce. **SIIPI n'agrée pas** : aucune route ne délivre un agrément. « À vérifier »
   annonce une échéance dans les 60 jours, signale un agrément expiré, et montre l'écart entre l'échéance et la durée
-  nationale en vigueur à la délivrance, sans la corriger.
-- **L'état de chaque acteur** (`app.situation_transitoire`, rejouable à une date) : peut exercer, formalisé, sans
-  démarche, puis **à régulariser** après la fin — un avertissement, jamais un blocage ; un intermédiaire sans
-  étalonnage après son échéance est signalé. **Sans date de départ, aucun état ni aucun avis.**
+  nationale en vigueur à la délivrance (pas celle d'aujourd'hui), sans la corriger ; l'écran montre le même écart,
+  aux mêmes bornes. Un acteur requalifié pré-collecteur garde ses agréments lisibles, sans plus aucun avis.
+- **L'état de chaque acteur** (`app.situation_transitoire`) : peut exercer, formalisé, sans démarche, puis **à
+  régulariser** après la fin — un avertissement, jamais un blocage ; un intermédiaire sans étalonnage (l'étape de code
+  `etalonnage_instruments`) après son échéance est signalé. **Sans date de départ, aucun état ni aucun avis de
+  période** ; les avis d'agrément, eux, ne dépendent pas de la période. Rejouée à une date, la situation applique les
+  règles de cette date aux faits datés de cette date ou avant, tels qu'ils sont inscrits aujourd'hui.
 - **Le bilan de la conversion** (`app.conversion_informel`), mois par mois, **en provenance déclarée** : tonnes
   détournées (livraisons du registre des acteurs, jour de Tunis), redevance ANGeD évitée au taux du jour de chaque
   livraison (tonnes sans taux à part), voyages économisés au poids moyen d'un voyage pesé de circuit du même mois
-  (non renseigné sans pesée). Jamais additionné au tonnage pesé ; export Excel/CSV.
+  (non renseigné sans pesée). Jamais additionné au tonnage pesé ; export Excel/CSV, l'hypothèse de la redevance et les
+  taux appliqués dans ses en-têtes.
 - **La vue de la FNCT** (`app.secteur_informel_national`, entrée *Secteur informel* de l'observatoire) : par
-  gouvernorat, « N communes sur M », acteurs, cartes valables, démarches en cours, formalisés, agréments valables,
-  tonnes de l'année. **Tout compte de 1 à 4 est masqué** (aussi dans le bilan d'une commune lu par la FNCT) ; aucun
-  rang, aucune ligne par commune, ordre alphabétique de la langue affichée.
+  gouvernorat, « N communes sur M », acteurs, cartes valables, démarches en cours, formalisés, agréments valables —
+  **tout compte de 1 à 4 est masqué** — puis les tonnes détournées des **mois civils clos**, sommées sur les seuls mois
+  où une commune a eu au moins 5 acteurs livreurs (les mois écartés sont comptés) : rien ne s'y déduit par différence
+  de deux dates. Le bilan d'une commune lu par la FNCT masque un mois de moins de 5 acteurs. Aucun rang, aucune ligne
+  par commune, ordre alphabétique de la langue affichée. Le masquage vaut pour ce que la vue nationale et le bilan
+  publient : la FNCT lit par ailleurs, commune par commune, la situation pseudonyme de chaque acteur, comme le
+  registre de 18.1.
 - API `/periode-transitoire` (8 routes) ; écran *Acteurs informels* : volet *Accompagnement* (et *Agrément* pour un
   intermédiaire) dans chaque acteur, sections *La période transitoire* et *Le bilan de la conversion* — FR/AR, vérifié
   sur téléphone. Avis de « À vérifier » rendus en arabe.
@@ -36,11 +45,18 @@ de décret, sur les règles datées du lot I1. Derrière l'interrupteur du cadre
 ### Vérifié
 - Campagne `periode-transitoire` : les refus d'abord (cadre éteint, étape sans démarche, antérieure, de demain, hors
   liste du jour, en double, réécrite ; agrément d'un pré-collecteur, sans organisme, à l'échéance qui ne suit pas la
-  délivrance, de demain, réécrit ; écritures de la FNCT, d'un prestataire, d'une autre commune ; vue nationale à un
-  directeur) ; puis aucun état sans date de départ, la fin de période contre un témoin de dates, le rejeu à une date,
-  « à régulariser » sans blocage, l'étalonnage, les avis d'agrément FR/AR, le bilan de la conversion recalculé par un
-  témoin indépendant (`periode_transitoire_attendus.py`), le masquage sous 5 et l'absence de rang. Mutant (taux du
-  jour du calcul) : 2 échecs, rétabli.
+  délivrance, de demain, réécrit ; écritures de la FNCT, d'un prestataire, d'une autre commune, **à la route et en
+  base** sous le rôle de l'application ; une date qui n'existe pas ; une commune inconnue ou retirée ; vue nationale
+  à un directeur) ; puis aucun état sans date de départ, la fin de période contre un témoin de dates, le rejeu à une
+  date, la liste du jour de l'étape et deux éléments du même code qui se chevauchent, « à régulariser » sans blocage,
+  l'étalonnage, les avis d'agrément FR/AR (bornes des 60 jours, durée de la délivrance et non d'aujourd'hui, acteur
+  requalifié), le bilan de la conversion recalculé par un témoin indépendant (`periode_transitoire_attendus.py`, un
+  barème qui change en cours de mois), le tonnage pesé intact, le masquage sous 5, les tonnes nationales par mois clos
+  et l'ordre alphabétique de toute la liste. Trois mutants (taux du jour du calcul ; avis d'écart d'un acteur
+  requalifié ; tonnes nationales au jour demandé) : chacun attrapé, rétabli.
+- Relecture adversariale du lot avant fusion (cinq angles, chaque constat contre-vérifié sur la pile d'essai) :
+  43 constats confirmés, corrigés ici. Un défaut antérieur, hors du lot, est laissé à un lot à part :
+  `GET /barbechas/{id}/deliveries` rend chaque livraison avec son montant à la FNCT et au prestataire.
 
 ## [0.15.84] — 2026-10-28 — La carte de pré-collecteur (lot I2, 18.2)
 

@@ -14539,7 +14539,7 @@ export interface paths {
         };
         /**
          * Les règles de la période à une date, et l’état de chaque acteur de la commune
-         * @description Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit. Avec « date », la situation telle qu’on l’aurait lue ce jour-là.
+         * @description Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit. Avec « date », la situation à ce jour-là : les règles en vigueur à cette date, et les faits datés de cette date ou avant, tels qu’ils sont inscrits aujourd’hui — une démarche reportée après coup avec sa vraie date compte au jour où elle a eu lieu. Commune inconnue ou retirée : 404.
          */
         get: {
             parameters: {
@@ -14638,13 +14638,15 @@ export interface paths {
         };
         /**
          * Le bilan de la conversion, mois par mois (provenance déclarée)
-         * @description Tonnes détournées (livraisons du registre des acteurs), redevance ANGeD évitée, voyages économisés. Un mois sans livraison n’a pas de ligne.
+         * @description Tonnes détournées (livraisons du registre des acteurs), redevance ANGeD évitée, voyages économisés. Un mois sans livraison n’a pas de ligne. Commune inconnue ou retirée : 404.
          */
         get: {
             parameters: {
                 query?: {
                     communeId?: string;
                     annee?: number;
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
                 };
                 header?: never;
                 path?: never;
@@ -14724,7 +14726,7 @@ export interface paths {
         };
         /**
          * La vue nationale, par gouvernorat (FNCT)
-         * @description Par gouvernorat, dans l’ordre alphabétique, « N communes sur M » : acteurs inscrits, cartes valables, démarches en cours, formalisés, agréments valables, tonnes détournées de l’année. Tout compte de 1 à 4 est masqué (null, nommé dans « masques »). Aucun rang, aucune ligne par commune.
+         * @description Par gouvernorat, dans l’ordre alphabétique, « N communes sur M » : acteurs inscrits, cartes valables, démarches en cours, formalisés, agréments valables au jour demandé — tout compte de 1 à 4 est masqué (null, nommé dans « masques »). Puis les tonnes détournées (déclarées) des mois civils clos de l’année du dernier mois clos, sommées sur les seuls mois où une commune a eu au moins 5 acteurs livreurs ; les mois écartés sont comptés (mois_masques). Aucun rang, aucune ligne par commune.
          */
         get: {
             parameters: {
@@ -14756,7 +14758,14 @@ export interface paths {
                                 demarches_en_cours: number | null;
                                 formalises: number | null;
                                 agrements_valables: number | null;
+                                /** @description null : aucune livraison, ou rien que des mois masqués. */
                                 tonnes_detournees: number | null;
+                                /** @description 1er janvier de l’année du dernier mois clos. */
+                                tonnes_du: string;
+                                /** @description Dernier jour du dernier mois clos. */
+                                tonnes_au: string;
+                                /** @description Mois de commune écartés des tonnes : moins de 5 acteurs livreurs. */
+                                mois_masques: number;
                                 masques: string[];
                             }[];
                         };
@@ -14817,11 +14826,13 @@ export interface paths {
         };
         /**
          * L’accompagnement d’un acteur : étapes franchies, agréments
-         * @description Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit.
+         * @description Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit. Avec « date », les étapes proposées sont celles de la liste en vigueur à cette date.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    date?: string;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -31472,7 +31483,7 @@ export interface components {
                 id_precollecteur: string;
                 categorie: string | null;
             };
-            /** @description La liste nationale des étapes en vigueur aujourd’hui. Une étape se juge sur la liste du jour où elle a été franchie. */
+            /** @description La liste nationale des étapes en vigueur à la date demandée (aujourd’hui par défaut), un élément par code : une étape se juge sur la liste du jour où elle a été franchie. */
             jalons_possibles: {
                 code: string;
                 libelle_fr: string;
@@ -31500,6 +31511,8 @@ export interface components {
                 duree_mois_en_vigueur: number | null;
                 /** @description Ce que la durée nationale en vigueur à la délivrance donnerait ; montrée à côté, jamais à la place. */
                 echeance_selon_duree: string | null;
+                /** @description L’échéance de la pièce sort des bornes de la durée en vigueur à la délivrance (celles de « À vérifier ») ; null sans durée en vigueur. */
+                ecart_duree: boolean | null;
             }[];
         };
         MoisConversionInformel: {

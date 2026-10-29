@@ -540,10 +540,12 @@ export const JEU_BIBLIOTHEQUE: JeuExport = {
 };
 
 // Le bilan de la conversion du secteur informel (lot I3) : déclaré, jamais
-// additionné au tonnage pesé — le titre et la première colonne le disent.
+// additionné au tonnage pesé. Le titre, qui nomme aussi l'onglet du tableur
+// (31 caractères au plus), et l'en-tête des tonnes le disent ; celui de la
+// redevance porte son hypothèse, comme l'écran l'écrit à côté du chiffre.
 export const JEU_CONVERSION_INFORMEL: JeuExport = {
   nom: 'conversion-secteur-informel',
-  titre: { fr: 'Bilan de la conversion du secteur informel (déclaré)', ar: 'حصيلة إدماج القطاع غير المنظم (مصرّح بها)' },
+  titre: { fr: 'Conversion informel (déclaré)', ar: 'القطاع غير المنظم (مصرّح بها)' },
   colonnes: [
     { cle: 'annee', fr: 'Année', ar: 'السنة', type: 'nombre' },
     { cle: 'mois', fr: 'Mois', ar: 'الشهر', type: 'nombre' },
@@ -551,7 +553,13 @@ export const JEU_CONVERSION_INFORMEL: JeuExport = {
     { cle: 'livraisons', fr: 'Livraisons', ar: 'التسليمات', type: 'nombre' },
     { cle: 'tonnes_detournees', fr: 'Tonnes détournées (déclarées)', ar: 'الأطنان المحوَّلة (مصرّح بها)', type: 'nombre' },
     { cle: 'tonnes_sans_taux', fr: 'Dont tonnes sans taux de redevance', ar: 'منها أطنان دون معلوم', type: 'nombre' },
-    { cle: 'redevance_evitee_tnd', fr: 'Redevance ANGeD évitée (TND)', ar: 'معلوم الإيداع المُتفادى (د.ت)', type: 'nombre' },
+    {
+      cle: 'redevance_evitee_tnd',
+      fr: 'Redevance ANGeD évitée (TND), si ces tonnes étaient parties en décharge',
+      ar: 'معلوم الإيداع المُتفادى (د.ت)، لو ذهبت هذه الأطنان إلى المصب',
+      type: 'nombre',
+    },
+    { cle: 'taux_appliques', fr: 'Taux appliqués (TND/t, au jour de chaque livraison)', ar: 'المعاليم المطبّقة (د.ت/طن، يوم كل تسليم)' },
     { cle: 'redevance_provisoire', fr: 'Taux provisoire', ar: 'معلوم وقتي', type: 'booleen' },
     { cle: 'voyages_peses', fr: 'Voyages pesés du mois', ar: 'الرحلات الموزونة في الشهر', type: 'nombre' },
     { cle: 'poids_moyen_voyage_t', fr: 'Poids moyen d’un voyage pesé (t)', ar: 'معدل وزن الرحلة الموزونة (طن)', type: 'nombre' },

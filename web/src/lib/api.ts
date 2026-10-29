@@ -1303,7 +1303,9 @@ export const api = {
   conversionInformel: (communeId: string, annee: number) =>
     requete<ConversionInformel>(`/periode-transitoire/conversion?communeId=${encodeURIComponent(communeId)}&annee=${annee}`),
   secteurInformelNational: () => requete<SecteurInformelNational>('/periode-transitoire/national'),
-  accompagnementActeur: (id: string) => requete<AccompagnementActeur>(`/periode-transitoire/acteurs/${id}`),
+  // Avec une date, les étapes proposées sont celles de la liste en vigueur ce jour-là.
+  accompagnementActeur: (id: string, date?: string) =>
+    requete<AccompagnementActeur>(`/periode-transitoire/acteurs/${id}${date ? `?date=${date}` : ''}`),
   inscrireJalon: (id: string, saisie: Corps<'/periode-transitoire/acteurs/{id}/jalons', 'post'>) =>
     requete<AccompagnementActeur>(`/periode-transitoire/acteurs/${id}/jalons`, { method: 'POST', body: JSON.stringify(saisie) }),
   retirerJalon: (id: string, jalonId: string) =>

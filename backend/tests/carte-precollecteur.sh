@@ -82,6 +82,13 @@ nettoyer() {
             ALTER TABLE documents_emis ENABLE TRIGGER trg_proteger_document;
             COMMIT;" >/dev/null 2>&1
   $PSQL -c "DELETE FROM barbechas WHERE commune_id IN ($ESSAI) OR id_precollecteur LIKE 'TEST-CP-%';" >/dev/null 2>&1
+  # Un passage tué sans piège (SIGKILL) laisserait les interrupteurs allumés, la
+  # pièce et la durée de test dans les tables nationales : le suivant les
+  # garderait comme état de référence. Ses traces portent une référence « TEST ».
+  $PSQL -c "UPDATE parametres_nationaux SET valeur = 'false', reference = NULL
+             WHERE cle IN ('cadre_secteur_informel_actif', 'hebergement_pii_accredite') AND reference LIKE 'TEST%';
+            DELETE FROM elements_listes_nationales WHERE liste = 'pieces_carte_precollecteur' AND reference LIKE 'TEST %';
+            DELETE FROM valeurs_parametres_nationaux WHERE code = 'informel_validite_carte_mois' AND reference LIKE 'TEST %';" >/dev/null 2>&1
   effacer_communes_essai "$ESSAI"
 }
 nettoyer
