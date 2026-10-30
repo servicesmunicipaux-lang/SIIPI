@@ -7,8 +7,9 @@
 -- délai d'étalonnage, la durée d'un agrément et la liste des étapes
 -- d'accompagnement sont ceux du lot I1 (migration 091) : datés, tenus par la
 -- FNCT. Rien ici n'écrit une durée ou une date de l'article 13. Sans date de
--- départ, aucun état ni aucun avis ne se calcule : une échéance inventée
--- serait lue comme vraie.
+-- départ, aucun état ni aucun avis de période ne se calcule : une échéance
+-- inventée serait lue comme vraie. Les avis d'agrément, eux, ne dépendent que
+-- de l'échéance portée par la pièce.
 --
 -- SIIPI CONSTATE, IL NE BLOQUE PAS. Après la période, un acteur dont la
 -- démarche n'est pas formalisée est « à régulariser » : un avertissement dans
@@ -108,8 +109,11 @@ CREATE TRIGGER trg_audit_jalons_acteurs AFTER INSERT OR UPDATE OR DELETE ON jalo
 ALTER TABLE jalons_acteurs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jalons_acteurs FORCE  ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS jalons_acteurs_select ON jalons_acteurs;
+-- Le prestataire lit la commune (can_read_commune) mais n'a pas à connaître
+-- l'accompagnement des acteurs informels : la route le refuse, la base aussi.
 CREATE POLICY jalons_acteurs_select ON jalons_acteurs FOR SELECT
-  USING (deleted_at IS NULL AND app.can_read_commune(commune_id));
+  USING (deleted_at IS NULL AND app.can_read_commune(commune_id)
+         AND app.current_role_name() <> 'gestionnaire_prestataire');
 -- Le directeur de la commune accompagne ; la FNCT lit (comme pour la carte).
 DROP POLICY IF EXISTS jalons_acteurs_insert ON jalons_acteurs;
 CREATE POLICY jalons_acteurs_insert ON jalons_acteurs FOR INSERT
@@ -191,7 +195,8 @@ ALTER TABLE agrements_intermediaires ENABLE ROW LEVEL SECURITY;
 ALTER TABLE agrements_intermediaires FORCE  ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS agrements_intermediaires_select ON agrements_intermediaires;
 CREATE POLICY agrements_intermediaires_select ON agrements_intermediaires FOR SELECT
-  USING (deleted_at IS NULL AND app.can_read_commune(commune_id));
+  USING (deleted_at IS NULL AND app.can_read_commune(commune_id)
+         AND app.current_role_name() <> 'gestionnaire_prestataire');
 DROP POLICY IF EXISTS agrements_intermediaires_insert ON agrements_intermediaires;
 CREATE POLICY agrements_intermediaires_insert ON agrements_intermediaires FOR INSERT
   WITH CHECK (app.peut_emettre_document(commune_id));
@@ -504,8 +509,10 @@ $$
 DECLARE
   v_jour date := COALESCE(p_date, app.jour_tunis());
   -- Le dernier jour du dernier mois clos, et le 1er janvier de son année.
-  v_au date := (date_trunc('month', COALESCE(p_date, app.jour_tunis())) - interval '1 day')::date;
-  v_du date := date_trunc('year', (date_trunc('month', COALESCE(p_date, app.jour_tunis())) - interval '1 day'))::date;
+  -- Le dernier mois clos, au jour demandé ET aujourd'hui : une date dans l'avenir
+  -- ne fait pas entrer le mois en cours, encore ouvert, dans les tonnes.
+  v_au date := (date_trunc('month', LEAST(COALESCE(p_date, app.jour_tunis()), app.jour_tunis())) - interval '1 day')::date;
+  v_du date := date_trunc('year', (date_trunc('month', LEAST(COALESCE(p_date, app.jour_tunis()), app.jour_tunis())) - interval '1 day'))::date;
 BEGIN
   IF NOT app.is_fnct() THEN
     RAISE EXCEPTION 'ACCES_REFUSE' USING ERRCODE = 'insufficient_privilege';
@@ -585,7 +592,7 @@ BEGIN
 END
 $$;
 COMMENT ON FUNCTION app.secteur_informel_national(date) IS
-  'La vue nationale du secteur informel (lot I3, FNCT seule), par gouvernorat : communes qui ont des acteurs inscrits sur les communes réelles, acteurs inscrits, cartes valables, démarches en cours, formalisés, agréments valables au jour demandé — tout compte de 1 à 4 masqué (NULL, nommé dans « masques ») ; puis les tonnes détournées (déclarées) des mois civils clos de l''année du dernier mois clos (tonnes_du, tonnes_au), sommées sur les seuls mois où une commune a eu au moins 5 acteurs livreurs ; les mois écartés sont comptés (mois_masques). Un gouvernorat sans acteur n''a que des NULL. Aucun rang, aucune ligne par commune.';
+  'La vue nationale du secteur informel (lot I3, FNCT seule), par gouvernorat : communes qui ont des acteurs inscrits sur les communes réelles, acteurs inscrits, cartes valables, démarches en cours, formalisés, agréments valables — les acteurs du registre d''aujourd''hui (acteurs retirés exclus, catégorie d''aujourd''hui), leurs démarches, cartes et agréments jugés au jour demandé ; tout compte de 1 à 4 masqué (NULL, nommé dans « masques ») ; puis les tonnes détournées (déclarées) des mois civils clos de l''année du dernier mois clos (tonnes_du, tonnes_au ; jamais le mois en cours, même pour une date future), sommées sur les seuls mois où une commune a eu au moins 5 acteurs livreurs ; les mois écartés sont comptés (mois_masques, 0 quand il n''y en a pas). Un gouvernorat sans acteur a ses comptes et ses tonnes à NULL. Aucun rang, aucune ligne par commune.';
 REVOKE ALL ON FUNCTION app.secteur_informel_national(date) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.secteur_informel_national(date) TO siipi_app;
 

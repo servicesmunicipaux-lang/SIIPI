@@ -545,7 +545,7 @@ export const JEU_BIBLIOTHEQUE: JeuExport = {
 // redevance porte son hypothèse, comme l'écran l'écrit à côté du chiffre.
 export const JEU_CONVERSION_INFORMEL: JeuExport = {
   nom: 'conversion-secteur-informel',
-  titre: { fr: 'Conversion informel (déclaré)', ar: 'القطاع غير المنظم (مصرّح بها)' },
+  titre: { fr: 'Bilan de conversion (déclaré)', ar: 'حصيلة الإدماج (مصرّح بها)' },
   colonnes: [
     { cle: 'annee', fr: 'Année', ar: 'السنة', type: 'nombre' },
     { cle: 'mois', fr: 'Mois', ar: 'الشهر', type: 'nombre' },
@@ -562,8 +562,13 @@ export const JEU_CONVERSION_INFORMEL: JeuExport = {
     { cle: 'taux_appliques', fr: 'Taux appliqués (TND/t, au jour de chaque livraison)', ar: 'المعاليم المطبّقة (د.ت/طن، يوم كل تسليم)' },
     { cle: 'redevance_provisoire', fr: 'Taux provisoire', ar: 'معلوم وقتي', type: 'booleen' },
     { cle: 'voyages_peses', fr: 'Voyages pesés du mois', ar: 'الرحلات الموزونة في الشهر', type: 'nombre' },
-    { cle: 'poids_moyen_voyage_t', fr: 'Poids moyen d’un voyage pesé (t)', ar: 'معدل وزن الرحلة الموزونة (طن)', type: 'nombre' },
-    { cle: 'voyages_economises', fr: 'Voyages économisés', ar: 'الرحلات المُوفَّرة', type: 'nombre' },
+    {
+      cle: 'poids_moyen_voyage_t',
+      fr: 'Poids moyen d’un voyage pesé de circuit, ordures ménagères, du même mois (t)',
+      ar: 'معدل وزن رحلة موزونة لمسلك، فضلات منزلية، في الشهر نفسه (طن)',
+      type: 'nombre',
+    },
+    { cle: 'voyages_economises', fr: 'Voyages économisés (tonnes du mois / voyage pesé moyen)', ar: 'الرحلات المُوفَّرة (أطنان الشهر / معدل الرحلة الموزونة)', type: 'nombre' },
     { cle: 'masque', fr: 'Masqué (moins de 5 acteurs)', ar: 'محجوب (أقل من 5 فاعلين)', type: 'booleen' },
   ],
 };

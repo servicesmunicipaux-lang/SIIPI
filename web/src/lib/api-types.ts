@@ -14539,13 +14539,13 @@ export interface paths {
         };
         /**
          * Les règles de la période à une date, et l’état de chaque acteur de la commune
-         * @description Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit. Avec « date », la situation à ce jour-là : les règles en vigueur à cette date, et les faits datés de cette date ou avant, tels qu’ils sont inscrits aujourd’hui — une démarche reportée après coup avec sa vraie date compte au jour où elle a eu lieu. Commune inconnue ou retirée : 404.
+         * @description Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit. Avec « date », la situation à ce jour-là : les règles en vigueur à cette date, et les faits datés de cette date ou avant, tels qu’ils sont inscrits aujourd’hui — une démarche reportée après coup avec sa vraie date compte au jour où elle a eu lieu, et un acteur inscrit après cette date y figure. « date » : AAAA-MM-JJ, du 01/01/2000 au 31/12/2100 ; une date inexistante est refusée (400). Commune inconnue ou retirée : 404. La FNCT lit cette situation acteur par acteur (pseudonymes), sans masquage, comme le registre du lot 18.1 : le masquage sous 5 acteurs vaut pour la vue nationale et le bilan de la conversion.
          */
         get: {
             parameters: {
                 query?: {
-                    communeId?: string;
                     date?: string;
+                    communeId?: string;
                 };
                 header?: never;
                 path?: never;
@@ -14643,8 +14643,8 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    communeId?: string;
                     annee?: number;
+                    communeId?: string;
                     format?: "csv" | "xlsx";
                     langue?: "fr" | "ar";
                 };
@@ -14726,7 +14726,7 @@ export interface paths {
         };
         /**
          * La vue nationale, par gouvernorat (FNCT)
-         * @description Par gouvernorat, dans l’ordre alphabétique, « N communes sur M » : acteurs inscrits, cartes valables, démarches en cours, formalisés, agréments valables au jour demandé — tout compte de 1 à 4 est masqué (null, nommé dans « masques »). Puis les tonnes détournées (déclarées) des mois civils clos de l’année du dernier mois clos, sommées sur les seuls mois où une commune a eu au moins 5 acteurs livreurs ; les mois écartés sont comptés (mois_masques). Aucun rang, aucune ligne par commune.
+         * @description Par gouvernorat, dans l’ordre alphabétique, « N communes sur M » : acteurs inscrits, cartes valables, démarches en cours, formalisés, agréments valables — les acteurs du registre d’aujourd’hui (retirés exclus, catégorie d’aujourd’hui), leurs démarches, cartes et agréments jugés au jour demandé ; tout compte de 1 à 4 est masqué (null, nommé dans « masques »). Puis les tonnes détournées (déclarées) des mois civils clos de l’année du dernier mois clos, sommées sur les seuls mois où une commune a eu au moins 5 acteurs livreurs ; les mois écartés sont comptés (mois_masques). « date » ne peut pas être dans l’avenir (400) : un mois clos l’est au jour où l’on lit. Aucun rang, aucune ligne par commune.
          */
         get: {
             parameters: {
@@ -31481,7 +31481,8 @@ export interface components {
                 /** Format: uuid */
                 id: string;
                 id_precollecteur: string;
-                categorie: string | null;
+                /** @enum {string|null} */
+                categorie: "pre_collecteur" | "intermediaire" | null;
             };
             /** @description La liste nationale des étapes en vigueur à la date demandée (aujourd’hui par défaut), un élément par code : une étape se juge sur la liste du jour où elle a été franchie. */
             jalons_possibles: {

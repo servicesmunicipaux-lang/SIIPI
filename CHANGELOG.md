@@ -32,9 +32,10 @@ de décret, sur les règles datées du lot I1. Derrière l'interrupteur du cadre
   taux appliqués dans ses en-têtes.
 - **La vue de la FNCT** (`app.secteur_informel_national`, entrée *Secteur informel* de l'observatoire) : par
   gouvernorat, « N communes sur M », acteurs, cartes valables, démarches en cours, formalisés, agréments valables —
-  **tout compte de 1 à 4 est masqué** — puis les tonnes détournées des **mois civils clos**, sommées sur les seuls mois
-  où une commune a eu au moins 5 acteurs livreurs (les mois écartés sont comptés) : rien ne s'y déduit par différence
-  de deux dates. Le bilan d'une commune lu par la FNCT masque un mois de moins de 5 acteurs. Aucun rang, aucune ligne
+  **tout compte de 1 à 4 est masqué** (comparer deux colonnes peut au plus le borner) — puis les tonnes détournées des
+  **mois civils clos**, sommées sur les seuls mois où une commune a eu au moins 5 acteurs livreurs (les mois écartés
+  sont comptés) : rien ne s'y déduit par différence de deux dates. Elle ne se lit pas dans l'avenir, et une date
+  future n'y ferait jamais entrer le mois en cours. Le bilan d'une commune lu par la FNCT masque un mois de moins de 5 acteurs. Aucun rang, aucune ligne
   par commune, ordre alphabétique de la langue affichée. Le masquage vaut pour ce que la vue nationale et le bilan
   publient : la FNCT lit par ailleurs, commune par commune, la situation pseudonyme de chaque acteur, comme le
   registre de 18.1.
@@ -51,12 +52,18 @@ de décret, sur les règles datées du lot I1. Derrière l'interrupteur du cadre
   date, la liste du jour de l'étape et deux éléments du même code qui se chevauchent, « à régulariser » sans blocage,
   l'étalonnage, les avis d'agrément FR/AR (bornes des 60 jours, durée de la délivrance et non d'aujourd'hui, acteur
   requalifié), le bilan de la conversion recalculé par un témoin indépendant (`periode_transitoire_attendus.py`, un
-  barème qui change en cours de mois), le tonnage pesé intact, le masquage sous 5, les tonnes nationales par mois clos
-  et l'ordre alphabétique de toute la liste. Trois mutants (taux du jour du calcul ; avis d'écart d'un acteur
+  barème qui change en cours de mois), la redevance ANGeD de la commune calculée sur le seul pesé, le masquage sous 5,
+  les tonnes nationales par mois clos (et jamais le mois en cours), la lecture en base sous le rôle de l'application
+  (l'autre directeur et le prestataire ne lisent rien ; RLS activée et forcée), et l'ordre alphabétique de toute la
+  liste. Trois mutants (taux du jour du calcul ; avis d'écart d'un acteur
   requalifié ; tonnes nationales au jour demandé) : chacun attrapé, rétabli.
 - Relecture adversariale du lot avant fusion (cinq angles, chaque constat contre-vérifié sur la pile d'essai) :
-  43 constats confirmés, corrigés ici. Un défaut antérieur, hors du lot, est laissé à un lot à part :
-  `GET /barbechas/{id}/deliveries` rend chaque livraison avec son montant à la FNCT et au prestataire.
+  43 constats confirmés, dont 42 corrigés ici ; le 43e, un défaut antérieur au lot, est laissé à un lot à part :
+  `GET /barbechas/{id}/deliveries` rend chaque livraison avec son montant à la FNCT et au prestataire. Une
+  contre-relecture des corrections a repris ce qu'elles laissaient en partie, et ce qu'elles introduisaient : une date
+  future dans la vue nationale, l'an 0000 et un caractère de contrôle (500 au lieu de 400 ou 404), le contrat qui
+  recopiait les schémas de requête au lieu de les reprendre, la liste d'étapes d'une autre date pendant son
+  chargement, les règles manquantes non nommées, le titre et les en-têtes de l'export.
 
 ## [0.15.84] — 2026-10-28 — La carte de pré-collecteur (lot I2, 18.2)
 

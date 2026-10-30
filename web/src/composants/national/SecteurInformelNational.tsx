@@ -1,10 +1,11 @@
 // Le secteur informel vu par la FNCT (lot I3, 18.3) : par gouvernorat, dans
 // l'ordre alphabétique, « N communes sur M ».
 //
-// AUCUN COMPTE DE MOINS DE 5 ACTEURS (décision du 28/10/2026). Dans un gouvernorat
-// de trois acteurs, « 1 formalisé » désigne quelqu'un : la base rend ce compte
-// vide et le nomme masqué ; l'écran l'écrit « moins de 5 », distinct de « non
-// renseigné » (aucun acteur inscrit). Aucun rang, aucune ligne par commune.
+// AUCUN COMPTE DE 1 À 4 ACTEURS N'EST AFFICHÉ (décision du 28/10/2026). Dans un
+// gouvernorat de trois acteurs, « 1 formalisé » désigne quelqu'un : la base rend ce
+// compte vide et le nomme masqué ; l'écran l'écrit « moins de 5 », distinct de « non
+// renseigné » (aucun acteur inscrit). Comparer deux colonnes peut au plus borner un
+// compte masqué, pas le donner. Aucun rang, aucune ligne par commune.
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';

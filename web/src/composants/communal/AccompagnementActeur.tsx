@@ -40,7 +40,9 @@ export function AccompagnementActeur(props: {
   const videAgrement = { organisme: '', reference: '', delivrance: '', echeance: '' };
   const [agrement, setAgrement] = useState(videAgrement);
   const [envoi, setEnvoi] = useState(false);
-  // La liste en vigueur à la date choisie pour l'étape ; null : celle du jour.
+  // La liste en vigueur à la date choisie pour l'étape ; null : celle du jour. Pendant
+  // le chargement, ou si elle n'a pu se lire, aucune étape n'est proposée : la liste
+  // d'une autre date ne doit pas passer pour la bonne.
   const [possibles, setPossibles] = useState<Donnees['jalons_possibles'] | null>(null);
 
   useEffect(() => {
@@ -48,6 +50,7 @@ export function AccompagnementActeur(props: {
       setPossibles(null);
       return;
     }
+    setPossibles([]);
     let annule = false;
     api
       .accompagnementActeur(acteurId, jalon.date)
@@ -59,10 +62,13 @@ export function AccompagnementActeur(props: {
           j.code && !d.jalons_possibles.some((x) => x.code === j.code) ? { ...j, code: '' } : j
         );
       })
-      .catch(() => undefined);
+      .catch((e) => {
+        if (!annule) onErreur(e);
+      });
     return () => {
       annule = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acteurId, jalon.date]);
 
   // Chargé une fois à l'ouverture : onErreur change à chaque rendu du parent,

@@ -30,14 +30,16 @@ export const periodeTransitoireRouter = Router();
 
 const LECTEURS = ['admin_commune', 'super_admin_fnct'] as const;
 // Une date bien formée doit aussi exister : « 2026-02-30 » passerait le motif et
-// ferait échouer PostgreSQL (500) au lieu d'un refus qui dit quoi corriger.
+// ferait échouer PostgreSQL (500) au lieu d'un refus qui dit quoi corriger. L'an
+// 0000, que JavaScript accepte et PostgreSQL refuse, est hors des bornes du métier.
 const dateIso = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.')
   .refine((d) => {
     const t = new Date(`${d}T00:00:00Z`);
     return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === d;
-  }, 'Cette date n’existe pas au calendrier : vérifiez le jour et le mois (AAAA-MM-JJ).');
+  }, 'Cette date n’existe pas au calendrier : vérifiez le jour et le mois (AAAA-MM-JJ).')
+  .refine((d) => d >= '2000-01-01' && d <= '2100-12-31', 'Date attendue entre le 01/01/2000 et le 31/12/2100.');
 // Le jour à Tunis (UTC+1, sans heure d'été).
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 const pasDansLAvenir = { message: "Cette date porte sur ce qui a eu lieu : elle ne peut pas être dans l'avenir." };
@@ -85,6 +87,9 @@ function refus(err: unknown): never {
 function communeRequise(req: Parameters<typeof communeDemandee>[0]) {
   const c = communeDemandee(req);
   if (!c) throw new ApiError(400, 'Commune requise (paramètre communeId).');
+  // Un caractère de contrôle (l'octet nul) ferait échouer PostgreSQL (500) : un
+  // tel identifiant ne désigne aucune commune.
+  if (/[\u0000-\u001f]/.test(c)) throw new ApiError(404, 'Commune introuvable.');
   return c;
 }
 
@@ -115,7 +120,12 @@ async function acteur(id: string) {
 
 // --- Les règles du jour et l'état de chaque acteur -------------------------
 
+// Les schémas de requête sont exportés pour le contrat (document.ts) : il les
+// reprend tels quels, il ne les recopie pas.
 export const situationQuery = z.object({ date: dateIso.optional() }).passthrough();
+// La vue nationale ne se lit pas dans l'avenir : ses tonnes s'arrêtent au dernier
+// mois clos, et un mois clos l'est au jour où l'on lit.
+export const nationalQuery = z.object({ date: dateIso.refine((d) => d <= aujourdhui(), pasDansLAvenir).optional() }).passthrough();
 
 periodeTransitoireRouter.get(
   '/',
@@ -164,9 +174,15 @@ periodeTransitoireRouter.get(
       taux_appliques: Array.isArray(m.taux_appliques) ? (m.taux_appliques as unknown[]).map(Number) : null,
     }));
     // L'export (Excel, CSV) est le tableau des mois ; les taux appliqués y
-    // deviennent un texte, une cellule ne portant pas de liste.
+    // deviennent un texte, une cellule ne portant pas de liste — à virgule
+    // décimale, comme les nombres du même fichier.
     if (req.query.format !== undefined) {
-      res.json(mois.map((m) => ({ ...m, taux_appliques: m.taux_appliques?.join(' ; ') ?? null })));
+      res.json(
+        mois.map((m) => ({
+          ...m,
+          taux_appliques: m.taux_appliques?.map((t) => String(t).replace('.', ',')).join(' ; ') ?? null,
+        }))
+      );
       return;
     }
     res.json({ communeId, annee, provenance: 'declaree', mois });
@@ -180,7 +196,7 @@ periodeTransitoireRouter.get(
   requireAuth,
   requireRole('super_admin_fnct'),
   asyncHandler(async (req, res) => {
-    const { date } = situationQuery.parse(req.query);
+    const { date } = nationalQuery.parse(req.query);
     const jour = date ?? aujourdhui();
     const lignes = (await query<Record<string, unknown> & { gouvernorat: string }>('SELECT * FROM app.secteur_informel_national($1::date)', [jour]))
       .map((l) => ({ ...l, tonnes_detournees: nombre(l.tonnes_detournees) }))

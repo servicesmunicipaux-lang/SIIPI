@@ -118,6 +118,20 @@ export function PeriodeTransitoire({
           </div>
         </dl>
       )}
+      {/* Les règles sans valeur en vigueur, nommées : « règles incomplètes » ne dit
+          pas à la FNCT laquelle fixer. Le départ manquant a déjà son bandeau. */}
+      {p.debut !== null && p.manque.length > 0 && (
+        <p
+          role="status"
+          className="rounded-lg border border-ardoise-300 bg-ardoise-50 p-2 text-xs text-ardoise-800"
+        >
+          {t('communal.transition.reglesManquantes', {
+            liste: p.manque
+              .map((m) => t(`communal.transition.parametres.${m}`, { defaultValue: m }))
+              .join(', '),
+          })}
+        </p>
+      )}
       {p.provisoire && (
         <p className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900">
           {t('communal.transition.provisoire')}

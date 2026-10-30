@@ -700,7 +700,7 @@
       },
       "moinsDe5": "moins de 5",
       "nonRenseigne": "non renseigné",
-      "note": "« moins de 5 » : un compte de 1 à 4 acteurs n’est jamais affiché, il désignerait des personnes. Les tonnes ne portent que sur les mois clos, et seulement sur les mois où une commune a eu au moins 5 acteurs livreurs. « non renseigné » : aucun acteur inscrit, ou aucune livraison.",
+      "note": "« moins de 5 » : un compte de 1 à 4 acteurs n’est jamais affiché, il désignerait des personnes ; comparer deux colonnes peut au plus le borner. Les tonnes ne portent que sur les mois clos, et seulement sur les mois où une commune a eu au moins 5 acteurs livreurs. « non renseigné » : aucun acteur inscrit, ou aucune livraison.",
       "aucunActeur": "aucun acteur inscrit",
       "tonnesMasquees": "masqué (moins de 5 acteurs)",
       "moisEcartes": "hors {{n}} mois de commune de moins de 5 acteurs",
@@ -3020,7 +3020,13 @@
       },
       "agrementHorsCategorie": "L’acteur n’est plus déclaré intermédiaire : ses agréments restent lisibles, il n’en reçoit plus et aucun avis n’en suit l’échéance.",
       "sansEtatRegles": "pas d’état : les règles de la période sont incomplètes",
-      "categorieNonDeclaree": "catégorie non déclarée"
+      "categorieNonDeclaree": "catégorie non déclarée",
+      "reglesManquantes": "Règles sans valeur en vigueur : {{liste}}. La FNCT les fixe dans les paramètres nationaux ; d’ici là, l’échéance qui en dépend n’est pas calculée.",
+      "parametres": {
+        "informel_debut_periode_transitoire": "date de départ de la période transitoire",
+        "informel_duree_periode_transitoire_mois": "durée de la période transitoire",
+        "informel_delai_etalonnage_mois": "délai d’étalonnage des instruments de pesée"
+      }
     }
   },
   "ajout": {

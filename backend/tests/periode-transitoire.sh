@@ -176,6 +176,12 @@ en_base() { # rôle commune requête -> refusee | acceptee | autre
   elif grep -qiE "error|erreur" "$T/rls.txt"; then echo autre
   else echo acceptee; fi
 }
+# Une lecture en base sous le rôle de l'application, avec l'identité donnée :
+# le nombre de lignes de la commune A que la RLS laisse voir.
+lu_en_base() { # rôle commune table -> nombre
+  $PSQL -c "BEGIN; SELECT set_config('app.role', '$1', true), set_config('app.commune_id', '$2', true);
+            SET LOCAL ROLE siipi_app; SELECT count(*) FROM $3 WHERE commune_id = '$A'; ROLLBACK;" 2>/dev/null | grep -E '^[0-9]+$' | tail -1
+}
 situation() { appel GET "/periode-transitoire?communeId=$A${1:+&date=$1}" "${2:-$T_A}"; }
 etat() { val "[a['etat'] for a in d['acteurs'] if a['id_precollecteur']=='$1'][0]"; }
 avis() { # début du constat -> nombre d'avis de la commune A qui commencent ainsi
@@ -312,10 +318,11 @@ AG5=$(val "[g['id'] for g in d['agrements'] if g['reference']=='TEST-AG-005'][0]
 chk "… une échéance dans 60 jours s'annonce" "201|1" "$CODE|$(avis "L'agrément TEST-AG-005 expire le $(fr "$J60")")"
 chk "son échéance s'écarte de la durée en vigueur à sa délivrance (12 mois) : l'écart est signalé" 1 "$(avis "L'agrément TEST-AG-005 court")"
 $PSQL -c "UPDATE barbechas SET categorie = 'pre_collecteur' WHERE id = '$I2';" >/dev/null
-chk "I2 requalifié pré-collecteur : plus aucun avis sur son agrément, qui reste lisible et retirable" "0|0|200|1" \
+chk "I2 requalifié pré-collecteur : plus aucun avis sur son agrément, qui reste lisible" "0|0|200|1" \
     "$(avis "L'agrément TEST-AG-005 expire")|$(avis "L'agrément TEST-AG-005 court")|$(appel GET "/periode-transitoire/acteurs/$I2" "$T_A")|$(val "len(d['agrements'])")"
+CODE=$(appel DELETE "/periode-transitoire/acteurs/$I2/agrements/$AG5" "$T_A")
+chk "… et retirable tant qu'il n'est plus intermédiaire" "200|0" "$CODE|$(val "len(d['agrements'])")"
 $PSQL -c "UPDATE barbechas SET categorie = 'intermediaire' WHERE id = '$I2';" >/dev/null
-appel DELETE "/periode-transitoire/acteurs/$I2/agrements/$AG5" "$T_A" >/dev/null
 
 # -----------------------------------------------------------------------------
 echo
@@ -342,6 +349,9 @@ chk "un pré-collecteur n'a ni agrément ni étalonnage à suivre (null, pas « 
 chk "pendant la période, aucun avis « à régulariser »" 0 "$(avis "La période transitoire")"
 chk "une date de rejeu qui n'existe pas : refusée (400), pas une erreur du serveur" "400|1" \
     "$(situation "2026-02-30")|$(val "int('calendrier' in json.dumps(d, ensure_ascii=False))")"
+chk "l'an 0000, que JavaScript accepte et PostgreSQL refuse : refusé (400), pas une erreur du serveur" 400 "$(situation "0000-01-01")"
+chk "un identifiant de commune qui porte un caractère de contrôle : introuvable (404), pas une erreur du serveur" 404 \
+    "$(appel GET "/periode-transitoire?communeId=test%00transition" "$T_FNCT")"
 chk "une commune inconnue, ou retirée, est introuvable pour la FNCT aussi (404), jamais « aucun acteur »" "404|404|404" \
     "$(appel GET "/periode-transitoire?communeId=test_transition_inconnue" "$T_FNCT")|$(appel GET "/periode-transitoire?communeId=$R" "$T_FNCT")|$(appel GET "/periode-transitoire/conversion?communeId=$R&annee=2025" "$T_FNCT")"
 CODE=$(situation "$J18")
@@ -446,7 +456,7 @@ chk "mars : le voyage moyen ne retient que les pesées de circuit en ordures mé
     "$(val "d['mois'][1]['voyages_peses']")|$(val "d['mois'][1]['poids_moyen_voyage_t']")|$(val "d['mois'][1]['voyages_economises']")"
 chk "mai : sans voyage pesé, les voyages économisés ne sont pas renseignés (null, pas 0)" "0|None|None" \
     "$(val "d['mois'][3]['voyages_peses']")|$(val "d['mois'][3]['poids_moyen_voyage_t']")|$(val "d['mois'][3]['voyages_economises']")"
-chk "les tonnes détournées n'entrent pas dans le tonnage pesé : la redevance ANGeD de la commune porte sur ses 32 t pesées seules" "32.000" \
+chk "les tonnes détournées n'entrent pas dans la redevance ANGeD de la commune, calculée sur ses 32 t pesées seules" "32.000" \
     "$($PSQL -c "BEGIN; SELECT set_config('app.role', 'super_admin_fnct', true); SELECT sum(tonnes) FROM app.redevance_anged('$A', 2025); ROLLBACK;" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+$' | head -1)"
 CODE=$(appel GET "/periode-transitoire/conversion?communeId=$A&annee=2025" "$T_FNCT")
 chk "lu par la FNCT, un mois de moins de 5 acteurs est masqué ; juin (5 acteurs) se lit" "200|True,True,True,True,False|None|None|0.5|5" \
@@ -456,6 +466,7 @@ chk "le directeur d'une autre commune : introuvable ; un prestataire : refusé" 
 CODE=$(curl -s -o "$T/export.csv" -w '%{http_code}' "$API/periode-transitoire/conversion?communeId=$A&annee=2025&format=csv" -H "Authorization: Bearer $T_A")
 chk "l'export CSV : le tableau des mois, la provenance déclarée dans ses en-têtes" "200|1|6" \
     "$CODE|$(grep -c 'Tonnes détournées (déclarées)' "$T/export.csv")|$(wc -l < "$T/export.csv" | tr -d ' ')"
+chk "… et l'hypothèse de la redevance dans l'en-tête de sa colonne" 1 "$(grep -c 'si ces tonnes étaient parties en décharge' "$T/export.csv")"
 
 # -----------------------------------------------------------------------------
 echo
@@ -491,6 +502,10 @@ chk "deux lectures du même mois (10 et 30 juin) rendent les mêmes tonnes : rie
     "None|4|2025-05-31|None|4|2025-05-31|1" \
     "$AVANT|$(g TEST-TR-G1 tonnes_detournees)|$(g TEST-TR-G1 mois_masques)|$(g TEST-TR-G1 tonnes_au)|$(val "int('tonnes_detournees' in [x for x in d['gouvernorats'] if x['gouvernorat']=='TEST-TR-G1'][0]['masques'])")"
 chk "une commune retirée ne compte pas dans « N communes sur M »" 2 "$(g TEST-TR-G2 communes)"
+chk "la vue nationale ne se lit pas dans l'avenir (400)" 400 "$(appel GET "/periode-transitoire/national?date=$J40" "$T_FNCT")"
+chk "… et en base, une date future n'y fait pas entrer le mois en cours : les tonnes s'arrêtent au dernier mois clos d'aujourd'hui" \
+    "$(sql "SELECT (date_trunc('month', app.jour_tunis()) - interval '1 day')::date")" \
+    "$($PSQL -c "BEGIN; SELECT set_config('app.role', 'super_admin_fnct', true); SELECT tonnes_au FROM app.secteur_informel_national('$J40'::date) WHERE gouvernorat = 'TEST-TR-G1'; ROLLBACK;" 2>/dev/null | grep -E '^[0-9]{4}-' | tail -1)"
 
 # -----------------------------------------------------------------------------
 echo
@@ -503,6 +518,11 @@ chk "le directeur d'une autre commune : introuvable ; un prestataire : refusé" 
     "$(situation "" "$T_B")|$(appel GET "/periode-transitoire/acteurs/$I1" "$T_B")|$(situation "" "$T_P")"
 chk "chaque étape et chaque agrément sont au journal d'audit, sous la commune" "t|t" \
     "$(sql "SELECT count(*) >= 4 FROM audit_log WHERE table_name = 'jalons_acteurs' AND commune_id = '$A'")|$(sql "SELECT count(*) >= 3 FROM audit_log WHERE table_name = 'agrements_intermediaires' AND commune_id = '$A'")"
+chk "en base, sous le rôle de l'application : l'autre directeur et le prestataire ne lisent aucune étape ni aucun agrément de la commune ; le directeur et la FNCT les lisent" \
+    "0|0|0|0|t|t|t|t" \
+    "$(lu_en_base admin_commune "$B" jalons_acteurs)|$(lu_en_base gestionnaire_prestataire "$A" jalons_acteurs)|$(lu_en_base admin_commune "$B" agrements_intermediaires)|$(lu_en_base gestionnaire_prestataire "$A" agrements_intermediaires)|$(python3 -c "print('t' if int('$(lu_en_base admin_commune "$A" jalons_acteurs)') > 0 else 'f')")|$(python3 -c "print('t' if int('$(lu_en_base super_admin_fnct "" jalons_acteurs)') > 0 else 'f')")|$(python3 -c "print('t' if int('$(lu_en_base admin_commune "$A" agrements_intermediaires)') > 0 else 'f')")|$(python3 -c "print('t' if int('$(lu_en_base super_admin_fnct "" agrements_intermediaires)') > 0 else 'f')")"
+chk "la RLS des deux tables est activée ET forcée" "t|t|t|t" \
+    "$(sql "SELECT relrowsecurity FROM pg_class WHERE relname = 'jalons_acteurs'")|$(sql "SELECT relforcerowsecurity FROM pg_class WHERE relname = 'jalons_acteurs'")|$(sql "SELECT relrowsecurity FROM pg_class WHERE relname = 'agrements_intermediaires'")|$(sql "SELECT relforcerowsecurity FROM pg_class WHERE relname = 'agrements_intermediaires'")"
 chk "l'application ne peut ni réécrire ni effacer une étape ou un agrément" "f|f|f|f" \
     "$(sql "SELECT has_table_privilege('siipi_app', 'jalons_acteurs', 'UPDATE')")|$(sql "SELECT has_table_privilege('siipi_app', 'jalons_acteurs', 'DELETE')")|$(sql "SELECT has_table_privilege('siipi_app', 'agrements_intermediaires', 'UPDATE')")|$(sql "SELECT has_table_privilege('siipi_app', 'agrements_intermediaires', 'DELETE')")"
 

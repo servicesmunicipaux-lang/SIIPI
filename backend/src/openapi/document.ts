@@ -91,7 +91,14 @@ import {
   refusCarteSchema,
   retraitCarteSchema,
 } from '../routes/cartesPrecollecteur.routes.js';
-import { jalonActeurSchema, agrementSchema, ETATS_TRANSITION } from '../routes/periodeTransitoire.routes.js';
+import {
+  jalonActeurSchema,
+  agrementSchema,
+  ETATS_TRANSITION,
+  situationQuery,
+  nationalQuery,
+  conversionQuery,
+} from '../routes/periodeTransitoire.routes.js';
 import { demandeRestaurationSchema, fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { depotLogoSchema } from '../routes/logosCommunes.routes.js';
 import { elementSchema as elementBibliothequeSchema, qLignesSchema as qLignesBibliothequeSchema } from '../routes/bibliotheque.routes.js';
@@ -4054,12 +4061,6 @@ const DESCRIPTION_TRANSITION =
   'paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et ' +
   'n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit.';
 
-const paramDateTransition = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .optional()
-  .openapi({ description: 'Une date du calendrier, AAAA-MM-JJ (aujourd’hui à Tunis par défaut). Une date inexistante est refusée (400).' });
-
 const PeriodeTransitoireDoc = z.object({
   debut: z.string().nullable(),
   duree_mois: z.number().int().nullable(),
@@ -4090,7 +4091,11 @@ const SituationActeur = registry.register(
 const Accompagnement = registry.register(
   'AccompagnementActeur',
   z.object({
-    acteur: z.object({ id: z.string().uuid(), id_precollecteur: z.string(), categorie: z.string().nullable() }),
+    acteur: z.object({
+      id: z.string().uuid(),
+      id_precollecteur: z.string(),
+      categorie: z.enum(['pre_collecteur', 'intermediaire']).nullable(),
+    }),
     jalons_possibles: z.array(z.object({ code: z.string(), libelle_fr: z.string(), libelle_ar: z.string() })).openapi({
       description:
         'La liste nationale des étapes en vigueur à la date demandée (aujourd’hui par défaut), un élément par code : une étape se juge sur la liste du jour où elle a été franchie.',
@@ -4161,10 +4166,12 @@ registry.registerPath({
   description:
     DESCRIPTION_TRANSITION +
     ' Avec « date », la situation à ce jour-là : les règles en vigueur à cette date, et les faits datés de cette date ou avant, ' +
-    'tels qu’ils sont inscrits aujourd’hui — une démarche reportée après coup avec sa vraie date compte au jour où elle a eu lieu. ' +
-    'Commune inconnue ou retirée : 404.',
+    'tels qu’ils sont inscrits aujourd’hui — une démarche reportée après coup avec sa vraie date compte au jour où elle a eu lieu, ' +
+    'et un acteur inscrit après cette date y figure. « date » : AAAA-MM-JJ, du 01/01/2000 au 31/12/2100 ; une date inexistante est ' +
+    'refusée (400). Commune inconnue ou retirée : 404. La FNCT lit cette situation acteur par acteur (pseudonymes), sans masquage, ' +
+    'comme le registre du lot 18.1 : le masquage sous 5 acteurs vaut pour la vue nationale et le bilan de la conversion.',
   security: SECURISE,
-  request: { query: z.object({ communeId: paramCommuneId.optional(), date: paramDateTransition }) },
+  request: { query: situationQuery.extend({ communeId: paramCommuneId.optional() }) },
   responses: {
     200: json(
       z.object({
@@ -4190,13 +4197,7 @@ registry.registerPath({
     'Tonnes détournées (livraisons du registre des acteurs), redevance ANGeD évitée, voyages économisés. Un mois sans livraison n’a pas de ligne. ' +
     'Commune inconnue ou retirée : 404.',
   security: SECURISE,
-  request: {
-    query: z.object({
-      communeId: paramCommuneId.optional(),
-      annee: z.number().int().min(2000).max(2100).optional().openapi({ description: 'L’année civile (défaut : l’année en cours à Tunis).' }),
-      ...paramsExport,
-    }),
-  },
+  request: { query: conversionQuery.extend({ communeId: paramCommuneId.optional(), ...paramsExport }) },
   responses: {
     200: jsonOuExport(
       z.object({ communeId: z.string(), annee: z.number().int(), provenance: z.literal('declaree'), mois: z.array(MoisConversion) }),
@@ -4213,11 +4214,13 @@ registry.registerPath({
   summary: 'La vue nationale, par gouvernorat (FNCT)',
   description:
     'Par gouvernorat, dans l’ordre alphabétique, « N communes sur M » : acteurs inscrits, cartes valables, démarches en cours, formalisés, ' +
-    'agréments valables au jour demandé — tout compte de 1 à 4 est masqué (null, nommé dans « masques »). Puis les tonnes détournées ' +
+    'agréments valables — les acteurs du registre d’aujourd’hui (retirés exclus, catégorie d’aujourd’hui), leurs démarches, cartes ' +
+    'et agréments jugés au jour demandé ; tout compte de 1 à 4 est masqué (null, nommé dans « masques »). Puis les tonnes détournées ' +
     '(déclarées) des mois civils clos de l’année du dernier mois clos, sommées sur les seuls mois où une commune a eu au moins 5 acteurs ' +
-    'livreurs ; les mois écartés sont comptés (mois_masques). Aucun rang, aucune ligne par commune.',
+    'livreurs ; les mois écartés sont comptés (mois_masques). « date » ne peut pas être dans l’avenir (400) : un mois clos l’est au jour ' +
+    'où l’on lit. Aucun rang, aucune ligne par commune.',
   security: SECURISE,
-  request: { query: z.object({ date: paramDateTransition }) },
+  request: { query: nationalQuery },
   responses: {
     200: json(
       z.object({
@@ -4255,7 +4258,7 @@ registry.registerPath({
   summary: 'L’accompagnement d’un acteur : étapes franchies, agréments',
   description: DESCRIPTION_TRANSITION + ' Avec « date », les étapes proposées sont celles de la liste en vigueur à cette date.',
   security: SECURISE,
-  request: { params: z.object({ id: z.string().uuid() }), query: z.object({ date: paramDateTransition }) },
+  request: { params: z.object({ id: z.string().uuid() }), query: situationQuery },
   responses: { 200: json(Accompagnement, 'L’accompagnement.'), ...REPONSES_COMMUNES },
 });
 
