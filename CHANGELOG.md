@@ -5,6 +5,66 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.85] — 2026-10-28 — La période transitoire du secteur informel (lot I3, 18.3)
+
+`DECISIONS_2026-10-20.md`, compléments du 28/10/2026 : le suivi de la période transitoire de l'article 13 du projet
+de décret, sur les règles datées du lot I1. Derrière l'interrupteur du cadre du secteur informel, éteint en production.
+
+### Ajouté
+- **Les étapes d'accompagnement** (migration 093, `jalons_acteurs`) : formation, statut, régularisation… franchies
+  par un acteur, datées, avec leur pièce ; chacune doit figurer dans la liste nationale **en vigueur à sa date** et
+  suivre la démarche entamée, et l'écran propose la liste de la date saisie (un élément par code). Une étape ne se
+  réécrit pas ; saisie à tort, elle se retire.
+- **Les agréments des intermédiaires** (`agrements_intermediaires`) : l'organisme, la référence, la délivrance et
+  l'échéance portées par la pièce. **SIIPI n'agrée pas** : aucune route ne délivre un agrément. « À vérifier »
+  annonce une échéance dans les 60 jours, signale un agrément expiré, et montre l'écart entre l'échéance et la durée
+  nationale en vigueur à la délivrance (pas celle d'aujourd'hui), sans la corriger ; l'écran montre le même écart,
+  aux mêmes bornes. Un acteur requalifié pré-collecteur garde ses agréments lisibles, sans plus aucun avis.
+- **L'état de chaque acteur** (`app.situation_transitoire`) : peut exercer, formalisé, sans démarche, puis **à
+  régulariser** après la fin — un avertissement, jamais un blocage ; un intermédiaire sans étalonnage (l'étape de code
+  `etalonnage_instruments`) après son échéance est signalé. **Sans date de départ, aucun état ni aucun avis de
+  période** ; les avis d'agrément, eux, ne dépendent pas de la période. Rejouée à une date, la situation applique les
+  règles de cette date aux faits datés de cette date ou avant, tels qu'ils sont inscrits aujourd'hui.
+- **Le bilan de la conversion** (`app.conversion_informel`), mois par mois, **en provenance déclarée** : tonnes
+  détournées (livraisons du registre des acteurs, jour de Tunis), redevance ANGeD évitée au taux du jour de chaque
+  livraison (tonnes sans taux à part), voyages économisés au poids moyen d'un voyage pesé de circuit du même mois
+  (non renseigné sans pesée). Jamais additionné au tonnage pesé ; export Excel/CSV, l'hypothèse de la redevance et les
+  taux appliqués dans ses en-têtes.
+- **La vue de la FNCT** (`app.secteur_informel_national`, entrée *Secteur informel* de l'observatoire) : par
+  gouvernorat, « N communes sur M », acteurs, cartes valables, démarches en cours, formalisés, agréments valables —
+  **tout compte de 1 à 4 est masqué** (comparer deux colonnes peut au plus le borner) — puis les tonnes détournées des
+  **mois civils clos**, sommées sur les seuls mois où une commune a eu au moins 5 acteurs livreurs (les mois écartés
+  sont comptés) : rien ne s'y déduit par différence de deux dates. Elle ne se lit pas dans l'avenir, et une date
+  future n'y ferait jamais entrer le mois en cours. Le bilan d'une commune lu par la FNCT masque un mois de moins de 5 acteurs. Aucun rang, aucune ligne
+  par commune, ordre alphabétique de la langue affichée. Le masquage vaut pour ce que la vue nationale et le bilan
+  publient : la FNCT lit par ailleurs, commune par commune, la situation pseudonyme de chaque acteur, comme le
+  registre de 18.1.
+- API `/periode-transitoire` (8 routes) ; écran *Acteurs informels* : volet *Accompagnement* (et *Agrément* pour un
+  intermédiaire) dans chaque acteur, sections *La période transitoire* et *Le bilan de la conversion* — FR/AR, vérifié
+  sur téléphone. Avis de « À vérifier » rendus en arabe.
+
+### Vérifié
+- Campagne `periode-transitoire` : les refus d'abord (cadre éteint, étape sans démarche, antérieure, de demain, hors
+  liste du jour, en double, réécrite ; agrément d'un pré-collecteur, sans organisme, à l'échéance qui ne suit pas la
+  délivrance, de demain, réécrit ; écritures de la FNCT, d'un prestataire, d'une autre commune, **à la route et en
+  base** sous le rôle de l'application ; une date qui n'existe pas ; une commune inconnue ou retirée ; vue nationale
+  à un directeur) ; puis aucun état sans date de départ, la fin de période contre un témoin de dates, le rejeu à une
+  date, la liste du jour de l'étape et deux éléments du même code qui se chevauchent, « à régulariser » sans blocage,
+  l'étalonnage, les avis d'agrément FR/AR (bornes des 60 jours, durée de la délivrance et non d'aujourd'hui, acteur
+  requalifié), le bilan de la conversion recalculé par un témoin indépendant (`periode_transitoire_attendus.py`, un
+  barème qui change en cours de mois), la redevance ANGeD de la commune calculée sur le seul pesé, le masquage sous 5,
+  les tonnes nationales par mois clos (et jamais le mois en cours), la lecture en base sous le rôle de l'application
+  (l'autre directeur et le prestataire ne lisent rien ; RLS activée et forcée), et l'ordre alphabétique de toute la
+  liste. Trois mutants (taux du jour du calcul ; avis d'écart d'un acteur
+  requalifié ; tonnes nationales au jour demandé) : chacun attrapé, rétabli.
+- Relecture adversariale du lot avant fusion (cinq angles, chaque constat contre-vérifié sur la pile d'essai) :
+  43 constats confirmés, dont 42 corrigés ici ; le 43e, un défaut antérieur au lot, est laissé à un lot à part :
+  `GET /barbechas/{id}/deliveries` rend chaque livraison avec son montant à la FNCT et au prestataire. Une
+  contre-relecture des corrections a repris ce qu'elles laissaient en partie, et ce qu'elles introduisaient : une date
+  future dans la vue nationale, l'an 0000 et un caractère de contrôle (500 au lieu de 400 ou 404), le contrat qui
+  recopiait les schémas de requête au lieu de les reprendre, la liste d'étapes d'une autre date pendant son
+  chargement, les règles manquantes non nommées, le titre et les en-têtes de l'export.
+
 ## [0.15.84] — 2026-10-28 — La carte de pré-collecteur (lot I2, 18.2)
 
 `DECISIONS_2026-10-20.md`, compléments du 28/10/2026 : la carte de l'article 13.1 du projet de décret, sur les règles

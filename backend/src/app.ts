@@ -61,6 +61,7 @@ import { coutCompletRouter } from './routes/coutComplet.routes.js';
 import { acteursInformelsRouter } from './routes/acteursInformels.routes.js';
 import { reglesInformelRouter } from './routes/reglesInformel.routes.js';
 import { cartesPrecollecteurRouter } from './routes/cartesPrecollecteur.routes.js';
+import { periodeTransitoireRouter } from './routes/periodeTransitoire.routes.js';
 // La couche WaPla : app.ts monte ses routes, et c'est tout ce que SIIPI en connaît.
 import { waplaRouter } from './wapla/routes.js';
 import { courrielRouter } from './routes/courriel.routes.js';
@@ -274,6 +275,7 @@ export const ROUTEURS: Array<[string, Router]> = [
   ['/acteurs-informels', acteursInformelsRouter],
   ['/regles-informel', reglesInformelRouter],
   ['/cartes-precollecteur', cartesPrecollecteurRouter],
+  ['/periode-transitoire', periodeTransitoireRouter],
   // La couche WaPla, à part : elle lit SIIPI, SIIPI ne la lit jamais (SPEC_wapla § 2).
   ['/wapla', waplaRouter],
   // Le serveur de courriel : son état et un essai, pour la FNCT (v0.15.47).

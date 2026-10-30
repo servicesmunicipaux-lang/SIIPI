@@ -91,6 +91,14 @@ import {
   refusCarteSchema,
   retraitCarteSchema,
 } from '../routes/cartesPrecollecteur.routes.js';
+import {
+  jalonActeurSchema,
+  agrementSchema,
+  ETATS_TRANSITION,
+  situationQuery,
+  nationalQuery,
+  conversionQuery,
+} from '../routes/periodeTransitoire.routes.js';
 import { demandeRestaurationSchema, fichierDepotSchema } from '../routes/fichiers.routes.js';
 import { depotLogoSchema } from '../routes/logosCommunes.routes.js';
 import { elementSchema as elementBibliothequeSchema, qLignesSchema as qLignesBibliothequeSchema } from '../routes/bibliotheque.routes.js';
@@ -4044,6 +4052,268 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: retraitCarteSchema } } },
   },
   responses: { 200: json(DemandeCarte, 'Carte retirée.'), 409: json(Erreur, 'Pas de carte accordée, ou déjà retirée.'), ...REPONSES_COMMUNES },
+});
+
+// --- La période transitoire (lot I3, 18.3) ----------------------------------
+
+const DESCRIPTION_TRANSITION =
+  'Projet de décret, art. 13 (lot 18.3). Les règles (départ, durée, délai d’étalonnage, durée d’un agrément, étapes) sont les ' +
+  'paramètres nationaux datés du lot I1 ; sans date de départ, aucun acteur n’a d’état. SIIPI constate, il ne bloque rien, et ' +
+  'n’agrée personne. Écrire est l’acte du directeur de la commune, derrière l’interrupteur du cadre (409 s’il est éteint) ; la FNCT lit.';
+
+const PeriodeTransitoireDoc = z.object({
+  debut: z.string().nullable(),
+  duree_mois: z.number().int().nullable(),
+  fin: z.string().nullable().openapi({ description: 'Dernier jour de la période ; null sans départ ou sans durée.' }),
+  delai_etalonnage_mois: z.number().int().nullable(),
+  fin_etalonnage: z.string().nullable(),
+  provisoire: z.boolean().openapi({ description: 'Une règle repose sur le projet de décret.' }),
+  manque: z.array(z.string()).openapi({ description: 'Les paramètres sans valeur en vigueur à la date.' }),
+});
+
+const SituationActeur = registry.register(
+  'SituationActeur',
+  z.object({
+    acteur_id: z.string().uuid(),
+    id_precollecteur: z.string().openapi({ description: 'Le pseudonyme ; aucun nom.' }),
+    categorie: z.enum(['pre_collecteur', 'intermediaire']).nullable(),
+    derniere_demarche: z.string().nullable(),
+    date_derniere_demarche: z.string().nullable(),
+    jalons_franchis: z.number().int().openapi({ description: 'Étapes franchies parmi celles de la liste en vigueur à la date.' }),
+    jalons_en_vigueur: z.number().int(),
+    agrement_echeance: z.string().nullable().openapi({ description: 'Intermédiaire seulement.' }),
+    agrement_valable: z.boolean().nullable(),
+    etalonnage_enregistre: z.boolean().nullable(),
+    etat: z.enum(ETATS_TRANSITION),
+  })
+);
+
+const Accompagnement = registry.register(
+  'AccompagnementActeur',
+  z.object({
+    acteur: z.object({
+      id: z.string().uuid(),
+      id_precollecteur: z.string(),
+      categorie: z.enum(['pre_collecteur', 'intermediaire']).nullable(),
+    }),
+    jalons_possibles: z.array(z.object({ code: z.string(), libelle_fr: z.string(), libelle_ar: z.string() })).openapi({
+      description:
+        'La liste nationale des étapes en vigueur à la date demandée (aujourd’hui par défaut), un élément par code : une étape se juge sur la liste du jour où elle a été franchie.',
+    }),
+    jalons: z.array(
+      z.object({
+        id: z.string().uuid(),
+        jalon_code: z.string(),
+        libelle_fr: z.string().nullable(),
+        libelle_ar: z.string().nullable(),
+        date_jalon: z.string(),
+        reference: z.string().nullable(),
+        observation: z.string().nullable(),
+      })
+    ),
+    agrements: z.array(
+      z.object({
+        id: z.string().uuid(),
+        organisme: z.string(),
+        reference: z.string(),
+        date_delivrance: z.string(),
+        date_echeance: z.string().openapi({ description: 'Celle de la pièce, recopiée telle quelle.' }),
+        observation: z.string().nullable(),
+        duree_mois_en_vigueur: z.number().int().nullable(),
+        echeance_selon_duree: z
+          .string()
+          .nullable()
+          .openapi({ description: 'Ce que la durée nationale en vigueur à la délivrance donnerait ; montrée à côté, jamais à la place.' }),
+        ecart_duree: z
+          .boolean()
+          .nullable()
+          .openapi({ description: 'L’échéance de la pièce sort des bornes de la durée en vigueur à la délivrance (celles de « À vérifier ») ; null sans durée en vigueur.' }),
+      })
+    ),
+  })
+);
+
+const MoisConversion = registry.register(
+  'MoisConversionInformel',
+  z.object({
+    annee: z.number().int(),
+    mois: z.number().int(),
+    acteurs: z.number().int().nullable(),
+    livraisons: z.number().int().nullable(),
+    tonnes_detournees: z.number().nullable().openapi({ description: 'Déclarées ; jamais additionnées au tonnage pesé.' }),
+    tonnes_sans_taux: z.number().nullable(),
+    redevance_evitee_tnd: z
+      .number()
+      .nullable()
+      .openapi({ description: 'Au taux en vigueur le jour de chaque livraison ; hypothèse : ces tonnes seraient parties en décharge.' }),
+    taux_appliques: z.array(z.number()).nullable(),
+    redevance_provisoire: z.boolean(),
+    voyages_peses: z.number().int(),
+    poids_moyen_voyage_t: z
+      .number()
+      .nullable()
+      .openapi({ description: 'Voyages pesés de circuit, ordures ménagères, du même mois ; null sans pesée.' }),
+    voyages_economises: z.number().nullable(),
+    masque: z.boolean().openapi({ description: 'Lu par la FNCT, un mois de moins de 5 acteurs est masqué.' }),
+  })
+);
+
+registry.registerPath({
+  method: 'get',
+  path: '/periode-transitoire',
+  tags: ['Secteur informel'],
+  summary: 'Les règles de la période à une date, et l’état de chaque acteur de la commune',
+  description:
+    DESCRIPTION_TRANSITION +
+    ' Avec « date », la situation à ce jour-là : les règles en vigueur à cette date, et les faits datés de cette date ou avant, ' +
+    'tels qu’ils sont inscrits aujourd’hui — une démarche reportée après coup avec sa vraie date compte au jour où elle a eu lieu, ' +
+    'et un acteur inscrit après cette date y figure. « date » : AAAA-MM-JJ, du 01/01/2000 au 31/12/2100 ; une date inexistante est ' +
+    'refusée (400). Commune inconnue ou retirée : 404. La FNCT lit cette situation acteur par acteur (pseudonymes), sans masquage, ' +
+    'comme le registre du lot 18.1 : le masquage sous 5 acteurs vaut pour la vue nationale et le bilan de la conversion.',
+  security: SECURISE,
+  request: { query: situationQuery.extend({ communeId: paramCommuneId.optional() }) },
+  responses: {
+    200: json(
+      z.object({
+        communeId: z.string(),
+        jour: z.string(),
+        cadre_actif: z.boolean(),
+        periode: PeriodeTransitoireDoc,
+        etats: z.record(z.string(), z.number().int()).openapi({ description: 'Le nombre d’acteurs par état ; ni total, ni pourcentage.' }),
+        acteurs: z.array(SituationActeur),
+      }),
+      'La situation.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/periode-transitoire/conversion',
+  tags: ['Secteur informel'],
+  summary: 'Le bilan de la conversion, mois par mois (provenance déclarée)',
+  description:
+    'Tonnes détournées (livraisons du registre des acteurs), redevance ANGeD évitée, voyages économisés. Un mois sans livraison n’a pas de ligne. ' +
+    'Commune inconnue ou retirée : 404.',
+  security: SECURISE,
+  request: { query: conversionQuery.extend({ communeId: paramCommuneId.optional(), ...paramsExport }) },
+  responses: {
+    200: jsonOuExport(
+      z.object({ communeId: z.string(), annee: z.number().int(), provenance: z.literal('declaree'), mois: z.array(MoisConversion) }),
+      'Le bilan ; en fichier, le tableau des mois.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/periode-transitoire/national',
+  tags: ['Secteur informel'],
+  summary: 'La vue nationale, par gouvernorat (FNCT)',
+  description:
+    'Par gouvernorat, dans l’ordre alphabétique, « N communes sur M » : acteurs inscrits, cartes valables, démarches en cours, formalisés, ' +
+    'agréments valables — les acteurs du registre d’aujourd’hui (retirés exclus, catégorie d’aujourd’hui), leurs démarches, cartes ' +
+    'et agréments jugés au jour demandé ; tout compte de 1 à 4 est masqué (null, nommé dans « masques »). Puis les tonnes détournées ' +
+    '(déclarées) des mois civils clos de l’année du dernier mois clos, sommées sur les seuls mois où une commune a eu au moins 5 acteurs ' +
+    'livreurs ; les mois écartés sont comptés (mois_masques). « date » ne peut pas être dans l’avenir (400) : un mois clos l’est au jour ' +
+    'où l’on lit. Aucun rang, aucune ligne par commune.',
+  security: SECURISE,
+  request: { query: nationalQuery },
+  responses: {
+    200: json(
+      z.object({
+        jour: z.string(),
+        cadre_actif: z.boolean(),
+        gouvernorats: z.array(
+          z.object({
+            gouvernorat: z.string(),
+            gouvernorat_ar: z.string().nullable(),
+            communes_avec_acteurs: z.number().int(),
+            communes: z.number().int(),
+            acteurs: z.number().int().nullable(),
+            cartes_valables: z.number().int().nullable(),
+            demarches_en_cours: z.number().int().nullable(),
+            formalises: z.number().int().nullable(),
+            agrements_valables: z.number().int().nullable(),
+            tonnes_detournees: z.number().nullable().openapi({ description: 'null : aucune livraison, ou rien que des mois masqués.' }),
+            tonnes_du: z.string().openapi({ description: '1er janvier de l’année du dernier mois clos.' }),
+            tonnes_au: z.string().openapi({ description: 'Dernier jour du dernier mois clos.' }),
+            mois_masques: z.number().int().openapi({ description: 'Mois de commune écartés des tonnes : moins de 5 acteurs livreurs.' }),
+            masques: z.array(z.string()),
+          })
+        ),
+      }),
+      'La vue nationale.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/periode-transitoire/acteurs/{id}',
+  tags: ['Secteur informel'],
+  summary: 'L’accompagnement d’un acteur : étapes franchies, agréments',
+  description: DESCRIPTION_TRANSITION + ' Avec « date », les étapes proposées sont celles de la liste en vigueur à cette date.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }), query: situationQuery },
+  responses: { 200: json(Accompagnement, 'L’accompagnement.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/periode-transitoire/acteurs/{id}/jalons',
+  tags: ['Secteur informel'],
+  summary: 'Inscrire une étape d’accompagnement franchie : sa date, sa pièce',
+  description:
+    DESCRIPTION_TRANSITION +
+    ' L’étape doit figurer dans la liste nationale en vigueur à sa date (400), suivre une démarche entamée (409), et n’être inscrite qu’une fois (409).',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: jalonActeurSchema } } },
+  },
+  responses: { 201: json(Accompagnement, 'Étape inscrite.'), 409: json(Erreur, 'Refusée en l’état.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/periode-transitoire/acteurs/{id}/jalons/{jalonId}',
+  tags: ['Secteur informel'],
+  summary: 'Retirer une étape inscrite à tort',
+  description: 'Retrait logique ; une étape ne se réécrit pas.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid(), jalonId: z.string().uuid() }) },
+  responses: { 200: json(Accompagnement, 'Étape retirée.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/periode-transitoire/acteurs/{id}/agrements',
+  tags: ['Secteur informel'],
+  summary: 'Enregistrer l’agrément délivré à un intermédiaire, tel que l’organisme l’a délivré',
+  description:
+    DESCRIPTION_TRANSITION +
+    ' Pour un acteur déclaré intermédiaire seulement (409). L’échéance est celle de la pièce ; un écart avec la durée nationale en vigueur à la délivrance est signalé dans « À vérifier », jamais corrigé.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: agrementSchema } } },
+  },
+  responses: { 201: json(Accompagnement, 'Agrément enregistré.'), 409: json(Erreur, 'Refusé en l’état.'), ...REPONSES_COMMUNES },
+});
+
+registry.registerPath({
+  method: 'delete',
+  path: '/periode-transitoire/acteurs/{id}/agrements/{agrementId}',
+  tags: ['Secteur informel'],
+  summary: 'Retirer un agrément enregistré à tort',
+  description: 'Retrait logique ; un agrément enregistré ne se réécrit pas.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid(), agrementId: z.string().uuid() }) },
+  responses: { 200: json(Accompagnement, 'Agrément retiré.'), ...REPONSES_COMMUNES },
 });
 
 // --- Les règles du secteur informel (lot I1) --------------------------------
@@ -8777,7 +9047,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.84',
+      version: '0.15.85',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

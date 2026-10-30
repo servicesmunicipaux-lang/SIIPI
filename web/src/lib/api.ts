@@ -263,6 +263,12 @@ export type DemandeCarte = CartesPrecollecteur['demandes'][number];
 export type DemarcheFormalisation = Reponse<'/acteurs-informels/{id}/demarches', 'get'>[number];
 export type CadreSecteurInformel = Reponse<'/observatoire/cadre-secteur-informel', 'get'>;
 export type ReglesInformel = Reponse<'/regles-informel', 'get'>;
+// --- Lot I3 : la période transitoire du secteur informel ---
+export type PeriodeTransitoire = Reponse<'/periode-transitoire', 'get'>;
+export type SituationActeur = PeriodeTransitoire['acteurs'][number];
+export type AccompagnementActeur = Reponse<'/periode-transitoire/acteurs/{id}', 'get'>;
+export type ConversionInformel = Reponse<'/periode-transitoire/conversion', 'get'>;
+export type SecteurInformelNational = Reponse<'/periode-transitoire/national', 'get'>;
 export type ElementListeNationale = ReglesInformel['listes'][number]['elements'][number];
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
@@ -1291,6 +1297,23 @@ export const api = {
     requete<DemandeCarte>(`/cartes-precollecteur/demandes/${id}/refus`, { method: 'POST', body: JSON.stringify(saisie) }),
   retirerCarte: (id: string, saisie: Corps<'/cartes-precollecteur/demandes/{id}/retrait', 'post'>) =>
     requete<DemandeCarte>(`/cartes-precollecteur/demandes/${id}/retrait`, { method: 'POST', body: JSON.stringify(saisie) }),
+  // --- Lot I3 : la période transitoire (écriture : directeur de la commune) --
+  periodeTransitoire: (communeId: string) =>
+    requete<PeriodeTransitoire>(`/periode-transitoire?communeId=${encodeURIComponent(communeId)}`),
+  conversionInformel: (communeId: string, annee: number) =>
+    requete<ConversionInformel>(`/periode-transitoire/conversion?communeId=${encodeURIComponent(communeId)}&annee=${annee}`),
+  secteurInformelNational: () => requete<SecteurInformelNational>('/periode-transitoire/national'),
+  // Avec une date, les étapes proposées sont celles de la liste en vigueur ce jour-là.
+  accompagnementActeur: (id: string, date?: string) =>
+    requete<AccompagnementActeur>(`/periode-transitoire/acteurs/${id}${date ? `?date=${date}` : ''}`),
+  inscrireJalon: (id: string, saisie: Corps<'/periode-transitoire/acteurs/{id}/jalons', 'post'>) =>
+    requete<AccompagnementActeur>(`/periode-transitoire/acteurs/${id}/jalons`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerJalon: (id: string, jalonId: string) =>
+    requete<AccompagnementActeur>(`/periode-transitoire/acteurs/${id}/jalons/${jalonId}`, { method: 'DELETE' }),
+  enregistrerAgrement: (id: string, saisie: Corps<'/periode-transitoire/acteurs/{id}/agrements', 'post'>) =>
+    requete<AccompagnementActeur>(`/periode-transitoire/acteurs/${id}/agrements`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerAgrement: (id: string, agrementId: string) =>
+    requete<AccompagnementActeur>(`/periode-transitoire/acteurs/${id}/agrements/${agrementId}`, { method: 'DELETE' }),
   cadreSecteurInformel: () => requete<CadreSecteurInformel>('/observatoire/cadre-secteur-informel'),
   // D-FNCT-3 : les corrections du référentiel des communes, avec leur source.
   correctionsReferentiel: () => requete<CorrectionReferentiel[]>('/observatoire/corrections-referentiel'),

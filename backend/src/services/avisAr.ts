@@ -92,6 +92,35 @@ export const MODELES: Modele[] = [
   // Les cartes de pré-collecteur (lot I2).
   { fr: 'La carte %s expire le %s.', ar: 'تنتهي صلوحية البطاقة {0} بتاريخ {1}.' },
   { fr: "Si l'acteur poursuit son activité, enregistrer sa demande de renouvellement.", ar: 'إذا واصل الفاعل نشاطه، يُسجَّل مطلب تجديد بطاقته.' },
+  // La période transitoire (lot I3) : agréments, fin de période, étalonnage.
+  { fr: "L'agrément %s expire le %s.", ar: 'تنتهي صلوحية الترخيص {0} بتاريخ {1}.' },
+  {
+    fr: "Si l'acteur poursuit son activité d'intermédiaire, enregistrer le renouvellement de son agrément dès que l'organisme l'a délivré.",
+    ar: 'إذا واصل الفاعل نشاطه كوسيط، يُسجَّل تجديد ترخيصه حال تسليمه من الهيكل المختص.',
+  },
+  { fr: "L'agrément %s a expiré le %s.", ar: 'انتهت صلوحية الترخيص {0} بتاريخ {1}.' },
+  {
+    fr: "Enregistrer le renouvellement de l'agrément s'il a été délivré. SIIPI n'agrée pas : il constate l'échéance.",
+    ar: 'تسجيل تجديد الترخيص إن تمّ تسليمه. لا تمنح المنظومة أيّ ترخيص، بل تعاين أجله.',
+  },
+  {
+    fr: "L'agrément %s court jusqu'au %s ; la durée en vigueur à sa délivrance (%s mois) mène au %s.",
+    ar: 'يسري الترخيص {0} إلى غاية {1}؛ والمدة المعمول بها عند تسليمه ({2} شهرًا) تنتهي في {3}.',
+  },
+  { fr: "Vérifier la date d'échéance portée par l'agrément. SIIPI ne la corrige pas.", ar: 'التثبّت من تاريخ الأجل المضمَّن في الترخيص. لا تصحّحه المنظومة.' },
+  {
+    fr: "La période transitoire a pris fin le %s ; la démarche de cet acteur n'est pas formalisée.",
+    ar: 'انتهت الفترة الانتقالية بتاريخ {0}؛ ولم يُستكمل مسار هيكلة هذا الفاعل.',
+  },
+  {
+    fr: "Régulariser la situation de l'acteur avec lui, ou inscrire l'aboutissement de sa démarche. SIIPI ne bloque rien : il constate.",
+    ar: 'تسوية وضعية الفاعل معه، أو تسجيل استكمال مساره. لا تمنع المنظومة شيئًا، بل تعاين.',
+  },
+  {
+    fr: "L'échéance d'étalonnage des instruments de pesée (%s) est passée ; aucun étalonnage n'est enregistré.",
+    ar: 'انقضى أجل معايرة أدوات الوزن ({0})؛ ولم تُسجَّل أيّ معايرة.',
+  },
+  { fr: "Inscrire l'étalonnage dans l'accompagnement de l'acteur s'il a eu lieu.", ar: 'تسجيل المعايرة ضمن مرافقة الفاعل إن تمّت.' },
   { fr: "Déclaré pré-collecteur, mais achète à d'autres pré-collecteurs : relève de la catégorie intermédiaire.", ar: 'مصرَّح به كمجمّع أولي، لكنه يشتري من مجمّعين أوليين آخرين: يندرج ضمن فئة الوسطاء.' },
   { fr: "Déclaré pré-collecteur, mais dispose d'un local de stockage : relève de la catégorie intermédiaire.", ar: 'مصرَّح به كمجمّع أولي، لكنه يملك محلاًّ للخزن: يندرج ضمن فئة الوسطاء.' },
   { fr: "Vérifier les faits relevés, ou la catégorie déclarée. SIIPI ne change pas la catégorie : il signale l'écart.", ar: 'التثبّت من الوقائع المسجَّلة أو من الفئة المصرَّح بها. لا تغيّر المنظومة الفئة، بل تشير إلى الفارق.' },
