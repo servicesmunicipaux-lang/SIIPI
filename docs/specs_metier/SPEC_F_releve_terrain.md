@@ -1,7 +1,7 @@
 # SIIPI — Jalon F : le relevé de terrain
 ## L'application de collecte de l'agent, synchronisée à SIIPI
 
-**FNCT · 2 novembre 2026 · ouvert par Nacer le 28/10/2026 · statut : spécification v1, quatre décisions à signer, rien n'est codé**
+**FNCT · 2 novembre 2026 · ouvert par Nacer le 28/10/2026 · statut : spécification v1, quatre décisions signées le 02/11/2026 (§ 2), rien n'est codé**
 
 L'analyse fonctionnelle de l'existant (niveaux 1 et 2, registre des licences) est dans
 `sources/terrain/ANALYSE_EXISTANT.md`. Ce document s'appuie dessus et sur une lecture du dépôt
@@ -105,8 +105,9 @@ avant même la première ligne du jalon F.
 
 ## 2. Les quatre décisions
 
-Chacune a été instruite (options, coûts, risques, contre-argument) ; les instructions complètes sont
-résumées ici. **Une recommandation n'est pas une décision** : rien ne se code avant la signature.
+Chacune a été instruite (options, coûts, risques, contre-argument) ; les instructions sont résumées
+ici. **Les quatre sont signées par Nacer le 02/11/2026.** F-1, F-3 et F-4 suivent la recommandation ;
+F-2 retient le chef d'équipe nommé (option D) plutôt que l'appareil d'engin (option C).
 
 ### Décision F-1 — La forme
 
@@ -126,7 +127,7 @@ la PWA, avec une entrée et un manifeste propres au terrain.
 l'application de l'agent. Elle dit « attendre » pour l'espace citoyen et « pas d'application native
 par commune ». F-1 se tranche donc avec le Jalon 9, comme la feuille de route le demande.
 
-> **Phrase à signer.** *Décidé le … :* l'application de terrain est une PWA, installée sans magasin,
+> **Décidé le 02/11/2026 (Nacer) :** l'application de terrain est une PWA, installée sans magasin,
 > avec une entrée distincte de l'espace citoyen. **La trace d'un véhicule ne vient jamais du
 > navigateur** : pendant la transition, elle vient du fichier d'une application tierce admise,
 > importé, daté et rattaché à un engin et à un circuit, sans jamais remplacer l'itinéraire prévu ; à
@@ -153,8 +154,8 @@ Constats préalables :
 | **C. Un appareil enrôlé, rattaché à un engin, sans compte de personne** | Identité machine, comme le boîtier 17.4 ; refusée par défaut par les 270 politiques ; formation quasi nulle ; révocable appareil par appareil | Une table d'appareils, un jeton d'appareil relu à chaque requête, des fonctions d'écriture étroites ; **un téléphone de service par engin** ; aucune vue ne doit joindre engin × heure × `carnets_de_bord.chauffeur_id` |
 | D. Un chef d'équipe nommé qui propose, le directeur qui valide | Une pièce attribuable à un responsable ; tient la règle du balayage saisi par le chef d'équipe (`SPEC_v0.16.md:25-27`) | Un 5ᵉ rôle (moins de comptes) ; une proposition non validée n'alimente rien |
 
-**Recommandation : C pour les faits du jour d'un engin, D seulement si le balayage entre au
-périmètre, A interdite.** L'appareil écrit trace, début et fin de collecte, passage au centre,
+**Recommandation de l'instruction : C pour les faits du jour d'un engin, D seulement si le balayage
+entre au périmètre, A interdite. Décision : D.** L'appareil écrit trace, début et fin de collecte, passage au centre,
 carnet, plein sans bon et, en régie, la déclaration de passage. Il **propose** les points d'un
 circuit, que la commune adopte. Il n'écrit **ni le constat de la commune** (sinon la commune se
 contrôlerait elle-même), **ni un bon de carburant scellé** (un rejeu émettrait un second numéro,
@@ -166,12 +167,32 @@ est une trace qui rentre à la maison. Dans ce cas, D sans aucune trace est plus
 la feuille de route (« l'agent est un rôle de la commune, pas un profil de suivi ») va dans le sens
 de B ou D : **c'est à la FNCT de trancher.**
 
-> **Phrase à signer.** *Décidé le … :* SIIPI n'ouvre pas de compte « agent de terrain » et ne remet
-> jamais le compte d'un directeur sur un téléphone de terrain. Les faits du jour d'un engin sont
-> écrits par un appareil de service enrôlé par le directeur, rattaché à l'engin, révocable un par un,
-> sans compte nominatif. Il propose les points sans les inscrire, n'écrit ni le constat de la commune
-> ni un bon scellé, et ne remplit jamais `agent_nom`. Un rôle « chef d'équipe », en proposition seule
-> et sans trace, n'est ouvert que si le balayage entre au périmètre.
+> **Décidé le 02/11/2026 (Nacer) :** SIIPI ouvre un rôle nominatif **`chef_equipe`**, un compte par
+> chef d'équipe (pas un compte par agent), créé par le directeur de sa commune. Ce rôle **propose
+> seulement** : ce qu'il saisit attend l'adoption de la commune, et n'alimente aucun indicateur avant
+> elle. Il ne porte **aucune trace** : la trace d'un engin vient de l'application tierce admise ou du
+> boîtier 17.4 (F-1). Il ne lit ni le personnel nominatif, ni les documents, ni les comptes, ni
+> l'informel, ni la configuration GPS ; il n'émet aucun document scellé. Le compte d'un directeur ne va
+> jamais sur un téléphone de terrain. `agent_nom` n'est jamais rempli par l'application. Aucun agrégat,
+> aucune liste ni aucun export par chef d'équipe n'est produit (ligne rouge 2 : l'évaluation est
+> collective). L'écart à la matrice à quatre rôles du CDC est motivé par cette décision.
+
+**Ce que la décision emporte.**
+- **Le coût du 5ᵉ rôle**, assumé : la contrainte `users_role_check` (`010:35-40`), `UserRole`
+  (`middleware/auth.ts:7`), `ROLES_COMMUNAUX` et l'énumération des comptes (`comptes.routes.ts:103`) ;
+  des politiques **INSERT seulement** sur les tables de proposition, sur le modèle de
+  `points_suggeres_insert` (`042:154-164`) ; la relecture des politiques qui emploient
+  `is_authenticated` et des prédicats négatifs (`093:116`, `093:199`), pour que le nouveau rôle n'y
+  lise rien ; une campagne qui commence par les refus.
+- **La révocation relue à chaque requête** : un compte de chef d'équipe vit sur un téléphone de
+  terrain, qui se perd. `is_active` ne se lit aujourd'hui qu'à la connexion (`auth.routes.ts:66`) ; le
+  lot F1 le relit à chaque requête, pour tous les rôles.
+- **Le journal d'audit ne devient pas un GPS nominatif** : la position et l'heure des éléments
+  proposés ne sont pas journalisées ligne à ligne ; l'adoption, geste du directeur, l'est.
+- **Un courriel par compte** (`002_users.sql:6`) : un par chef d'équipe, pas par agent.
+- **Restent ouverts** : la déclaration de passage en régie (le chef d'équipe, côté exécution, la
+  propose-t-il ?) et le constat du jour (le chef d'équipe est du côté de l'exécution, le constat est le
+  contrôle de la commune : qui le saisit ?) — à trancher avec F2, devant le chef de dépôt.
 
 ### Décision F-3 — Le premier périmètre
 
@@ -193,12 +214,13 @@ reçoivent leurs points par l'import existant sans difficulté mais que les cons
 vides, F2 passe avant F1. **C'est au chef de dépôt, devant `recette:etat` et le compteur « attendus /
 saisis » de l'accueil, de confirmer l'ordre.**
 
-> **Phrase à signer.** *Décidé le … :* le premier lot du jalon F est le **relevé de circuit** :
+> **Décidé le 02/11/2026 (Nacer) :** le premier lot du jalon F est le **relevé de circuit** :
 > points à type fermé, photo, précision et heure observée datée en heure de Tunis, repères début,
 > fin, centre de transfert et parc posés comme types de points, hors ligne, chaque relevé arrivant
-> une seule fois comme une proposition que la commune adopte. Il s'utilise sous les comptes existants,
-> par leurs titulaires, sur leur appareil. Suivront F2 (constat), F3 (carnet et pleins simples), F4
-> (trace), chacun sous sa condition. L'ordre F1/F2 est confirmé par le chef de dépôt.
+> une seule fois comme une proposition que la commune adopte. Il est fait par un chef d'équipe
+> (F-2), ou par le directeur ou l'équipe FNCT de démarrage sur leur propre appareil. Suivront F2
+> (constat), F3 (carnet et pleins simples), F4 (trace), chacun sous sa condition. L'ordre F1/F2 est
+> confirmé par le chef de dépôt.
 
 ### Décision F-4 — Le hors-ligne
 
@@ -212,7 +234,7 @@ saisis » de l'accueil, de confirmer l'ordre.**
 **Recommandation : B**, avec en secours l'**export du journal** au même format, réimportable par une
 route qui reprend la même clé d'envoi (le meilleur de D, sans ses défauts).
 
-> **Phrase à signer.** *Décidé le … :* le relevé de terrain fonctionne hors ligne en **ajout
+> **Décidé le 02/11/2026 (Nacer) :** le relevé de terrain fonctionne hors ligne en **ajout
 > seulement**. L'appareil garde les circuits de la commune, figés et datés, sans nom d'agent, la
 > nomenclature et les tuiles déjà vues. Chaque élément porte un identifiant créé sur l'appareil et
 > son horodatage avec décalage. Le serveur tient un journal des envois : un envoi rejoué ne crée
@@ -222,11 +244,13 @@ route qui reprend la même clé d'envoi (le meilleur de D, sans ses défauts).
 
 ---
 
-## 3. Ce que fait F1 si les quatre recommandations sont signées
+## 3. Ce que fait F1
 
 ### 3.1 Le relevé, objet daté qui attend son adoption
 
-- Un **relevé** porte : commune, circuit, date d'observation, engin facultatif, compte qui l'a fait,
+- Un **relevé** est fait par un **chef d'équipe** (rôle `chef_equipe`, F-2), par le directeur ou par
+  l'équipe FNCT de démarrage. Il porte : commune, circuit, date d'observation, engin facultatif, compte
+  qui l'a fait (lu par la commune pour adopter, jamais agrégé),
   identifiant tiré par l'appareil (unique en base), état (`recu`, `adopte`, `ecarte` avec motif,
   `non_rattache` avec motif). **Aucun nom d'agent.**
 - Ses **points** vivent dans une table d'attente, pas dans `points_collecte` : une ligne non adoptée
@@ -297,6 +321,8 @@ route qui reprend la même clé d'envoi (le meilleur de D, sans ses défauts).
 
 ### 3.6 Données personnelles
 
+- Le chef d'équipe est la seule personne nommée du jalon, et seulement comme auteur d'une
+  proposition : aucun compte, aucune liste ni aucun export par chef d'équipe.
 - Aucun nom d'agent n'est saisi, chargé ou envoyé. Un nom libre d'arrêt peut porter un nom tapé par
   erreur (constaté à Djerba) : la saisie propose le type, l'observation reste libre mais bornée.
 - La position et l'heure des points relevés ne sont pas journalisées ligne à ligne au journal d'audit ;
@@ -336,10 +362,10 @@ produit **aucun** point (`kml.ts:493`), et un point sans type est accepté par l
 | Lot | Contenu | Condition |
 |---|---|---|
 | **F0** | Réécriture du service worker (E1, E2) : version liée au build ; `/api/*` jamais servi depuis le cache, sauf la liste blanche citoyenne en réseau d'abord ; `reponse.ok` contrôlé ; purge des caches à la déconnexion ; une campagne qui charge le **vrai** `sw.js` (aujourd'hui remplacé par un factice dans `proxy-https.sh:49`). Et la correction de E3 : l'import ne supprime plus que des points `import_kml` | **Aucune** : ne dépend d'aucune décision, et touche l'espace citoyen et le portail dès la première instance de production |
-| **F1** | Le relevé de circuit (§ 3) | F-1, F-3, F-4 signées ; F-2 seulement pour dire « comptes existants, sur l'appareil de leur titulaire » |
+| **F1** | Le rôle `chef_equipe` en proposition seule (création par le directeur, politiques INSERT seulement, campagne des refus), la révocation relue à chaque requête, et le relevé de circuit (§ 3) | Décisions signées le 02/11/2026 ; F0 livré |
 | **F1b** | La trace importée datée, rattachée à un engin et à un circuit, à part de l'itinéraire prévu (E4) ; le producteur du fichier lu et gardé (E5) ; la liste des applications tierces admises | F-1 signée sous la forme B |
 | **F2** | Le constat du jour hors ligne ; une double saisie gardée et montrée, au lieu de l'écrasement | F-2 et F-4 ; ordre confirmé par le chef de dépôt |
-| **F3** | Carnet de bord et pleins simples par l'appareil d'engin ; jamais un bon scellé hors ligne | F-2 sous forme C ; avis juridique (loi 2004-63) |
+| **F3** | Carnet de bord et pleins simples, proposés par le chef d'équipe et adoptés par la commune ; jamais un bon scellé hors ligne | Ordre confirmé par le chef de dépôt |
 | **F4** | La trace par l'application, les événements datés | Seulement si la recette montre que 17.4 et l'application tierce ne suffisent ; rouvre F-1 |
 
 ---
@@ -348,8 +374,8 @@ produit **aucun** point (`kml.ts:493`), et un point sans type est accepté par l
 
 | Qui | Question |
 |---|---|
-| **Nacer / FNCT** | Les quatre décisions ; un rôle nominatif ou une identité d'appareil, face au texte de la feuille de route ; le seuil de réouverture de F-1 ; la liste des applications tierces admises pour la trace |
-| **Chef de dépôt** | Les engins ont-ils un téléphone de service ? Y a-t-il du réseau au dépôt ? Ordre F1 / F2. Les états d'un point (« cassé », « vide »). Le sort de `autre` à la saisie |
+| **Nacer / FNCT** | Le seuil de réouverture de F-1 ; la liste des applications tierces admises pour la trace (les quatre décisions sont signées le 02/11/2026) |
+| **Chef de dépôt** | Combien de chefs d'équipe, et ont-ils un téléphone (de service ou personnel) ? Y a-t-il du réseau au dépôt ? Ordre F1 / F2. Qui saisit le constat du jour et la déclaration de passage en régie. Les états d'un point (« cassé », « vide »). Le sort de `autre` à la saisie |
 | **Prestataire réel** | Qui déclare le passage chez lui ; ses engins sont-ils dans `vehicules` de la commune |
 | **Juriste de la FNCT** | Déclaration INPDP pour la trace d'engins conduits par des agents identifiables (loi 2004-63), et information des agents |
 | **DSI** | Le parc de téléphones (Android, iOS ; de service ou personnels) ; un MDM ; des tuiles hébergées par la FNCT pour le hors-ligne ; la durée de garde des éléments non envoyés |
@@ -359,8 +385,5 @@ produit **aucun** point (`kml.ts:493`), et un point sans type est accepté par l
 ## 7. Hors du jalon F, signalé
 
 - **E6**, la route de position des engins (`trucks.routes.ts:418-458`) : lot à part.
-- **`is_active` relu seulement à la connexion** : un compte désactivé garde l'accès jusqu'à
-  l'expiration de son jeton (8 h). Indépendant du jalon F, mais la décision F-2 sous forme C
-  demandera de relire la révocation à chaque requête ; la même relecture vaudrait pour les comptes.
 - **`agent_nom`** (`020:170-174`), prévu « tant que les chauffeurs n'ont pas de compte », n'est envoyé
   par aucun écran : son retrait par une migration nouvelle est à décider.
