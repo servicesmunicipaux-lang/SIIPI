@@ -143,6 +143,13 @@ async function loadTicketOrThrow(id: string): Promise<TicketRow> {
 
 const CLOSED_STATUSES = new Set(['resolu', 'rejete']);
 
+// Le statut lu au chargement peut avoir changé avant l'écriture (deux requêtes,
+// deux transactions) : chaque écriture redit la condition, et une écriture qui
+// ne touche aucune ligne est un conflit, jamais un succès muet — sinon un
+// traitement chargé avant un refus réécrirait « résolu » par-dessus la décision
+// de la commune, et le citoyen serait notifié d'une acceptation qui n'a pas eu
+// lieu.
+
 // PATCH /tickets/:id/accept — l'Admin Commune prend en charge une réclamation reçue.
 ticketsRouter.patch(
   '/:id/accept',
@@ -154,9 +161,10 @@ ticketsRouter.patch(
       throw new ApiError(400, `Ce ticket ne peut pas être accepté (statut actuel : "${ticket.status}").`);
     }
     const updated = await queryOne(
-      `UPDATE tickets SET status = 'en_cours', accepted_at = now() WHERE id = $1 RETURNING *`,
+      `UPDATE tickets SET status = 'en_cours', accepted_at = now() WHERE id = $1 AND status = 'recu' RETURNING *`,
       [req.params.id]
     );
+    if (!updated) throw new ApiError(409, 'Cette réclamation a changé entre-temps (décision ou retrait) : rechargez-la avant de recommencer.');
 
     // B5.1.2 : le citoyen apprend la décision. Un échec d'envoi ne défait pas
     // l'acceptation déjà actée — même précédent que l'ouverture de la photo
@@ -189,9 +197,11 @@ ticketsRouter.patch(
       throw new ApiError(400, `Ce ticket est déjà clôturé (statut actuel : "${ticket.status}").`);
     }
     const updated = await queryOne(
-      `UPDATE tickets SET status = 'rejete', rejection_reason = $1 WHERE id = $2 RETURNING *`,
+      `UPDATE tickets SET status = 'rejete', rejection_reason = $1
+        WHERE id = $2 AND status NOT IN ('resolu', 'rejete') RETURNING *`,
       [data.reason, req.params.id]
     );
+    if (!updated) throw new ApiError(409, 'Cette réclamation a changé entre-temps (décision ou retrait) : rechargez-la avant de recommencer.');
 
     // B5.1.2 : le motif fait partie du message, un refus muet ne se justifie
     // pas plus ici que pour une proposition de point citoyen.
@@ -242,10 +252,11 @@ ticketsRouter.patch(
               assigned_prestataire_id = $1,
               assigned_team = $2,
               accepted_at = COALESCE(accepted_at, now())
-        WHERE id = $3
+        WHERE id = $3 AND status NOT IN ('resolu', 'rejete')
         RETURNING *`,
       [prestataire.id, prestataire.full_name, req.params.id]
     );
+    if (!updated) throw new ApiError(409, 'Cette réclamation a changé entre-temps (décision ou retrait) : rechargez-la avant de recommencer.');
     res.json(updated);
   })
 );
@@ -287,10 +298,11 @@ ticketsRouter.patch(
           SET status = $1,
               resolved_photo_url = COALESCE($2, resolved_photo_url),
               resolved_at = COALESCE($3, resolved_at)
-        WHERE id = $4
+        WHERE id = $4 AND status NOT IN ('resolu', 'rejete')
         RETURNING *`,
       [data.status, data.resolvedPhotoUrl ?? null, resolvedAt, req.params.id]
     );
+    if (!updated) throw new ApiError(409, 'Cette réclamation a changé entre-temps (décision ou retrait) : rechargez-la avant de recommencer.');
 
     // LA PREUVE DE TRAITEMENT DOIT ÊTRE VISIBLE PAR CELUI QUI A SIGNALÉ.
     //

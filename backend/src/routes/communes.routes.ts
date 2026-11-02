@@ -180,23 +180,15 @@ communesRouter.get(
   requireRole('admin_commune', 'super_admin_fnct'),
   requireCommuneAccess((req) => req.params.id),
   asyncHandler(async (req, res) => {
+    // Un prestataire peut travailler pour plusieurs communes sans avoir
+    // aucune d'elles pour commune principale : le rattachement fait foi
+    // (migration 022), pas la colonne users.commune_id, qui n'en retient
+    // qu'une. La liste vient de la base (095) : la requête qu'on écrivait ici
+    // passait par la RLS de users, qui cache au directeur un compte d'une
+    // autre commune principale — le prestataire rattaché en second n'y
+    // figurait donc jamais —, et bornait le contrat par la date du serveur.
     const rows = await query(
-      // Un prestataire peut travailler pour plusieurs communes sans avoir
-      // aucune d'elles pour commune principale : le rattachement fait foi
-      // (migration 022), pas la colonne users.commune_id, qui n'en retient
-      // qu'une. Sans l'union, une commune ne pouvait pas confier un circuit à
-      // un prestataire rattaché chez elle en second.
-      `SELECT DISTINCT u.id, u.full_name, u.email
-         FROM users u
-         LEFT JOIN utilisateur_communes uc
-                ON uc.user_id = u.id
-               AND uc.actif
-               AND (uc.date_debut IS NULL OR uc.date_debut <= CURRENT_DATE)
-               AND (uc.date_fin   IS NULL OR uc.date_fin   >= CURRENT_DATE)
-        WHERE u.role = 'gestionnaire_prestataire'
-          AND u.deleted_at IS NULL
-          AND (u.commune_id = $1 OR uc.commune_id = $1)
-        ORDER BY u.full_name`,
+      'SELECT id, full_name, email FROM app.prestataires_de_commune($1) ORDER BY full_name',
       [req.params.id]
     );
     res.json(rows);

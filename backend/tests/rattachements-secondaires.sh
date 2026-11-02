@@ -59,6 +59,11 @@ appel() { # méthode chemin jeton [corps] — code HTTP, corps dans $T/r.json
 }
 champ() { python3 -c "import json;print(json.load(open('$T/r.json')).get('$1',''))" 2>/dev/null; }
 statut() { sql "SELECT status FROM tickets WHERE id = '$1'"; }
+# La liste que la commune A propose pour une affectation : présent, absent.
+dans_la_liste() { # utilisateur — « oui » s'il figure dans GET /communes/A/prestataires
+  appel GET "/communes/$A/prestataires" "$T_A" >/dev/null
+  python3 -c "import json;print('oui' if any(p.get('id')=='$1' for p in json.load(open('$T/r.json'))) else 'non')" 2>/dev/null
+}
 rattacher() { # utilisateur commune [date_debut] [date_fin]
   $PSQL -c "DELETE FROM utilisateur_communes WHERE user_id = '$1' AND commune_id = '$2';
             INSERT INTO utilisateur_communes (user_id, commune_id, contrat_reference, date_debut, date_fin)
@@ -86,11 +91,11 @@ compte_temporaire admin_commune "$B" "Directeur B"; T_D=$(tok "$COMPTE_EMAIL" "$
 compte_temporaire gestionnaire_prestataire "$B" "Prestataire sous contrat"; T_P=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); PRE=$COMPTE_ID
 compte_temporaire gestionnaire_prestataire "$A" "Prestataire de A"; PRE_A=$COMPTE_ID
 [ -n "$T_A" ] && [ -n "$T_D" ] && [ -n "$T_P" ] || { echo "API injoignable sur $API, ou comptes non connectés." >&2; exit 1; }
-K1=$(ticket 1); K2=$(ticket 2); K3=$(ticket 3); K4=$(ticket 4)
+K1=$(ticket 1); K2=$(ticket 2); K3=$(ticket 3); K4=$(ticket 4); K5=$(ticket 5); K6=$(ticket 6)
 $PSQL -c "INSERT INTO zones_collecte (commune_id, name, geom) VALUES
             ('$A', 'TEST secteur des rattachements', ST_Multi(ST_MakeEnvelope(10.0, 36.0, 10.01, 36.01, 4326)));" >/dev/null
 Z=$(sql "SELECT id FROM zones_collecte WHERE commune_id = '$A'")
-[ -n "$K1" ] && [ -n "$K4" ] && [ -n "$Z" ] || { echo "Impossible de poser les réclamations ou le secteur de test." >&2; exit 1; }
+[ -n "$K1" ] && [ -n "$K6" ] && [ -n "$Z" ] || { echo "Impossible de poser les réclamations ou le secteur de test." >&2; exit 1; }
 HIER="(app.jour_tunis() - 1)"; AUJOURDHUI="app.jour_tunis()"; DEMAIN="(app.jour_tunis() + 1)"
 
 echo "1. Hors du périmètre : introuvable, jamais « refusé »"
@@ -108,6 +113,8 @@ chk "… et la réclamation n'a pas bougé" recu "$(statut "$K1")"
 
 echo
 echo "2. Ce qu'on ne peut pas affecter"
+chk "la liste des prestataires de A propose celui dont A est la commune principale, pas celui sans contrat" "oui|non" \
+    "$(dans_la_liste "$PRE_A")|$(dans_la_liste "$PRE")"
 chk "un prestataire sans contrat avec A : ni à une réclamation, ni à un secteur (400)" "400|400" \
     "$(appel PATCH "/tickets/$K3/assign" "$T_A" "{\"prestataireUserId\":\"$PRE\"}")|$(appel PATCH "/zones/$Z" "$T_A" "{\"assignedPrestataireId\":\"$PRE\"}")"
 chk "… le message dit ce qui est attendu" 1 "$(grep -c 'contrat en cours' "$T/r.json")"
@@ -142,6 +149,21 @@ rattacher "$DIR" "$A" NULL "$HIER"
 chk "un rattachement échu hier à Tunis ne donne rien, sous UTC−12 comme sous UTC+14" "false|false" "$(communes_vues 'Etc/GMT+12')|$(communes_vues 'Etc/GMT-14')"
 rattacher "$DIR" "$A" "$AUJOURDHUI" "$AUJOURDHUI"
 chk "un rattachement d'aujourd'hui seulement, à Tunis, donne A, sous UTC−12 comme sous UTC+14" "true|true" "$(communes_vues 'Etc/GMT+12')|$(communes_vues 'Etc/GMT-14')"
+rattacher "$DIR" "$A" "$DEMAIN"
+chk "un rattachement qui commence demain à Tunis ne donne rien, sous UTC−12 comme sous UTC+14" "false|false" "$(communes_vues 'Etc/GMT+12')|$(communes_vues 'Etc/GMT-14')"
+contrat_vu() { # fuseau — le prestataire est-il rendu au directeur de A par app.prestataire_de_commune ?
+  $PSQL -c "BEGIN; SET LOCAL TIME ZONE '$1';
+            SELECT set_config('app.role', 'admin_commune', true), set_config('app.commune_id', '$A', true), set_config('app.user_id', '$DIR_A', true);
+            SET LOCAL ROLE siipi_app; SELECT 'lignes:' || count(*) FROM app.prestataire_de_commune('$PRE', '$A'); ROLLBACK;" 2>&1 | grep -oE '^lignes:[0-9]+' | cut -d: -f2
+}
+contrats_sous_les_fuseaux() { echo "$(contrat_vu 'Etc/GMT+12')|$(contrat_vu 'Etc/GMT-14')"; }
+rattacher "$PRE" "$A" NULL "$HIER"
+chk "un contrat échu hier à Tunis : le prestataire n'est pas rendu, sous UTC−12 comme sous UTC+14" "0|0" "$(contrats_sous_les_fuseaux)"
+rattacher "$PRE" "$A" "$DEMAIN"
+chk "un contrat qui commence demain à Tunis : pas rendu non plus" "0|0" "$(contrats_sous_les_fuseaux)"
+rattacher "$PRE" "$A" "$AUJOURDHUI" "$AUJOURDHUI"
+chk "un contrat d'aujourd'hui seulement, à Tunis : rendu sous les deux fuseaux" "1|1" "$(contrats_sous_les_fuseaux)"
+rattacher "$PRE" "$A"
 
 echo
 echo "4. Le directeur rattaché en second"
@@ -158,9 +180,15 @@ chk "la définition d'un secteur (nom) et son retrait restent à la FNCT (403, s
 
 echo
 echo "5. Le prestataire sous contrat"
+chk "la liste des prestataires de A le propose" oui "$(dans_la_liste "$PRE")"
 chk "le directeur de A lui transfère une réclamation, à son nom" "200|assigne|TEST Prestataire sous contrat" \
     "$(appel PATCH "/tickets/$K3/assign" "$T_A" "{\"prestataireUserId\":\"$PRE\"}")|$(statut "$K3")|$(champ assigned_team)"
 chk "il la traite" "200|resolu" "$(appel PATCH "/tickets/$K3/treat" "$T_P" '{"status":"resolu"}')|$(statut "$K3")"
+rattacher "$DIR" "$A"
+chk "le directeur rattaché en second lui transfère aussi une réclamation de A" "200|assigne" \
+    "$(appel PATCH "/tickets/$K5/assign" "$T_D" "{\"prestataireUserId\":\"$PRE\"}")|$(statut "$K5")"
+chk "une réclamation close ne se traite plus : refus, pas d'écriture" "400|resolu" \
+    "$(appel PATCH "/tickets/$K3/treat" "$T_P" '{"status":"en_cours"}')|$(statut "$K3")"
 chk "le directeur rattaché en second l'affecte à un secteur de A" "200|$PRE" \
     "$(appel PATCH "/zones/$Z" "$T_D" "{\"assignedPrestataireId\":\"$PRE\"}")|$(sql "SELECT assigned_prestataire_id FROM zones_collecte WHERE id = '$Z'")"
 chk "le prestataire dont A est la commune principale reste affectable" "200|$PRE_A" \
@@ -168,6 +196,23 @@ chk "le prestataire dont A est la commune principale reste affectable" "200|$PRE
 rattacher "$DIR" "$A" NULL "$HIER"
 chk "le rattachement échu, le directeur de B ne trouve plus rien" "404|404" \
     "$(appel PATCH "/tickets/$K4/treat" "$T_D" '{"status":"resolu"}')|$(appel PATCH "/zones/$Z" "$T_D" '{"description":"TEST"}')"
+
+echo
+echo "6. Le contrat du prestataire prend fin"
+appel PATCH "/tickets/$K6/assign" "$T_A" "{\"prestataireUserId\":\"$PRE\"}" >/dev/null
+appel PATCH "/zones/$Z" "$T_A" "{\"assignedPrestataireId\":\"$PRE\"}" >/dev/null
+vu_par_pre() { # requête — ce que le prestataire voit en base, sous le rôle de l'application
+  $PSQL -c "BEGIN; SELECT set_config('app.role', 'gestionnaire_prestataire', true), set_config('app.commune_id', '$B', true), set_config('app.user_id', '$PRE', true);
+            SET LOCAL ROLE siipi_app; SELECT 'vu:' || ($1); ROLLBACK;" 2>&1 | grep -oE '^vu:.*' | cut -d: -f2
+}
+chk "contrat en cours : il voit ses deux réclamations ouvertes et son secteur (témoin)" "2|1" \
+    "$(vu_par_pre "(SELECT count(*) FROM tickets WHERE id IN ('$K5','$K6'))")|$(vu_par_pre "cardinality(app.my_zone_ids())")"
+rattacher "$PRE" "$A" NULL "$HIER"
+chk "contrat échu hier : ses réclamations sont introuvables (traiter : 404), et elles n'ont pas bougé" "404|assigne" \
+    "$(appel PATCH "/tickets/$K6/treat" "$T_P" '{"status":"resolu"}')|$(statut "$K6")"
+chk "… en base, il ne voit plus ni ses réclamations ni son secteur (donc ni ses engins)" "0|0" \
+    "$(vu_par_pre "(SELECT count(*) FROM tickets WHERE id IN ('$K5','$K6'))")|$(vu_par_pre "cardinality(app.my_zone_ids())")"
+chk "… et la liste des prestataires de A ne le propose plus" non "$(dans_la_liste "$PRE")"
 
 echo
 base_reelle_intacte "pendant la campagne"

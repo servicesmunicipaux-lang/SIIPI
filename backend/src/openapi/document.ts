@@ -1074,7 +1074,11 @@ registry.registerPath({
   description: 'Étape 1 du workflow (TDR §5.1.2). Réservé à l’Admin Commune. Statut : recu → en_cours.',
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
-  responses: { 200: json(Reclamation, 'Réclamation acceptée.'), ...REPONSES_COMMUNES },
+  responses: {
+    200: json(Reclamation, 'Réclamation acceptée.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La réclamation a changé entre-temps (décision ou retrait) : la recharger.'),
+  },
 });
 
 registry.registerPath({
@@ -1088,7 +1092,11 @@ registry.registerPath({
     params: z.object({ id: z.string().uuid() }),
     body: { content: { 'application/json': { schema: ticketRefuseSchema } } },
   },
-  responses: { 200: json(Reclamation, 'Réclamation refusée.'), ...REPONSES_COMMUNES },
+  responses: {
+    200: json(Reclamation, 'Réclamation refusée.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La réclamation a changé entre-temps (décision ou retrait) : la recharger.'),
+  },
 });
 
 registry.registerPath({
@@ -1105,7 +1113,11 @@ registry.registerPath({
     params: z.object({ id: z.string().uuid() }),
     body: { content: { 'application/json': { schema: ticketAssignSchema } } },
   },
-  responses: { 200: json(Reclamation, 'Réclamation transférée.'), ...REPONSES_COMMUNES },
+  responses: {
+    200: json(Reclamation, 'Réclamation transférée.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La réclamation a changé entre-temps (décision ou retrait) : la recharger.'),
+  },
 });
 
 registry.registerPath({
@@ -1120,7 +1132,11 @@ registry.registerPath({
     params: z.object({ id: z.string().uuid() }),
     body: { content: { 'application/json': { schema: ticketTreatSchema } } },
   },
-  responses: { 200: json(Reclamation, 'Réclamation traitée.'), ...REPONSES_COMMUNES },
+  responses: {
+    200: json(Reclamation, 'Réclamation traitée.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La réclamation a changé entre-temps (décision ou retrait) : la recharger.'),
+  },
 });
 
 registry.registerPath({

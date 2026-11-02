@@ -1691,6 +1691,15 @@ export interface paths {
                         "application/json": components["schemas"]["Erreur"];
                     };
                 };
+                /** @description La réclamation a changé entre-temps (décision ou retrait) : la recharger. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
             };
         };
         trace?: never;
@@ -1767,6 +1776,15 @@ export interface paths {
                 };
                 /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description La réclamation a changé entre-temps (décision ou retrait) : la recharger. */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1858,6 +1876,15 @@ export interface paths {
                         "application/json": components["schemas"]["Erreur"];
                     };
                 };
+                /** @description La réclamation a changé entre-temps (décision ou retrait) : la recharger. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
             };
         };
         trace?: never;
@@ -1936,6 +1963,15 @@ export interface paths {
                 };
                 /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description La réclamation a changé entre-temps (décision ou retrait) : la recharger. */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
