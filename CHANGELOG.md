@@ -24,13 +24,17 @@ Constat E6 de `docs/specs_metier/SPEC_F_releve_terrain.md`, relevé pendant l'é
 - **Le journal d'audit ne garde plus la position d'un engin** (migration 094). Une remontée qui ne touchait que la
   télématique n'y entrait pas, mais une remontée qui changeait aussi l'état de l'engin (« en tournée ») y recopiait
   la ligne entière, position comprise — alors que le contrat dit ces remontées exclues du journal. Les champs
-  télématiques ne sont plus écrits du tout ; le changement d'état, lui, reste journalisé.
+  télématiques ne sont plus écrits du tout ; le changement d'état, lui, reste journalisé. Les lignes déjà au journal
+  en sont nettoyées, comme la migration 056 l'avait fait pour l'identité des pré-collecteurs.
 
 ### Vérifié
-- Campagne `position-engins` (30 contrôles) : elle commence par les refus (sans compte, autre commune, prestataire
-  hors de ses zones, rattachement échu, engin retiré ou inconnu, corps hors bornes), prouve l'écriture refusée en base
-  sous le rôle de l'application, puis le directeur, la FNCT, le rattachement secondaire et le prestataire dans sa
-  zone ; aucune ligne d'une commune réelle ne bouge. Sur le code d'avant, elle échouait 14 fois.
+- Campagne `position-engins` (35 contrôles) : elle commence par les refus (sans compte, autre commune, prestataire
+  hors de ses zones, rattachement échu, engin retiré ou inconnu, chaque borne du corps à part), prouve l'écriture
+  refusée en base sous le rôle de l'application, puis le directeur, la FNCT, le rattachement secondaire et le
+  prestataire dans sa zone, et le journal sans position ; aucune ligne d'une commune réelle ne bouge, pendant puis en
+  partant. Sur le code d'avant, elle échouait 14 fois ; une borne de latitude retirée la fait échouer.
+- Relecture adversariale (trois angles, chaque constat contre-vérifié) : six constats confirmés, quatre repris ici ;
+  les deux autres sont le même défaut, antérieur, sur les réclamations et les secteurs (lot à part).
 
 ## [0.15.85] — 2026-10-28 — La période transitoire du secteur informel (lot I3, 18.3)
 
