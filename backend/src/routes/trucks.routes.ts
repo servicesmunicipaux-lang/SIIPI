@@ -406,33 +406,35 @@ trucksRouter.patch(
   })
 );
 
+// L'emprise est celle que la base impose aux traces du connecteur GPS
+// (085_connecteur_gps.sql, contrainte trace_en_tunisie) : un engin de commune
+// tunisienne posé à Paris par un boîtier mal réglé s'afficherait sur la carte
+// comme vrai. Les autres bornes sont celles des colonnes (003_vehicules.sql) :
+// au-delà, PostgreSQL refusait l'écriture et l'appelant recevait une erreur 500
+// au lieu de ce qu'il faut corriger.
+const EN_TUNISIE = 'La position doit être en Tunisie (latitude 30,2 à 37,6 ; longitude 7,5 à 11,7).';
 const positionSchema = z.object({
-  lat: z.number(),
-  lng: z.number(),
-  currentSpeedKmH: z.number().optional(),
-  fuelLevelPercent: z.number().optional(),
-  currentWeightTons: z.number().optional(),
+  lat: z.number().min(30.2, EN_TUNISIE).max(37.6, EN_TUNISIE),
+  lng: z.number().min(7.5, EN_TUNISIE).max(11.7, EN_TUNISIE),
+  currentSpeedKmH: z.number().min(0, 'La vitesse ne peut pas être négative.').max(999.99).optional(),
+  fuelLevelPercent: z.number().min(0).max(100, 'Le niveau de carburant est un pourcentage, de 0 à 100.').optional(),
+  currentWeightTons: z.number().min(0, 'Le poids ne peut pas être négatif.').max(9999.99).optional(),
   status: z.enum(['en_tournee', 'au_depot', 'en_decharge', 'en_maintenance']).optional(),
-  completedStops: z.number().int().optional(),
+  completedStops: z.number().int().min(0, "Le nombre d'arrêts ne peut pas être négatif.").optional(),
 });
 
-// PATCH /trucks/:id/position — ingestion télématique (à appeler depuis le futur module GPS embarqué).
-// Rôles autorisés selon le CDC : Admin Commune (rubrique "Engins & GMAO", §B2) et
-// Gestionnaire Prestataire (privé) pour les véhicules de sa flotte sous contrat.
-// (Il n'existe pas de rôle de connexion "agent de terrain" distinct dans la matrice RBAC du CDC.)
+// PATCH /trucks/:id/position — ingestion télématique.
+// Le périmètre est celui de la RLS de `vehicules`, et lui seul : la commune et
+// ses rattachements (app.mes_communes), la FNCT, le prestataire sur les engins de
+// ses zones. Un contrôle sur le rattachement principal doublait cette règle et ne
+// refusait que des comptes légitimes (un directeur rattaché à une seconde
+// commune, un prestataire dont la zone n'est pas dans sa commune principale) —
+// par un 403 qui disait de surcroît que l'engin existe.
 trucksRouter.patch(
   '/:id/position',
   requireAuth,
   requireRole('admin_commune', 'gestionnaire_prestataire', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
-    const truck = await queryOne<{ commune_id: string }>('SELECT commune_id FROM vehicules WHERE id = $1', [req.params.id]);
-    if (!truck) throw new ApiError(404, 'Véhicule introuvable.');
-
-    // Un directeur municipal ou un gestionnaire prestataire ne peut mettre à jour que les véhicules de sa propre commune.
-    if (req.user!.role !== 'super_admin_fnct' && req.user!.communeId !== truck.commune_id) {
-      throw new ApiError(403, "Vous n'êtes pas autorisé à agir sur ce véhicule.");
-    }
-
     const data = positionSchema.parse(req.body);
     const updated = await queryOne(
       `UPDATE vehicules
@@ -442,7 +444,7 @@ trucksRouter.patch(
               current_weight_tons = COALESCE($5, current_weight_tons),
               status = COALESCE($6, status),
               completed_stops = COALESCE($7, completed_stops)
-        WHERE id = $8
+        WHERE id = $8 AND deleted_at IS NULL
         RETURNING *`,
       [
         data.lat,
@@ -455,6 +457,7 @@ trucksRouter.patch(
         req.params.id,
       ]
     );
+    if (!updated) throw new ApiError(404, 'Engin introuvable.');
     res.json(updated);
   })
 );

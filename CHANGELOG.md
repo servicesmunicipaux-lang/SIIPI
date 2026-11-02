@@ -5,6 +5,33 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.86] — 2026-11-02 — La position d'un engin : le périmètre de la base, et rien au journal
+
+Constat E6 de `docs/specs_metier/SPEC_F_releve_terrain.md`, relevé pendant l'étude du jalon F.
+
+### Corrigé
+- **`PATCH /trucks/{id}/position` ne refuse plus des comptes légitimes.** La route doublait la RLS de `vehicules`
+  d'un contrôle sur le rattachement **principal** du compte. La RLS rendait déjà introuvable un engin hors du
+  périmètre ; ce contrôle ne refusait donc que des comptes autorisés — un directeur rattaché à une seconde commune,
+  un prestataire dont la zone n'est pas dans sa commune principale — et par un 403 qui disait que l'engin existe. Le
+  périmètre est désormais celui de la base seule : un engin hors du périmètre, retiré ou inconnu est introuvable
+  (404). Le constat E6 disait aussi qu'un prestataire pouvait déplacer n'importe quel engin de la commune : c'était
+  faux, la RLS l'en empêchait déjà ; la spécification est corrigée.
+- **Une position hors de Tunisie, un carburant au-delà de 100 %, une vitesse, un poids ou un nombre d'arrêts
+  négatifs sont refusés** (400, avec ce qu'il faut corriger). Ils étaient écrits tels quels ; une vitesse que la
+  colonne ne tient pas donnait une erreur 500. L'emprise est celle que la base impose déjà aux traces du connecteur
+  GPS (085).
+- **Le journal d'audit ne garde plus la position d'un engin** (migration 094). Une remontée qui ne touchait que la
+  télématique n'y entrait pas, mais une remontée qui changeait aussi l'état de l'engin (« en tournée ») y recopiait
+  la ligne entière, position comprise — alors que le contrat dit ces remontées exclues du journal. Les champs
+  télématiques ne sont plus écrits du tout ; le changement d'état, lui, reste journalisé.
+
+### Vérifié
+- Campagne `position-engins` (30 contrôles) : elle commence par les refus (sans compte, autre commune, prestataire
+  hors de ses zones, rattachement échu, engin retiré ou inconnu, corps hors bornes), prouve l'écriture refusée en base
+  sous le rôle de l'application, puis le directeur, la FNCT, le rattachement secondaire et le prestataire dans sa
+  zone ; aucune ligne d'une commune réelle ne bouge. Sur le code d'avant, elle échouait 14 fois.
+
 ## [0.15.85] — 2026-10-28 — La période transitoire du secteur informel (lot I3, 18.3)
 
 `DECISIONS_2026-10-20.md`, compléments du 28/10/2026 : le suivi de la période transitoire de l'article 13 du projet
