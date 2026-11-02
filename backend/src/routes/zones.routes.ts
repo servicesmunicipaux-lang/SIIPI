@@ -90,17 +90,22 @@ const geometrySchema = z.object({
   coordinates: z.array(z.any()).min(1),
 });
 
+// Un prestataire est affectable s'il est rattaché à la commune par sa commune
+// principale OU par un contrat en cours (utilisateur_communes) : la base le dit
+// (095). Ne comparer que la commune principale rendait inaffectable un
+// prestataire sous contrat avec une seconde commune, et le directeur ne lit pas
+// la fiche d'un compte dont la commune principale est une autre.
 async function assertPrestataireInCommune(prestataireUserId: string | null | undefined, communeId: string) {
   if (!prestataireUserId) return;
-  const prestataire = await queryOne<{ id: string; role: string; commune_id: string | null }>(
-    'SELECT id, role, commune_id FROM users WHERE id = $1',
-    [prestataireUserId]
-  );
-  if (!prestataire || prestataire.role !== 'gestionnaire_prestataire') {
-    throw new ApiError(400, "L'utilisateur désigné n'est pas un Gestionnaire Prestataire.");
-  }
-  if (prestataire.commune_id !== communeId) {
-    throw new ApiError(400, "Ce Gestionnaire Prestataire n'est pas rattaché à cette commune.");
+  const prestataire = await queryOne<{ id: string }>('SELECT id FROM app.prestataire_de_commune($1, $2)', [
+    prestataireUserId,
+    communeId,
+  ]);
+  if (!prestataire) {
+    throw new ApiError(
+      400,
+      "Ce compte n'est pas un Gestionnaire Prestataire actif rattaché à cette commune (commune principale ou contrat en cours)."
+    );
   }
 }
 
@@ -123,7 +128,9 @@ zonesRouter.post(
   requireRole('admin_commune', 'super_admin_fnct'),
   requireCommuneAccess((req) => req.body?.communeId),
   asyncHandler(async (req, res) => {
-    if (req.user!.role !== 'super_admin_fnct') throw new ApiError(403, PAR_PROPOSITION);
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
+    if (qui.role !== 'super_admin_fnct') throw new ApiError(403, PAR_PROPOSITION);
     const data = createSchema.parse(req.body);
     await assertPrestataireInCommune(data.assignedPrestataireId, data.communeId);
 
@@ -143,7 +150,7 @@ zonesRouter.post(
         data.estimatedPopulation ?? null,
         data.assignedPrestataireId ?? null,
         JSON.stringify(data.geometry),
-        req.user!.sub,
+        qui.sub,
       ]
     )).rows[0]
     );
@@ -170,13 +177,15 @@ zonesRouter.patch(
   requireAuth,
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
+    // Le chargement passe par la RLS : hors de la commune et de ses
+    // rattachements, un secteur est introuvable. Un second contrôle sur le
+    // rattachement principal refusait à tort un directeur rattaché en second.
     const zone = await loadZoneOrThrow(req.params.id);
-    if (req.user!.role !== 'super_admin_fnct' && req.user!.communeId !== zone.commune_id) {
-      throw new ApiError(403, "Vous n'êtes pas autorisé à modifier les zones de cette commune.");
-    }
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
     const data = updateSchema.parse(req.body);
     const definition = data.name !== undefined || data.code !== undefined || data.geometry !== undefined;
-    if (definition && req.user!.role !== 'super_admin_fnct') throw new ApiError(403, PAR_PROPOSITION);
+    if (definition && qui.role !== 'super_admin_fnct') throw new ApiError(403, PAR_PROPOSITION);
     if ('assignedPrestataireId' in data) {
       await assertPrestataireInCommune(data.assignedPrestataireId, zone.commune_id);
     }
@@ -226,10 +235,7 @@ zonesRouter.delete(
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
     const zone = await loadZoneOrThrow(req.params.id);
-    if (req.user!.role !== 'super_admin_fnct' && req.user!.communeId !== zone.commune_id) {
-      throw new ApiError(403, "Vous n'êtes pas autorisé à supprimer les zones de cette commune.");
-    }
-    if (req.user!.role !== 'super_admin_fnct') throw new ApiError(403, PAR_PROPOSITION);
+    if (req.user?.role !== 'super_admin_fnct') throw new ApiError(403, PAR_PROPOSITION);
     // Suppression logique : la zone disparaît des écrans mais reste en base.
     // Le TDR (§3.2.8, C2.6) demande un historique du découpage communal avec
     // retour arrière possible, ce qu'un effacement rendrait impossible.

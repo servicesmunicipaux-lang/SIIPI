@@ -5,6 +5,33 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.87] — 2026-11-02 — Les rattachements secondaires : réclamations, secteurs, et le jour de Tunis
+
+Constats de la relecture de la v0.15.86 : le même défaut que la position des engins, sur deux autres domaines.
+
+### Corrigé
+- **Les réclamations et les secteurs ne refusent plus un directeur rattaché à une seconde commune.** Les routes
+  `/tickets/{id}/accept`, `refuse`, `assign`, `treat`, `notification/renvoyer` et `PATCH`/`DELETE /zones/{id}`
+  doublaient la RLS d'un contrôle sur le rattachement **principal**, et répondaient 403 à un compte à qui la base
+  donnait ces lignes. Le périmètre est désormais celui de la seule RLS : hors de la commune et de ses rattachements,
+  une réclamation ou un secteur est introuvable (404). La définition et le retrait d'un secteur restent à la FNCT.
+- **Un prestataire sous contrat avec une seconde commune est affectable** à ses réclamations et à ses secteurs.
+  L'affectation exigeait sa commune principale, et le directeur ne lisait pas la fiche d'un compte d'une autre
+  commune principale (la route répondait, à tort, « n'est pas un Gestionnaire Prestataire »).
+  `app.prestataire_de_commune()` (migration 095) dit si un compte est un prestataire actif rattaché à la commune —
+  commune principale ou contrat en cours — et ne répond qu'à qui peut écrire cette commune.
+- **Un rattachement se borne au jour de Tunis** (règle 1.3, migration 095) : `app.mes_communes()` comparait ses
+  dates à la date du serveur (UTC) ; entre minuit et une heure à Tunis, un rattachement échu la veille donnait encore
+  accès, et un rattachement du jour ne le donnait pas encore.
+
+### Vérifié
+- Campagne `rattachements-secondaires` (28 contrôles) : les refus d'abord (sans rattachement, rattachement de demain
+  ou échu, prestataire sans contrat, au contrat échu ou de demain, compte non prestataire ou inconnu, la fonction qui
+  ne répond pas à qui ne peut pas écrire la commune), le jour de Tunis éprouvé sous deux fuseaux de session extrêmes
+  (UTC−12 et UTC+14 : à toute heure, l'un des deux diffère de Tunis), puis le directeur rattaché en second et le
+  prestataire sous contrat ; aucune ligne d'une commune réelle ne bouge, pendant puis en partant. Sur le code d'avant,
+  elle échouait 11 fois.
+
 ## [0.15.86] — 2026-11-02 — La position d'un engin : le périmètre de la base, et rien au journal
 
 Constat E6 de `docs/specs_metier/SPEC_F_releve_terrain.md`, relevé pendant l'étude du jalon F.

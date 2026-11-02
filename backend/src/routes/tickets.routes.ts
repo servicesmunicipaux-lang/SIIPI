@@ -1,4 +1,4 @@
-import { Router, type Request } from 'express';
+import { Router } from 'express';
 import { z } from 'zod';
 import { query, queryOne } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
@@ -75,9 +75,11 @@ ticketsRouter.post(
 
     // Relie le ticket au profil citoyen (points/badges) quand l'auteur est un citoyen
     // authentifié, pour permettre un futur écran "mes signalements" côté app citoyenne.
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
     let citizenId: string | null = null;
-    if (req.user!.role === 'citoyen') {
-      const citizen = await queryOne<{ id: string }>('SELECT id FROM citoyens WHERE user_id = $1', [req.user!.sub]);
+    if (qui.role === 'citoyen') {
+      const citizen = await queryOne<{ id: string }>('SELECT id FROM citoyens WHERE user_id = $1', [qui.sub]);
       citizenId = citizen?.id ?? null;
     }
 
@@ -123,6 +125,13 @@ interface TicketRow {
   citizen_id: string | null;
 }
 
+// Le chargement passe par la RLS de `tickets` : la commune et ses
+// rattachements (app.mes_communes), la FNCT, le prestataire à qui la réclamation
+// est transférée, le citoyen qui l'a déposée. Hors de ce périmètre, une
+// réclamation est introuvable — c'est le seul contrôle de périmètre des routes
+// qui suivent. Un second contrôle sur le rattachement PRINCIPAL du compte
+// refusait, par un 403, un directeur rattaché à une seconde commune, à qui la
+// base donnait pourtant ces réclamations (v0.15.87).
 async function loadTicketOrThrow(id: string): Promise<TicketRow> {
   const ticket = await queryOne<TicketRow>(
     'SELECT id, commune_id, status, assigned_prestataire_id, citizen_id FROM tickets WHERE id = $1',
@@ -130,13 +139,6 @@ async function loadTicketOrThrow(id: string): Promise<TicketRow> {
   );
   if (!ticket) throw new ApiError(404, 'Ticket introuvable.');
   return ticket;
-}
-
-/** Un Admin Commune ne peut agir que sur les tickets de sa propre commune (sauf Super Admin FNCT, qui voit tout). */
-function assertCommuneAccess(req: Request, ticket: TicketRow) {
-  if (req.user!.role !== 'super_admin_fnct' && req.user!.communeId !== ticket.commune_id) {
-    throw new ApiError(403, "Vous n'êtes pas autorisé à agir sur les réclamations de cette commune.");
-  }
 }
 
 const CLOSED_STATUSES = new Set(['resolu', 'rejete']);
@@ -148,7 +150,6 @@ ticketsRouter.patch(
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
     const ticket = await loadTicketOrThrow(req.params.id);
-    assertCommuneAccess(req, ticket);
     if (ticket.status !== 'recu') {
       throw new ApiError(400, `Ce ticket ne peut pas être accepté (statut actuel : "${ticket.status}").`);
     }
@@ -184,7 +185,6 @@ ticketsRouter.patch(
   asyncHandler(async (req, res) => {
     const data = refuseSchema.parse(req.body);
     const ticket = await loadTicketOrThrow(req.params.id);
-    assertCommuneAccess(req, ticket);
     if (CLOSED_STATUSES.has(ticket.status)) {
       throw new ApiError(400, `Ce ticket est déjà clôturé (statut actuel : "${ticket.status}").`);
     }
@@ -218,20 +218,22 @@ ticketsRouter.patch(
   asyncHandler(async (req, res) => {
     const data = assignSchema.parse(req.body);
     const ticket = await loadTicketOrThrow(req.params.id);
-    assertCommuneAccess(req, ticket);
     if (CLOSED_STATUSES.has(ticket.status)) {
       throw new ApiError(400, `Ce ticket est déjà clôturé (statut actuel : "${ticket.status}").`);
     }
 
-    const prestataire = await queryOne<{ id: string; full_name: string; role: string; commune_id: string | null }>(
-      'SELECT id, full_name, role, commune_id FROM users WHERE id = $1',
-      [data.prestataireUserId]
+    // Rattaché par sa commune principale ou par un contrat en cours : la base le
+    // dit (095), le directeur ne lisant pas la fiche d'un compte d'une autre
+    // commune principale.
+    const prestataire = await queryOne<{ id: string; full_name: string }>(
+      'SELECT id, full_name FROM app.prestataire_de_commune($1, $2)',
+      [data.prestataireUserId, ticket.commune_id]
     );
-    if (!prestataire || prestataire.role !== 'gestionnaire_prestataire') {
-      throw new ApiError(400, "L'utilisateur désigné n'est pas un Gestionnaire Prestataire.");
-    }
-    if (prestataire.commune_id !== ticket.commune_id) {
-      throw new ApiError(400, "Ce Gestionnaire Prestataire n'est pas rattaché à la commune de ce ticket.");
+    if (!prestataire) {
+      throw new ApiError(
+        400,
+        "Ce compte n'est pas un Gestionnaire Prestataire actif rattaché à la commune de ce ticket (commune principale ou contrat en cours)."
+      );
     }
 
     const updated = await queryOne(
@@ -266,13 +268,13 @@ ticketsRouter.patch(
   asyncHandler(async (req, res) => {
     const data = treatSchema.parse(req.body);
     const ticket = await loadTicketOrThrow(req.params.id);
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
 
-    if (req.user!.role === 'gestionnaire_prestataire') {
-      if (ticket.assigned_prestataire_id !== req.user!.sub) {
-        throw new ApiError(403, "Cette réclamation ne vous a pas été transférée.");
-      }
-    } else {
-      assertCommuneAccess(req, ticket);
+    // La RLS ne montre au prestataire que les réclamations qui lui sont
+    // transférées ; le contrôle reste écrit pour le jour où elle s'élargirait.
+    if (qui.role === 'gestionnaire_prestataire' && ticket.assigned_prestataire_id !== qui.sub) {
+      throw new ApiError(404, 'Ticket introuvable.');
     }
 
     if (CLOSED_STATUSES.has(ticket.status)) {
@@ -327,7 +329,6 @@ ticketsRouter.patch(
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
     const ticket = await loadTicketOrThrow(req.params.id);
-    assertCommuneAccess(req, ticket);
 
     const notif = await queryOne<{ id: string }>(
       `SELECT id FROM notifications_citoyen

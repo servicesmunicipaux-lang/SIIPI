@@ -1370,7 +1370,7 @@ export interface paths {
         head?: never;
         /**
          * Remonter la position d’un engin
-         * @description Point d’entrée télématique (TDR §3.2.2, B2.5). Ces remontées sont volontairement exclues du journal d’audit : elles arrivent en continu et n’ont pas de valeur probante.
+         * @description Point d’entrée télématique (TDR §3.2.2, B2.5). Ces remontées sont volontairement exclues du journal d’audit : elles arrivent en continu et n’ont pas de valeur probante. Le périmètre est celui de la base : la commune et ses rattachements, la FNCT, le prestataire sur les engins de ses zones ; un engin hors du périmètre, retiré ou inconnu est introuvable (404). La position doit être en Tunisie (latitude 30,2 à 37,6, longitude 7,5 à 11,7) ; un champ absent garde sa valeur.
          */
         patch: {
             parameters: {
@@ -1793,7 +1793,7 @@ export interface paths {
         head?: never;
         /**
          * Transférer à un prestataire privé
-         * @description TDR §5.1.4. Le prestataire pourra traiter la réclamation mais jamais la refuser. Statut : → assigne.
+         * @description TDR §5.1.4. Le prestataire pourra traiter la réclamation mais jamais la refuser. Statut : → assigne. Le prestataire doit être un compte actif rattaché à la commune de la réclamation, par sa commune principale ou par un contrat en cours (400 sinon). Une réclamation hors du périmètre de l’appelant (sa commune et ses rattachements) est introuvable (404).
          */
         patch: {
             parameters: {
