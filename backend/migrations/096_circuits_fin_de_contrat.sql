@@ -20,6 +20,22 @@
 --     choisissent leurs circuits elles-mêmes (SECURITY DEFINER).
 -- Rien n'est retiré à la commune ni à la FNCT : seule la branche du prestataire
 -- (ou de l'auteur) gagne la condition « commune de son périmètre ».
+--
+-- La relecture de ce lot a relevé trois voies voisines, fermées ici aussi :
+--   - un incident pouvait désigner le circuit d'une AUTRE commune que la sienne
+--     (incidents_insert ne vérifiait que la commune de la ligne) : un prestataire
+--     au contrat échu l'écrivait sous sa commune principale, et l'incident
+--     s'affichait dans la confrontation de l'ancienne commune, qui ne pouvait ni
+--     le lire ni le retirer. Le circuit d'un incident doit désormais être un
+--     circuit que l'auteur voit, de la commune de l'incident ; la confrontation
+--     ne joint plus qu'un incident de la commune du circuit ;
+--   - app.performance_prestataires() additionnait les réclamations d'un
+--     prestataire dans toutes ses communes, et chaque ligne (prestataire,
+--     commune) les montrait toutes : le directeur de B lisait des chiffres de A.
+--     Elles se comptent désormais commune par commune ;
+--   - le déposant d'un fichier le relisait sans condition de périmètre : un
+--     directeur gardait les pièces d'une commune qu'il ne sert plus. Un citoyen
+--     garde, lui, ses propres dépôts.
 -- =========================================================================
 
 CREATE OR REPLACE FUNCTION app.mes_circuits() RETURNS uuid[]
@@ -75,12 +91,42 @@ CREATE POLICY incidents_update ON incidents FOR UPDATE
          OR (declare_par = app.current_user_id() AND commune_id = ANY (app.mes_communes())))
   )
   WITH CHECK (
-    app.can_write_commune(commune_id)
-    OR (declare_par = app.current_user_id() AND commune_id = ANY (app.mes_communes()))
+    (app.can_write_commune(commune_id)
+     OR (declare_par = app.current_user_id() AND commune_id = ANY (app.mes_communes())))
+    AND (circuit_id IS NULL
+         OR EXISTS (SELECT 1 FROM circuits c WHERE c.id = incidents.circuit_id AND c.commune_id = incidents.commune_id))
+  );
+
+-- Le circuit d'un incident : un circuit que l'auteur voit (RLS de circuits), de
+-- la commune de l'incident. Sous la RLS de l'appelant, la sous-requête ne trouve
+-- pas le circuit d'un contrat échu, ni celui d'une autre commune.
+DROP POLICY IF EXISTS incidents_insert ON incidents;
+CREATE POLICY incidents_insert ON incidents FOR INSERT
+  WITH CHECK (
+    app.can_read_commune(commune_id)
+    AND (circuit_id IS NULL
+         OR EXISTS (SELECT 1 FROM circuits c WHERE c.id = incidents.circuit_id AND c.commune_id = incidents.commune_id))
+  );
+
+-- Le déposant d'un fichier ne le relit que dans son périmètre ; un citoyen garde
+-- ses propres dépôts (sa commune déclarée n'est pas toujours dans app.mes_communes).
+DROP POLICY IF EXISTS fichiers_select ON fichiers;
+CREATE POLICY fichiers_select ON fichiers FOR SELECT
+  USING (
+    deleted_at IS NULL
+    AND (
+      visibilite = 'publique'
+      OR app.can_read_commune(commune_id)
+      OR (televerse_par = app.current_user_id()
+          AND (app.current_role_name() = 'citoyen' OR commune_id = ANY (app.mes_communes())))
+      OR (visibilite = 'citoyen' AND destinataire_citoyen_id = app.my_citizen_id())
+    )
   );
 
 -- Les deux fonctions suivantes sont reprises telles que la base les tient (029),
--- leur branche « prestataire » seule changée.
+-- leur branche « prestataire » changée, et, pour la confrontation, l'incident
+-- joint à la commune du circuit ; pour la performance, les réclamations comptées
+-- par commune.
 
 CREATE OR REPLACE FUNCTION app.confrontation_passages(p_commune text DEFAULT NULL::text, p_depuis date DEFAULT (CURRENT_DATE - 30), p_jusqua date DEFAULT CURRENT_DATE)
  RETURNS TABLE(circuit_id uuid, circuit_nom text, commune_id text, prestataire_nom text, jour date, voyage smallint, voyages_attendus smallint, declaration text, constat text, incident text, situation text, mode_saisie text, position_source text)
@@ -135,7 +181,7 @@ AS $function$
         AND ct.voyage = a.voyage AND ct.deleted_at IS NULL
   LEFT JOIN LATERAL (
     SELECT x.type FROM incidents x
-     WHERE x.circuit_id = a.id AND x.date_incident = a.jour AND x.deleted_at IS NULL
+     WHERE x.circuit_id = a.id AND x.commune_id = a.commune_id AND x.date_incident = a.jour AND x.deleted_at IS NULL
      ORDER BY x.created_at LIMIT 1
   ) i ON true
   ORDER BY a.jour DESC, a.nom, a.voyage;
@@ -184,6 +230,7 @@ AS $function$
   ),
   reclamations AS (
     SELECT t.assigned_prestataire_id AS prestataire,
+           t.commune_id,
            count(*)                                          AS transferees,
            count(*) FILTER (WHERE t.status = 'resolu')        AS traitees,
            avg(EXTRACT(EPOCH FROM (t.resolved_at - t.accepted_at)) / 3600.0)
@@ -192,7 +239,7 @@ AS $function$
      WHERE t.deleted_at IS NULL
        AND t.assigned_prestataire_id IS NOT NULL
        AND t.created_at::date BETWEEN p_depuis AND p_jusqua
-     GROUP BY t.assigned_prestataire_id
+     GROUP BY t.assigned_prestataire_id, t.commune_id
   )
   SELECT
     cv.prestataire_id,
@@ -217,7 +264,7 @@ AS $function$
   JOIN users u          ON u.id = cv.prestataire_id
   LEFT JOIN attendus a  ON a.circuit_id = cv.id
   LEFT JOIN constats co ON co.circuit_id = cv.id
-  LEFT JOIN reclamations r ON r.prestataire = cv.prestataire_id
+  LEFT JOIN reclamations r ON r.prestataire = cv.prestataire_id AND r.commune_id = cv.commune_id
   GROUP BY cv.prestataire_id, u.full_name, cv.commune_id
   ORDER BY u.full_name;
 $function$

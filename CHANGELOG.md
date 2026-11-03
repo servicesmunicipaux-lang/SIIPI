@@ -19,14 +19,27 @@ Suite de la v0.15.87, relevée par sa relecture adversariale.
   `app.performance_prestataires()`. Rien n'est retiré à la commune ni à la FNCT.
 - **L'auteur d'un incident** le lisait et le modifiait sans condition de périmètre : un prestataire, mais aussi un
   directeur, gardait la main sur les incidents d'une commune qu'il ne sert plus. Même condition.
+- **Un incident ne se range plus sous une autre commune que celle de son circuit.** Un prestataire au contrat échu
+  l'écrivait sous sa commune principale, et l'incident s'affichait dans la confrontation de l'ancienne commune, qui ne
+  pouvait ni le lire ni le retirer. La base l'exige (`incidents_insert`, `incidents_update`), la route le dit (404 pour
+  un circuit invisible, 400 pour un circuit d'une autre commune), et la confrontation ne joint plus qu'un incident de
+  la commune du circuit.
+- **La performance d'un prestataire compte ses réclamations commune par commune** : elle les additionnait dans
+  toutes ses communes, et le directeur de l'une lisait les chiffres d'une autre.
+- **Le déposant d'un fichier ne le relit plus hors de son périmètre** ; un citoyen garde ses propres dépôts.
+- **Les dates par défaut des passages, des incidents et de la confrontation sont celles de Tunis** (règle 1.3) :
+  entre minuit et une heure, la date du serveur était encore la veille, et une déclaration du jour écrasait celle
+  d'hier.
 
 ### Vérifié
-- Campagne `circuits-fin-de-contrat` (13 contrôles) : contrat échu hier à Tunis ou qui commence demain, plus rien —
+- Campagne `circuits-fin-de-contrat` (22 contrôles) : contrat échu hier à Tunis ou qui commence demain, plus rien —
   déclarer un passage (404), lire le circuit, ses points, constats, déclarations, l'incident, la confrontation et la
   performance, écrire une déclaration ou modifier l'incident, en base sous le rôle de l'application ; puis le témoin,
   contrat en cours, et la commune qui ne perd rien ; aucune ligne d'une commune réelle ne bouge, pendant puis en
-  partant. Sur le code d'avant, elle échouait 7 fois. L'inventaire des voies d'accès a été tiré des politiques et
-  fonctions en vigueur dans la base (`pg_policies`, `pg_proc`), pas des seules migrations.
+  partant. Sur le code d'avant, elle échouait 7 fois ; avec l'ancienne garde des incidents et des fichiers, 3 fois.
+  L'inventaire des voies d'accès a été tiré des politiques et fonctions en vigueur dans la base (`pg_policies`,
+  `pg_proc`), pas des seules migrations.
+- Relecture adversariale (trois angles, chaque constat contre-vérifié) : cinq constats confirmés, tous repris ici.
 
 ## [0.15.87] — 2026-11-02 — Les rattachements secondaires : réclamations, secteurs, et le jour de Tunis
 
