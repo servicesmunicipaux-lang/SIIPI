@@ -1,7 +1,7 @@
 # SIIPI — Jalon F : le relevé de terrain
 ## L'application de collecte de l'agent, synchronisée à SIIPI
 
-**FNCT · 2 novembre 2026 · ouvert par Nacer le 28/10/2026 · statut : spécification v1, quatre décisions signées le 02/11/2026 (§ 2), rien n'est codé**
+**FNCT · 2 novembre 2026 · ouvert par Nacer le 28/10/2026 · statut : spécification v1, quatre décisions signées le 02/11/2026 (§ 2), amendée le même jour (§ 8 : lots F1c à F1f), rien n'est codé**
 
 L'analyse fonctionnelle de l'existant (niveaux 1 et 2, registre des licences) est dans
 `sources/terrain/ANALYSE_EXISTANT.md`. Ce document s'appuie dessus et sur une lecture du dépôt
@@ -386,3 +386,70 @@ produit **aucun** point (`kml.ts:493`), et un point sans type est accepté par l
 
 - **`agent_nom`** (`020:170-174`), prévu « tant que les chauffeurs n'ont pas de compte », n'est envoyé
   par aucun écran : son retrait par une migration nouvelle est à décider.
+
+---
+
+## 8. Amendements du 2 novembre 2026 (Nacer)
+
+Issus d'une revue avec Nacer inspirée des outils de collecte du marché (ArcGIS Field Maps et QuickCapture, KoboToolbox, OsmAnd). Ils précisent F1 et ouvrent trois lots. **Les décisions F-1 à F-4 ne changent pas** ; en cas de doute, elles priment.
+
+### 8.1 Décidé
+
+| # | Décision |
+|---|---|
+| **A-1 Photo** | **Facultative par défaut.** Dans son profil de collecte, la commune peut la rendre obligatoire pour certains types qui entraînent une dépense ou un litige (bac cassé, dépôt sauvage facturé). SIIPI n'impose aucune photo à toutes les communes. |
+| **A-2 Faire évoluer un point** | Le terrain **ne modifie jamais** un point existant (F-4). Il **ajoute un constat daté** sur ce point (« cassé », « à laver », « débordement », puis « réparé », « lavé »). L'état affiché d'un point est son **dernier constat adopté** ; l'historique reste entier. Déplacer ou retirer un point reste une proposition que la commune adopte. |
+| **A-3 Lien avec les actions** | Un constat qui appelle une intervention (cassé, à laver) devient une **proposition d'action dans « À vérifier »**. La commune la planifie d'un clic, dans les actions planifiées existantes (`actions_planifiees`, `actions_points`) — ce geste vaut adoption du constat — ou l'écarte avec un motif. Une fois l'action faite, le chef d'équipe pointe « fait » sur le terrain ; le point redevient conforme. |
+| **A-4 Porte-à-porte** | Mode **« début / fin de tronçon »** : deux clics déclarent explicitement le tronçon desservi ; le segment est pris **sur l'itinéraire prévu** entre les deux repères projetés, sans trace GPS continue (F-1). Entre les deux, l'agent ne signale que des **exceptions** (ruelle bloquée, dépôt sauvage, encombrants). **Aucun service n'est réputé fait sans déclaration** (règle 1.1) : sans les deux repères, le tronçon est « non déclaré », pas « fait ». Sans itinéraire prévu, les repères sont gardés et le segment est « non calculable ». |
+| **A-5 Saisie automatique** | Remplis seuls, sans geste de l'agent : date et heure observées (`timestamptz`, horloge de l'appareil), coordonnées, précision, identifiants du relevé et du point (tirés sur l'appareil), commune, circuit choisi au départ, version de la nomenclature, état « en attente d'envoi », écart d'horloge mesuré à l'envoi (avis, jamais correction). **Le secteur** est calculé à l'adoption à partir du découpage de la commune. |
+| **A-6 Pré-remplis, modifiables** | Le **dernier type** est **mis en avant, jamais présélectionné** : l'agent tape toujours le bouton. Les **attributs** (volume, matériau) peuvent reprendre ceux du point précédent, affichés comme pré-remplis. La photo obligatoire ou non découle du type (A-1). Alerte d'éloignement (> 200 m du circuit) et alerte de précision (> 15 m) : l'agent confirme ou repositionne, rien n'est corrigé seul. |
+| **A-7 Jamais remplis** | Nom d'agent ou de chauffeur ; type par défaut ; position « aimantée » au circuit (l'aimantation est **visuelle seulement**, la coordonnée brute reste en base) ; heure du serveur à la place de l'heure observée ; montant ou coût ; toute correction silencieuse ; adoption d'un point par le terrain. |
+| **A-8 L'auteur** | Le compte qui a fait le relevé est porté **une fois par relevé**, jamais point par point ; aucune vue, aucun export ne rapproche un compte des positions et des heures de ses points (ligne rouge 2, décision F-2). |
+
+### 8.2 Retenu, avec ses ajustements
+
+- **Profils de collecte** : définis par la commune (par exemple « Inventaire des bacs », « Points noirs ») ; ils filtrent les boutons affichés. Un profil fixe aussi les types dont la photo est obligatoire (A-1).
+- **Saisie « coup de poing »** : une grille de gros boutons ; un appui pose le type, la position, l'heure et la précision en une fois. Chaque type de la nomenclature peut porter **une image fournie par la commune** (la photo de son propre bac), avec une icône par défaut. Libellé toujours visible sous l'image, en français et en arabe.
+- **Changement de régime** : passer en porte-à-porte ou en apport volontaire change la grille affichée (exceptions en porte-à-porte ; bacs et débordements en apport volontaire).
+- **Qualité spatiale** : indicateur de précision vert / orange / rouge ; alerte d'éloignement ; aimantation visuelle seulement (A-7).
+- **États d'envoi sur la carte** : en attente (gris, pointillé), reçu (bleu plein), échec (rouge, avec la raison et « réessayer »). Jamais « envoyé » avant l'accusé de réception (§ 3.2).
+- **Doublon probable hors ligne** : à partir des points et constats du circuit en cache, l'application signale « un bac cassé a déjà été signalé ici le … » et propose d'**ajouter un constat sur le point existant** plutôt que d'en créer un nouveau. L'agent décide ; le doublon reste mesuré côté serveur (§ 3.3).
+- **Dictée** : **le micro du clavier du téléphone**, pas l'API `SpeechRecognition` du navigateur (qui envoie le son à un service extérieur, ne marche pas hors ligne et reconnaît mal le dialecte). Rien à coder.
+- **Carte hors ligne sur l'emprise du circuit** (couloir autour du tracé) : **lot conditionnel** — la politique d'OpenStreetMap interdit le préchargement en masse ; il faut des tuiles servies par la FNCT, donc la réponse de la DSI (§ 3.4 inchangé pour F1).
+- **Temps et coût par régime** : le **temps** passé en porte-à-porte et en apport volontaire est **mesuré** (heures des repères). Le **tonnage** ne l'est pas par régime (une pesée couvre un voyage) : un coût à la tonne par régime est une **répartition**, affichée comme telle, jamais comme une mesure.
+
+### 8.3 Effet sur le découpage en lots
+
+| Lot | Contenu | Condition |
+|---|---|---|
+| **F1** (complété) | § 3, plus A-1, A-5 à A-8, profils de collecte, grille à images, qualité spatiale, états d'envoi, doublon hors ligne | Inchangée |
+| **F1c** | Constats sur un point existant (A-2), proposition d'action et lien avec les actions planifiées, « fait » pointé sur le terrain (A-3) | F1 livré |
+| **F1d** | Porte-à-porte par tronçon (A-4), changement de régime, temps par régime | F1 livré ; un itinéraire prévu sur les circuits concernés |
+| **F1e** | Carte hors ligne sur l'emprise du circuit | Tuiles servies par la FNCT (réponse de la DSI) |
+
+### 8.4 Ouvert, avec valeur par défaut
+
+| Question | Défaut |
+|---|---|
+| Le « fait » pointé par un chef d'équipe sur une action : adopté un par un, ou confirmé en lot par la commune ? | Confirmé en lot par la commune, depuis l'action |
+| Distance du doublon probable hors ligne | Celle de `app.point_voisin`, la même qu'au serveur |
+| Les images des types : qui les dépose ? | La commune ; la FNCT fournit les icônes par défaut |
+
+### 8.5 À explorer (choisi par Nacer le 2 novembre)
+
+**Le mode « inventaire »** — lot **F1c** (il repose sur les constats de A-2).
+- L'application liste les points connus du circuit (cache du matin) ; le chef d'équipe les passe en revue un par un : **conforme**, **cassé**, **absent**, ou **non vu**.
+- Chaque réponse est un **constat** (A-2), jamais une modification du point.
+- **« Non vu » n'est pas « conforme »** (règle 1.1) : un point non passé en revue reste sans constat, et l'avancement le dit (« 34 points passés en revue sur 120 »).
+- Un point trouvé sur place mais absent de la liste s'ajoute comme un point nouveau, proposé à l'adoption.
+
+**Les réclamations visibles sur la carte terrain** — lot **F1f**.
+- Le chef d'équipe voit, sur son circuit, les réclamations ouvertes : **position, catégorie, date, statut** seulement. Ni nom, ni téléphone, ni adresse du citoyen ; la photo du citoyen n'est pas chargée sur l'appareil.
+- Il peut ajouter un constat **« vérifié sur place »** (avec photo facultative, A-1). C'est une proposition : **la commune décide** du statut de la réclamation et de la réponse au citoyen. Aucune réponse automatique au citoyen (ligne rouge).
+- La lecture des réclamations par un chef d'équipe est un **accès à une donnée citoyenne** : elle est journalisée comme les autres (journal des accès, 1 an).
+- Test de sortie : la route du terrain ne rend aucun champ nominatif ; un chef d'équipe ne voit que les réclamations des circuits de sa commune ; « vérifié sur place » ne change aucun statut sans la commune.
+
+| Lot | Contenu | Condition |
+|---|---|---|
+| **F1c** (complété) | Constats, lien avec les actions, mode inventaire | F1 livré |
+| **F1f** | Réclamations sur la carte terrain, constat « vérifié sur place » | F1c livré |
