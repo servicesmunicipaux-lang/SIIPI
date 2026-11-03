@@ -63,8 +63,8 @@ try {
         `SELECT DISTINCT u.email, u.role, u.mot_de_passe_provisoire AS provisoire
            FROM users u
            LEFT JOIN utilisateur_communes uc ON uc.user_id = u.id AND uc.commune_id = $1 AND uc.actif
-                AND (uc.date_debut IS NULL OR uc.date_debut <= CURRENT_DATE)
-                AND (uc.date_fin IS NULL OR uc.date_fin >= CURRENT_DATE)
+                AND (uc.date_debut IS NULL OR uc.date_debut <= app.jour_tunis())
+                AND (uc.date_fin IS NULL OR uc.date_fin >= app.jour_tunis())
           WHERE u.deleted_at IS NULL AND u.is_active AND u.role = 'admin_commune'
             AND (u.commune_id = $1 OR uc.user_id IS NOT NULL)
           ORDER BY u.email`,

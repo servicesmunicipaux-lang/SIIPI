@@ -1074,7 +1074,11 @@ registry.registerPath({
   description: 'Étape 1 du workflow (TDR §5.1.2). Réservé à l’Admin Commune. Statut : recu → en_cours.',
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
-  responses: { 200: json(Reclamation, 'Réclamation acceptée.'), ...REPONSES_COMMUNES },
+  responses: {
+    200: json(Reclamation, 'Réclamation acceptée.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La réclamation a changé entre-temps (décision ou retrait) : la recharger.'),
+  },
 });
 
 registry.registerPath({
@@ -1088,7 +1092,11 @@ registry.registerPath({
     params: z.object({ id: z.string().uuid() }),
     body: { content: { 'application/json': { schema: ticketRefuseSchema } } },
   },
-  responses: { 200: json(Reclamation, 'Réclamation refusée.'), ...REPONSES_COMMUNES },
+  responses: {
+    200: json(Reclamation, 'Réclamation refusée.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La réclamation a changé entre-temps (décision ou retrait) : la recharger.'),
+  },
 });
 
 registry.registerPath({
@@ -1097,13 +1105,19 @@ registry.registerPath({
   tags: ['Réclamations'],
   summary: 'Transférer à un prestataire privé',
   description:
-    'TDR §5.1.4. Le prestataire pourra traiter la réclamation mais jamais la refuser. Statut : → assigne.',
+    'TDR §5.1.4. Le prestataire pourra traiter la réclamation mais jamais la refuser. Statut : → assigne. ' +
+    'Le prestataire doit être un compte actif rattaché à la commune de la réclamation, par sa commune principale ou par un contrat en cours (400 sinon). ' +
+    'Une réclamation hors du périmètre de l’appelant (sa commune et ses rattachements) est introuvable (404).',
   security: SECURISE,
   request: {
     params: z.object({ id: z.string().uuid() }),
     body: { content: { 'application/json': { schema: ticketAssignSchema } } },
   },
-  responses: { 200: json(Reclamation, 'Réclamation transférée.'), ...REPONSES_COMMUNES },
+  responses: {
+    200: json(Reclamation, 'Réclamation transférée.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La réclamation a changé entre-temps (décision ou retrait) : la recharger.'),
+  },
 });
 
 registry.registerPath({
@@ -1118,7 +1132,11 @@ registry.registerPath({
     params: z.object({ id: z.string().uuid() }),
     body: { content: { 'application/json': { schema: ticketTreatSchema } } },
   },
-  responses: { 200: json(Reclamation, 'Réclamation traitée.'), ...REPONSES_COMMUNES },
+  responses: {
+    200: json(Reclamation, 'Réclamation traitée.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La réclamation a changé entre-temps (décision ou retrait) : la recharger.'),
+  },
 });
 
 registry.registerPath({
@@ -9049,7 +9067,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.86',
+      version: '0.15.87',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',
