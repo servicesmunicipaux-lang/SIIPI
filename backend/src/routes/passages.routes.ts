@@ -45,6 +45,8 @@ passagesRouter.post(
   requireRole('gestionnaire_prestataire', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
     const d = passageSchema.parse(req.body);
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
 
     const circuit = await queryOne<{ commune_id: string }>(
       'SELECT commune_id FROM circuits WHERE id = $1 AND deleted_at IS NULL',
@@ -61,7 +63,7 @@ passagesRouter.post(
       `INSERT INTO declarations_passage
          (circuit_id, commune_id, date_passage, statut, heure_debut, heure_fin,
           mode_saisie, position, position_source, declare_par, agent_nom, photo_url, remarque, voyage)
-       VALUES ($1, $2, COALESCE($3::date, CURRENT_DATE), $4, $5::timestamptz, $6::timestamptz,
+       VALUES ($1, $2, COALESCE($3::date, app.jour_tunis()), $4, $5::timestamptz, $6::timestamptz,
                $7,
                CASE WHEN $8::double precision IS NULL OR $9::double precision IS NULL
                     THEN NULL
@@ -91,7 +93,7 @@ passagesRouter.post(
         d.lat ?? null,
         d.lng ?? null,
         positionSource,
-        req.user!.sub,
+        qui.sub,
         d.agentNom ?? null,
         d.photoUrl ?? null,
         d.remarque ?? null,
@@ -153,10 +155,27 @@ passagesRouter.post(
   requireAuth,
   asyncHandler(async (req, res) => {
     const d = incidentSchema.parse(req.body);
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
+    // Le circuit d'un incident est lu sous la RLS de l'appelant : un circuit qu'il
+    // ne voit pas (autre commune, contrat échu) est introuvable, et un incident ne
+    // se range pas sous une autre commune que celle de son circuit — sans quoi il
+    // s'afficherait dans la confrontation d'une commune qui ne peut ni le lire ni
+    // le retirer (096). La base le refuse aussi (incidents_insert).
+    if (d.circuitId) {
+      const circuit = await queryOne<{ commune_id: string }>(
+        'SELECT commune_id FROM circuits WHERE id = $1 AND deleted_at IS NULL',
+        [d.circuitId]
+      );
+      if (!circuit) throw new ApiError(404, 'Circuit introuvable.');
+      if (circuit.commune_id !== d.communeId) {
+        throw new ApiError(400, "Ce circuit n'appartient pas à la commune indiquée : déclarer l'incident dans la commune du circuit.");
+      }
+    }
     const incident = await queryOne(
       `INSERT INTO incidents
          (commune_id, circuit_id, date_incident, type, description, photo_url, position, declare_par)
-       VALUES ($1, $2, COALESCE($3::date, CURRENT_DATE), $4, $5, $6,
+       VALUES ($1, $2, COALESCE($3::date, app.jour_tunis()), $4, $5, $6,
                CASE WHEN $7::double precision IS NULL OR $8::double precision IS NULL
                     THEN NULL ELSE ST_SetSRID(ST_MakePoint($8, $7), 4326) END,
                $9)
@@ -171,7 +190,7 @@ passagesRouter.post(
         d.photoUrl ?? null,
         d.lat ?? null,
         d.lng ?? null,
-        req.user!.sub,
+        qui.sub,
       ]
     );
     res.status(201).json(incident);
@@ -216,13 +235,15 @@ passagesRouter.patch(
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
     const d = reponseIncidentSchema.parse(req.body);
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
     const incident = await queryOne(
       `UPDATE incidents
           SET statut = $2, reponse_commune = COALESCE($3, reponse_commune),
               traite_par = $4, traite_le = now(), updated_at = now()
         WHERE id = $1 AND deleted_at IS NULL
       RETURNING id, statut, reponse_commune, traite_par, traite_le`,
-      [req.params.id, d.statut, d.reponseCommune ?? null, req.user!.sub]
+      [req.params.id, d.statut, d.reponseCommune ?? null, qui.sub]
     );
     if (!incident) throw new ApiError(404, 'Incident introuvable.');
     res.json(incident);
@@ -244,8 +265,8 @@ passagesRouter.get(
     const lignes = await query(
       `SELECT * FROM app.confrontation_passages(
           $1::text,
-          COALESCE($2::date, CURRENT_DATE - 30),
-          COALESCE($3::date, CURRENT_DATE))`,
+          COALESCE($2::date, app.jour_tunis() - 30),
+          COALESCE($3::date, app.jour_tunis()))`,
       [communeId, depuis, jusqua]
     );
     res.json(lignes);
@@ -257,6 +278,8 @@ passagesRouter.get(
   '/mes-contrats',
   requireAuth,
   asyncHandler(async (req, res) => {
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
     const lignes = await query(
       `SELECT uc.commune_id, c.name AS commune_nom, c.name_ar AS commune_nom_ar,
               uc.contrat_reference, uc.date_debut, uc.date_fin, uc.actif
@@ -264,7 +287,7 @@ passagesRouter.get(
          JOIN communes c ON c.id = uc.commune_id
         WHERE uc.user_id = $1
         ORDER BY c.name`,
-      [req.user!.sub]
+      [qui.sub]
     );
     res.json(lignes);
   })
