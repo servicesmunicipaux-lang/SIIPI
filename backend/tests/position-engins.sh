@@ -85,7 +85,9 @@ compte_temporaire admin_commune "$A" "Directeur A"; T_A=$(tok "$COMPTE_EMAIL" "$
 compte_temporaire admin_commune "$B" "Directeur B"; T_B=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); DIR_B=$COMPTE_ID
 compte_temporaire super_admin_fnct "" "Agent FNCT"; T_F=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
 # Le prestataire a pour commune principale B, et sa zone dans A : c'est ce que
-# l'ancien contrôle refusait à tort.
+# l'ancien contrôle refusait à tort. Depuis la v0.15.87 (095), une zone ne donne
+# ses engins que dans le périmètre réel du prestataire : il lui faut un contrat
+# en cours avec A, posé après le refus qui le prouve (section 1).
 compte_temporaire gestionnaire_prestataire "$B" "Prestataire"; T_P=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); PRE=$COMPTE_ID
 $PSQL -c "UPDATE zones_collecte SET assigned_prestataire_id = '$PRE' WHERE id = '$ZP';
           UPDATE vehicules SET deleted_at = now() WHERE id = '$VR';" >/dev/null
@@ -105,7 +107,9 @@ chk "un engin retiré de l'inventaire : introuvable, pour la FNCT aussi" "404|40
 chk "un engin inconnu : introuvable" 404 "$(position "test-pos-inconnu-$$" "$T_F" "$ICI")"
 chk "… le message dit que l'engin est introuvable, sans dire s'il existe" "Engin introuvable." \
     "$(python3 -c "import json;print(json.load(open('$T/r.json')).get('error',''))" 2>/dev/null)"
-chk "aucun des engins visés n'a bougé" "$AVANT_VA2|$AVANT_VB" "$(etat "$VA2")|$(etat "$VB")"
+chk "le prestataire sans contrat avec A, même sur l'engin de sa zone : introuvable (095)" 404 "$(position "$VA" "$T_P" "$ICI")"
+chk "aucun des engins visés n'a bougé" "$AVANT_VA|$AVANT_VA2|$AVANT_VB" "$(etat "$VA")|$(etat "$VA2")|$(etat "$VB")"
+$PSQL -c "INSERT INTO utilisateur_communes (user_id, commune_id, contrat_reference) VALUES ('$PRE', '$A', 'TEST-CONTRAT-0003');" >/dev/null
 
 echo
 echo "2. Ce qui est refusé dans le corps"
@@ -144,7 +148,7 @@ chk "le directeur remonte la position de son engin" 200 "$(position "$VA" "$T_A"
 chk "… la position est écrite, un champ absent garde sa valeur (carburant à 40, état au dépôt)" "36.006|10.006|32.00|40.00|au_depot" \
     "$(sql "SELECT concat_ws('|', lat, lng, current_speed_kmh, fuel_level_percent, status) FROM vehicules WHERE id = '$VA'")"
 chk "la FNCT remonte une position" 200 "$(position "$VB" "$T_F" '{"lat":36.51,"lng":10.51}')"
-chk "le prestataire, dans sa zone, alors que sa commune principale est une autre" 200 \
+chk "le prestataire, dans sa zone, sous contrat avec A alors que sa commune principale est une autre" 200 \
     "$(position "$VA" "$T_P" '{"lat":36.007,"lng":10.007,"status":"en_tournee"}')"
 chk "le directeur B, rattaché à A en second : refusé avant le rattachement (introuvable)" 404 "$(position "$VA" "$T_B" "$ICI")"
 $PSQL -c "INSERT INTO utilisateur_communes (user_id, commune_id) VALUES ('$DIR_B', '$A');" >/dev/null

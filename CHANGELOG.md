@@ -24,7 +24,9 @@ Constats de la relecture de la v0.15.86 : le même défaut que la position des e
 - **Un contrat échu ne donne plus rien.** Un prestataire affecté gardait, après la fin de son contrat, ses
   réclamations transférées (lecture, données du citoyen comprises, et traitement) et les engins de ses secteurs : ces
   droits ne lisaient que l'affectation. Ils passent désormais aussi par `app.mes_communes()` (politiques de
-  `tickets`, `app.my_zone_ids()`, migration 095).
+  `tickets`, `app.my_zone_ids()`, migration 095). Un secteur ne donne donc ses engins à un prestataire que dans son
+  périmètre réel : la campagne `position-engins` pose désormais le contrat de son prestataire avec la commune du
+  secteur, et prouve d'abord qu'il ne trouve pas l'engin sans ce contrat.
 - **Une écriture de réclamation redit sa condition** : accepter, refuser, transférer ou traiter une réclamation qui a
   changé entre le chargement et l'écriture (décision, retrait) répond 409 au lieu d'écrire par-dessus la décision de
   la commune, ou de rendre 200 sans rien écrire en notifiant le citoyen.
