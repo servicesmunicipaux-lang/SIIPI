@@ -5,6 +5,29 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.88] — 2026-11-03 — Un contrat échu ne donne plus ses circuits
+
+Suite de la v0.15.87, relevée par sa relecture adversariale.
+
+### Corrigé
+- **Un circuit confié à un prestataire ne lui reste plus acquis après la fin de son contrat** (migration 096). Depuis
+  la migration 022, une commune peut confier un circuit à un prestataire rattaché en second par un contrat ; à la fin
+  du contrat, il lisait encore le circuit, ses points, ses constats et ses déclarations, déclarait de nouveaux
+  passages, et le retrouvait dans la confrontation et la performance. Ces droits passent désormais par
+  `app.mes_communes()` : `app.mes_circuits()` (qui porte les points et les déclarations de passage), les politiques
+  `circuits_select` et `controles_select`, et la branche « prestataire » de `app.confrontation_passages()` et
+  `app.performance_prestataires()`. Rien n'est retiré à la commune ni à la FNCT.
+- **L'auteur d'un incident** le lisait et le modifiait sans condition de périmètre : un prestataire, mais aussi un
+  directeur, gardait la main sur les incidents d'une commune qu'il ne sert plus. Même condition.
+
+### Vérifié
+- Campagne `circuits-fin-de-contrat` (13 contrôles) : contrat échu hier à Tunis ou qui commence demain, plus rien —
+  déclarer un passage (404), lire le circuit, ses points, constats, déclarations, l'incident, la confrontation et la
+  performance, écrire une déclaration ou modifier l'incident, en base sous le rôle de l'application ; puis le témoin,
+  contrat en cours, et la commune qui ne perd rien ; aucune ligne d'une commune réelle ne bouge, pendant puis en
+  partant. Sur le code d'avant, elle échouait 7 fois. L'inventaire des voies d'accès a été tiré des politiques et
+  fonctions en vigueur dans la base (`pg_policies`, `pg_proc`), pas des seules migrations.
+
 ## [0.15.87] — 2026-11-02 — Les rattachements secondaires : réclamations, secteurs, et le jour de Tunis
 
 Constats de la relecture de la v0.15.86 : le même défaut que la position des engins, sur deux autres domaines.
