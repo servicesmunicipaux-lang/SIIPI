@@ -1010,7 +1010,9 @@ registry.registerPath({
   tags: ['Flotte'],
   summary: 'Remonter la position d’un engin',
   description:
-    'Point d’entrée télématique (TDR §3.2.2, B2.5). Ces remontées sont volontairement exclues du journal d’audit : elles arrivent en continu et n’ont pas de valeur probante.',
+    'Point d’entrée télématique (TDR §3.2.2, B2.5). Ces remontées sont volontairement exclues du journal d’audit : elles arrivent en continu et n’ont pas de valeur probante. ' +
+    'Le périmètre est celui de la base : la commune et ses rattachements, la FNCT, le prestataire sur les engins de ses zones ; un engin hors du périmètre, retiré ou inconnu est introuvable (404). ' +
+    'La position doit être en Tunisie (latitude 30,2 à 37,6, longitude 7,5 à 11,7) ; un champ absent garde sa valeur.',
   security: SECURISE,
   request: {
     params: z.object({ id: z.string() }),
@@ -9047,7 +9049,7 @@ export function genererDocumentOpenApi() {
     openapi: '3.1.0',
     info: {
       title: "API du Système d'Information Intelligent pour la Propreté Intercommunale",
-      version: '0.15.85',
+      version: '0.15.86',
       description: [
         "API de la plateforme nationale de gestion des déchets ménagers et assimilés,",
         'portée par la Fédération Nationale des Communes Tunisiennes (FNCT) à travers le',

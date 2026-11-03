@@ -49,7 +49,7 @@ provenance, `releve_terrain`, jamais confondue avec un import de fichier.**
 | **E3** | L'import d'un fichier avec `remplacer` (le défaut) supprime logiquement **tous** les points du circuit, quelle que soit leur source, et impute la suppression par `req.user!.sub` (contraire à `CLAUDE.md` § 5). | Le jour où relevé et import coexistent, un import efface les relevés. | `backend/src/routes/pointsCollecte.routes.ts:429`, `:557-563` |
 | **E4** | Une trace importée (`gps_observe`) **remplace** l'itinéraire prévu (`kmz_prevu`) dans `circuits.trace`, sans date ni engin ; les heures des points de trace sont jetées. | La « voie de transition » (trace par application tierce) détruit l'itinéraire de référence au premier import. | `pointsCollecte.routes.ts:602-619`, `kml.ts:473-478` |
 | **E5** | Tout KML qui porte `<Track` est classé « trace » et ses marqueurs sont jetés ; tout KML qui porte des points horodatés est lu en « heure locale suivie de Z », quel que soit son producteur. Un KML OpenTracks (heure avec décalage, marqueurs) serait mal lu deux fois. | Toute application autre que celles de Dar Chaâbane et Djerba. | `kml.ts:468-494`, `kml.ts:381-384`, `kml.ts:559` |
-| **E6** | `PATCH /trucks/:id/position` contrôle le rattachement **principal** (`req.user!.communeId`) et non `app.mes_communes()`, répond 403 au lieu de 404, et laisse un prestataire déplacer n'importe quel engin de la commune. | Hors du jalon F ; signalé pour un lot à part. | `backend/src/routes/trucks.routes.ts:418-458` |
+| **E6** | `PATCH /trucks/:id/position` contrôle le rattachement **principal** (`req.user!.communeId`) et non `app.mes_communes()`, et répond 403 au lieu de 404. *Rectifié le 02/11/2026 :* un prestataire ne pouvait pas déplacer n'importe quel engin, la RLS de `vehicules` l'en empêchait déjà ; le contrôle de la route ne refusait que des comptes légitimes. | **Corrigé en v0.15.86** (campagne `position-engins`), avec les bornes du corps et la position retirée du journal d'audit (migration 094). | `backend/src/routes/trucks.routes.ts` |
 
 E1 et E2 sont le préalable **F0** (§ 5) : ils touchent l'espace citoyen et le portail en production
 avant même la première ligne du jalon F.
@@ -384,6 +384,5 @@ produit **aucun** point (`kml.ts:493`), et un point sans type est accepté par l
 
 ## 7. Hors du jalon F, signalé
 
-- **E6**, la route de position des engins (`trucks.routes.ts:418-458`) : lot à part.
 - **`agent_nom`** (`020:170-174`), prévu « tant que les chauffeurs n'ont pas de compte », n'est envoyé
   par aucun écran : son retrait par une migration nouvelle est à décider.
