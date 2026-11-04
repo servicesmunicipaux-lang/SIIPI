@@ -6323,7 +6323,8 @@ const ApercuImport = registry.register(
         .openapi({ description: 'Les couches du fichier (KML/KMZ), pour choisir laquelle importer. Vide pour un fichier sans dossiers.' }),
       ecrit: z.boolean().openapi({ description: 'false en aperçu : la base n\'a pas été touchée.' }),
       crees: z.number().int().optional(),
-      remplaces: z.number().int().optional(),
+      remplaces: z.number().int().optional().openapi({ description: "Points d'un import précédent retirés (remplacer = true). Seuls les points importés d'un fichier sont remplacés." }),
+      gardes: z.number().int().optional().openapi({ description: "Points restés sur le circuit avant l'ajout : en remplacement, ceux qui ne venaient pas d'un fichier (saisis à l'écran, proposés par un habitant)." }),
     })
     .passthrough()
     .openapi('ApercuImport')

@@ -134,7 +134,7 @@ export function CircuitImport({
     setErreur(null);
     try {
       const r = await api.importerKml(circuitId, { ...fichier, valider: true, remplacer, cible, ...optionsLecture(choix) });
-      setFait(t('communal.circuits.import.fait', { crees: r.crees ?? 0, remplaces: r.remplaces ?? 0 }));
+      setFait(t('communal.circuits.import.fait', { crees: r.crees ?? 0, remplaces: r.remplaces ?? 0, gardes: r.gardes ?? 0 }));
       setApercu(null);
       setFichier(null);
       setChoix({});

@@ -89,6 +89,11 @@ services:
       # que la tâche de conservation refuse d'utiliser tant que
       # « npm run medias:archive:initialiser » n'y a pas posé son témoin.
       - siipi_archive_froide:/var/siipi/archive
+      # Le service worker du front et la fonction qui lui appose sa version, en
+      # lecture seule : la campagne `service-worker` éprouve ces fichiers-là, et
+      # `proxy-https` les fait servir par le vrai Caddyfile.
+      - ./web/public:/web/public:ro
+      - ./web/scripts:/web/scripts:ro
     ports:
       - "4000:4000"
     depends_on:

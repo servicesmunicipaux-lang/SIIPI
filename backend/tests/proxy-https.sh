@@ -43,10 +43,17 @@ chk() {
 
 command -v caddy >/dev/null 2>&1 || apk add -q --no-cache caddy >/dev/null 2>&1 || { echo "Caddy introuvable." >&2; exit 1; }
 
-# Un front construit, en miniature : l'index, le service worker, un fichier à empreinte.
+# Un front construit, en miniature : l'index, un fichier à empreinte, et LE service
+# worker du front, version apposée par la fonction de la construction (jusqu'à la
+# v0.15.88, un factice d'une ligne : le vrai n'était servi par aucune campagne).
 mkdir -p "$T/racine/assets"
 printf '<!doctype html><title>SIIPI</title><div id="racine">INDEX-SIIPI</div>\n' > "$T/racine/index.html"
-printf 'self.addEventListener("fetch", () => {});\n' > "$T/racine/sw.js"
+[ -f /web/public/sw.js ] && [ -f /web/scripts/version-service-worker.mjs ] || {
+  echo "web/public et web/scripts ne sont pas montés dans le conteneur api : recréez-le (docker compose up -d api)." >&2; exit 1; }
+node --input-type=module -e "
+  import { readFileSync, writeFileSync } from 'node:fs';
+  import { apposerVersion } from '/web/scripts/version-service-worker.mjs';
+  writeFileSync(process.argv[1], apposerVersion(readFileSync('/web/public/sw.js', 'utf8'), 'essaiproxy0001'));" "$T/racine/sw.js" || exit 1
 printf 'console.log("app");\n' > "$T/racine/assets/app-3f9a2c.js"
 printf '<!doctype html><title>SIIPI</title>MAINTENANCE-SIIPI\n' > "$T/racine/maintenance.html"
 mkdir -p "$T/maintenance"
@@ -100,6 +107,8 @@ chk "le front est servi à /" 1 "$(curl -s --cacert "$T/ca.crt" "$SITE/" | grep 
 chk "une adresse inconnue rend l'index (application d'une seule page)" 1 \
     "$(curl -s --cacert "$T/ca.crt" "$SITE/observatoire/bibliotheque" | grep -c INDEX-SIIPI)"
 chk "le service worker n'est jamais mis en cache" no-cache "$(entete /sw.js cache-control)"
+chk "… et c'est le vrai, versionné, servi comme un script" "1|text/javascript" \
+    "$(curl -s --cacert "$T/ca.crt" "$SITE/sw.js" | grep -c "siipi-essaiproxy0001")|$(entete /sw.js content-type | cut -d';' -f1)"
 chk "un fichier construit se garde longtemps" "public, max-age=31536000, immutable" "$(entete /assets/app-3f9a2c.js cache-control)"
 chk "HSTS est posé" "max-age=31536000" "$(entete / strict-transport-security)"
 chk "Caddy ne dit pas ce qu'il est" "" "$(entete / server)"

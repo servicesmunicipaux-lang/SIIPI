@@ -39,6 +39,22 @@ export function ecrireJeton(jeton: string | null): void {
   } catch {
     // Sans stockage, la session ne survit pas au rechargement.
   }
+  void purgerDonneesHorsLigne();
+}
+
+// Les lectures gardées hors ligne par le service worker (horaires, adresse,
+// annonces du citoyen) sont rangées sous leur adresse, sans le jeton : sur un
+// appareil partagé, le compte suivant les relirait hors ligne. Elles partent
+// donc à chaque changement de session — connexion, déconnexion, expiration. Le
+// suffixe est celui de public/sw.js.
+async function purgerDonneesHorsLigne(): Promise<void> {
+  try {
+    if (!('caches' in window)) return;
+    const cles = await window.caches.keys();
+    await Promise.all(cles.filter((c) => c.endsWith('-donnees')).map((c) => window.caches.delete(c)));
+  } catch {
+    // Un navigateur qui refuse l'accès aux caches n'en a rangé aucun.
+  }
 }
 
 // UNE SESSION EXPIRÉE SE FERME. Le jeton vaut huit heures (JWT_EXPIRES_IN).

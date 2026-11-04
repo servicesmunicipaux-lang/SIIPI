@@ -1,4 +1,5 @@
-/* Service worker de l'application citoyenne.
+/* Service worker de SIIPI : portail communal, observatoire et espace citoyen,
+ * qui partagent une seule origine.
  *
  * Deux objectifs, et deux seulement :
  *
@@ -8,90 +9,148 @@
  *     c'est l'unique information dont on a besoin au moment précis où l'on
  *     n'a pas de réseau.
  *
- * Ce qu'il ne fait PAS : mettre en cache les écritures. Un signalement qui
- * semblerait « envoyé » alors qu'il dort dans un cache serait pire que pas de
- * signalement du tout — le citoyen croirait la commune prévenue.
+ * Ce qu'il ne fait PAS :
+ *
+ *  - mettre en cache les écritures. Un signalement qui semblerait « envoyé »
+ *    alors qu'il dort dans un cache serait pire que pas de signalement du
+ *    tout — le citoyen croirait la commune prévenue ;
+ *  - servir l'API. Depuis que l'API est sous /api, sur l'origine du site, la
+ *    version précédente resservait toute réponse lue une fois, indéfiniment,
+ *    rangée sous son adresse sans le jeton : le compte suivant d'un appareil
+ *    partagé lisait celle du précédent, un 401 ou un 500 passait pour une
+ *    réponse, et le « no-store » des impressions était contourné (E1). Seules
+ *    les trois lectures citoyennes ci-dessous passent par lui, réseau d'abord ;
+ *  - garder les tuiles des fonds de carte. Elles se gardent dans le cache HTTP
+ *    du navigateur, qui respecte la durée que leur fixe le serveur de tuiles ;
+ *    le cache du service worker les gardait sans fin, et une tuile d'une autre
+ *    origine y pèse bien plus que ses octets.
  */
 
-const VERSION = 'siipi-v1';
+// La version est apposée à la construction (web/scripts/version-service-worker.mjs) :
+// elle change avec le front. Figée, elle laissait chaque appareil déjà venu sur
+// la première version installée, pour toujours (E2).
+const VERSION = 'siipi-__VERSION_CONSTRUCTION__';
 const COQUILLE = `${VERSION}-coquille`;
+// Le suffixe « -donnees » est aussi celui que la page purge quand le jeton
+// change (web/src/lib/api.ts) : ne pas le renommer d'un seul côté.
 const DONNEES = `${VERSION}-donnees`;
 
 // Chemins de l'API dont la dernière réponse connue peut être resservie hors
-// ligne. Liste explicite : rien n'y entre par accident.
-const LECTURES_HORS_LIGNE = ['/citoyen/horaires', '/citoyen/adresse', '/citoyen/annonces'];
+// ligne. Liste explicite, chemins exacts : rien n'y entre par accident.
+const LECTURES_HORS_LIGNE = ['/api/citoyen/horaires', '/api/citoyen/adresse', '/api/citoyen/annonces'];
+
+// Une réponse ne se range que si elle est bonne et que le serveur ne l'interdit
+// pas : une erreur rangée serait resservie hors ligne comme si elle était vraie.
+function rangeable(reponse) {
+  return reponse.status === 200 && !/no-store/i.test(reponse.headers.get('Cache-Control') || '');
+}
+
+async function ranger(nomCache, requete, reponse) {
+  const cache = await caches.open(nomCache);
+  await cache.put(requete, reponse);
+}
+
+async function garde(nomCache, requete) {
+  const cache = await caches.open(nomCache);
+  return cache.match(requete);
+}
+
+// L'index et les fichiers qu'il charge : sans eux, l'application ne s'ouvrirait
+// pas hors ligne la première fois, puisque la page qui a installé le service
+// worker les avait déjà reçus sans passer par lui.
+async function installerCoquille() {
+  const cache = await caches.open(COQUILLE);
+  const reponse = await fetch('/index.html');
+  if (!rangeable(reponse)) throw new Error(`index.html : ${reponse.status}`);
+  const texte = await reponse.clone().text();
+  const fichiers = new Set(['/manifest.webmanifest']);
+  for (const [, chemin] of texte.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)) fichiers.add(chemin);
+  await cache.put('/index.html', reponse);
+  await cache.addAll([...fichiers]);
+}
 
 self.addEventListener('install', (evenement) => {
-  evenement.waitUntil(
-    caches.open(COQUILLE).then((cache) => cache.addAll(['/', '/index.html', '/manifest.webmanifest']))
-  );
+  evenement.waitUntil(installerCoquille());
   void self.skipWaiting();
 });
 
+// Les caches d'une autre version partent, données comprises : une version
+// nouvelle ne lit rien de ce qu'une ancienne a rangé.
 self.addEventListener('activate', (evenement) => {
   evenement.waitUntil(
     caches
       .keys()
       .then((cles) =>
-        Promise.all(cles.filter((c) => !c.startsWith(VERSION)).map((c) => caches.delete(c)))
+        Promise.all(
+          cles
+            .filter((c) => c.startsWith('siipi-') && c !== COQUILLE && c !== DONNEES)
+            .map((c) => caches.delete(c))
+        )
       )
       .then(() => self.clients.claim())
   );
 });
+
+// Le réseau d'abord : l'horaire a pu changer ce matin. Le cache seulement si le
+// réseau est injoignable — une réponse du serveur, même une erreur, est rendue
+// telle quelle.
+async function reseauDAbord(requete, nomCache) {
+  let reponse;
+  try {
+    reponse = await fetch(requete);
+  } catch {
+    return (await garde(nomCache, requete)) || Response.error();
+  }
+  if (rangeable(reponse)) await ranger(nomCache, requete, reponse.clone());
+  return reponse;
+}
+
+// Une page : toujours le réseau, pour qu'une version nouvelle du front arrive
+// au premier chargement ; l'index gardé seulement hors ligne. La page de
+// maintenance (503) passe donc telle quelle.
+async function page(requete) {
+  try {
+    return await fetch(requete);
+  } catch {
+    return (await garde(COQUILLE, '/index.html')) || Response.error();
+  }
+}
+
+// Un fichier construit porte son empreinte dans son nom : il ne change jamais.
+// Le frontal rend l'index (200, HTML) pour un fichier qui n'existe plus : il ne
+// se range pas sous le nom d'un script.
+async function fichierConstruit(requete) {
+  const deja = await garde(COQUILLE, requete);
+  if (deja) return deja;
+  const reponse = await fetch(requete);
+  const html = (reponse.headers.get('Content-Type') || '').startsWith('text/html');
+  if (rangeable(reponse) && !html) await ranger(COQUILLE, requete, reponse.clone());
+  return reponse;
+}
 
 self.addEventListener('fetch', (evenement) => {
   const requete = evenement.request;
   if (requete.method !== 'GET') return; // les écritures passent toujours par le réseau
 
   const url = new URL(requete.url);
+  if (url.origin !== self.location.origin) return;
 
-  // Données de l'API : le réseau d'abord (l'horaire a pu changer ce matin),
-  // le cache seulement s'il est injoignable.
-  if (LECTURES_HORS_LIGNE.some((chemin) => url.pathname.endsWith(chemin))) {
-    evenement.respondWith(
-      fetch(requete)
-        .then((reponse) => {
-          const copie = reponse.clone();
-          void caches.open(DONNEES).then((cache) => cache.put(requete, copie));
-          return reponse;
-        })
-        .catch(() => caches.match(requete).then((c) => c || Response.error()))
-    );
+  if (LECTURES_HORS_LIGNE.includes(url.pathname)) {
+    evenement.respondWith(reseauDAbord(requete, DONNEES));
     return;
   }
+  if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return;
 
-  // Tuiles de fond de carte : le cache d'abord, elles ne changent jamais.
-  if (url.hostname.endsWith('tile.openstreetmap.org')) {
-    evenement.respondWith(
-      caches.match(requete).then(
-        (cache) =>
-          cache ||
-          fetch(requete).then((reponse) => {
-            const copie = reponse.clone();
-            void caches.open(DONNEES).then((c) => c.put(requete, copie));
-            return reponse;
-          })
-      )
-    );
+  if (requete.mode === 'navigate') {
+    evenement.respondWith(page(requete));
     return;
   }
-
-  // Coquille de l'application : cache d'abord, réseau en secours.
-  if (url.origin === self.location.origin) {
-    evenement.respondWith(
-      caches.match(requete).then(
-        (cache) =>
-          cache ||
-          fetch(requete)
-            .then((reponse) => {
-              const copie = reponse.clone();
-              void caches.open(COQUILLE).then((c) => c.put(requete, copie));
-              return reponse;
-            })
-            .catch(() => caches.match('/index.html'))
-      )
-    );
+  if (url.pathname.startsWith('/assets/')) {
+    evenement.respondWith(fichierConstruit(requete));
+    return;
   }
+  // Le reste de l'origine (manifeste, icônes) : réseau d'abord.
+  evenement.respondWith(reseauDAbord(requete, COQUILLE));
 });
 
 /* Notifications push (Jalon 2, lot 1).

@@ -339,10 +339,12 @@ pointsRouter.delete(
   requireAuth,
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
     const supprime = await queryOne<{ id: string }>(
       `UPDATE points_collecte SET deleted_at = now(), deleted_by = $1
         WHERE id = $2 AND circuit_id = $3 AND deleted_at IS NULL RETURNING id`,
-      [req.user!.sub, req.params.pointId, req.params.id]
+      [qui.sub, req.params.pointId, req.params.id]
     );
     if (!supprime) throw new ApiError(404, 'Point introuvable.');
     res.status(204).end();
@@ -389,6 +391,8 @@ pointsRouter.delete(
   requireAuth,
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
     const circuit = await queryOne<{ id: string }>(
       'SELECT id FROM circuits WHERE id = $1 AND deleted_at IS NULL',
       [req.params.id]
@@ -399,7 +403,7 @@ pointsRouter.delete(
       `UPDATE points_collecte SET deleted_at = now(), deleted_by = $1
         WHERE circuit_id = $2 AND deleted_at IS NULL
         RETURNING id`,
-      [req.user!.sub, req.params.id]
+      [qui.sub, req.params.id]
     );
 
     // La provenance ne survit pas aux arrêts qu'elle décrivait : laisser
@@ -425,7 +429,9 @@ const importSchema = z.object({
   // false = aperçu, rien n'est écrit. C'est la valeur par défaut, à dessein :
   // un import qui écrit sans qu'on l'ait demandé est un import qu'on subit.
   valider: z.boolean().default(false),
-  // À la validation : remplacer les points existants, ou les compléter.
+  // À la validation : remplacer les points venus d'un import précédent, ou les
+  // compléter. Un point saisi à l'écran ou proposé par un habitant n'est jamais
+  // remplacé par un fichier : il n'en vient pas (E3, SPEC_F_releve_terrain.md).
   remplacer: z.boolean().default(true),
   // CE QUE L'ON POSE.
   //
@@ -463,6 +469,8 @@ pointsRouter.post(
   requireRole('admin_commune', 'super_admin_fnct'),
   asyncHandler(async (req, res) => {
     const d = importSchema.parse(req.body);
+    const qui = req.user;
+    if (!qui) throw new ApiError(401, 'Authentification requise.');
     const circuit = await queryOne<{ commune_id: string; nom: string }>(
       'SELECT commune_id, nom FROM circuits WHERE id = $1 AND deleted_at IS NULL',
       [req.params.id]
@@ -557,24 +565,23 @@ pointsRouter.post(
       if (d.remplacer && posePoints) {
         const r = await client.query(
           `UPDATE points_collecte SET deleted_at = now(), deleted_by = $1
-            WHERE circuit_id = $2 AND deleted_at IS NULL`,
-          [req.user!.sub, req.params.id]
+            WHERE circuit_id = $2 AND source = 'import_kml' AND deleted_at IS NULL`,
+          [qui.sub, req.params.id]
         );
         remplaces = r.rowCount ?? 0;
       }
 
-      // En mode complément, les nouveaux points prennent la suite.
-      const depart = d.remplacer
-        ? 0
-        : Number(
-            (
-              await client.query(
-                `SELECT COALESCE(max(ordre), 0) AS m FROM points_collecte
-                  WHERE circuit_id = $1 AND deleted_at IS NULL`,
-                [req.params.id]
-              )
-            ).rows[0].m
-          );
+      // Les nouveaux points prennent la suite de ceux qui restent : en complément,
+      // tous ; en remplacement, ceux qui ne venaient pas d'un fichier. L'ordre
+      // d'un point gardé ne bouge pas.
+      const restants = (
+        await client.query<{ m: string; n: string }>(
+          `SELECT COALESCE(max(ordre), 0) AS m, count(*) AS n FROM points_collecte
+            WHERE circuit_id = $1 AND deleted_at IS NULL`,
+          [req.params.id]
+        )
+      ).rows[0];
+      const depart = Number(restants.m);
 
       for (const p of posePoints ? lu.points : []) {
         await client.query(
@@ -629,7 +636,7 @@ pointsRouter.post(
         );
       }
 
-      return { remplaces, crees: posePoints ? lu.points.length : 0 };
+      return { remplaces, gardes: Number(restants.n), crees: posePoints ? lu.points.length : 0 };
     });
 
     res.status(201).json({ ...apercu, ecrit: true, ...resultat });

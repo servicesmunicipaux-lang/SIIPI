@@ -1220,9 +1220,9 @@
         "points": "Arrêts",
         "voyages": "Voyages",
         "trace": "Sommets du tracé",
-        "remplacer": "Remplacer les arrêts existants (sinon ils sont complétés)",
+        "remplacer": "Remplacer les arrêts importés d’un fichier (sinon ils sont complétés). Les arrêts saisis à l’écran ou proposés par un habitant sont toujours gardés.",
         "valider": "Importer",
-        "fait": "{{crees}} arrêt(s) importé(s), {{remplaces}} remplacé(s).",
+        "fait": "{{crees}} arrêt(s) importé(s), {{remplaces}} remplacé(s), {{gardes}} gardé(s).",
         "reste": "… et {{n}} arrêt(s) de plus.",
         "familles": {
           "waypoints": "Relevé d’arrêts",

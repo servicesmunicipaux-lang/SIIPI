@@ -1,6 +1,28 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
+import { apposerVersion, versionDeConstruction } from './scripts/version-service-worker.mjs';
+
+// Le service worker est copié tel quel depuis public/ : sa version s'appose une
+// fois tout écrit, quand l'index construit existe.
+function versionnerServiceWorker(): Plugin {
+  let sortie = 'dist';
+  return {
+    name: 'siipi-version-service-worker',
+    apply: 'build',
+    configResolved(config) {
+      sortie = resolve(config.root, config.build.outDir);
+    },
+    closeBundle() {
+      const chemin = join(sortie, 'sw.js');
+      const serviceWorker = readFileSync(chemin, 'utf8');
+      const version = versionDeConstruction(readFileSync(join(sortie, 'index.html')), serviceWorker);
+      writeFileSync(chemin, apposerVersion(serviceWorker, version));
+    },
+  };
+}
 
 // Cible de l'API, vue depuis le serveur de développement — pas depuis le
 // navigateur. Dans Docker, l'API s'appelle « api » sur le réseau interne ;
@@ -8,7 +30,7 @@ import { defineConfig } from 'vite';
 const CIBLE_API = process.env.SIIPI_API_TARGET || 'http://localhost:4000';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), versionnerServiceWorker()],
   server: {
     port: 3000,
     host: '0.0.0.0',

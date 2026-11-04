@@ -5,6 +5,48 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.89] — 2026-11-04 — Jalon F, lot F0 : le service worker, et un import qui ne remplace que l'importé
+
+Le préalable du jalon F (`docs/specs_metier/SPEC_F_releve_terrain.md`, § 1.1 et § 5) : deux défauts qui touchent
+l'espace citoyen et le portail dès la première instance de production, et un défaut de l'import qui effacerait les
+relevés de terrain. Aucune décision n'en dépendait.
+
+### Corrigé
+- **Le service worker ne sert plus l'API** (E1, `web/public/sw.js` réécrit). Il n'est enregistré qu'en production, et
+  aucune pile d'essai ne l'exécutait. Depuis que l'API est sous `/api`, sur l'origine du site, il servait depuis son
+  cache toute réponse lue une fois, sans fin : rangée sous son adresse sans le jeton, elle était lisible par le compte
+  suivant d'un appareil partagé ; un 401 ou un 500 était rangé comme une réponse ; le `no-store` des impressions était
+  contourné. Désormais `/api/*` va toujours au réseau, sauf les trois lectures citoyennes gardées hors ligne
+  (horaires, adresse, annonces), réseau d'abord ; une réponse ne se range que si elle vaut 200 sans `no-store`, et
+  une erreur n'est jamais resservie hors ligne.
+- **Une version nouvelle du front arrive** (E2). La version du service worker était figée (`siipi-v1`) et la page
+  servie depuis le cache : un appareil déjà venu restait sur la première version installée. La version est désormais
+  apposée à la construction (`web/scripts/version-service-worker.mjs`, greffon de `vite.config.ts` : empreinte de
+  l'index construit et du service worker ; une marque absente ou répétée arrête la construction) ; une page est
+  toujours prise au réseau, l'index gardé ne sert que hors ligne ; à l'activation, les caches des autres versions
+  partent, données comprises.
+- **Les données gardées hors ligne partent à chaque changement de session** — connexion, déconnexion, expiration
+  (`web/src/lib/api.ts`).
+- **Les tuiles des fonds de carte ne sont plus gardées par le service worker** : il les gardait sans fin, quand le
+  cache HTTP du navigateur respecte la durée que fixe le serveur de tuiles, et une tuile d'une autre origine pèse
+  bien plus que ses octets dans le cache d'un service worker. La carte hors ligne reste le lot F1e.
+- **L'installation garde de quoi ouvrir l'application hors ligne** : l'index, le manifeste et les fichiers que
+  l'index charge — la page qui installe le service worker les avait reçus sans passer par lui.
+- **Un import de fichier ne remplace plus que les arrêts venus d'un import** (E3). Avec « remplacer » (le défaut), il
+  retirait tous les arrêts du circuit : un arrêt saisi à l'écran ou proposé par un habitant disparaissait au premier
+  fichier, et demain un arrêt relevé sur le terrain. Les arrêts gardés gardent leur rang, les nouveaux prennent la
+  suite ; la réponse dit combien sont gardés (`gardes`, contrat et écran). Les retraits de l'import et des routes de
+  retrait d'arrêts sont imputés sans `req.user!` (CLAUDE.md § 5).
+
+### Vérifié
+- Campagne `service-worker` : elle exécute **le** `sw.js` du dépôt, version apposée par la fonction de la
+  construction, dans un banc où le réseau et les caches sont simulés (`tests/outils/banc_service_worker.mjs`).
+- Campagne `proxy-https` : le vrai Caddyfile sert le vrai service worker, versionné (jusqu'ici un factice d'une ligne).
+- Campagne `import-remplacement` : un import qui remplace ne retire aucun arrêt saisi ni proposé, ne change pas leur
+  rang, impute ses retraits ; le complément n'en retire aucun.
+- `docker-compose.yml` monte `web/public` et `web/scripts` en lecture seule dans le conteneur `api`, pour que les
+  campagnes lisent ces fichiers-là : le conteneur se recrée une fois (`docker compose up -d api`, ou `DEMARRER.bat`).
+
 ## [0.15.88] — 2026-11-03 — Un contrat échu ne donne plus ses circuits
 
 Suite de la v0.15.87, relevée par sa relecture adversariale.
