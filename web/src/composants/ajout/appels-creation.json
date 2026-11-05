@@ -70,5 +70,8 @@
   ],
   "boitier-gps": [
     "rattacherBoitierGps"
+  ],
+  "grille-tarifaire": [
+    "creerGrilleTarifaire"
   ]
 }

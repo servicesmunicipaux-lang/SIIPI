@@ -338,6 +338,87 @@
       },
       "unites": {
         "mois": "mois"
+      },
+      "assimiles": {
+        "titre": "Déchets assimilés : catégories, flux, base légale",
+        "aide": "Les listes nationales sur lesquelles les communes bâtissent leurs grilles tarifaires et, demain, leurs conventions de propreté. Un élément ne se réécrit pas : il se ferme à une date, avec le texte qui en décide, ou se retire s'il avait été saisi à tort.",
+        "aideAjout": "Un élément officiel cite le texte qui le fonde ; sinon, il reste provisoire. Le code ne change plus une fois inscrit.",
+        "vide": "Aucun élément dans cette liste pour l'instant.",
+        "provisoire": "Provisoire",
+        "dangereux": "Dangereux",
+        "nonDangereux": "Non dangereux",
+        "cesseLe": "Cesse de s’appliquer le {{date}}.",
+        "unitesEchelle": "Unités d’échelle : {{liste}}",
+        "publieLe": "Publié au JORT le {{date}}.",
+        "publicationNonRenseignee": "Date de publication non renseignée.",
+        "applicationFixeePar": "Date d’application fixée par : {{texte}}",
+        "finPar": "Fin décidée par : {{texte}}",
+        "motifRetrait": "Retiré : {{motif}}",
+        "listes": {
+          "categories_activite_assimiles": {
+            "titre": "Catégories d’activité",
+            "aide": "Les catégories des établissements (café, hôtel, marché…), chacune avec les unités d'échelle du WaCT qu'elle admet. Une grille tarifaire ne cite qu'une catégorie en vigueur à sa date d'effet."
+          },
+          "flux_assimiles": {
+            "titre": "Flux de déchets assimilés",
+            "aide": "Les flux qu'une convention de propreté peut couvrir. Un flux dangereux va vers sa filière : une convention ne le couvre jamais."
+          },
+          "base_legale_assimiles": {
+            "titre": "Base légale des conventions",
+            "aide": "Les textes sur lesquels reposent les conventions, avec leur publication au JORT et leur date d'application. Un texte publié dont l'application attend un événement reste « en attente » : il n'est jamais en vigueur avant que sa date soit fixée, avec sa pièce."
+          }
+        },
+        "etats": {
+          "en_vigueur": "En vigueur depuis le {{date}}",
+          "a_venir": "À venir, le {{date}}",
+          "en_attente": "En attente : date d’application non fixée",
+          "ferme": "Fermé le {{date}}",
+          "retire": "Retiré"
+        },
+        "unites": {
+          "chambre": "chambres",
+          "lit": "lits",
+          "chaise": "chaises",
+          "table": "tables",
+          "etal": "étals",
+          "m2": "m²",
+          "eleve": "élèves",
+          "employe": "employés"
+        },
+        "champs": {
+          "libelleFr": "Libellé en français",
+          "libelleAr": "Libellé en arabe",
+          "code": "Code",
+          "ordre": "Ordre d’affichage",
+          "dateEffet": "Date d’effet",
+          "dateApplication": "Date d’application",
+          "datePublication": "Date de publication au JORT",
+          "sansDate": "Date d’application pas encore connue (le texte attend un événement)",
+          "unites": "Unités d’échelle admises (au moins une)",
+          "dangereux": "Flux dangereux : à orienter vers sa filière, jamais couvert par une convention",
+          "reference": "Texte qui fonde l’élément",
+          "referenceJort": "Référence de publication (JORT)",
+          "dateFin": "Date de fin",
+          "texteFin": "Texte qui y met fin",
+          "pieceApplication": "Pièce qui fixe la date d’application",
+          "motif": "Motif du retrait"
+        },
+        "gestes": {
+          "ajouter": "Ajouter",
+          "fixer": "Fixer la date d’application",
+          "fermer": "Fermer à une date",
+          "retirer": "Retirer",
+          "confirmerFin": "Fermer",
+          "confirmerApplication": "Fixer la date",
+          "confirmerRetrait": "Retirer",
+          "annuler": "Annuler"
+        },
+        "messages": {
+          "ajoute": "Élément ajouté.",
+          "ferme": "Élément fermé.",
+          "applicationFixee": "Date d’application fixée.",
+          "retire": "Élément retiré."
+        }
       }
     },
     "moyenneNationale": {
@@ -1014,7 +1095,8 @@
       "maCommune": "Ma commune dans SIIPI",
       "wapla": "Bilan de planification (WaPla)",
       "documents": "Documents",
-      "gps": "Intégration GPS"
+      "gps": "Intégration GPS",
+      "grillesTarifaires": "Grilles tarifaires"
     },
     "etats": {
       "fait": "Fait",
@@ -3027,6 +3109,74 @@
         "informel_duree_periode_transitoire_mois": "durée de la période transitoire",
         "informel_delai_etalonnage_mois": "délai d’étalonnage des instruments de pesée"
       }
+    },
+    "grilles": {
+      "titre": "Grilles tarifaires",
+      "chapeau": "Les tarifs des conventions de propreté, arrêté par arrêté. Une grille ne s'applique qu'une fois l'approbation de la tutelle enregistrée ; elle est alors figée, et un nouvel arrêté fait une nouvelle grille.",
+      "lectureSeule": "Lecture seule : les grilles sont enregistrées par le directeur de la commune.",
+      "nouvelle": "Nouvelle grille",
+      "aucune": "Aucune grille tarifaire pour l’instant.",
+      "etats": {
+        "projet": "Projet",
+        "a_venir": "Approuvée, à venir",
+        "en_vigueur": "En vigueur",
+        "close": "Close",
+        "aide": {
+          "projet": "Ne s’applique pas tant que l’approbation de la tutelle n’est pas enregistrée.",
+          "a_venir": "Approuvée ; ses tarifs s’appliqueront à sa date d’effet.",
+          "en_vigueur": "Approuvée ; ses tarifs s’appliquent aujourd’hui.",
+          "close": "Approuvée, puis remplacée : ses tarifs ne s’appliquent plus."
+        }
+      },
+      "arrete": "Arrêté {{reference}} du {{date}}",
+      "deliberation": "délibération {{reference}} du {{date}}",
+      "periodeOuverte": "À partir du {{debut}}",
+      "periodeBornee": "Du {{debut}} au {{fin}} (exclu)",
+      "projetNeSappliquePas": "Projet : cette grille ne s'applique pas tant que l'approbation de la tutelle n'est pas enregistrée.",
+      "approuvee": "Approuvée par la tutelle le {{date}} ({{reference}})",
+      "closePar": "Close par : {{texte}}",
+      "sansTarif": "Aucun tarif dans cette grille.",
+      "tableau": "Les tarifs de l’arrêté {{reference}}",
+      "colonnes": {
+        "categorie": "Catégorie d’activité",
+        "mode": "Mode",
+        "tarif": "Tarif",
+        "majorations": "Majorations"
+      },
+      "aucuneMajoration": "aucune",
+      "majorationEnMots": "{{rang}}. {{critere}}, {{tranche}} : {{effet}}",
+      "tranches": {
+        "entre": "de {{min}} à {{max}} (exclu)",
+        "aPartirDe": "à partir de {{min}}"
+      },
+      "effets": {
+        "coefficient": "× {{valeur}}",
+        "ajout": "+ {{valeur}} {{unite}}"
+      },
+      "aideApprobation": "Enregistrez l'approbation reçue de la tutelle : sa date et sa pièce. La grille est ensuite figée ; une période déjà couverte par une autre grille approuvée est refusée.",
+      "aideCloture": "Un nouvel arrêté remplace cette grille : sa date de fin (premier jour où elle ne s'applique plus) et la pièce qui en décide, une seule fois.",
+      "champs": {
+        "dateApprobation": "Date de l’approbation",
+        "pieceApprobation": "Pièce de l’approbation (lettre, visa)",
+        "dateFin": "Date de fin",
+        "pieceCloture": "Pièce (le nouvel arrêté)"
+      },
+      "gestes": {
+        "modifier": "Modifier le projet",
+        "approuver": "Enregistrer l’approbation",
+        "retirer": "Retirer le projet",
+        "clore": "Clore à une date",
+        "confirmerApprobation": "Enregistrer l’approbation",
+        "confirmerCloture": "Clore",
+        "confirmerRetrait": "Retirer ce projet de grille ? Il restera lisible dans l’historique."
+      },
+      "messages": {
+        "enregistree": "Projet de grille enregistré.",
+        "modifiee": "Projet de grille modifié.",
+        "approuvee": "Approbation enregistrée : la grille est figée.",
+        "close": "Grille close.",
+        "retiree": "Projet de grille retiré."
+      }
     }
   },
   "ajout": {
@@ -3128,14 +3278,16 @@
       "ordre-mission": "Un ordre de mission",
       "bon-travail": "Un bon de travail",
       "declaration-panne": "Une déclaration de panne",
-      "boitier-gps": "Un boîtier GPS"
+      "boitier-gps": "Un boîtier GPS",
+      "grille-tarifaire": "Grille tarifaire"
     },
     "precisions": {
       "circuit": "Avec son fichier GPX, KML ou GeoJSON",
       "lieu": "Marché, cimetière, abattoir, école, centre de santé",
       "ordre-mission": "numéroté, imprimable",
       "bon-travail": "maintenance d’un engin, numéroté",
-      "declaration-panne": "panne d’un engin, numérotée"
+      "declaration-panne": "panne d’un engin, numérotée",
+      "grille-tarifaire": "Tarifs des conventions de propreté, par arrêté"
     },
     "position": {
       "aide": "Cliquez sur la carte pour poser la position.",
@@ -3220,6 +3372,95 @@
       "bouton": "Importer le personnel",
       "format": "Un fichier CSV de quatre colonnes : Nom, Prénom, Fonction, Statut (en-têtes en français ou en arabe). Un agent déjà inscrit n’est pas créé une seconde fois.",
       "jamais": "Le fichier est refusé s’il porte un salaire, un numéro de CIN, une donnée de santé, une adresse ou un téléphone : SIIPI ne les garde jamais (loi organique n° 2004-63). Retirez ces colonnes avant l’envoi."
+    },
+    "grilleTarifaire": {
+      "titre": "Nouvelle grille tarifaire",
+      "titreModification": "Modifier le projet de grille",
+      "aide": "Un arrêté municipal, ses tarifs par catégorie d'activité et leurs majorations. La grille ne s'applique qu'une fois l'approbation de la tutelle enregistrée ; elle est alors figée.",
+      "intitule": "Intitulé (facultatif)",
+      "referenceArrete": "Référence de l’arrêté municipal",
+      "dateArrete": "Date de l’arrêté",
+      "referenceDeliberation": "Référence de la délibération (facultatif)",
+      "dateDeliberation": "Date de la délibération",
+      "dateEffet": "Date d’effet des tarifs",
+      "dateFin": "Date de fin (facultatif)",
+      "tarifs": "Les tarifs",
+      "aideTarifs": "Un tarif par catégorie d'activité. Son unité découle du mode : par an, par mois, par levée, ou par tonne réellement pesée.",
+      "dateEffetDabord": "Saisissez d’abord la date d’effet : les catégories proposées sont celles en vigueur à cette date.",
+      "aucuneCategorie": "Aucune catégorie d'activité n'est en vigueur à cette date dans la liste nationale.",
+      "sansTarif": "Aucun tarif pour l’instant : une grille sans tarif reste un projet, elle ne s’approuve pas.",
+      "ligne": "Tarif {{n}}",
+      "categorie": "Catégorie d’activité",
+      "choisirCategorie": "Choisir une catégorie",
+      "horsListe": "{{libelle}} — plus en vigueur à cette date",
+      "horsListeAide": "Cette catégorie n'est pas en vigueur à la date d'effet : choisissez-en une autre, ou corrigez la date.",
+      "mode": "Mode",
+      "choisirMode": "Choisir un mode",
+      "tarif": "Tarif",
+      "modes": {
+        "forfait_annuel": "Forfait annuel",
+        "forfait_mensuel": "Forfait mensuel",
+        "reel_levee": "Réel, à la levée",
+        "reel_poids": "Réel, au poids pesé"
+      },
+      "unites": {
+        "forfait_annuel": "DT/an",
+        "forfait_mensuel": "DT/mois",
+        "reel_levee": "DT par levée",
+        "reel_poids": "DT par tonne pesée"
+      },
+      "majorations": "Majorations",
+      "aucuneMajoration": "Aucune majoration : le tarif s’applique tel quel.",
+      "aideMajorations": "Les tranches vont de leur borne basse (comprise) à leur borne haute (exclue). Les tranches d’un même critère partagent un rang ; deux critères n’ont pas le même.",
+      "majoration": "Majoration {{m}}",
+      "critere": "Critère",
+      "choisirCritere": "Choisir un critère",
+      "criteres": {
+        "surface_m2": "Surface",
+        "frequence_hebdo": "Fréquence de collecte",
+        "capacite_conteneur_l": "Capacité du conteneur",
+        "nb_points_vente": "Points de vente"
+      },
+      "unitesCriteres": {
+        "surface_m2": "m²",
+        "frequence_hebdo": "passages par semaine",
+        "capacite_conteneur_l": "litres",
+        "nb_points_vente": "nombre"
+      },
+      "borneMin": "De",
+      "borneMax": "À (exclu)",
+      "sansPlafond": "sans plafond",
+      "effet": "Effet",
+      "choisirEffet": "Choisir un effet",
+      "effets": {
+        "coefficient": "Coefficient",
+        "ajout": "Ajout fixe"
+      },
+      "valeur": "Valeur",
+      "rang": "Rang",
+      "ajouterMajoration": "Ajouter une majoration",
+      "retirerMajoration": "Retirer cette majoration",
+      "ajouterLigne": "Ajouter un tarif",
+      "retirerLigne": "Retirer ce tarif",
+      "pourEnregistrer": "Pour enregistrer :",
+      "problemes": {
+        "arrete": "la référence de l’arrêté (3 caractères au moins) ;",
+        "dateArrete": "la date de l’arrêté ;",
+        "dateEffet": "la date d’effet ;",
+        "dateFin": "une date de fin après la date d’effet ;",
+        "ligneCategorie": "la catégorie du tarif {{n}} ;",
+        "ligneHorsListe": "une catégorie en vigueur à la date d’effet pour le tarif {{n}} ;",
+        "ligneMode": "le mode du tarif {{n}} ;",
+        "ligneTarif": "un montant positif pour le tarif {{n}} ;",
+        "majCritere": "le critère de la majoration {{m}} du tarif {{n}} ;",
+        "majBorneMin": "une borne basse positive ou nulle pour la majoration {{m}} du tarif {{n}} ;",
+        "majBorneMax": "une borne haute au-dessus de la borne basse pour la majoration {{m}} du tarif {{n}} ;",
+        "majEffet": "l’effet de la majoration {{m}} du tarif {{n}} ;",
+        "majValeur": "une valeur positive pour la majoration {{m}} du tarif {{n}} ;",
+        "majOrdre": "un rang entre 1 et 100 pour la majoration {{m}} du tarif {{n}} ;",
+        "majRang": "un seul rang par critère, et un critère par rang, dans le tarif {{n}} ;",
+        "majChevauchement": "des tranches qui ne se chevauchent pas pour « {{critere}} » dans le tarif {{n}} ;"
+      }
     }
   },
   "prestataire": {

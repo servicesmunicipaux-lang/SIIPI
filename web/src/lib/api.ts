@@ -270,6 +270,11 @@ export type AccompagnementActeur = Reponse<'/periode-transitoire/acteurs/{id}', 
 export type ConversionInformel = Reponse<'/periode-transitoire/conversion', 'get'>;
 export type SecteurInformelNational = Reponse<'/periode-transitoire/national', 'get'>;
 export type ElementListeNationale = ReglesInformel['listes'][number]['elements'][number];
+// --- Jalon G, lot G1 : les listes des assimilés, les grilles tarifaires ---
+export type ListesAssimiles = Reponse<'/listes-assimiles', 'get'>;
+export type ElementListeAssimiles = ListesAssimiles['listes'][number]['elements'][number];
+export type GrilleTarifaire = Reponse<'/grilles-tarifaires/{id}', 'get'>;
+export type SaisieGrilleTarifaire = Corps<'/grilles-tarifaires', 'post'>;
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
 export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
@@ -1352,6 +1357,34 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ motif }),
     }),
+  // --- Jalon G, lot G1 : les listes des assimilés (écriture : FNCT) ------------
+  listesAssimiles: () => requete<ListesAssimiles>('/listes-assimiles'),
+  ajouterElementAssimiles: (
+    liste: ElementListeAssimiles['liste'],
+    saisie: Corps<'/listes-assimiles/listes/{liste}', 'post'>
+  ) =>
+    requete<ElementListeAssimiles>(`/listes-assimiles/listes/${liste}`, { method: 'POST', body: JSON.stringify(saisie) }),
+  fixerApplicationElement: (id: string, saisie: Corps<'/listes-assimiles/elements/{id}/application', 'post'>) =>
+    requete<ElementListeAssimiles>(`/listes-assimiles/elements/${id}/application`, { method: 'POST', body: JSON.stringify(saisie) }),
+  fermerElementAssimiles: (id: string, saisie: Corps<'/listes-assimiles/elements/{id}/fin', 'post'>) =>
+    requete<ElementListeAssimiles>(`/listes-assimiles/elements/${id}/fin`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerElementAssimiles: (id: string, motif: string) =>
+    requete<ElementListeAssimiles>(`/listes-assimiles/elements/${id}/retrait`, { method: 'POST', body: JSON.stringify({ motif }) }),
+  // --- Jalon G, lot G1 : les grilles tarifaires (écriture : le directeur) ---------
+  grillesTarifaires: (communeId: string) =>
+    requete<GrilleTarifaire[]>(`/grilles-tarifaires?communeId=${encodeURIComponent(communeId)}`),
+  creerGrilleTarifaire: (communeId: string, saisie: SaisieGrilleTarifaire) =>
+    requete<GrilleTarifaire>(`/grilles-tarifaires?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  modifierGrilleTarifaire: (id: string, saisie: SaisieGrilleTarifaire) =>
+    requete<GrilleTarifaire>(`/grilles-tarifaires/${id}`, { method: 'PUT', body: JSON.stringify(saisie) }),
+  approuverGrilleTarifaire: (id: string, saisie: Corps<'/grilles-tarifaires/{id}/approbation', 'post'>) =>
+    requete<GrilleTarifaire>(`/grilles-tarifaires/${id}/approbation`, { method: 'POST', body: JSON.stringify(saisie) }),
+  cloreGrilleTarifaire: (id: string, saisie: Corps<'/grilles-tarifaires/{id}/cloture', 'post'>) =>
+    requete<GrilleTarifaire>(`/grilles-tarifaires/${id}/cloture`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerGrilleTarifaire: (id: string) => requete<void>(`/grilles-tarifaires/${id}`, { method: 'DELETE' }),
   // --- Lot 17.2 : la matrice des densités, le tonnage estimé -------------------
   densites: () => requete<DensiteReference[]>('/volumetrie/densites'),
   ajouterDensite: (saisie: Corps<'/volumetrie/densites', 'post'>) =>

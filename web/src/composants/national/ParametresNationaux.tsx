@@ -29,6 +29,7 @@ import { DistrictsFnct } from './DistrictsFnct';
 import { ServeurCourriel } from './ServeurCourriel';
 import { MatriceDensites } from './MatriceDensites';
 import { ReglesSecteurInformel } from './ReglesSecteurInformel';
+import { ListesAssimiles } from './ListesAssimiles';
 
 const champ = 'mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-3 text-base';
 const bouton = 'min-h-11 rounded-lg bg-siipi-600 px-4 text-sm font-medium text-white disabled:opacity-40';
@@ -105,6 +106,16 @@ export function ParametresNationaux() {
             <FicheParametre key={p.code} p={p} onFait={apres} onErreur={surErreur} />
           ))}
         </ReglesSecteurInformel>
+      </section>
+      {/* Les listes sur lesquelles les communes bâtiront grilles et conventions
+          (jalon G) : réglées ici d'abord, puisqu'une grille ne cite qu'une
+          catégorie de la liste nationale. */}
+      <section aria-labelledby="titre-assimiles" className="space-y-3 rounded-2xl border border-ardoise-300 bg-ardoise-50/60 p-3 sm:p-4">
+        <header>
+          <h3 id="titre-assimiles" className="text-lg font-semibold text-ardoise-900">{t('national.parametres.assimiles.titre')}</h3>
+          <p className="mt-1 max-w-3xl text-sm text-ardoise-600">{t('national.parametres.assimiles.aide')}</p>
+        </header>
+        <ListesAssimiles version={version} onFait={apres} onErreur={surErreur} />
       </section>
     </section>
   );
