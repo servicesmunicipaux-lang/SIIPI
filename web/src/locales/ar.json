@@ -3189,15 +3189,15 @@
           "close": "مُصادق عليه ثم عُوِّض: لم تعد تعريفاته مطبّقة."
         }
       },
-      "arrete": "القرار {{reference}} بتاريخ {{date}}",
-      "deliberation": "المداولة {{reference}} بتاريخ {{date}}",
+      "arrete": "القرار البلدي: {{reference}}، بتاريخ {{date}}",
+      "deliberation": "المداولة: {{reference}}، بتاريخ {{date}}",
       "periodeOuverte": "ابتداءً من {{debut}}",
       "periodeBornee": "من {{debut}} إلى {{fin}} (غير مشمول)",
       "projetNeSappliquePas": "مشروع: لا يُطبَّق هذا الجدول ما لم تُسجَّل مصادقة سلطة الإشراف.",
       "approuvee": "صادقت عليه سلطة الإشراف يوم {{date}} ({{reference}})",
       "closePar": "أُنهي بمقتضى: {{texte}}",
       "sansTarif": "لا توجد أي تعريفة في هذا الجدول.",
-      "tableau": "تعريفات القرار {{reference}}",
+      "tableau": "تعريفات الجدول {{reference}}",
       "colonnes": {
         "categorie": "صنف النشاط",
         "mode": "طريقة الاحتساب",

@@ -30,6 +30,9 @@ const boutonDiscret = 'min-h-11 rounded-lg border border-ardoise-300 bg-white px
 // Le jour à Tunis : une approbation s'enregistre une fois reçue, jamais datée de demain.
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
+// Un montant ou un coefficient sans décimales inutiles : « × 1,000 » se lirait mille.
+const nombre = (v: number) => formaterNombre(v, Number.isInteger(v) ? 0 : Number.isInteger(v * 100) ? 2 : 3);
+
 const TON_ETAT: Record<GrilleTarifaire['etat'], TonPastille> = {
   projet: 'attention',
   a_venir: 'neutre',
@@ -97,12 +100,12 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
     const critere = `${t(`ajout.grilleTarifaire.criteres.${m.critere}`)} (${t(`ajout.grilleTarifaire.unitesCriteres.${m.critere}`)})`;
     const tranche =
       m.borne_max === null
-        ? t('communal.grilles.tranches.aPartirDe', { min: formaterNombre(m.borne_min, 0) })
-        : t('communal.grilles.tranches.entre', { min: formaterNombre(m.borne_min, 0), max: formaterNombre(m.borne_max, 0) });
+        ? t('communal.grilles.tranches.aPartirDe', { min: nombre(m.borne_min) })
+        : t('communal.grilles.tranches.entre', { min: nombre(m.borne_min), max: nombre(m.borne_max) });
     const effet =
       m.effet === 'coefficient'
-        ? t('communal.grilles.effets.coefficient', { valeur: formaterNombre(m.valeur, 3) })
-        : t('communal.grilles.effets.ajout', { valeur: formaterNombre(m.valeur, 3), unite: unite(mode) });
+        ? t('communal.grilles.effets.coefficient', { valeur: nombre(m.valeur) })
+        : t('communal.grilles.effets.ajout', { valeur: nombre(m.valeur), unite: unite(mode) });
     return t('communal.grilles.majorationEnMots', { rang: m.ordre, critere, tranche, effet });
   };
 
@@ -181,7 +184,7 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
                       {g.reference_fin && <p className="text-xs text-ardoise-500">{t('communal.grilles.closePar', { texte: g.reference_fin })}</p>}
                     </div>
                     {peutEcrire && geste?.id !== g.id && (
-                      <div className="flex shrink-0 flex-wrap gap-2">
+                      <div className="flex max-w-full flex-wrap gap-2">
                         {g.etat === 'projet' && (
                           <>
                             <button type="button" className={boutonDiscret} onClick={() => setModifiee(g.id)}>
@@ -288,7 +291,7 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
                               </th>
                               <td className="px-2 py-1.5 text-ardoise-700">{t(`ajout.grilleTarifaire.modes.${l.mode}`)}</td>
                               <td className="chiffres px-2 py-1.5 text-end text-ardoise-900">
-                                <span dir="ltr">{formaterNombre(l.tarif, 3)}</span> <span className="text-xs text-ardoise-500">{unite(l.mode)}</span>
+                                <span dir="ltr">{nombre(l.tarif)}</span> <span className="text-xs text-ardoise-500">{unite(l.mode)}</span>
                               </td>
                               <td className="px-2 py-1.5 text-ardoise-700">
                                 {l.majorations.length === 0 ? (

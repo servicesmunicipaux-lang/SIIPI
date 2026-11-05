@@ -254,7 +254,7 @@ function CarteListe(props: {
                     )}
                   </div>
                   {!retire && geste?.id !== e.id && (
-                    <div className="flex shrink-0 flex-wrap gap-2">
+                    <div className="flex max-w-full flex-wrap gap-2">
                       {e.etat === 'en_attente' && (
                         <button
                           type="button"
