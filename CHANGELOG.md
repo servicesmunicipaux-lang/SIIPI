@@ -41,7 +41,11 @@ Aucun nouveau module : cinq indicateurs au catalogue, et un radar sur l'écran I
   et l'impression. Vérifié en français et en arabe, sur grand écran et sur téléphone.
 
 ### Vérifié
-- Campagne `indicateurs-odd`, avec un témoin indépendant (`tests/odd_attendus.py`, qui ne lit que le scénario et
+- Critère complet sur base neuve : 97 migrations, 097 rejouée sans effet ; 85 campagnes présentes et 85 enchaînées ;
+  `verifier:contrat` : 392 routes servies, 392 documentées ; `npm test` : 85 bilans, 3725 tests réussis, code de
+  sortie 0 ; `audit-blocs.py` : 9 blocs sous condition, tous leurs contrôles ont tourné ; `npm run lint` backend et
+  web.
+- Campagne `indicateurs-odd` (46 contrôles), avec un témoin indépendant (`tests/odd_attendus.py`, qui ne lit que le scénario et
   la méthode décidée). Les mutants sont attrapés : sans le proxy, avec un mois partiellement pesé, sans le
   contrôle de source en base, quand la déclaration ne remplace plus l'approximation, quand le radar compte les
   indicateurs « sans objet » ou compte deux fois le taux mesuré et l'estimé, et quand un ODD déclaré redevient une
