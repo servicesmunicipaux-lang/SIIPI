@@ -5,6 +5,55 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.90] — 2026-11-05 — Jalon G, lot G1 : les listes nationales des assimilés et les grilles tarifaires
+
+Le premier lot du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 1, § 3.3, § 7 ; décisions du
+4 novembre 2026). Les référentiels sur lesquels reposeront les établissements (G2) et les conventions (G4).
+Aucun montant n'est calculé : l'assiette vient au lot G6, et la ligne rouge n° 5 (aucune facturation) tient.
+
+### Ajouté
+- **Trois listes nationales datées**, tenues par la FNCT, sur le mécanisme de 091 (`elements_listes_nationales` ;
+  migration 098) :
+  - les **catégories d'activité** des établissements, chacune avec les **unités d'échelle du WaCT** qu'elle admet
+    (chambres, lits, chaises, tables, étals, m², élèves, employés). Une liste de départ de neuf catégories est posée,
+    **provisoire**, à valider par la FNCT ;
+  - les **flux de déchets assimilés**, avec le marqueur **« dangereux »** (un tel flux va vers sa filière, jamais
+    dans une convention) ;
+  - la **base légale** des conventions, avec la date de publication au JORT. **Un texte publié dont l'application
+    attend un événement s'inscrit sans date d'application** : il est « en attente », jamais en vigueur, et sa date se
+    fixe **une seule fois, avec sa pièce** (le décret-loi n° 4 du 30 septembre 2026 attend la proclamation des
+    résultats des élections municipales).
+  
+  Aucun flux ni aucun texte légal n'est posé par la migration : SIIPI n'invente ni un flux ni une référence. Chaque
+  attribut n'appartient qu'à sa liste, et la base le tient. Les listes du secteur informel ne changent pas.
+- **Les grilles tarifaires** des communes (`grilles_tarifaires`, `lignes_grille`, `criteres_majoration`) : une par
+  arrêté municipal, avec sa délibération, sa date d'effet et sa date de fin ; un tarif par catégorie d'activité en
+  vigueur à la date d'effet, selon un mode (forfait annuel, forfait mensuel, réel à la levée, réel au poids) dont
+  découle l'unité ; des **majorations paramétrées sans code** (critère, tranche [basse ; haute[, coefficient ou
+  ajout, rang d'application), dont les tranches d'un même critère ne se chevauchent pas.
+  - **Une grille n'est applicable qu'approuvée.** La commune enregistre l'approbation de la tutelle par
+    `app.approuver_grille` : une date passée et postérieure à l'arrêté, une pièce, au moins un tarif, des catégories
+    en vigueur à la date d'effet, et **aucune autre grille approuvée sur la même période** — sous un verrou de la
+    commune, pour que deux approbations simultanées ne passent pas toutes deux.
+  - **Approuvée, elle est figée**, ses lignes et majorations avec elle ; seule sa date de fin se fixe, une fois, avec
+    sa pièce, quand un nouvel arrêté la remplace. Un projet se modifie et se retire ; une grille approuvée ne se
+    retire pas.
+  - `app.grille_en_vigueur(commune, date)` : la grille approuvée qui s'applique à une date, jamais un projet (la
+    convention la prendra à sa date de début, lot G4).
+  - Le directeur de la commune écrit ; la FNCT lit sans geste ; un prestataire ne voit rien.
+- Routes `/listes-assimiles` (lecture : tout utilisateur ; écriture : FNCT) et `/grilles-tarifaires` (lecture :
+  commune et FNCT ; écriture : le directeur), documentées dans le contrat.
+- Écrans : la section « Déchets assimilés » des paramètres nationaux (FNCT) ; l'écran « Grilles tarifaires » du pôle
+  Pilotage, avec son formulaire unique du registre « + Ajouter » pour créer et modifier un projet. En français et en
+  arabe, vérifiés sur grand écran et sur téléphone.
+
+### Vérifié
+- Campagne `grilles-tarifaires`, qui commence par ce que la plateforme refuse ; elle travaille dans deux communes de
+  test avec des comptes temporaires, et rend ligne entière la table nationale des listes. Les mutants sont attrapés :
+  sans contrôle de chevauchement, sans verrou (course déterministe de deux sessions en base), sans figement de la
+  grille approuvée, avec une date d'application réécrivable, sans contrôle de la catégorie, et sans l'état « en
+  attente » côté API.
+
 ## [0.15.89] — 2026-11-05 — Indicateurs ODD et radar de complétude
 
 Le lot décidé le 4 novembre (`docs/specs_metier/DECISIONS_2026-11-04.md`, § 3), avant le codage du jalon G.

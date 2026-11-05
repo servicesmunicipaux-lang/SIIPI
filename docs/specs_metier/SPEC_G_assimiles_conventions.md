@@ -214,7 +214,7 @@ Ces chiffres suivent les règles des indicateurs : une donnée manquante n'est p
 
 | Lot | Contenu | Condition |
 |---|---|---|
-| **G1** | Listes nationales datées (catégories d'activité, flux assimilés avec le marqueur « dangereux », base légale) ; grilles tarifaires, lignes, majorations, approbation de la tutelle | — |
+| **G1** | Listes nationales datées (catégories d'activité, flux assimilés avec le marqueur « dangereux », base légale) ; grilles tarifaires, lignes, majorations, approbation de la tutelle | — ; **développé en v0.15.90** (migration 098) |
 | **G2** | Établissements étendus, statut et fermeture, import TCL avec aperçu et rapprochement ; identité séparée (inactive tant que la garde est fausse) | G1 |
 | **G3** | Propositions Kobo de recensement, rapprochement, adoption | G2 ; formulaire du conseiller SIG |
 | **G4** | Conventions : cycle de vie, document scellé `convention_proprete`, avenants, renouvellement, lien M2-2 | G1, G2 |
