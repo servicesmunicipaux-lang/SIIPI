@@ -237,7 +237,17 @@ const saisieSchema = z
     // L'étude dont vient la valeur, et sa date : exigées pour un indicateur ODD
     // (indicateurs_kpi.exige_source, migration 097), facultatives ailleurs.
     source: z.string().trim().max(500).nullable().optional(),
-    dateReference: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.').nullable().optional(),
+    // Une date qui n'existe pas (le 30 février) est refusée ici : la base la
+    // rejetterait d'une erreur de conversion, rendue en 500.
+    dateReference: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.')
+      .refine((j) => {
+        const d = new Date(`${j}T00:00:00Z`);
+        return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === j;
+      }, 'Cette date n’existe pas : vérifiez le jour et le mois.')
+      .nullable()
+      .optional(),
   })
   .nullable();
 

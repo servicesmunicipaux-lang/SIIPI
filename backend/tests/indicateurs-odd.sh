@@ -116,6 +116,8 @@ chk "une déclaration ODD sans source ni date : 400, avec ce qu'il faut citer" "
 chk "… avec une source mais sans date : 400" 400 "$(declarer $A "$T_A" ODD_12_5_1 '{"valeur":35,"source":"TEST étude de valorisation"}')"
 chk "… datée de demain : 400" 400 \
     "$(declarer $A "$T_A" ODD_12_5_1 "{\"valeur\":35,\"source\":\"TEST étude de valorisation\",\"dateReference\":\"$DEMAIN\"}")"
+chk "… datée d'un jour qui n'existe pas (30 février, 45 du 13e mois) : 400, jamais 500" "400|400|1" \
+    "$(declarer $A "$T_A" ODD_12_5_1 '{"valeur":35,"source":"TEST étude de valorisation","dateReference":"2026-02-30"}')|$(declarer $A "$T_A" ODD_12_5_1 '{"valeur":35,"source":"TEST étude de valorisation","dateReference":"2026-13-45"}')|$(val "1 if 'existe pas' in json.dumps(d.get('details'), ensure_ascii=False) else 0")"
 chk "… la base la refuse d'elle-même, sans source" DECLARATION_SOURCE \
     "$(ecrit_a "INSERT INTO declarations_indicateurs (commune_id, indicateur_code, annee, valeur, saisi_par) VALUES ('$A', 'FUITE_PLASTIQUE', 2026, 2.5, '$ID_A')")"
 chk "… et datée dans l'avenir" DECLARATION_DATE \
@@ -193,8 +195,16 @@ fiche $A "$T_A"
 chk "A : gaspillage alimentaire, comme le témoin (kg/hab/j et t/j), mesuré et dit « approximation »" \
     "$(attendu A "['ODD_12_3_1_B']")|$(attendu A "['total_t_j']")|mesure|approximation|autre_etude|2025" \
     "$(ind $A ODD_12_3_1_B "f\"{float(r['valeur'])}|{float(r['detail']['total_t_j'])}|{r['source']}|{r['detail']['nature']}|{r['detail']['caracterisation_niveau']}|{r['detail']['caracterisation_annee']}\"")"
-chk "C, sans caractérisation : pas de gaspillage alimentaire calculé, et il manque la caractérisation" "non_renseigne|1" \
-    "$(ind $C ODD_12_3_1_B "r['statut']")|$(manques $C ODD_12_3_1_B "$T_C" | grep -c caracterisation)"
+# Sans étude propre, C retient la moyenne nationale de l'ANGeD si la FNCT l'a
+# saisie (app.caracterisation_retenue) ; sinon, rien. Les deux cas se contrôlent :
+# la campagne ne suppose pas l'absence d'une donnée nationale qu'elle ne pose pas.
+if [ "$(sql "SELECT count(*) FROM caracterisations WHERE commune_id IS NULL AND deleted_at IS NULL")" -gt 0 ]; then
+  ATTENDU_C="renseigne|moyenne_nationale_anged|0"
+else
+  ATTENDU_C="non_renseigne|None|1"
+fi
+chk "C, sans caractérisation propre : la moyenne nationale si elle existe, sinon rien de calculé et la caractérisation manque" "$ATTENDU_C" \
+    "$(ind $C ODD_12_3_1_B "f\"{r['statut']}|{r['detail'].get('caracterisation_niveau')}\"")|$(manques $C ODD_12_3_1_B "$T_C" | grep -c caracterisation)"
 
 # -----------------------------------------------------------------------------
 echo
@@ -210,6 +220,12 @@ chk "… la déclaration remplace l'approximation, avec son étude" "renseigne|d
     "$(ind $A ODD_12_3_1_B "f\"{r['statut']}|{r['source']}|{float(r['valeur'])}|{r['declaration']['source']}\"")"
 chk "… et le taux de valorisation déclaré se lit avec son étude" "declare|35.0|$HIER" \
     "$(ind $A ODD_12_5_1 "f\"{r['source']}|{float(r['valeur'])}|{r['declaration']['date_reference']}\"")"
+chk "… un ODD n'a pas d'objectif : ni « % de l'objectif », ni place dans l'indice de l'axe 3" "None|1" \
+    "$(ind $A ODD_12_5_1 "r['taux_atteinte']")|$(python3 -c "
+import json
+f=json.load(open('$T/fiche_$A.json'))
+a=[x for x in f['axes'] if x['axe']==3][0]
+print(1 if a['notes']==sum(1 for i in f['indicateurs'] if i['axe']==3 and i['famille'] not in ('donnee','odd') and i['statut']!='sans_objet') else 0)")"
 chk "le retrait de la déclaration rend l'approximation" "200|mesure|$(attendu A "['ODD_12_3_1_B']")" \
     "$(req PUT "/kpi/declarations/$A/2026" '{"valeurs":{"ODD_12_3_1_B":null}}' "$T_A")|$(fiche $A "$T_A"; ind $A ODD_12_3_1_B "f\"{r['source']}|{float(r['valeur'])}\"")"
 chk "le retrait est logique : la déclaration retirée reste en base" 1 \
@@ -229,9 +245,23 @@ chk "le radar de A compte, par axe, ses indicateurs renseignés parmi les applic
     "$(python3 -c "
 import json
 f=json.load(open('$T/fiche_$A.json'))
-ok=all(a['renseignes']==sum(1 for i in f['indicateurs'] if i['axe']==a['axe'] and i['statut']=='renseigne')
-       and a['applicables']==sum(1 for i in f['indicateurs'] if i['axe']==a['axe'] and i['statut']!='sans_objet') for a in f['completude'])
+# Le taux mesuré et le taux estimé s'excluent : ils comptent pour un seul indicateur.
+paire=('TAUX_COLLECTE', 'TAUX_COLLECTE_ESTIME')
+def attendu(axe):
+    lus=[i for i in f['indicateurs'] if i['axe']==axe and i['statut']!='sans_objet']
+    n=len(lus); r=sum(1 for i in lus if i['statut']=='renseigne')
+    p=[i for i in lus if i['code'] in paire]
+    if len(p)==2:
+        n-=1; r-=1 if all(i['statut']=='renseigne' for i in p) else 0
+    return r, n
+ok=all((a['renseignes'], a['applicables'])==attendu(a['axe']) for a in f['completude'])
 print(1 if ok and len(f['completude'])==5 else 0)")"
+chk "… sur l'axe 1, le taux de collecte mesuré et l'estimé comptent pour un seul indicateur" 1 \
+    "$(python3 -c "
+import json
+f=json.load(open('$T/fiche_$A.json'))
+lus=[i for i in f['indicateurs'] if i['axe']==1 and i['statut']!='sans_objet']
+print(1 if [a for a in f['completude'] if a['axe']==1][0]['applicables']==len(lus)-1 else 0)")"
 chk "… sans chiffre global : cinq axes, rien d'autre" "applicables,axe,renseignes" \
     "$(python3 -c "import json;print(','.join(sorted({k for a in json.load(open('$T/fiche_$A.json'))['completude'] for k in a})))")"
 AXE_DECHARGE=$(sql "SELECT axe FROM indicateurs_kpi WHERE code = 'M1-8'")

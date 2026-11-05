@@ -130,6 +130,9 @@ export interface CommuneKpi {
 
 const arrondi = (n: number, d = 1) => Math.round(n * 10 ** d) / 10 ** d;
 
+/** Les paires d'indicateurs qui s'excluent : la mesure, et l'estimation faute de mesure. */
+const TAUX_EXCLUSIFS: [string, string][] = [['TAUX_COLLECTE', 'TAUX_COLLECTE_ESTIME']];
+
 // ---------------------------------------------------------------------------
 // Chargement
 // ---------------------------------------------------------------------------
@@ -378,10 +381,12 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
     if (!d) {
       return { ...base, statut: 'non_renseigne', source: null, valeur: null, cible: null, taux_atteinte: null, detail: {} } as Resultat;
     }
-    const taux = tauxDeclaration(ind, d);
+    // Un indicateur ODD n'a pas d'objectif : sa valeur déclarée, même en %, ne se
+    // lit pas comme une atteinte, et n'entre pas dans l'indice de son axe.
+    const taux = ind.famille === 'odd' ? null : tauxDeclaration(ind, d);
     // Un ratio sans cible ne se lit pas : sa valeur s'affiche, il reste « non
     // renseigné » pour les indices.
-    const renseigne = ind.saisie === 'nombre' || ind.saisie === 'montant' || taux != null;
+    const renseigne = ind.famille === 'odd' || ind.saisie === 'nombre' || ind.saisie === 'montant' || taux != null;
     return {
       ...base,
       statut: renseigne ? 'renseigne' : 'non_renseigne',
@@ -409,15 +414,27 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
   const couverture = { calculables: applicables.filter((r) => r.statut === 'renseigne').length, total: applicables.length };
 
   // --- Le radar de complétude : un indicateur « sans objet » sort du compte de
-  //     son axe, il ne le fait pas baisser.
+  //     son axe, il ne le fait pas baisser. Le taux de collecte mesuré et le
+  //     taux estimé s'excluent par construction (tout pesé, ou rien de pesé,
+  //     migration 089) : ils comptent pour un seul indicateur, renseigné si l'un
+  //     l'est — sans quoi l'axe 1 ne pourrait jamais être complet.
   const completude = [1, 2, 3, 4, 5].map((axe) => {
     const lus = resultats.filter((r) => r.axe === axe && r.statut !== 'sans_objet');
-    return { axe, renseignes: lus.filter((r) => r.statut === 'renseigne').length, applicables: lus.length };
+    let applicables = lus.length;
+    let renseignes = lus.filter((r) => r.statut === 'renseigne').length;
+    for (const [mesure, estime] of TAUX_EXCLUSIFS) {
+      const m = lus.find((r) => r.code === mesure);
+      const e = lus.find((r) => r.code === estime);
+      if (!m || !e) continue;
+      applicables -= 1;
+      if (m.statut === 'renseigne' && e.statut === 'renseigne') renseignes -= 1;
+    }
+    return { axe, renseignes, applicables };
   });
 
   // --- Les axes : moyenne des taux d'atteinte renseignés --------------------
   const axes = [1, 2, 3, 4, 5].map((axe) => {
-    const lus = resultats.filter((r) => r.axe === axe && r.famille !== 'donnee' && r.statut !== 'sans_objet');
+    const lus = resultats.filter((r) => r.axe === axe && r.famille !== 'donnee' && r.famille !== 'odd' && r.statut !== 'sans_objet');
     const avecTaux = lus.filter((r): r is Resultat & { taux_atteinte: number } => r.taux_atteinte != null);
     return {
       axe,

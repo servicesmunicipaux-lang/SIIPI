@@ -110,8 +110,11 @@ $$
 $$;
 REVOKE ALL ON FUNCTION app._population_retenue(text) FROM PUBLIC;
 
--- ODD_11_6_1_A, sur les communes qui ont un circuit actif (comme TAUX_COLLECTE).
-CREATE OR REPLACE FUNCTION app._mesures_odd_periode(p_debut date, p_fin date, p_communes text[])
+-- ODD_11_6_1_A se calcule avec les mesures du guide (089), dont il partage le
+-- pesé, la production théorique et les voyages de la période : les calculer une
+-- seconde fois doublait la part la plus lourde de la fiche annuelle et de la vue
+-- nationale. Le corps est celui de 089, plus le taux ODD.
+CREATE OR REPLACE FUNCTION app._mesures_guide_periode(p_debut date, p_fin date, p_communes text[])
   RETURNS TABLE (commune_id text, code text, valeur numeric, note numeric, detail jsonb)
   LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp SET jit = off AS
 $$
@@ -121,38 +124,61 @@ $$
        AND EXISTS (SELECT 1 FROM circuits ci WHERE ci.commune_id = c.id AND ci.deleted_at IS NULL AND ci.actif)
   ), calc AS (
     SELECT cv.id,
-           app._production_theorique_kg(cv.id, p_debut, p_fin) AS menager_kg,
+           app._production_theorique_kg(cv.id, p_debut, p_fin) AS produit_kg,
            (SELECT sum(p.poids_net_kg) FROM pesees p WHERE p.commune_id = cv.id AND p.deleted_at IS NULL
                AND p.type_dechet = 'menager' AND p.date_pesee BETWEEN p_debut AND p_fin) AS pese_kg,
            v.attendus, v.peses,
-           (SELECT x.valeur_nombre FROM app.parametre_national('part_assimiles_proxy', p_fin) x) AS part,
-           pr.population, pr.provenance AS population_provenance, pr.population_saisonniere,
-           pc.production_theorique_kg_hab_j AS production, pc.production_theorique_source AS production_source
+           e.complete, e.tonnage_min_t, e.tonnage_max_t, e.circuits,
+           r.voyages AS voyages_remplissage, r.pese_t AS pese_remplissage_t, r.capacite_min_t, r.capacite_max_t,
+           (SELECT x.valeur_nombre FROM app.parametre_national('part_assimiles_proxy', p_fin) x) AS part
       FROM cv
       CROSS JOIN LATERAL app._voyages_periode(cv.id, p_debut, p_fin) v
-      CROSS JOIN LATERAL app._population_retenue(cv.id) pr
-      LEFT JOIN parametres_commune pc ON pc.commune_id = cv.id
-  ), gisement AS (
-    SELECT c.*, c.menager_kg * c.part / (100 - c.part) AS assimile_kg FROM calc c
+      CROSS JOIN LATERAL app._estimation_periode(cv.id, p_debut, p_fin) e
+      CROSS JOIN LATERAL app._remplissage_periode(cv.id, p_debut, p_fin) r
   )
-  SELECT g.id, 'ODD_11_6_1_A', round(100 * g.pese_kg / (g.menager_kg + g.assimile_kg), 1), NULL::numeric,
+  SELECT c.id, 'TAUX_COLLECTE', round(100 * c.pese_kg / c.produit_kg, 1), NULL::numeric,
+         jsonb_build_object('collecte_t', round(c.pese_kg / 1000, 3), 'produit_t', round(c.produit_kg / 1000, 3),
+                            'voyages_attendus', c.attendus, 'voyages_peses', c.peses)
+    FROM calc c
+   WHERE c.attendus > 0 AND c.peses = c.attendus AND c.pese_kg > 0 AND c.produit_kg > 0
+  UNION ALL
+  SELECT c.id, 'TAUX_COLLECTE_ESTIME', round(100 * c.tonnage_min_t * 1000 / c.produit_kg, 1), NULL::numeric,
+         jsonb_build_object('valeur_max', round(100 * c.tonnage_max_t * 1000 / c.produit_kg, 1),
+                            'estime_min_t', c.tonnage_min_t, 'estime_max_t', c.tonnage_max_t,
+                            'produit_t', round(c.produit_kg / 1000, 3), 'circuits', c.circuits)
+    FROM calc c
+   WHERE c.complete AND c.produit_kg > 0
+  UNION ALL
+  SELECT c.id, 'TAUX_REMPLISSAGE', round(100 * c.pese_remplissage_t / c.capacite_max_t, 1), NULL::numeric,
+         jsonb_build_object('valeur_max', round(100 * c.pese_remplissage_t / c.capacite_min_t, 1),
+                            'voyages', c.voyages_remplissage, 'pese_t', round(c.pese_remplissage_t, 3),
+                            'capacite_min_t', round(c.capacite_min_t, 3), 'capacite_max_t', round(c.capacite_max_t, 3))
+    FROM calc c
+   WHERE c.voyages_remplissage > 0
+  UNION ALL
+  -- ODD_11_6_1_A : le numérateur de TAUX_COLLECTE (tous les voyages pesés), sur le
+  -- gisement ménager plus le gisement assimilé du proxy national.
+  SELECT c.id, 'ODD_11_6_1_A',
+         round(100 * c.pese_kg / (c.produit_kg + c.produit_kg * c.part / (100 - c.part)), 1), NULL::numeric,
          jsonb_build_object(
            'nature', 'estime',
-           'collecte_t', round(g.pese_kg / 1000, 3),
-           'gisement_menager_t', round(g.menager_kg / 1000, 3),
-           'gisement_assimile_t', round(g.assimile_kg / 1000, 3),
-           'gisement_total_t', round((g.menager_kg + g.assimile_kg) / 1000, 3),
+           'collecte_t', round(c.pese_kg / 1000, 3),
+           'gisement_menager_t', round(c.produit_kg / 1000, 3),
+           'gisement_assimile_t', round(c.produit_kg * c.part / (100 - c.part) / 1000, 3),
+           'gisement_total_t', round((c.produit_kg + c.produit_kg * c.part / (100 - c.part)) / 1000, 3),
            'provenance_collecte', 'pese',
            'provenance_assimiles', 'proxy',
-           'part_assimiles_pct', g.part,
-           'population', g.population, 'population_provenance', g.population_provenance,
-           'population_saisonniere', g.population_saisonniere,
-           'production_kg_hab_j', g.production, 'production_source', g.production_source,
-           'voyages_attendus', g.attendus, 'voyages_peses', g.peses)
-    FROM gisement g
-   WHERE g.attendus > 0 AND g.peses = g.attendus AND g.pese_kg > 0 AND g.menager_kg > 0 AND g.part IS NOT NULL
+           'part_assimiles_pct', c.part,
+           'population', pr.population, 'population_provenance', pr.provenance,
+           'population_saisonniere', pr.population_saisonniere,
+           'production_kg_hab_j', pc.production_theorique_kg_hab_j, 'production_source', pc.production_theorique_source,
+           'voyages_attendus', c.attendus, 'voyages_peses', c.peses)
+    FROM calc c
+    CROSS JOIN LATERAL app._population_retenue(c.id) pr
+    LEFT JOIN parametres_commune pc ON pc.commune_id = c.id
+   WHERE c.attendus > 0 AND c.peses = c.attendus AND c.pese_kg > 0 AND c.produit_kg > 0 AND c.part IS NOT NULL
 $$;
-REVOKE ALL ON FUNCTION app._mesures_odd_periode(date, date, text[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION app._mesures_guide_periode(date, date, text[]) FROM PUBLIC;
 
 -- ODD_12_3_1_B : rien pour une commune qui a déclaré l'indicateur pour l'année —
 -- la déclaration, faite d'après une étude, remplace l'approximation. La règle
@@ -190,19 +216,8 @@ $$
 $$;
 REVOKE ALL ON FUNCTION app._mesures_odd_auto_periode(date, date, text[]) FROM PUBLIC;
 
--- Les fonctions du même nom ajoutent les ODD aux calculs de 070 et du guide (089).
-CREATE OR REPLACE FUNCTION app._mesures_kpi_periode(p_debut date, p_fin date, p_communes text[])
-  RETURNS TABLE (commune_id text, code text, valeur numeric, note numeric, detail jsonb)
-  LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp SET jit = off AS
-$$
-  SELECT * FROM app._mesures_kpi_periode_base(p_debut, p_fin, p_communes)
-  UNION ALL
-  SELECT * FROM app._mesures_guide_periode(p_debut, p_fin, p_communes)
-  UNION ALL
-  SELECT * FROM app._mesures_odd_periode(p_debut, p_fin, p_communes)
-$$;
-REVOKE ALL ON FUNCTION app._mesures_kpi_periode(date, date, text[]) FROM PUBLIC;
-
+-- La fonction du même nom ajoute l'approximation ODD aux calculs de 070 et du
+-- guide (089) ; le taux ODD vit dans app._mesures_guide_periode ci-dessus.
 CREATE OR REPLACE FUNCTION app._mesures_kpi_auto_periode(p_debut date, p_fin date, p_communes text[])
   RETURNS TABLE (commune_id text, code text, valeur numeric, note numeric, detail jsonb)
   LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp SET jit = off AS
@@ -272,6 +287,8 @@ INSERT INTO dependances_indicateurs (indicateur_code, groupe, ordre, source, dec
 -- « Ma commune dans SIIPI » : la caractérisation débloque désormais un indicateur.
 INSERT INTO sources_elements_completude (element, source) VALUES ('caracterisation', 'caracterisation')
 ON CONFLICT (element, source) DO NOTHING;
+COMMENT ON TABLE sources_elements_completude IS
+  'Les sources de données (sources_indicateurs, lot 3a) qu''un élément de complétude alimente : les indicateurs qu''il débloque s''en déduisent par dependances_indicateurs. Un élément sans source (périmètre, PCGD…) ne débloque aucun indicateur ; il sert ailleurs, et son aide le dit. La caractérisation débloque l''indice de gaspillage alimentaire (ODD 12.3.1, migration 097).';
 
 -- Une source tenue : les conditions reprennent celles des calculs ci-dessus, pour
 -- que « non renseigné » et « il manque quelque chose » aillent toujours ensemble.
