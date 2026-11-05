@@ -248,17 +248,22 @@ chk "la grille d'une date est celle de son arrêté : mars, la première ; aujou
     "$(vigueur "$ID_A" "$A" "$A" "DATE '2026-03-01'")|$(vigueur "$ID_A" "$A" "$A" "app.jour_tunis()")|$(vigueur "$ID_A" "$A" "$A" "DATE '2026-01-15'")"
 chk "… et le directeur de B n'en lit aucune pour A" None "$(vigueur "$ID_B" "$B" "$A" "app.jour_tunis()")"
 # Deux approbations simultanées de deux projets qui se chevauchent : la
-# procédure verrouille la commune, une seule passe.
+# procédure verrouille la commune, une seule passe. La course se joue en base,
+# deux sessions : par l'API, deux requêtes du même compte se suivent, et l'essai
+# ne prouverait rien. La première approuve puis garde sa transaction ouverte ;
+# la seconde arrive pendant ce temps. Avec le verrou, elle attend, voit la
+# première et refuse ; sans lui, elle ne la voit pas et passe.
 $PSQL -c "UPDATE grilles_tarifaires SET date_fin = DATE '2027-01-01', reference_fin = 'TEST arrêté 3' WHERE id = '$G2'" >/dev/null
 appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-ARRETE-3 2027-01-01 "[$L_CAFE]")" >/dev/null; G3=$(val "d['id']")
 appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-ARRETE-4 2027-03-01 "[$L_CAFE]")" >/dev/null; G4=$(val "d['id']")
-for g in $G3 $G4; do
-  curl -s -o /dev/null -w '%{http_code}\n' -X POST "$API/grilles-tarifaires/$g/approbation" -H "Authorization: Bearer $T_A" \
-       -H 'Content-Type: application/json' -d "{\"dateApprobation\":\"$AUJ\",\"reference\":\"TEST visa simultané\"}" >> "$T/simultanes" &
-done
-wait
-chk "deux approbations simultanées de grilles qui se chevauchent : une seule passe" "200,409|1" \
-    "$(sort "$T/simultanes" | paste -sd, -)|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id IN ('$G3', '$G4') AND date_approbation_tutelle IS NOT NULL")"
+approuver_en_base() { # grille attente_avant attente_apres
+  $PSQL -c "BEGIN; SELECT set_config('app.role', 'admin_commune', true), set_config('app.user_id', '$ID_A', true), set_config('app.commune_id', '$A', true);
+            SET LOCAL ROLE siipi_app; SELECT pg_sleep($2); SELECT 'ok:' FROM app.approuver_grille('$1', '$AUJ', 'TEST visa simultané');
+            SELECT pg_sleep($3); COMMIT;" 2>&1 | grep -oE '^ok:|GRILLE_[A-Z]+' | head -1
+}
+approuver_en_base "$G3" 0 2 > "$T/course3" & approuver_en_base "$G4" 0.5 0 > "$T/course4" & wait
+chk "deux approbations simultanées de grilles qui se chevauchent : une seule passe, la seconde attend et refuse" "ok:|GRILLE_CHEVAUCHEMENT|1" \
+    "$(cat "$T/course3")|$(cat "$T/course4")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id IN ('$G3', '$G4') AND date_approbation_tutelle IS NOT NULL")"
 chk "un projet se retire (204), et reste en base, retiré" "204|1" \
     "$(appel DELETE "/grilles-tarifaires/$GV" "$T_A")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$GV' AND deleted_at IS NOT NULL AND deleted_by = '$ID_A'")"
 
