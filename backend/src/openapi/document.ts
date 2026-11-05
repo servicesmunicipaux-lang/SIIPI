@@ -4673,11 +4673,17 @@ registry.registerPath({
   method: 'post', path: '/grilles-tarifaires/{id}/approbation', tags: [TAG_GRILLES],
   summary: 'Enregistrer l’approbation de la tutelle',
   description:
-    'La commune inscrit l’approbation reçue : sa date (passée, après l’arrêté) et sa pièce. Refusée pour une grille sans tarif, une catégorie qui n’est plus en vigueur à la date d’effet, ' +
-    'ou une période déjà couverte par une autre grille approuvée (409). La grille est ensuite figée.',
+    'La commune inscrit l’approbation reçue : sa date (passée, après l’arrêté) et sa pièce. Refusée en 409 pour une grille sans tarif, déjà approuvée, ou dont la période ' +
+    'est déjà couverte par une autre grille approuvée de la commune ; en 400 pour une catégorie qui n’est pas en vigueur à la date d’effet, ou une date d’approbation future ou antérieure à l’arrêté. ' +
+    'Une date de fin saisie avec le projet a l’arrêté pour pièce. La grille est ensuite figée.',
   security: SECURISE,
   request: { params: pGrille, body: { content: { 'application/json': { schema: approbationGrilleSchema } } } },
-  responses: { 200: json(GrilleTarifaire, 'Grille approuvée.'), 409: json(Erreur, 'Refus.'), ...REPONSES_COMMUNES },
+  responses: {
+    ...REPONSES_COMMUNES,
+    200: json(GrilleTarifaire, 'Grille approuvée.'),
+    400: json(Erreur, 'Catégorie hors de la liste à la date d’effet, ou date d’approbation invalide.'),
+    409: json(Erreur, 'Grille sans tarif, déjà approuvée, ou période déjà couverte.'),
+  },
 });
 registry.registerPath({
   method: 'post', path: '/grilles-tarifaires/{id}/cloture', tags: [TAG_GRILLES],

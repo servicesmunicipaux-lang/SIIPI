@@ -264,7 +264,8 @@ function CarteListe(props: {
                           {t(cle('gestes.fixer'))}
                         </button>
                       )}
-                      {(e.etat === 'en_vigueur' || e.etat === 'a_venir') && (
+                      {/* Une fin se fixe une fois : un élément qui a déjà la sienne ne propose plus de la fixer. */}
+                      {(e.etat === 'en_vigueur' || e.etat === 'a_venir') && !e.date_fin && (
                         <button
                           type="button"
                           onClick={() => setGeste({ id: e.id, nature: 'fin', date: '', texte: '' })}

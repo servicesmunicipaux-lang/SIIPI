@@ -46,6 +46,13 @@ COMMENT ON COLUMN elements_listes_nationales.reference_effet IS
 
 -- Une date d'application vide n'est admise que pour un texte de la base légale.
 ALTER TABLE elements_listes_nationales ALTER COLUMN date_effet DROP NOT NULL;
+-- Un texte de la base légale peut s'appliquer depuis bien avant 2000 (la loi
+-- n° 96-41, le Code de la fiscalité locale) ; une catégorie, un flux ou une règle
+-- du secteur informel restent datés à partir de 2000, comme en 091.
+ALTER TABLE elements_listes_nationales DROP CONSTRAINT IF EXISTS elements_date_plausible;
+ALTER TABLE elements_listes_nationales ADD CONSTRAINT elements_date_plausible CHECK (
+  date_effet IS NULL OR date_effet >= DATE '2000-01-01'
+  OR (liste = 'base_legale_assimiles' AND date_effet >= DATE '1956-01-01'));
 ALTER TABLE elements_listes_nationales DROP CONSTRAINT IF EXISTS elements_date_attendue;
 ALTER TABLE elements_listes_nationales ADD CONSTRAINT elements_date_attendue
   CHECK (date_effet IS NOT NULL OR liste = 'base_legale_assimiles');
@@ -463,8 +470,19 @@ BEGIN
   IF g.id IS NULL OR NOT app.peut_emettre_document(g.commune_id) THEN
     RAISE EXCEPTION 'GRILLE_INTROUVABLE' USING ERRCODE = 'no_data_found';
   END IF;
-  PERFORM 1 FROM communes WHERE id = g.commune_id FOR UPDATE;
-  SELECT * INTO g FROM grilles_tarifaires WHERE id = p_grille;
+  -- La grille d'abord : un remplacement du projet en cours (PUT) la tient ; on
+  -- attend qu'il se termine, et c'est sa version validée qui se contrôle. Sans ce
+  -- verrou, l'approbation contrôlait l'ancienne version et approuvait la nouvelle
+  -- — une grille vidée, ou redatée sur la période d'une autre.
+  SELECT * INTO g FROM grilles_tarifaires WHERE id = p_grille FOR UPDATE;
+  IF g.deleted_at IS NOT NULL THEN
+    RAISE EXCEPTION 'GRILLE_RETIREE: cette grille est retirée.' USING ERRCODE = 'check_violation';
+  END IF;
+  -- Puis la commune : deux approbations de la même commune se suivent. FOR NO KEY
+  -- UPDATE, pas FOR UPDATE : l'insertion d'une ligne de grille, qui vérifie sa clé
+  -- vers la commune (FOR KEY SHARE), n'est pas bloquée — sinon un remplacement de
+  -- projet et une approbation s'attendraient l'un l'autre.
+  PERFORM 1 FROM communes WHERE id = g.commune_id FOR NO KEY UPDATE;
   IF g.date_approbation_tutelle IS NOT NULL THEN
     RAISE EXCEPTION 'GRILLE_DEJA_APPROUVEE: cette grille a été approuvée le %.', to_char(g.date_approbation_tutelle, 'DD/MM/YYYY')
       USING ERRCODE = 'check_violation';
@@ -499,9 +517,13 @@ BEGIN
       v_autre.reference_arrete, to_char(v_autre.date_effet, 'DD/MM/YYYY') USING ERRCODE = 'check_violation';
   END IF;
   PERFORM set_config('app.approbation_grille', g.id::text, true);
+  -- Un projet borné dès l'arrêté (date de fin saisie avec lui) : c'est l'arrêté
+  -- qui fonde cette fin, il en est la pièce. Sans elle, la grille approuvée
+  -- n'aurait pas la pièce de sa fin, et l'approbation serait refusée.
   UPDATE grilles_tarifaires
      SET date_approbation_tutelle = p_date, reference_approbation = btrim(p_reference),
-         approuve_par = app.current_user_id(), approuve_le = now()
+         approuve_par = app.current_user_id(), approuve_le = now(),
+         reference_fin = CASE WHEN date_fin IS NOT NULL THEN COALESCE(reference_fin, reference_arrete) END
    WHERE id = g.id
    RETURNING * INTO g;
   PERFORM set_config('app.approbation_grille', '', true);
@@ -511,7 +533,7 @@ $$;
 REVOKE ALL ON FUNCTION app.approuver_grille(uuid, date, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.approuver_grille(uuid, date, text) TO siipi_app;
 COMMENT ON FUNCTION app.approuver_grille(uuid, date, text) IS
-  'Enregistre l''approbation d''une grille par la tutelle (lot G1) : sa date (passée, après l''arrêté) et sa pièce. Refuse une grille sans tarif, une catégorie qui n''est pas en vigueur à la date d''effet, et une période déjà couverte par une autre grille approuvée de la commune. Introuvable hors du périmètre du directeur.';
+  'Enregistre l''approbation d''une grille par la tutelle (lot G1) : sa date (passée, après l''arrêté) et sa pièce. Refuse une grille sans tarif, une catégorie qui n''est pas en vigueur à la date d''effet, et une période déjà couverte par une autre grille approuvée de la commune. Verrouille la grille, puis la commune : un remplacement du projet en cours, ou une autre approbation de la commune, se termine d''abord. Une date de fin saisie avec le projet a l''arrêté pour pièce. Introuvable hors du périmètre du directeur.';
 
 -- Les lignes d'un projet, retirées pour être remplacées. Un UPDATE direct de
 -- deleted_at échouerait : la ligne retirée ne passe plus la politique de lecture

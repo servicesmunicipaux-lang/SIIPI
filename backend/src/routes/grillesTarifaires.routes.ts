@@ -30,14 +30,37 @@ export const CRITERES_MAJORATION = ['surface_m2', 'frequence_hebdo', 'capacite_c
 
 // Une date qui n'existe pas (le 30 février) est refusée ici : la base la
 // rejetterait d'une erreur de conversion, rendue en 500.
+// L'an 0000 n'existe pas pour PostgreSQL (500) : l'année est bornée ici.
 const dateIso = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.')
   .refine((j) => {
     const d = new Date(`${j}T00:00:00Z`);
     return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === j;
-  }, 'Cette date n’existe pas : vérifiez le jour et le mois.');
+  }, 'Cette date n’existe pas : vérifiez le jour et le mois.')
+  .refine((j) => j >= '1900-01-01' && j <= '2100-12-31', 'Date hors de l’intervalle admis (1900 à 2100).');
+// Un montant tient dans NUMERIC(12, 3) : au plus 999 999 999,999, et trois
+// décimales. Au-delà, la base refusait d'un dépassement (500), ou arrondissait
+// en silence 0,0004 à 0 — un tarif nul que la contrainte refusait ensuite.
+const montant = (positif: string) =>
+  z
+    .number()
+    .positive(positif)
+    .max(999_999_999.999, 'Montant trop grand : 999 999 999,999 au plus.')
+    .refine((v) => Math.abs(v * 1000 - Math.round(v * 1000)) < 1e-6, 'Trois décimales au plus (le millime).');
+const borne = z
+  .number()
+  .max(999_999_999.999, 'Borne trop grande : 999 999 999,999 au plus.')
+  .refine((v) => Math.abs(v * 1000 - Math.round(v * 1000)) < 1e-6, 'Trois décimales au plus.');
 const estUuid = (s: string) => z.string().uuid().safeParse(s).success;
+function communeRequise(req: Parameters<typeof communeDemandee>[0]) {
+  const c = communeDemandee(req);
+  if (!c) throw new ApiError(400, 'Commune requise (paramètre communeId).');
+  // Un caractère de contrôle (l'octet nul) ferait échouer PostgreSQL (500) : un
+  // tel identifiant ne désigne aucune commune.
+  if (/[\u0000-\u001f]/.test(c)) throw new ApiError(404, 'Commune introuvable.');
+  return c;
+}
 
 const ACTE_DU_DIRECTEUR = 'Une grille tarifaire est un acte de la commune : son directeur l’enregistre, la FNCT la lit.';
 
@@ -65,6 +88,8 @@ const CONTRAINTES: Record<string, string> = {
   grilles_fin_referencee: 'La fin d’une grille approuvée cite sa pièce (le nouvel arrêté).',
   grilles_arrete_reference: 'La référence de l’arrêté est obligatoire.',
   majoration_tranche: 'Une tranche va d’une borne basse positive à une borne haute plus grande (ou sans plafond).',
+  lignes_grille_tarif_positif: 'Un tarif est strictement positif (le millime au moins).',
+  majoration_valeur: 'Un coefficient ou un ajout est strictement positif (le millième au moins).',
 };
 function refus(err: unknown): never {
   if (err instanceof ApiError) throw err;
@@ -122,11 +147,11 @@ async function lireGrille(id: string) {
 export const majorationSchema = z
   .object({
     critere: z.enum(CRITERES_MAJORATION),
-    borneMin: z.number().min(0).max(1e9).default(0),
+    borneMin: borne.refine((v) => v >= 0, 'Une borne basse est positive ou nulle.').default(0),
     // Vide : sans plafond.
-    borneMax: z.number().positive().max(1e9).nullable().optional(),
+    borneMax: borne.refine((v) => v > 0, 'Une borne haute est strictement positive.').nullable().optional(),
     effet: z.enum(['coefficient', 'ajout']),
-    valeur: z.number().positive('Un coefficient ou un ajout est strictement positif.').max(1e9),
+    valeur: montant('Un coefficient ou un ajout est strictement positif.'),
     ordre: z.number().int().min(1).max(100),
   })
   .strict()
@@ -139,7 +164,7 @@ export const ligneGrilleSchema = z
   .object({
     categorie: z.string().trim().regex(/^[a-z][a-z0-9_]{2,60}$/, 'Code de catégorie d’activité attendu (liste nationale).'),
     mode: z.enum(MODES_TARIF),
-    tarif: z.number().positive('Un tarif est strictement positif.').max(1e9),
+    tarif: montant('Un tarif est strictement positif.'),
     majorations: z.array(majorationSchema).max(40).default([]),
   })
   .strict();
@@ -202,8 +227,7 @@ grillesTarifairesRouter.get(
   requireAuth,
   requireRole(...LECTEURS),
   asyncHandler(async (req, res) => {
-    const communeId = communeDemandee(req);
-    if (!communeId) throw new ApiError(400, 'Commune requise (paramètre communeId).');
+    const communeId = communeRequise(req);
     res.json(await query(`${SELECT_GRILLES} WHERE g.commune_id = $1 AND g.deleted_at IS NULL ORDER BY g.date_effet DESC, g.created_at DESC`, [communeId]));
   })
 );
@@ -215,8 +239,7 @@ grillesTarifairesRouter.get(
   requireAuth,
   requireRole(...LECTEURS),
   asyncHandler(async (req, res) => {
-    const communeId = communeDemandee(req);
-    if (!communeId) throw new ApiError(400, 'Commune requise (paramètre communeId).');
+    const communeId = communeRequise(req);
     const { date } = qGrilleEnVigueur.parse({ date: req.query.date });
     const ligne = await queryOne<{ id: string | null }>('SELECT app.grille_en_vigueur($1, COALESCE($2::date, app.jour_tunis())) AS id', [
       communeId,
@@ -240,8 +263,7 @@ grillesTarifairesRouter.post(
   requireAuth,
   requireRole('admin_commune'),
   asyncHandler(async (req, res) => {
-    const communeId = communeDemandee(req);
-    if (!communeId) throw new ApiError(400, 'Commune requise (paramètre communeId).');
+    const communeId = communeRequise(req);
     const d = grilleSchema.parse(req.body);
     let id = '';
     try {

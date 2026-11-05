@@ -13,9 +13,12 @@
 #     inconnue, ou pas encore en vigueur à la date d'effet ; deux tranches qui
 #     se chevauchent ; une grille née approuvée ; une approbation écrite sans sa
 #     procédure, datée dans l'avenir ou avant l'arrêté, sur une grille vide ;
+#   - un montant qui ne tient pas dans la base (trop grand, ou plus fin que le
+#     millime), une année 0000, un octet nul dans l'identifiant de commune ;
 #   - toute modification d'une grille approuvée, de ses lignes, de ses
 #     majorations ; son retrait ; une seconde grille approuvée sur la même
-#     période — même quand les deux approbations arrivent en même temps.
+#     période — même quand les deux approbations arrivent en même temps ; une
+#     approbation qui contrôlerait un projet en train d'être remplacé.
 # Puis le cycle d'une grille : projet, modification, approbation, grille en
 # vigueur à une date, clôture, remplacement ; le texte légal publié sans date
 # d'application, « en attente », puis fixé une fois. Les tables des communes
@@ -51,8 +54,8 @@ val() { python3 -c "import json;d=json.load(open('$T/r.json'));print($1)" 2>/dev
 en_base() { # rôle utilisateur commune instruction — le refus de la base, ou « ok »
   $PSQL -c "BEGIN; SELECT set_config('app.role', '$1', true), set_config('app.user_id', '$2', true), set_config('app.commune_id', '$3', true);
             SET LOCAL ROLE siipi_app; $4; ROLLBACK;" 2>&1 \
-    | grep -oE '^ERROR: +[A-Z_]+:|permission denied|violates row-level security|violates check constraint "[a-z_]+"' | head -1 \
-    | sed -E 's/^ERROR: +//; s/:$//; s/violates check constraint "([a-z_]+)"/\1/' | grep . || echo ok
+    | grep -oE '^ERROR: +[A-Z_]+:|permission denied|violates row-level security|violates (check|unique) constraint "[a-z_]+"' | head -1 \
+    | sed -E 's/^ERROR: +//; s/:$//; s/violates (check|unique) constraint "([a-z_]+)"/\2/' | grep . || echo ok
 }
 
 . tests/outils/communes_essai.sh
@@ -64,9 +67,8 @@ nettoyer() {
   retirer_comptes_temporaires
 }
 effacer_communes_essai "$ESSAI"
-trap 'nettoyer; rm -rf "$T"' EXIT
 garder_tables_nationales elements_listes_nationales
-rendre_tables_nationales_en_sortie
+trap 'rendre_tables_nationales; nettoyer; rm -rf "$T" "$TABLES_NATIONALES_DIR"' EXIT
 releve_base_reelle
 
 commune_essai "$A" "TEST commune A des grilles"
@@ -111,6 +113,12 @@ chk "une catégorie sans date d'effet (seul un texte légal peut attendre la sie
     "$(element categories_activite_assimiles "$T_F" '{"code":"test_kiosque","libelleFr":"TEST Kiosque","libelleAr":"كشك","dateEffet":null,"unitesEchelle":["m2"]}')"
 chk "un texte appliqué avant d'être publié : 400" 400 \
     "$(element base_legale_assimiles "$T_F" '{"code":"test_loi_x","libelleFr":"TEST Loi","libelleAr":"قانون","dateEffet":"2026-01-01","datePublication":"2026-02-01","provisoire":false,"reference":"TEST JORT n° 1"}')"
+chk "une catégorie datée d'avant 2000 : 400 (seul un texte légal remonte plus loin)" 400 \
+    "$(element categories_activite_assimiles "$T_F" '{"code":"test_kiosque","libelleFr":"TEST Kiosque","libelleAr":"كشك","dateEffet":"1990-01-01","unitesEchelle":["m2"]}')"
+chk "une publication au JORT d'avant 1956 : 400, qui le dit" "400|1" \
+    "$(element base_legale_assimiles "$T_F" '{"code":"test_loi_x","libelleFr":"TEST Loi","libelleAr":"قانون","dateEffet":null,"datePublication":"1950-01-01","provisoire":false,"reference":"TEST JORT n° 1"}')|$(val "1 if '1956' in json.dumps(d, ensure_ascii=False) else 0")"
+chk "l'an 0000 : 400, jamais 500" 400 \
+    "$(element flux_assimiles "$T_F" '{"code":"test_huiles","libelleFr":"TEST Huiles","libelleAr":"زيوت","dateEffet":"0000-01-01","dangereux":true}')"
 chk "la base refuse d'elle-même un attribut porté par la mauvaise liste" elements_attributs_par_liste \
     "$(en_base super_admin_fnct "$ID_F" "" "INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, date_effet, dangereux) VALUES ('categories_activite_assimiles', 'test_y', 'Y', 'ي', DATE '2000-01-01', true)")"
 chk "… et une date d'application vide hors de la base légale" elements_date_attendue \
@@ -120,8 +128,10 @@ chk "aucun élément TEST n'a été écrit par ces refus" 0 \
 
 echo
 echo "2. Les listes des assimilés : ce que fait la FNCT"
-chk "les catégories de départ sont là, provisoires, chacune avec ses unités ; aucun flux ni texte légal n'est inventé" "9|9|0" \
-    "$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'categories_activite_assimiles' AND code IN ('cafe','restaurant','hotel','superette','boulangerie','marche','bureau','ecole','atelier')")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'categories_activite_assimiles' AND code IN ('cafe','restaurant','hotel','superette','boulangerie','marche','bureau','ecole','atelier') AND provisoire AND cardinality(unites_echelle) > 0")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste IN ('flux_assimiles', 'base_legale_assimiles') AND reference LIKE 'Liste de départ%'")"
+# Un flux ou un texte légal posé par la migration n'aurait pas d'auteur : il
+# n'y en a aucun, seule la FNCT les inscrit.
+chk "les catégories de départ sont là, ouvertes, provisoires, chacune avec ses unités ; aucun flux ni texte légal n'est inventé" "9|9|0" \
+    "$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'categories_activite_assimiles' AND retire_le IS NULL AND date_fin IS NULL AND code IN ('cafe','restaurant','hotel','superette','boulangerie','marche','bureau','ecole','atelier')")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'categories_activite_assimiles' AND retire_le IS NULL AND date_fin IS NULL AND code IN ('cafe','restaurant','hotel','superette','boulangerie','marche','bureau','ecole','atelier') AND provisoire AND cardinality(unites_echelle) > 0")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste IN ('flux_assimiles', 'base_legale_assimiles') AND saisi_par IS NULL")"
 chk "la FNCT ajoute une catégorie (kiosque, au m²)" "201|m2" \
     "$(element categories_activite_assimiles "$T_F" '{"code":"test_kiosque","libelleFr":"TEST Kiosque","libelleAr":"كشك","dateEffet":"2000-01-01","unitesEchelle":["m2"]}')|$(val "','.join(d['unites_echelle'])")"
 chk "… une catégorie qui ne s'appliquera qu'en 2030" 201 \
@@ -147,6 +157,16 @@ chk "… une seule fois : la refixer est introuvable (404)" 404 \
     "$(appel POST "/listes-assimiles/elements/$ID_DL/application" "$T_F" '{"dateEffet":"2026-11-01","reference":"TEST seconde proclamation"}')"
 chk "… et la base refuse de la réécrire" ELEMENT_FIGE \
     "$(en_base super_admin_fnct "$ID_F" "" "UPDATE elements_listes_nationales SET date_effet = DATE '2026-11-01' WHERE id = '$ID_DL'")"
+chk "un texte légal appliqué depuis 1996 (avant 2000) s'inscrit" "201|1996-07-01" \
+    "$(element base_legale_assimiles "$T_F" '{"code":"test_loi_96","libelleFr":"TEST Loi de 1996","libelleAr":"قانون 1996","dateEffet":"1996-07-01","datePublication":"1996-06-24","provisoire":false,"reference":"TEST JORT n° 52"}')|$(val "d['date_effet']")"
+ID_K=$(sql "SELECT id FROM elements_listes_nationales WHERE code = 'test_kiosque' AND retire_le IS NULL")
+chk "la FNCT ferme une catégorie à une date, avec son texte" "200|2030-01-01" \
+    "$(appel POST "/listes-assimiles/elements/$ID_K/fin" "$T_F" '{"dateFin":"2030-01-01","reference":"TEST arrêté de fin"}')|$(val "d['date_fin']")"
+chk "… une seule fois (409)" 409 \
+    "$(appel POST "/listes-assimiles/elements/$ID_K/fin" "$T_F" '{"dateFin":"2031-01-01","reference":"TEST second arrêté"}')"
+ID_TARD=$(sql "SELECT id FROM elements_listes_nationales WHERE code = 'test_tardive' AND retire_le IS NULL")
+chk "la FNCT retire un élément inscrit à tort : il reste en base, retiré, avec son motif" "200|1" \
+    "$(appel POST "/listes-assimiles/elements/$ID_TARD/retrait" "$T_F" '{"motif":"TEST inscrite par erreur"}')|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE id = '$ID_TARD' AND retire_le IS NOT NULL AND motif_retrait = 'TEST inscrite par erreur'")"
 chk "les listes du secteur informel n'ont pas bougé" "$PIECES_AVANT" \
     "$(sql "SELECT count(*) FROM app.liste_nationale('pieces_carte_precollecteur', app.jour_tunis())")"
 
@@ -175,6 +195,16 @@ chk "une catégorie deux fois dans la même grille : 400" 400 \
     "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-X 2026-02-01 "[$L_CAFE,$L_CAFE]")")"
 chk "un tarif nul : 400" 400 \
     "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-X 2026-02-01 '[{"categorie":"cafe","mode":"forfait_annuel","tarif":0}]')")"
+chk "un tarif plus grand que ce que la base tient : 400, jamais 500" 400 \
+    "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-X 2026-02-01 '[{"categorie":"cafe","mode":"forfait_annuel","tarif":10000000000}]')")"
+chk "un tarif plus fin que le millime (que la base arrondirait à zéro) : 400" 400 \
+    "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-X 2026-02-01 '[{"categorie":"cafe","mode":"forfait_annuel","tarif":0.0004}]')")"
+chk "un coefficient trop grand : 400" 400 \
+    "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-X 2026-02-01 '[{"categorie":"cafe","mode":"forfait_annuel","tarif":10,"majorations":[{"critere":"surface_m2","borneMin":0,"effet":"coefficient","valeur":10000000000,"ordre":1}]}]')")"
+chk "l'an 0000 : 400, jamais 500" 400 \
+    "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-X 0000-02-01 "[$L_CAFE]")")"
+chk "un octet nul dans l'identifiant de commune : introuvable (404), jamais 500" "404|404" \
+    "$(appel GET "/grilles-tarifaires?communeId=$A%00" "$T_A")|$(appel POST "/grilles-tarifaires?communeId=$A%00" "$T_A" "$(grille TEST-X 2026-02-01 "[$L_CAFE]")")"
 chk "une date qui n'existe pas : 400, jamais 500" 400 \
     "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-X 2026-02-30 "[$L_CAFE]")")"
 chk "aucune grille n'a été écrite par ces refus" 0 "$(sql "SELECT count(*) FROM grilles_tarifaires WHERE commune_id IN ($ESSAI)")"
@@ -193,6 +223,12 @@ chk "le projet se remplace : un seul tarif, le café à 150" "200|1|150.0" \
     "$(appel PUT "/grilles-tarifaires/$G1" "$T_A" "$(grille TEST-ARRETE-1 2026-02-01 '[{"categorie":"cafe","mode":"forfait_annuel","tarif":150}]')")|$(val "len(d['lignes'])")|$(val "float(d['lignes'][0]['tarif'])")"
 chk "… les lignes remplacées sont retirées, pas effacées, avec leurs majorations" "2|3" \
     "$(sql "SELECT count(*) FROM lignes_grille WHERE grille_id = '$G1' AND deleted_at IS NOT NULL")|$(sql "SELECT count(*) FROM criteres_majoration m JOIN lignes_grille l ON l.id = m.ligne_id WHERE l.grille_id = '$G1' AND m.deleted_at IS NOT NULL")"
+chk "la base refuse, sur un projet, une catégorie en double et un tarif nul" "uq_ligne_grille_categorie|lignes_grille_tarif_positif" \
+    "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO lignes_grille (grille_id, commune_id, categorie_code, mode, tarif) VALUES ('$G1', '$A', 'cafe', 'forfait_mensuel', 10)")|$(en_base admin_commune "$ID_A" "$A" "INSERT INTO lignes_grille (grille_id, commune_id, categorie_code, mode, tarif) VALUES ('$G1', '$A', 'hotel', 'reel_levee', 0)")"
+# Même un administrateur de la base, qui a tous les droits sur la table, ne pose
+# pas une approbation hors de sa procédure : c'est le déclencheur qui la garde.
+chk "même sans la garde des droits, la base refuse une approbation hors de sa procédure" GRILLE_APPROBATION \
+    "$($PSQL -c "BEGIN; UPDATE grilles_tarifaires SET date_approbation_tutelle = DATE '2026-01-20', reference_approbation = 'TEST', approuve_le = now() WHERE id = '$G1'; ROLLBACK;" 2>&1 | grep -oE 'GRILLE_[A-Z]+' | head -1)"
 chk "la base refuse une approbation écrite sans sa procédure" "permission denied" \
     "$(en_base admin_commune "$ID_A" "$A" "UPDATE grilles_tarifaires SET date_approbation_tutelle = DATE '2026-01-20', reference_approbation = 'TEST', approuve_le = now() WHERE id = '$G1'")"
 chk "une approbation datée de demain : 400" 400 \
@@ -264,6 +300,29 @@ approuver_en_base() { # grille attente_avant attente_apres
 approuver_en_base "$G3" 0 2 > "$T/course3" & approuver_en_base "$G4" 0.5 0 > "$T/course4" & wait
 chk "deux approbations simultanées de grilles qui se chevauchent : une seule passe, la seconde attend et refuse" "ok:|GRILLE_CHEVAUCHEMENT|1" \
     "$(cat "$T/course3")|$(cat "$T/course4")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id IN ('$G3', '$G4') AND date_approbation_tutelle IS NOT NULL")"
+# Le remplacement d'un projet (PUT) et son approbation en même temps : le
+# remplacement réécrit la grille puis retire ses lignes, et tient sa transaction
+# ouverte ; l'approbation arrive pendant ce temps. Elle doit attendre et contrôler
+# le projet remplacé — ici, vidé : refus. Sans le verrou de la grille, elle
+# contrôlait l'ancien projet, puis approuvait une grille sans aucun tarif.
+appel POST "/grilles-tarifaires?communeId=$B" "$T_B" "$(grille TEST-ARRETE-B1 2026-02-01 "[$L_CAFE]")" >/dev/null; G5=$(val "d['id']")
+remplacer_en_base() { # grille
+  $PSQL -c "BEGIN; SELECT set_config('app.role', 'admin_commune', true), set_config('app.user_id', '$ID_B', true), set_config('app.commune_id', '$B', true);
+            SET LOCAL ROLE siipi_app; UPDATE grilles_tarifaires SET intitule = 'TEST remplacé' WHERE id = '$1';
+            SELECT app.retirer_lignes_projet('$1'); SELECT pg_sleep(2); COMMIT;" >/dev/null 2>&1
+}
+approuver_b() { # grille
+  $PSQL -c "BEGIN; SELECT set_config('app.role', 'admin_commune', true), set_config('app.user_id', '$ID_B', true), set_config('app.commune_id', '$B', true);
+            SET LOCAL ROLE siipi_app; SELECT pg_sleep(0.5); SELECT 'ok:' FROM app.approuver_grille('$1', '$AUJ', 'TEST visa pendant le remplacement'); COMMIT;" 2>&1 \
+    | grep -oE '^ok:|GRILLE_[A-Z]+' | head -1
+}
+remplacer_en_base "$G5" & approuver_b "$G5" > "$T/course5" & wait
+chk "une approbation pendant le remplacement du projet attend, et contrôle le projet remplacé (vide : refus)" "GRILLE_VIDE|0" \
+    "$(cat "$T/course5")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$G5' AND date_approbation_tutelle IS NOT NULL")"
+appel DELETE "/grilles-tarifaires/$G5" "$T_B" >/dev/null
+CREE_G6=$(appel POST "/grilles-tarifaires?communeId=$B" "$T_B" "{\"intitule\":\"TEST bornée\",\"referenceArrete\":\"TEST-ARRETE-B2\",\"dateArrete\":\"2026-01-10\",\"dateEffet\":\"2026-02-01\",\"dateFin\":\"2026-12-31\",\"lignes\":[$L_CAFE]}"); G6=$(val "d['id']")
+chk "un projet borné dès l'arrêté (date de fin saisie) s'approuve : l'arrêté est la pièce de sa fin" "201|200|2026-12-31|TEST-ARRETE-B2" \
+    "$CREE_G6|$(appel POST "/grilles-tarifaires/$G6/approbation" "$T_B" '{"dateApprobation":"2026-01-20","reference":"TEST visa B"}')|$(val "d['date_fin']")|$(val "d['reference_fin']")"
 chk "un projet se retire (204), et reste en base, retiré" "204|1" \
     "$(appel DELETE "/grilles-tarifaires/$GV" "$T_A")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$GV' AND deleted_at IS NOT NULL AND deleted_by = '$ID_A'")"
 

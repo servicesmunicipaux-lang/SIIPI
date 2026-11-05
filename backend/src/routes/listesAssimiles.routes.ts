@@ -30,13 +30,15 @@ export const UNITES_ECHELLE = ['chambre', 'lit', 'chaise', 'table', 'etal', 'm2'
 
 // Une date qui n'existe pas (le 30 février) est refusée ici : la base la
 // rejetterait d'une erreur de conversion, rendue en 500.
+// L'an 0000 n'existe pas pour PostgreSQL (500) : l'année est bornée ici.
 const dateIso = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.')
   .refine((j) => {
     const d = new Date(`${j}T00:00:00Z`);
     return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === j;
-  }, 'Cette date n’existe pas : vérifiez le jour et le mois.');
+  }, 'Cette date n’existe pas : vérifiez le jour et le mois.')
+  .refine((j) => j >= '1900-01-01' && j <= '2100-12-31', 'Date hors de l’intervalle admis (1900 à 2100).');
 // Le jour à Tunis (UTC+1, sans heure d'été).
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
@@ -97,7 +99,11 @@ export const elementAssimileSchema = z
     reference: z.string().trim().max(500).nullable().optional(),
     unitesEchelle: z.array(z.enum(UNITES_ECHELLE)).min(1).max(UNITES_ECHELLE.length).optional(),
     dangereux: z.boolean().optional(),
-    datePublication: dateIso.nullable().optional(),
+    // Le Journal officiel de la République tunisienne paraît depuis 1956.
+    datePublication: dateIso
+      .refine((j) => j >= '1956-01-01', 'Une date de publication au JORT ne précède pas 1956.')
+      .nullable()
+      .optional(),
   })
   .strict()
   .refine((d) => d.provisoire || Boolean(d.reference), {
@@ -149,11 +155,15 @@ const traduireRefus = (err: unknown): never => {
   if (e.code === '23505') {
     throw new ApiError(409, 'Un élément de ce code est déjà ouvert dans cette liste. Fermez-le à une date, ou retirez-le s’il était faux.');
   }
-  if (e.constraint === 'elements_date_plausible') throw new ApiError(400, 'La date d’effet ne peut pas précéder l’an 2000.');
+  if (e.constraint === 'elements_date_plausible') {
+    throw new ApiError(400, 'La date d’effet ne précède pas l’an 2000 (1956 pour un texte de la base légale).');
+  }
+  if (e.constraint === 'elements_publication_plausible') {
+    throw new ApiError(400, 'La publication ne précède pas 1956, et la date d’application ne précède pas la publication.');
+  }
   if (e.constraint === 'elements_fin_apres_effet') {
     throw new ApiError(400, 'La fin doit suivre la date d’application de l’élément ; un texte sans date d’application ne se ferme pas.');
   }
-  if (e.constraint === 'elements_publication_plausible') throw new ApiError(400, 'La date d’application ne précède pas la publication.');
   const code = e.message?.match(/^(ELEMENT_[A-Z]+): /)?.[1];
   if (code) throw new ApiError(409, e.message!.slice(code.length + 2));
   throw err;

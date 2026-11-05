@@ -31,7 +31,12 @@ const boutonDiscret = 'min-h-11 rounded-lg border border-ardoise-300 bg-white px
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
 // Un montant ou un coefficient sans décimales inutiles : « × 1,000 » se lirait mille.
-const nombre = (v: number) => formaterNombre(v, Number.isInteger(v) ? 0 : Number.isInteger(v * 100) ? 2 : 3);
+// Les décimales se comptent sur la valeur arrondie au millième : 1,1 × 100 ne
+// vaut pas exactement 110 en virgule flottante, et 1,1 s'affichait « 1,100 ».
+const nombre = (v: number) => {
+  const r = Math.round(v * 1000) / 1000;
+  return formaterNombre(r, (r.toString().split('.')[1] ?? '').length);
+};
 
 const TON_ETAT: Record<GrilleTarifaire['etat'], TonPastille> = {
   projet: 'attention',
@@ -160,11 +165,18 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
                       </div>
                       <p className="text-sm text-ardoise-700">
                         {t('communal.grilles.arrete', { reference: g.reference_arrete, date: f.date(g.date_arrete) })}
-                        {g.reference_deliberation &&
-                          ` · ${t('communal.grilles.deliberation', {
-                            reference: g.reference_deliberation,
-                            date: g.date_deliberation ? f.date(g.date_deliberation) : '—',
-                          })}`}
+                        {/* La délibération se montre dès qu'on en a un élément ; la partie absente se dit en mots. */}
+                        {(g.reference_deliberation || g.date_deliberation) &&
+                          ` · ${
+                            g.reference_deliberation && g.date_deliberation
+                              ? t('communal.grilles.deliberation', {
+                                  reference: g.reference_deliberation,
+                                  date: f.date(g.date_deliberation),
+                                })
+                              : g.reference_deliberation
+                                ? t('communal.grilles.deliberationSansDate', { reference: g.reference_deliberation })
+                                : t('communal.grilles.deliberationSansReference', { date: f.date(g.date_deliberation ?? '') })
+                          }`}
                       </p>
                       <p className="text-sm text-ardoise-700">
                         {g.date_fin

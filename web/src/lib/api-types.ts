@@ -16567,7 +16567,7 @@ export interface paths {
         put?: never;
         /**
          * Enregistrer l’approbation de la tutelle
-         * @description La commune inscrit l’approbation reçue : sa date (passée, après l’arrêté) et sa pièce. Refusée pour une grille sans tarif, une catégorie qui n’est plus en vigueur à la date d’effet, ou une période déjà couverte par une autre grille approuvée (409). La grille est ensuite figée.
+         * @description La commune inscrit l’approbation reçue : sa date (passée, après l’arrêté) et sa pièce. Refusée en 409 pour une grille sans tarif, déjà approuvée, ou dont la période est déjà couverte par une autre grille approuvée de la commune ; en 400 pour une catégorie qui n’est pas en vigueur à la date d’effet, ou une date d’approbation future ou antérieure à l’arrêté. Une date de fin saisie avec le projet a l’arrêté pour pièce. La grille est ensuite figée.
          */
         post: {
             parameters: {
@@ -16596,7 +16596,7 @@ export interface paths {
                         "application/json": components["schemas"]["GrilleTarifaire"];
                     };
                 };
-                /** @description Requête invalide — le détail indique les champs en cause. */
+                /** @description Catégorie hors de la liste à la date d’effet, ou date d’approbation invalide. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -16632,7 +16632,7 @@ export interface paths {
                         "application/json": components["schemas"]["Erreur"];
                     };
                 };
-                /** @description Refus. */
+                /** @description Grille sans tarif, déjà approuvée, ou période déjà couverte. */
                 409: {
                     headers: {
                         [name: string]: unknown;
