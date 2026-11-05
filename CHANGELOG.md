@@ -43,8 +43,16 @@ Aucun nouveau module : cinq indicateurs au catalogue, et un radar sur l'écran I
 ### Vérifié
 - Campagne `indicateurs-odd`, avec un témoin indépendant (`tests/odd_attendus.py`, qui ne lit que le scénario et
   la méthode décidée). Les mutants sont attrapés : sans le proxy, avec un mois partiellement pesé, sans le
-  contrôle de source en base, quand la déclaration ne remplace plus l'approximation, et quand le radar compte les
-  indicateurs « sans objet ».
+  contrôle de source en base, quand la déclaration ne remplace plus l'approximation, quand le radar compte les
+  indicateurs « sans objet » ou compte deux fois le taux mesuré et l'estimé, et quand un ODD déclaré redevient une
+  atteinte d'objectif.
+- Reprises de la relecture du lot : un ODD déclaré en pourcentage ne se lit pas comme « % de l'objectif » et
+  n'entre pas dans l'indice de l'axe 3 (il n'a pas d'objectif) ; dans le radar, le taux de collecte mesuré et le
+  taux estimé, qui s'excluent, comptent pour un seul indicateur (sans quoi l'axe 1 ne pouvait jamais être
+  complet) ; une date d'étude impossible reçoit 400, jamais 500 ; le taux ODD se calcule avec les mesures du guide
+  au lieu de recalculer production, pesées et voyages ; la campagne ne suppose plus qu'aucune moyenne nationale de
+  caractérisation n'existe.
+- `kpi-5-axes` connaît désormais la famille `odd` dans le catalogue.
 
 ## [0.15.88] — 2026-11-03 — Un contrat échu ne donne plus ses circuits
 
