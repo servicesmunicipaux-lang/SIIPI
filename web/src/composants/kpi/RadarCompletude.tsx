@@ -28,7 +28,9 @@ export function RadarCompletude({ completude }: { completude: KpiCommune['comple
       <div className="mt-3 grid gap-4 lg:grid-cols-2 lg:items-center">
         <div className="h-72" dir="ltr" aria-hidden="true">
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={donnees} outerRadius="70%">
+            {/* Les marges gardent entiers les libellés des axes latéraux, qui
+                dépassaient le cadre sur un écran étroit. */}
+            <RadarChart data={donnees} outerRadius="60%" margin={{ top: 8, right: 56, bottom: 8, left: 56 }}>
               <PolarGrid stroke="#e5e7eb" />
               <PolarAngleAxis dataKey="libelle" tick={{ fontSize: 11, fill: '#4b5563' }} />
               <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
