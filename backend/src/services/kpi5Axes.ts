@@ -24,7 +24,7 @@ import { query } from '../db.js';
 
 export interface Indicateur {
   code: string;
-  famille: 'indicateur' | 'dma' | 'donnee';
+  famille: 'indicateur' | 'dma' | 'donnee' | 'odd';
   module: string | null;
   axe: number;
   libelle_fr: string;
@@ -42,6 +42,8 @@ export interface Indicateur {
   description_ar: string | null;
   /** La valeur est une fourchette : sa borne haute est detail.valeur_max (migration 089). */
   fourchette: boolean;
+  /** Une déclaration porte la source et la date de l'étude dont elle vient (migration 097). */
+  exige_source: boolean;
 }
 
 /** Ce que la commune a dit d'elle-même, et qui rend un indicateur « sans objet ». */
@@ -59,6 +61,9 @@ interface Declaration {
   saisi_le: string;
   commentaire_fnct: string | null;
   commente_le: string | null;
+  /** L'étude dont vient la valeur, et sa date (migration 097). */
+  source: string | null;
+  date_reference: string | null;
 }
 
 interface Mesure {
@@ -113,6 +118,12 @@ export interface CommuneKpi {
   indicateurs: Resultat[];
   /** « 14 indicateurs calculables sur 19 » : les sans-objet sortent du total. */
   couverture: { calculables: number; total: number };
+  /**
+   * Le radar de complétude (décision du 4 novembre, § 3.3) : par axe, les
+   * indicateurs renseignés parmi les applicables, toutes familles. Des comptes,
+   * jamais un chiffre global ni une comparaison entre communes.
+   */
+  completude: { axe: number; renseignes: number; applicables: number }[];
   axes: { axe: number; indice: number | null; renseignes: number; notes: number }[];
   dma: { indice: number | null; niveau: 'non_evalue' | 'initial' | 'en_preparation' | 'avance' | 'pret'; renseignes: number; total: number };
 }
@@ -171,7 +182,7 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
     ),
     query<Declaration & { commune_id: string; indicateur_code: string; valeur: string; cible: string | null }>(
       `SELECT d.id, d.commune_id, d.indicateur_code, d.valeur, d.cible, d.commentaire, d.saisi_le,
-              u.full_name AS saisi_par, d.commentaire_fnct, d.commente_le
+              u.full_name AS saisi_par, d.commentaire_fnct, d.commente_le, d.source, d.date_reference
          FROM declarations_indicateurs d LEFT JOIN users u ON u.id = d.saisi_par
         WHERE d.annee = $1 AND d.mois IS NULL AND d.deleted_at IS NULL
           AND ($2::text[] IS NULL OR d.commune_id = ANY($2))`,
@@ -212,6 +223,8 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
       saisi_le: d.saisi_le,
       commentaire_fnct: d.commentaire_fnct,
       commente_le: d.commente_le,
+      source: d.source,
+      date_reference: d.date_reference,
     });
   }
   const ranger = (lignes: typeof mesures) => {
@@ -384,6 +397,8 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
         saisi_le: d.saisi_le,
         commentaire_fnct: d.commentaire_fnct,
         commente_le: d.commente_le,
+        source: d.source,
+        date_reference: d.date_reference,
       },
     } as Resultat;
   });
@@ -392,6 +407,13 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
   const indicateurs = resultats.filter((r) => r.famille === 'indicateur');
   const applicables = indicateurs.filter((r) => r.statut !== 'sans_objet');
   const couverture = { calculables: applicables.filter((r) => r.statut === 'renseigne').length, total: applicables.length };
+
+  // --- Le radar de complétude : un indicateur « sans objet » sort du compte de
+  //     son axe, il ne le fait pas baisser.
+  const completude = [1, 2, 3, 4, 5].map((axe) => {
+    const lus = resultats.filter((r) => r.axe === axe && r.statut !== 'sans_objet');
+    return { axe, renseignes: lus.filter((r) => r.statut === 'renseigne').length, applicables: lus.length };
+  });
 
   // --- Les axes : moyenne des taux d'atteinte renseignés --------------------
   const axes = [1, 2, 3, 4, 5].map((axe) => {
@@ -422,6 +444,7 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
     profil,
     indicateurs: resultats,
     couverture,
+    completude,
     axes,
     dma: { indice: indiceDma, niveau, renseignes: dmaLus.length, total: dma.length },
   };

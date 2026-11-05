@@ -8,6 +8,9 @@
 //
 // La feuille annuelle de toutes les déclarations reste dans l'onglet
 // « Déclarations » ; ici, une seule valeur, sur place.
+//
+// Un indicateur ODD se déclare d'après une étude : sa source et sa date sont
+// demandées, et la base refuse la valeur sans elles (migration 097).
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +19,8 @@ import { CadreAjout, champAjout } from './CadreAjout';
 
 /** « 12,5 » ou « 12.5 » → 12.5 ; vide → null. */
 const nombre = (s: string) => (s.trim() === '' ? null : Number(s.trim().replace(/\s/g, '').replace(',', '.')));
+// Le jour à Tunis : une étude n'est pas datée dans l'avenir.
+const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
 export function FormulaireDeclaration({
   communeId,
@@ -34,16 +39,20 @@ export function FormulaireDeclaration({
   const [valeur, setValeur] = useState('');
   const [cible, setCible] = useState('');
   const [commentaire, setCommentaire] = useState('');
+  const [source, setSource] = useState('');
+  const [dateReference, setDateReference] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
   const ratio = indicateur.saisie === 'ratio';
+  const etude = indicateur.exige_source;
   const v = nombre(valeur);
   const c = nombre(cible);
   const valide =
     v !== null && Number.isFinite(v) && v >= 0 &&
     (indicateur.saisie !== 'taux' || v <= 100) &&
-    (!ratio || (c !== null && Number.isFinite(c) && c > 0));
+    (!ratio || (c !== null && Number.isFinite(c) && c > 0)) &&
+    (!etude || (source.trim().length >= 3 && dateReference !== '' && dateReference <= aujourdhui()));
   const libelle = i18n.language.startsWith('ar') ? indicateur.libelle_ar : indicateur.libelle_fr;
 
   const enregistrer = async () => {
@@ -51,7 +60,15 @@ export function FormulaireDeclaration({
     setErreur(null);
     try {
       await api.enregistrerDeclarations(communeId, annee, {
-        valeurs: { [indicateur.code]: { valeur: v as number, cible: ratio ? c : null, commentaire: commentaire.trim() || null } },
+        valeurs: {
+          [indicateur.code]: {
+            valeur: v as number,
+            cible: ratio ? c : null,
+            commentaire: commentaire.trim() || null,
+            source: source.trim() || null,
+            dateReference: dateReference || null,
+          },
+        },
       });
       await onFait();
     } catch (err) {
@@ -99,6 +116,35 @@ export function FormulaireDeclaration({
             />
             <span className="mt-1 block text-xs text-ardoise-500">{t('ajout.declaration.cibleAide')}</span>
           </label>
+        )}
+        {etude && (
+          <>
+            <label className="text-sm" htmlFor={`decl-source-${indicateur.code}`}>
+              {t('ajout.declaration.source')}
+              <input
+                id={`decl-source-${indicateur.code}`}
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                maxLength={500}
+                required
+                className={champAjout}
+              />
+              <span className="mt-1 block text-xs text-ardoise-500">{t('ajout.declaration.sourceAide')}</span>
+            </label>
+            <label className="text-sm" htmlFor={`decl-date-${indicateur.code}`}>
+              {t('ajout.declaration.dateReference')}
+              <input
+                id={`decl-date-${indicateur.code}`}
+                type="date"
+                dir="ltr"
+                max={aujourdhui()}
+                value={dateReference}
+                onChange={(e) => setDateReference(e.target.value)}
+                required
+                className={champAjout}
+              />
+            </label>
+          </>
         )}
         <label className="text-sm sm:col-span-2" htmlFor={`decl-commentaire-${indicateur.code}`}>
           {t('ajout.declaration.commentaire')}

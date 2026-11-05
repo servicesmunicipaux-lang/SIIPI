@@ -1602,15 +1602,17 @@ const DeclarationRetenue = z
     saisi_le: z.string(),
     commentaire_fnct: z.string().nullable(),
     commente_le: z.string().nullable(),
+    source: z.string().nullable().openapi({ description: 'L’étude dont vient la valeur (exigée pour un indicateur ODD).' }),
+    date_reference: z.string().nullable().openapi({ description: 'La date de cette étude, AAAA-MM-JJ.' }),
   })
-  .openapi({ description: 'La déclaration retenue : qui l’a saisie, quand, et le commentaire éventuel de la FNCT (D3).' });
+  .openapi({ description: 'La déclaration retenue : qui l’a saisie, quand, d’après quelle étude, et le commentaire éventuel de la FNCT (D3).' });
 
 const ResultatIndicateur = registry.register(
   'ResultatIndicateur',
   z
     .object({
       code: z.string().openapi({ example: 'M1-2', description: 'Identifiant interne, jamais affiché.' }),
-      famille: z.enum(['indicateur', 'dma', 'donnee']),
+      famille: z.enum(['indicateur', 'dma', 'donnee', 'odd']),
       axe: z.number().int(),
       libelle_fr: z.string(),
       libelle_ar: z.string(),
@@ -1663,6 +1665,12 @@ const KpiCommune = registry.register(
       profil: ProfilCommune,
       indicateurs: z.array(ResultatIndicateur),
       couverture: Couverture,
+      completude: z
+        .array(z.object({ axe: z.number().int(), renseignes: z.number().int(), applicables: z.number().int() }))
+        .openapi({
+          description:
+            'Le radar de complétude : par axe, les indicateurs renseignés parmi les applicables (toutes familles ; un indicateur sans objet sort du compte). Des comptes, jamais un chiffre global ni une comparaison entre communes.',
+        }),
       axes: z.array(Axe),
       dma: Dma,
     })
@@ -1686,6 +1694,8 @@ const Declaration = registry.register(
       saisi_par: z.string().nullable(),
       commentaire_fnct: z.string().nullable(),
       commente_le: z.string().nullable(),
+      source: z.string().nullable(),
+      date_reference: z.string().nullable(),
     })
     .openapi('DeclarationIndicateur')
 );
@@ -1696,7 +1706,7 @@ const IndicateurCatalogue = registry.register(
   'IndicateurCatalogue',
   z.object({
     code: z.string(),
-    famille: z.enum(['indicateur', 'dma', 'donnee']),
+    famille: z.enum(['indicateur', 'dma', 'donnee', 'odd']),
     module: z.string().nullable(),
     axe: z.number().int(),
     libelle_fr: z.string(),
@@ -1714,6 +1724,9 @@ const IndicateurCatalogue = registry.register(
     }),
     fourchette: z.boolean().openapi({
       description: 'La valeur est une fourchette : « valeur » en est la borne basse, detail.valeur_max la haute. Aucun point milieu, aucun repère de gouvernorat.',
+    }),
+    exige_source: z.boolean().openapi({
+      description: 'Une déclaration porte la source et la date de l’étude dont elle vient (indicateurs ODD) ; sans elles, 400.',
     }),
   }).passthrough()
 );
@@ -1779,7 +1792,7 @@ registry.registerPath({
   method: 'put', path: '/kpi/declarations/{communeId}/{annee}', tags: [TAG_KPI],
   summary: 'Déclarer des valeurs (la commune)',
   description:
-    'Une valeur déclarée vaut dès qu’elle est enregistrée, sans validation (D3). Une correction remplace la précédente, que le journal d’audit garde ; `null` retire la déclaration (retrait logique). Réservé à la commune : la FNCT commente, elle ne déclare pas à sa place (403).',
+    'Une valeur déclarée vaut dès qu’elle est enregistrée, sans validation (D3). Une correction remplace la précédente, que le journal d’audit garde ; `null` retire la déclaration (retrait logique). Un indicateur ODD se déclare d’après une étude : sans `source` ni `dateReference` (passée), 400, et la base le refuse aussi. Réservé à la commune : la FNCT commente, elle ne déclare pas à sa place (403).',
   security: SECURISE,
   request: { params: pDeclarations, body: { content: { 'application/json': { schema: declarationsSchema } } } },
   responses: { 200: json(z.object({ enregistrees: z.number().int() }), 'Déclarations enregistrées.'), ...REPONSES_COMMUNES },

@@ -33,6 +33,7 @@ import { DeclarationsIndicateurs } from './DeclarationsIndicateurs';
 import { ChiffreCle } from '../ui/ChiffreCle';
 import { CarteIndicateur } from './CarteIndicateur';
 import { PanneauIndicateur } from './PanneauIndicateur';
+import { RadarCompletude } from './RadarCompletude';
 import { bornesFenetre } from './temps';
 
 const ANNEE = new Date().getFullYear();
@@ -124,6 +125,7 @@ export function IndicateursCommune({
   const indicateurs = kpi.indicateurs.filter((r) => r.famille === 'indicateur');
   const dma = kpi.indicateurs.filter((r) => r.famille === 'dma');
   const donnees = kpi.indicateurs.filter((r) => r.famille === 'donnee');
+  const odd = kpi.indicateurs.filter((r) => r.famille === 'odd');
   const choisiR = kpi.indicateurs.find((r) => r.code === choisi) ?? null;
   const parCode = new Map(catalogue.map((c) => [c.code, c]));
 
@@ -243,6 +245,9 @@ export function IndicateursCommune({
               ))}
             </section>
 
+            {/* --- Le radar de complétude : ce que la commune tient, axe par axe --- */}
+            <RadarCompletude completude={kpi.completude} />
+
             {/* --- Les indicateurs, par axe : une carte chacun ---------------------- */}
             <section className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -285,6 +290,13 @@ export function IndicateursCommune({
                 <p className="text-xs text-ardoise-500">{t('kpi.donnees.aide')}</p>
                 {grille(donnees)}
               </div>
+              {odd.length > 0 && (
+                <div id="indicateurs-odd" className="scroll-mt-4 space-y-2">
+                  <h3 className="text-sm font-medium text-ardoise-700">{t('kpi.odd.titre')}</h3>
+                  <p className="text-xs text-ardoise-500">{t('kpi.odd.aide')}</p>
+                  {grille(odd)}
+                </div>
+              )}
             </section>
           </div>
 

@@ -33,9 +33,11 @@ import {
 } from '../../lib/api';
 import { formaterNombre } from '../../i18n';
 import { BoutonExport } from '../BoutonExport';
+import { useFormats } from '../../lib/formats';
 import { Chargement } from '../Elements';
 import { ChiffreCle } from '../ui/ChiffreCle';
-import { AtteinteObjectif, borneHaute, PastilleSource, texteValeur } from './CarteIndicateur';
+import { AtteinteObjectif, borneHaute, PastilleNature, PastilleSource, texteValeur } from './CarteIndicateur';
+import { ProvenanceOdd } from './ProvenanceOdd';
 import { boutonCompleter as bouton, LigneACompleter } from './LigneACompleter';
 import { bornesFenetre, decalerMois, finDeMois, libelleMois, type Fenetre } from './temps';
 
@@ -76,6 +78,7 @@ export function PanneauIndicateur({
   onOuvrirEcran?: (ecran: string) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const f = useFormats();
   const ar = i18n.language.startsWith('ar');
   const mensuel = indicateur?.granularite === 'mensuelle';
   const [fenetre, setFenetre] = useState<Fenetre>(mensuel ? '12m' : 'annees');
@@ -193,11 +196,20 @@ export function PanneauIndicateur({
                 unite={r.unite && r.unite.trim() !== '' ? r.unite : null}
               />
               <PastilleSource r={r} />
+              <PastilleNature r={r} />
             </p>
           ) : (
             <p className="text-sm text-ardoise-500" title={t(`kpi.statuts.aide.${r.statut}`)}>{t(`kpi.statuts.${r.statut}`)}</p>
           )}
           <AtteinteObjectif r={r} />
+          {r.source === 'declare' && r.declaration?.source && (
+            <p className="text-xs text-ardoise-600">
+              {t('kpi.declaration.etude', {
+                source: r.declaration.source,
+                date: r.declaration.date_reference ? f.date(r.declaration.date_reference) : '—',
+              })}
+            </p>
+          )}
         </div>
         <button type="button" onClick={onFermer} className={`${bouton} shrink-0`}>
           {t('kpi.panneau.fermer')}
@@ -344,6 +356,8 @@ export function PanneauIndicateur({
           </div>
         </section>
       )}
+
+      <ProvenanceOdd r={r} />
 
       {/* --- La formule et les sources ------------------------------------------- */}
       <section className="space-y-3 rounded-xl border border-ardoise-200 bg-white p-4" aria-labelledby={`formule-${r.code}`}>

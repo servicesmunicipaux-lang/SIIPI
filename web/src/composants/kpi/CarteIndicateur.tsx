@@ -52,6 +52,23 @@ export function PastilleSource({ r }: { r: ResultatIndicateur }) {
   );
 }
 
+/**
+ * Une valeur calculée qui n'est pas une mesure au sens strict (indicateurs ODD,
+ * migration 097) : « estimé » quand un terme l'est (le proxy des assimilés),
+ * « approximation » quand la formule l'est (la fraction organique compte les
+ * déchets verts). Dit en mots, à côté de la source.
+ */
+export function PastilleNature({ r }: { r: ResultatIndicateur }) {
+  const { t } = useTranslation();
+  const nature = r.detail && typeof r.detail === 'object' ? (r.detail as Record<string, unknown>).nature : null;
+  if (r.statut !== 'renseigne' || r.source !== 'mesure' || (nature !== 'estime' && nature !== 'approximation')) return null;
+  return (
+    <Pastille ton="neutre" titre={t(`kpi.odd.nature.aide.${nature}`)}>
+      {t(`kpi.odd.nature.${nature}`)}
+    </Pastille>
+  );
+}
+
 /** L'atteinte de l'objectif : un filet et les mots. Absente sans objectif. */
 export function AtteinteObjectif({ r }: { r: ResultatIndicateur }) {
   const { t } = useTranslation();
@@ -117,7 +134,10 @@ export function CarteIndicateur({
     >
       <span className="flex items-start justify-between gap-2">
         <span className={`text-sm leading-snug ${renseigne ? 'font-medium text-ardoise-800' : 'text-ardoise-600'}`}>{libelle}</span>
-        <PastilleSource r={r} />
+        <span className="flex shrink-0 flex-col items-end gap-1">
+          <PastilleSource r={r} />
+          <PastilleNature r={r} />
+        </span>
       </span>
 
       {renseigne ? (

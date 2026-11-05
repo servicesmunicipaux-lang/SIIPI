@@ -4453,7 +4453,7 @@ export interface paths {
         };
         /**
          * Déclarer des valeurs (la commune)
-         * @description Une valeur déclarée vaut dès qu’elle est enregistrée, sans validation (D3). Une correction remplace la précédente, que le journal d’audit garde ; `null` retire la déclaration (retrait logique). Réservé à la commune : la FNCT commente, elle ne déclare pas à sa place (403).
+         * @description Une valeur déclarée vaut dès qu’elle est enregistrée, sans validation (D3). Une correction remplace la précédente, que le journal d’audit garde ; `null` retire la déclaration (retrait logique). Un indicateur ODD se déclare d’après une étude : sans `source` ni `dateReference` (passée), 400, et la base le refuse aussi. Réservé à la commune : la FNCT commente, elle ne déclare pas à sa place (403).
          */
         put: {
             parameters: {
@@ -4477,6 +4477,8 @@ export interface paths {
                                 valeur: number;
                                 cible?: number | null;
                                 commentaire?: string | null;
+                                source?: string | null;
+                                dateReference?: string | null;
                             } | null;
                         };
                     };
@@ -30492,7 +30494,7 @@ export interface components {
              */
             code: string;
             /** @enum {string} */
-            famille: "indicateur" | "dma" | "donnee";
+            famille: "indicateur" | "dma" | "donnee" | "odd";
             axe: number;
             libelle_fr: string;
             libelle_ar: string;
@@ -30517,7 +30519,7 @@ export interface components {
                 [key: string]: unknown;
             };
             commentaire: string | null;
-            /** @description La déclaration retenue : qui l’a saisie, quand, et le commentaire éventuel de la FNCT (D3). */
+            /** @description La déclaration retenue : qui l’a saisie, quand, d’après quelle étude, et le commentaire éventuel de la FNCT (D3). */
             declaration: {
                 /** Format: uuid */
                 id: string;
@@ -30525,6 +30527,10 @@ export interface components {
                 saisi_le: string;
                 commentaire_fnct: string | null;
                 commente_le: string | null;
+                /** @description L’étude dont vient la valeur (exigée pour un indicateur ODD). */
+                source: string | null;
+                /** @description La date de cette étude, AAAA-MM-JJ. */
+                date_reference: string | null;
             } | null;
         };
         KpiCommune: {
@@ -30548,6 +30554,12 @@ export interface components {
                 calculables: number;
                 total: number;
             };
+            /** @description Le radar de complétude : par axe, les indicateurs renseignés parmi les applicables (toutes familles ; un indicateur sans objet sort du compte). Des comptes, jamais un chiffre global ni une comparaison entre communes. */
+            completude: {
+                axe: number;
+                renseignes: number;
+                applicables: number;
+            }[];
             axes: {
                 axe: number;
                 indice: number | null;
@@ -30573,11 +30585,13 @@ export interface components {
             saisi_par: string | null;
             commentaire_fnct: string | null;
             commente_le: string | null;
+            source: string | null;
+            date_reference: string | null;
         };
         IndicateurCatalogue: {
             code: string;
             /** @enum {string} */
-            famille: "indicateur" | "dma" | "donnee";
+            famille: "indicateur" | "dma" | "donnee" | "odd";
             module: string | null;
             axe: number;
             libelle_fr: string;
@@ -30601,6 +30615,8 @@ export interface components {
             granularite: "mensuelle" | "annuelle" | "actuelle";
             /** @description La valeur est une fourchette : « valeur » en est la borne basse, detail.valeur_max la haute. Aucun point milieu, aucun repère de gouvernorat. */
             fourchette: boolean;
+            /** @description Une déclaration porte la source et la date de l’étude dont elle vient (indicateurs ODD) ; sans elles, 400. */
+            exige_source: boolean;
         };
         PointSerie: {
             /** Format: date */
