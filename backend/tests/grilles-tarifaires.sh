@@ -72,14 +72,21 @@ releve_base_reelle
 commune_essai "$A" "TEST commune A des grilles"
 commune_essai "$B" "TEST commune B des grilles"
 compte_temporaire admin_commune "$A" "Directeur A"; T_A=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); ID_A=$COMPTE_ID
-compte_temporaire admin_commune "$B" "Directeur B"; T_B=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
-compte_temporaire super_admin_fnct "" "FNCT des grilles"; T_F=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
+compte_temporaire admin_commune "$B" "Directeur B"; T_B=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); ID_B=$COMPTE_ID
+compte_temporaire super_admin_fnct "" "FNCT des grilles"; T_F=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); ID_F=$COMPTE_ID
 compte_temporaire gestionnaire_prestataire "$A" "Prestataire de A"; T_P=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); ID_P=$COMPTE_ID
 [ -n "$T_A" ] && [ -n "$T_B" ] && [ -n "$T_F" ] && [ -n "$T_P" ] || { echo "API injoignable sur $API, ou compte temporaire refusé" >&2; exit 1; }
 AUJ=$(sql "SELECT app.jour_tunis()")
 DEMAIN=$(sql "SELECT app.jour_tunis() + 1")
 PIECES_AVANT=$(sql "SELECT count(*) FROM app.liste_nationale('pieces_carte_precollecteur', app.jour_tunis())")
 element() { appel POST "/listes-assimiles/listes/$1" "$2" "$3"; }
+# La grille approuvée d'une date, lue en base par un directeur (rôle, utilisateur,
+# commune principale) : app.grille_en_vigueur ne rend rien hors de son périmètre.
+vigueur() { # utilisateur commune_principale commune date
+  $PSQL -c "BEGIN; SELECT set_config('app.role', 'admin_commune', true), set_config('app.user_id', '$1', true), set_config('app.commune_id', '$2', true);
+            SET LOCAL ROLE siipi_app; SELECT 'g:' || COALESCE(app.grille_en_vigueur('$3', $4)::text, 'None'); ROLLBACK;" 2>&1 \
+    | grep -oE '^g:.*' | cut -d: -f2
+}
 etat() { # liste code — l'état du jour d'un élément ouvert
   appel GET /listes-assimiles "$T_A" >/dev/null
   val "[e['etat'] for l in d['listes'] if l['liste']=='$1' for e in l['elements'] if e['code']=='$2'][-1]"
@@ -105,9 +112,9 @@ chk "une catégorie sans date d'effet (seul un texte légal peut attendre la sie
 chk "un texte appliqué avant d'être publié : 400" 400 \
     "$(element base_legale_assimiles "$T_F" '{"code":"test_loi_x","libelleFr":"TEST Loi","libelleAr":"قانون","dateEffet":"2026-01-01","datePublication":"2026-02-01","provisoire":false,"reference":"TEST JORT n° 1"}')"
 chk "la base refuse d'elle-même un attribut porté par la mauvaise liste" elements_attributs_par_liste \
-    "$(en_base super_admin_fnct "" "" "INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, date_effet, dangereux) VALUES ('categories_activite_assimiles', 'test_y', 'Y', 'ي', DATE '2000-01-01', true)")"
+    "$(en_base super_admin_fnct "$ID_F" "" "INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, date_effet, dangereux) VALUES ('categories_activite_assimiles', 'test_y', 'Y', 'ي', DATE '2000-01-01', true)")"
 chk "… et une date d'application vide hors de la base légale" elements_date_attendue \
-    "$(en_base super_admin_fnct "" "" "INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, date_effet, dangereux) VALUES ('flux_assimiles', 'test_y', 'Y', 'ي', NULL, false)")"
+    "$(en_base super_admin_fnct "$ID_F" "" "INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, date_effet, dangereux) VALUES ('flux_assimiles', 'test_y', 'Y', 'ي', NULL, false)")"
 chk "aucun élément TEST n'a été écrit par ces refus" 0 \
     "$(sql "SELECT count(*) FROM elements_listes_nationales WHERE code LIKE 'test\_%'")"
 
@@ -139,7 +146,7 @@ chk "la FNCT la fixe, avec sa pièce : le texte entre en vigueur" "200|2026-10-1
 chk "… une seule fois : la refixer est introuvable (404)" 404 \
     "$(appel POST "/listes-assimiles/elements/$ID_DL/application" "$T_F" '{"dateEffet":"2026-11-01","reference":"TEST seconde proclamation"}')"
 chk "… et la base refuse de la réécrire" ELEMENT_FIGE \
-    "$(en_base super_admin_fnct "" "" "UPDATE elements_listes_nationales SET date_effet = DATE '2026-11-01' WHERE id = '$ID_DL'")"
+    "$(en_base super_admin_fnct "$ID_F" "" "UPDATE elements_listes_nationales SET date_effet = DATE '2026-11-01' WHERE id = '$ID_DL'")"
 chk "les listes du secteur informel n'ont pas bougé" "$PIECES_AVANT" \
     "$(sql "SELECT count(*) FROM app.liste_nationale('pieces_carte_precollecteur', app.jour_tunis())")"
 
@@ -181,7 +188,7 @@ chk "le directeur enregistre un projet : deux tarifs, des majorations dans leur 
     "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-ARRETE-1 2026-02-01 "[$L_CAFE,$L_HOTEL]")")|$(val "d['etat']")|$(val "','.join(l['categorie'] for l in d['lignes'])")|$(val "','.join(m['critere'] for m in d['lignes'][1]['majorations'])")"
 G1=$(val "d['id']")
 chk "… un projet ne s'applique jamais : aucune grille en vigueur" "None|None" \
-    "$(appel GET "/grilles-tarifaires/en-vigueur?communeId=$A" "$T_A" >/dev/null; val "d['grille']")|$(sql "SELECT COALESCE(app.grille_en_vigueur('$A', app.jour_tunis())::text, 'None')")"
+    "$(appel GET "/grilles-tarifaires/en-vigueur?communeId=$A" "$T_A" >/dev/null; val "d['grille']")|$(vigueur "$ID_A" "$A" "$A" "app.jour_tunis()")"
 chk "le projet se remplace : un seul tarif, le café à 150" "200|1|150.0" \
     "$(appel PUT "/grilles-tarifaires/$G1" "$T_A" "$(grille TEST-ARRETE-1 2026-02-01 '[{"categorie":"cafe","mode":"forfait_annuel","tarif":150}]')")|$(val "len(d['lignes'])")|$(val "float(d['lignes'][0]['tarif'])")"
 chk "… les lignes remplacées sont retirées, pas effacées, avec leurs majorations" "2|3" \
@@ -202,7 +209,7 @@ chk "une grille sans aucun tarif ne s'approuve pas (409)" 409 \
 chk "le directeur enregistre l'approbation de la tutelle : la grille est en vigueur" "200|en_vigueur|2026-01-20|TEST visa du gouverneur" \
     "$(appel POST "/grilles-tarifaires/$G1/approbation" "$T_A" '{"dateApprobation":"2026-01-20","reference":"TEST visa du gouverneur"}')|$(val "d['etat']")|$(val "d['date_approbation_tutelle']")|$(val "d['reference_approbation']")"
 chk "… c'est elle qui s'applique aujourd'hui" "$G1|$G1" \
-    "$(appel GET "/grilles-tarifaires/en-vigueur?communeId=$A" "$T_A" >/dev/null; val "d['grille']['id']")|$(sql "SELECT app.grille_en_vigueur('$A', app.jour_tunis())")"
+    "$(appel GET "/grilles-tarifaires/en-vigueur?communeId=$A" "$T_A" >/dev/null; val "d['grille']['id']")|$(vigueur "$ID_A" "$A" "$A" "app.jour_tunis()")"
 chk "… une approbation ne se refait pas (409)" 409 \
     "$(appel POST "/grilles-tarifaires/$G1/approbation" "$T_A" '{"dateApprobation":"2026-01-21","reference":"TEST second visa"}')"
 
@@ -213,8 +220,10 @@ chk "elle ne se retire pas (409)" 409 "$(appel DELETE "/grilles-tarifaires/$G1" 
 L1=$(sql "SELECT id FROM lignes_grille WHERE grille_id = '$G1' AND deleted_at IS NULL")
 chk "la base refuse d'en réécrire l'arrêté" GRILLE_FIGEE \
     "$(en_base admin_commune "$ID_A" "$A" "UPDATE grilles_tarifaires SET reference_arrete = 'TEST autre' WHERE id = '$G1'")"
-chk "… d'en retirer une ligne" GRILLE_FIGEE \
+chk "… l'application n'a aucun droit de retirer une ligne directement" "permission denied" \
     "$(en_base admin_commune "$ID_A" "$A" "UPDATE lignes_grille SET deleted_at = now() WHERE id = '$L1'")"
+chk "… et la procédure de retrait des lignes refuse une grille approuvée" GRILLE_FIGEE \
+    "$(en_base admin_commune "$ID_A" "$A" "SELECT app.retirer_lignes_projet('$G1')")"
 chk "… d'y ajouter une ligne" GRILLE_FIGEE \
     "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO lignes_grille (grille_id, commune_id, categorie_code, mode, tarif) VALUES ('$G1', '$A', 'hotel', 'reel_levee', 4)")"
 chk "… ou une majoration" GRILLE_FIGEE \
@@ -236,7 +245,8 @@ chk "… un projet ne se clôt pas, il se corrige (409)" 409 "$(appel POST "/gri
 chk "la seconde s'approuve alors" "200|en_vigueur" \
     "$(appel POST "/grilles-tarifaires/$G2/approbation" "$T_A" '{"dateApprobation":"2026-05-10","reference":"TEST visa 2"}')|$(val "d['etat']")"
 chk "la grille d'une date est celle de son arrêté : mars, la première ; aujourd'hui, la seconde" "$G1|$G2|None" \
-    "$(sql "SELECT app.grille_en_vigueur('$A', DATE '2026-03-01')")|$(sql "SELECT app.grille_en_vigueur('$A', app.jour_tunis())")|$(sql "SELECT COALESCE(app.grille_en_vigueur('$A', DATE '2026-01-15')::text, 'None')")"
+    "$(vigueur "$ID_A" "$A" "$A" "DATE '2026-03-01'")|$(vigueur "$ID_A" "$A" "$A" "app.jour_tunis()")|$(vigueur "$ID_A" "$A" "$A" "DATE '2026-01-15'")"
+chk "… et le directeur de B n'en lit aucune pour A" None "$(vigueur "$ID_B" "$B" "$A" "app.jour_tunis()")"
 # Deux approbations simultanées de deux projets qui se chevauchent : la
 # procédure verrouille la commune, une seule passe.
 $PSQL -c "UPDATE grilles_tarifaires SET date_fin = DATE '2027-01-01', reference_fin = 'TEST arrêté 3' WHERE id = '$G2'" >/dev/null
@@ -269,12 +279,14 @@ echo
 base_reelle_intacte "pendant la campagne"
 
 # -----------------------------------------------------------------------------
+# La table nationale d'abord : effacer le compte de la FNCT mettrait à vide
+# l'auteur des éléments qu'il a inscrits, ce que le figement des éléments refuse.
+rendre_tables_nationales
 nettoyer
 T=$(mktemp -d)
 chk "en partant : les communes de test, leurs grilles et les comptes temporaires sont effacés" "0|0|0" \
     "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI)")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE commune_id IN ($ESSAI)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
 base_reelle_intacte "en partant"
-rendre_tables_nationales
 tables_nationales_rendues "en partant"
 
 echo

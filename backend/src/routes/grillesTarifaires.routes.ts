@@ -289,17 +289,7 @@ grillesTarifairesRouter.put(
         if (maj.rows.length === 0) {
           throw new ApiError(409, 'Cette grille a changé entre-temps (approuvée ou retirée) : rechargez-la.');
         }
-        // Les majorations d'abord : retirées après leur ligne, elles seraient
-        // refusées (« ligne retirée »).
-        await client.query(
-          `UPDATE criteres_majoration m SET deleted_at = now(), deleted_by = app.current_user_id()
-            WHERE m.deleted_at IS NULL AND m.ligne_id IN (SELECT id FROM lignes_grille WHERE grille_id = $1 AND deleted_at IS NULL)`,
-          [g.id]
-        );
-        await client.query(
-          'UPDATE lignes_grille SET deleted_at = now(), deleted_by = app.current_user_id() WHERE grille_id = $1 AND deleted_at IS NULL',
-          [g.id]
-        );
+        await client.query('SELECT app.retirer_lignes_projet($1)', [g.id]);
         await ecrireLignes(client, g.id, d.lignes);
       });
     } catch (err) {

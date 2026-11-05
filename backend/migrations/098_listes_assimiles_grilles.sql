@@ -437,12 +437,11 @@ BEGIN
     EXECUTE format('REVOKE UPDATE, DELETE, TRUNCATE ON %I FROM siipi_app', t);
   END LOOP;
 END $$;
--- Ce qu'un projet laisse modifier, et le retrait des lignes d'un projet. Les
--- colonnes de l'approbation n'ont aucun droit : app.approuver_grille les écrit.
+-- Ce qu'un projet laisse modifier. Les colonnes de l'approbation n'ont aucun
+-- droit : app.approuver_grille les écrit. Les lignes et les majorations n'en ont
+-- aucun : elles se retirent par app.retirer_lignes_projet.
 GRANT UPDATE (intitule, reference_arrete, date_arrete, reference_deliberation, date_deliberation,
               date_effet, date_fin, reference_fin, updated_at) ON grilles_tarifaires TO siipi_app;
-GRANT UPDATE (deleted_at, deleted_by) ON lignes_grille TO siipi_app;
-GRANT UPDATE (deleted_at, deleted_by) ON criteres_majoration TO siipi_app;
 
 -- ---------------------------------------------------------------------------
 -- 3. L'approbation, la grille en vigueur
@@ -513,6 +512,41 @@ REVOKE ALL ON FUNCTION app.approuver_grille(uuid, date, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.approuver_grille(uuid, date, text) TO siipi_app;
 COMMENT ON FUNCTION app.approuver_grille(uuid, date, text) IS
   'Enregistre l''approbation d''une grille par la tutelle (lot G1) : sa date (passée, après l''arrêté) et sa pièce. Refuse une grille sans tarif, une catégorie qui n''est pas en vigueur à la date d''effet, et une période déjà couverte par une autre grille approuvée de la commune. Introuvable hors du périmètre du directeur.';
+
+-- Les lignes d'un projet, retirées pour être remplacées. Un UPDATE direct de
+-- deleted_at échouerait : la ligne retirée ne passe plus la politique de lecture
+-- (deleted_at IS NULL), que PostgreSQL applique aussi à la ligne modifiée. Comme
+-- app.supprimer, la procédure le fait au nom du directeur, après avoir vérifié
+-- qu'il tient la grille ; les déclencheurs refusent toujours une grille approuvée.
+CREATE OR REPLACE FUNCTION app.retirer_lignes_projet(p_grille uuid)
+  RETURNS integer
+  LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS
+$$
+DECLARE
+  g grilles_tarifaires%ROWTYPE;
+  v_lignes integer;
+BEGIN
+  SELECT * INTO g FROM grilles_tarifaires WHERE id = p_grille AND deleted_at IS NULL;
+  IF g.id IS NULL OR NOT app.peut_emettre_document(g.commune_id) THEN
+    RAISE EXCEPTION 'GRILLE_INTROUVABLE' USING ERRCODE = 'no_data_found';
+  END IF;
+  IF g.date_approbation_tutelle IS NOT NULL THEN
+    RAISE EXCEPTION 'GRILLE_FIGEE: une grille approuvée ne se modifie plus ; un nouvel arrêté fait une nouvelle grille.'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  -- Les majorations d'abord : retirées après leur ligne, elles seraient refusées.
+  UPDATE criteres_majoration m SET deleted_at = now(), deleted_by = app.current_user_id()
+   WHERE m.deleted_at IS NULL AND m.ligne_id IN (SELECT id FROM lignes_grille WHERE grille_id = g.id AND deleted_at IS NULL);
+  UPDATE lignes_grille SET deleted_at = now(), deleted_by = app.current_user_id()
+   WHERE grille_id = g.id AND deleted_at IS NULL;
+  GET DIAGNOSTICS v_lignes = ROW_COUNT;
+  RETURN v_lignes;
+END
+$$;
+REVOKE ALL ON FUNCTION app.retirer_lignes_projet(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app.retirer_lignes_projet(uuid) TO siipi_app;
+COMMENT ON FUNCTION app.retirer_lignes_projet(uuid) IS
+  'Retire (logiquement) les lignes et majorations d''un projet de grille, pour les remplacer. Refuse une grille approuvée ; introuvable hors du périmètre du directeur.';
 
 -- La grille approuvée qui s'applique à une date (la convention la prendra à sa
 -- date de début, lot G4). Rien sans grille approuvée : jamais un projet.
