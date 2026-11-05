@@ -20,7 +20,7 @@ import { z } from 'zod';
 import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
-import { communeDemandee } from '../perimetre.js';
+import { communeRequise } from '../perimetre.js';
 
 export const grillesTarifairesRouter = Router();
 
@@ -42,25 +42,26 @@ const dateIso = z
 // Un montant tient dans NUMERIC(12, 3) : au plus 999 999 999,999, et trois
 // décimales. Au-delà, la base refusait d'un dépassement (500), ou arrondissait
 // en silence 0,0004 à 0 — un tarif nul que la contrainte refusait ensuite.
+// Trois décimales se vérifient par une égalité exacte : le nombre lu du JSON est
+// le double le plus proche de sa forme décimale, et la division d'un entier par
+// 1000 rend le même. Une tolérance (|v × 1000 − arrondi| < 10⁻⁶) refusait des
+// montants valides au-delà de dix millions, où l'erreur de v × 1000 la dépasse.
+const auMillieme = (v: number) => Math.round(v * 1000) / 1000 === v;
 const montant = (positif: string) =>
   z
     .number()
     .positive(positif)
     .max(999_999_999.999, 'Montant trop grand : 999 999 999,999 au plus.')
-    .refine((v) => Math.abs(v * 1000 - Math.round(v * 1000)) < 1e-6, 'Trois décimales au plus (le millime).');
+    .refine(auMillieme, 'Trois décimales au plus (le millime).');
 const borne = z
   .number()
   .max(999_999_999.999, 'Borne trop grande : 999 999 999,999 au plus.')
-  .refine((v) => Math.abs(v * 1000 - Math.round(v * 1000)) < 1e-6, 'Trois décimales au plus.');
+  .refine(auMillieme, 'Trois décimales au plus.');
+// L'octet nul est du JSON valide, mais PostgreSQL refuse de le garder dans un
+// texte : sans ce refus, il finissait en erreur 500.
+const sansOctetNul = (t: string) => !t.includes('\u0000');
+const OCTET_NUL = 'Un texte ne peut pas contenir de caractère nul (\\u0000).';
 const estUuid = (s: string) => z.string().uuid().safeParse(s).success;
-function communeRequise(req: Parameters<typeof communeDemandee>[0]) {
-  const c = communeDemandee(req);
-  if (!c) throw new ApiError(400, 'Commune requise (paramètre communeId).');
-  // Un caractère de contrôle (l'octet nul) ferait échouer PostgreSQL (500) : un
-  // tel identifiant ne désigne aucune commune.
-  if (/[\u0000-\u001f]/.test(c)) throw new ApiError(404, 'Commune introuvable.');
-  return c;
-}
 
 const ACTE_DU_DIRECTEUR = 'Une grille tarifaire est un acte de la commune : son directeur l’enregistre, la FNCT la lit.';
 
@@ -171,10 +172,10 @@ export const ligneGrilleSchema = z
 
 export const grilleSchema = z
   .object({
-    intitule: z.string().trim().max(200).nullable().optional(),
-    referenceArrete: z.string().trim().min(3, 'La référence de l’arrêté est obligatoire.').max(300),
+    intitule: z.string().trim().max(200).refine(sansOctetNul, OCTET_NUL).nullable().optional(),
+    referenceArrete: z.string().trim().min(3, 'La référence de l’arrêté est obligatoire.').max(300).refine(sansOctetNul, OCTET_NUL),
     dateArrete: dateIso,
-    referenceDeliberation: z.string().trim().max(300).nullable().optional(),
+    referenceDeliberation: z.string().trim().max(300).refine(sansOctetNul, OCTET_NUL).nullable().optional(),
     dateDeliberation: dateIso.nullable().optional(),
     dateEffet: dateIso,
     dateFin: dateIso.nullable().optional(),
@@ -190,14 +191,14 @@ export const grilleSchema = z
 export const approbationGrilleSchema = z
   .object({
     dateApprobation: dateIso,
-    reference: z.string().trim().min(3, 'Citez la pièce de l’approbation de la tutelle (lettre, visa).').max(300),
+    reference: z.string().trim().min(3, 'Citez la pièce de l’approbation de la tutelle (lettre, visa).').max(300).refine(sansOctetNul, OCTET_NUL),
   })
   .strict();
 
 export const clotureGrilleSchema = z
   .object({
     dateFin: dateIso,
-    reference: z.string().trim().min(3, 'Citez la pièce qui met fin à cette grille (le nouvel arrêté).').max(300),
+    reference: z.string().trim().min(3, 'Citez la pièce qui met fin à cette grille (le nouvel arrêté).').max(300).refine(sansOctetNul, OCTET_NUL),
   })
   .strict();
 

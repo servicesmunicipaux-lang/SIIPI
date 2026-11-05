@@ -332,13 +332,22 @@ CREATE TRIGGER trg_controler_grille BEFORE INSERT OR UPDATE ON grilles_tarifaire
 
 -- Les lignes : elles prennent la commune de leur grille ; une grille approuvée ou
 -- retirée ne reçoit plus rien ; la catégorie est en vigueur à la date d'effet.
+--
+-- La grille est verrouillée avant d'être lue. Une approbation en cours la tient
+-- (FOR UPDATE) : la ligne attend qu'elle se termine, puis voit la grille approuvée
+-- et la refuse. Sans ce verrou, une ligne ajoutée ou retirée pendant l'approbation
+-- passait le contrôle sur la grille encore « projet », et la grille approuvée
+-- n'était plus celle que l'approbation avait contrôlée. Réciproquement,
+-- l'approbation attend qu'une modification des lignes en cours se termine. Deux
+-- modifications du même projet se suivent aussi : chacune voit les lignes et les
+-- tranches de l'autre.
 CREATE OR REPLACE FUNCTION app.controler_ligne_grille() RETURNS trigger
   LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS
 $$
 DECLARE
   g grilles_tarifaires%ROWTYPE;
 BEGIN
-  SELECT * INTO g FROM grilles_tarifaires WHERE id = NEW.grille_id;
+  SELECT * INTO g FROM grilles_tarifaires WHERE id = NEW.grille_id FOR NO KEY UPDATE;
   IF g.id IS NULL THEN
     RAISE EXCEPTION 'GRILLE_INTROUVABLE' USING ERRCODE = 'check_violation';
   END IF;
@@ -377,7 +386,10 @@ DECLARE
   g grilles_tarifaires%ROWTYPE;
 BEGIN
   SELECT * INTO l FROM lignes_grille WHERE id = NEW.ligne_id;
-  SELECT * INTO g FROM grilles_tarifaires WHERE id = l.grille_id;
+  -- La grille verrouillée, comme pour les lignes ; la ligne relue ensuite, dans
+  -- l'état que lui a laissé la modification qu'on a peut-être attendue.
+  SELECT * INTO g FROM grilles_tarifaires WHERE id = l.grille_id FOR NO KEY UPDATE;
+  SELECT * INTO l FROM lignes_grille WHERE id = NEW.ligne_id;
   IF g.date_approbation_tutelle IS NOT NULL THEN
     RAISE EXCEPTION 'GRILLE_FIGEE: une grille approuvée ne se modifie plus ; un nouvel arrêté fait une nouvelle grille.'
       USING ERRCODE = 'check_violation';
@@ -475,7 +487,7 @@ BEGIN
   -- verrou, l'approbation contrôlait l'ancienne version et approuvait la nouvelle
   -- — une grille vidée, ou redatée sur la période d'une autre.
   SELECT * INTO g FROM grilles_tarifaires WHERE id = p_grille FOR UPDATE;
-  IF g.deleted_at IS NOT NULL THEN
+  IF g.id IS NULL OR g.deleted_at IS NOT NULL THEN
     RAISE EXCEPTION 'GRILLE_RETIREE: cette grille est retirée.' USING ERRCODE = 'check_violation';
   END IF;
   -- Puis la commune : deux approbations de la même commune se suivent. FOR NO KEY
@@ -568,7 +580,7 @@ $$;
 REVOKE ALL ON FUNCTION app.retirer_lignes_projet(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app.retirer_lignes_projet(uuid) TO siipi_app;
 COMMENT ON FUNCTION app.retirer_lignes_projet(uuid) IS
-  'Retire (logiquement) les lignes et majorations d''un projet de grille, pour les remplacer. Refuse une grille approuvée ; introuvable hors du périmètre du directeur.';
+  'Retire (logiquement) les lignes et majorations d''un projet de grille, pour les remplacer. Refuse une grille approuvée, même quand l''approbation est en cours (les déclencheurs des lignes verrouillent la grille) ; introuvable hors du périmètre du directeur.';
 
 -- La grille approuvée qui s'applique à une date (la convention la prendra à sa
 -- date de début, lot G4). Rien sans grille approuvée : jamais un projet.

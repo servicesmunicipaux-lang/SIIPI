@@ -14,11 +14,13 @@
 #     se chevauchent ; une grille née approuvée ; une approbation écrite sans sa
 #     procédure, datée dans l'avenir ou avant l'arrêté, sur une grille vide ;
 #   - un montant qui ne tient pas dans la base (trop grand, ou plus fin que le
-#     millime), une année 0000, un octet nul dans l'identifiant de commune ;
+#     millime), une année 0000, un octet nul dans l'identifiant de commune ou
+#     dans un texte ;
 #   - toute modification d'une grille approuvée, de ses lignes, de ses
 #     majorations ; son retrait ; une seconde grille approuvée sur la même
 #     période — même quand les deux approbations arrivent en même temps ; une
-#     approbation qui contrôlerait un projet en train d'être remplacé.
+#     approbation qui contrôlerait un projet en train d'être remplacé ; une ligne
+#     ou une majoration ajoutée, ou retirée, pendant qu'une approbation est en cours.
 # Puis le cycle d'une grille : projet, modification, approbation, grille en
 # vigueur à une date, clôture, remplacement ; le texte légal publié sans date
 # d'application, « en attente », puis fixé une fois. Les tables des communes
@@ -119,6 +121,8 @@ chk "une publication au JORT d'avant 1956 : 400, qui le dit" "400|1" \
     "$(element base_legale_assimiles "$T_F" '{"code":"test_loi_x","libelleFr":"TEST Loi","libelleAr":"قانون","dateEffet":null,"datePublication":"1950-01-01","provisoire":false,"reference":"TEST JORT n° 1"}')|$(val "1 if '1956' in json.dumps(d, ensure_ascii=False) else 0")"
 chk "l'an 0000 : 400, jamais 500" 400 \
     "$(element flux_assimiles "$T_F" '{"code":"test_huiles","libelleFr":"TEST Huiles","libelleAr":"زيوت","dateEffet":"0000-01-01","dangereux":true}')"
+chk "un libellé qui porte un octet nul : 400, qui le dit, jamais 500" "400|1" \
+    "$(element flux_assimiles "$T_F" '{"code":"test_huiles","libelleFr":"TEST\u0000Huiles","libelleAr":"زيوت","dateEffet":"2000-01-01","dangereux":true}')|$(val "1 if 'caractère nul' in json.dumps(d, ensure_ascii=False) else 0")"
 chk "la base refuse d'elle-même un attribut porté par la mauvaise liste" elements_attributs_par_liste \
     "$(en_base super_admin_fnct "$ID_F" "" "INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, date_effet, dangereux) VALUES ('categories_activite_assimiles', 'test_y', 'Y', 'ي', DATE '2000-01-01', true)")"
 chk "… et une date d'application vide hors de la base légale" elements_date_attendue \
@@ -203,6 +207,8 @@ chk "un coefficient trop grand : 400" 400 \
     "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-X 2026-02-01 '[{"categorie":"cafe","mode":"forfait_annuel","tarif":10,"majorations":[{"critere":"surface_m2","borneMin":0,"effet":"coefficient","valeur":10000000000,"ordre":1}]}]')")"
 chk "l'an 0000 : 400, jamais 500" 400 \
     "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" "$(grille TEST-X 0000-02-01 "[$L_CAFE]")")"
+chk "un intitulé qui porte un octet nul : 400, qui le dit, jamais 500" "400|1" \
+    "$(appel POST "/grilles-tarifaires?communeId=$A" "$T_A" '{"intitule":"TEST\u0000nul","referenceArrete":"TEST-NUL","dateArrete":"2026-01-10","dateEffet":"2026-02-01","lignes":[{"categorie":"cafe","mode":"forfait_annuel","tarif":10}]}')|$(val "1 if 'caractère nul' in json.dumps(d, ensure_ascii=False) else 0")"
 chk "un octet nul dans l'identifiant de commune : introuvable (404), jamais 500" "404|404" \
     "$(appel GET "/grilles-tarifaires?communeId=$A%00" "$T_A")|$(appel POST "/grilles-tarifaires?communeId=$A%00" "$T_A" "$(grille TEST-X 2026-02-01 "[$L_CAFE]")")"
 chk "une date qui n'existe pas : 400, jamais 500" 400 \
@@ -210,6 +216,10 @@ chk "une date qui n'existe pas : 400, jamais 500" 400 \
 chk "aucune grille n'a été écrite par ces refus" 0 "$(sql "SELECT count(*) FROM grilles_tarifaires WHERE commune_id IN ($ESSAI)")"
 chk "la base refuse une grille née approuvée" GRILLE_NAISSANCE \
     "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO grilles_tarifaires (commune_id, reference_arrete, date_arrete, date_effet, date_approbation_tutelle, reference_approbation, approuve_le) VALUES ('$A', 'TEST', DATE '2026-01-10', DATE '2026-02-01', DATE '2026-01-20', 'TEST visa', now())")"
+# Le contrôle des trois décimales est exact : une tolérance refusait des montants
+# valides au-delà de dix millions (542 235 156,182 en est un).
+chk "… mais un grand montant au millime près s'enregistre tel quel (dans B, un projet)" "201|542235156.182" \
+    "$(appel POST "/grilles-tarifaires?communeId=$B" "$T_B" "$(grille TEST-GRAND 2026-02-01 '[{"categorie":"cafe","mode":"forfait_annuel","tarif":542235156.182}]')")|$(val "d['lignes'][0]['tarif']")"
 
 # -----------------------------------------------------------------------------
 echo
@@ -309,20 +319,48 @@ appel POST "/grilles-tarifaires?communeId=$B" "$T_B" "$(grille TEST-ARRETE-B1 20
 remplacer_en_base() { # grille
   $PSQL -c "BEGIN; SELECT set_config('app.role', 'admin_commune', true), set_config('app.user_id', '$ID_B', true), set_config('app.commune_id', '$B', true);
             SET LOCAL ROLE siipi_app; UPDATE grilles_tarifaires SET intitule = 'TEST remplacé' WHERE id = '$1';
-            SELECT app.retirer_lignes_projet('$1'); SELECT pg_sleep(2); COMMIT;" >/dev/null 2>&1
+            SELECT app.retirer_lignes_projet('$1'); SELECT pg_sleep(3); COMMIT;" >/dev/null 2>&1
 }
 approuver_b() { # grille
   $PSQL -c "BEGIN; SELECT set_config('app.role', 'admin_commune', true), set_config('app.user_id', '$ID_B', true), set_config('app.commune_id', '$B', true);
-            SET LOCAL ROLE siipi_app; SELECT pg_sleep(0.5); SELECT 'ok:' FROM app.approuver_grille('$1', '$AUJ', 'TEST visa pendant le remplacement'); COMMIT;" 2>&1 \
+            SET LOCAL ROLE siipi_app; SELECT pg_sleep(1); SELECT 'ok:' FROM app.approuver_grille('$1', '$AUJ', 'TEST visa pendant le remplacement'); COMMIT;" 2>&1 \
     | grep -oE '^ok:|GRILLE_[A-Z]+' | head -1
 }
 remplacer_en_base "$G5" & approuver_b "$G5" > "$T/course5" & wait
-chk "une approbation pendant le remplacement du projet attend, et contrôle le projet remplacé (vide : refus)" "GRILLE_VIDE|0" \
-    "$(cat "$T/course5")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$G5' AND date_approbation_tutelle IS NOT NULL")"
+chk "une approbation pendant le remplacement du projet attend, et contrôle le projet remplacé (vide : refus)" "GRILLE_VIDE|0|0|t" \
+    "$(cat "$T/course5")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$G5' AND date_approbation_tutelle IS NOT NULL")|$(sql "SELECT count(*) FROM lignes_grille WHERE grille_id = '$G5' AND deleted_at IS NULL")|$(sql "SELECT intitule = 'TEST remplacé' FROM grilles_tarifaires WHERE id = '$G5'")"
 appel DELETE "/grilles-tarifaires/$G5" "$T_B" >/dev/null
 CREE_G6=$(appel POST "/grilles-tarifaires?communeId=$B" "$T_B" "{\"intitule\":\"TEST bornée\",\"referenceArrete\":\"TEST-ARRETE-B2\",\"dateArrete\":\"2026-01-10\",\"dateEffet\":\"2026-02-01\",\"dateFin\":\"2026-12-31\",\"lignes\":[$L_CAFE]}"); G6=$(val "d['id']")
 chk "un projet borné dès l'arrêté (date de fin saisie) s'approuve : l'arrêté est la pièce de sa fin" "201|200|2026-12-31|TEST-ARRETE-B2" \
     "$CREE_G6|$(appel POST "/grilles-tarifaires/$G6/approbation" "$T_B" '{"dateApprobation":"2026-01-20","reference":"TEST visa B"}')|$(val "d['date_fin']")|$(val "d['reference_fin']")"
+# L'approbation verrouille la grille, et la garde ici quatre secondes ; une
+# seconde et demie plus tard, trois écritures arrivent sur ses lignes : un retrait
+# par la procédure, une ligne et une majoration ajoutées directement en base. Les
+# déclencheurs des lignes verrouillent la grille : chaque écriture attend, puis
+# voit la grille approuvée et la refuse. Sans ce verrou, elles passaient le
+# contrôle sur la grille encore « projet », et la grille approuvée n'était plus
+# celle que l'approbation avait contrôlée (ses lignes retirées, ou d'autres
+# ajoutées).
+appel POST "/grilles-tarifaires?communeId=$B" "$T_B" "$(grille TEST-ARRETE-B3 2027-01-01 "[$L_CAFE]")" >/dev/null; G7=$(val "d['id']")
+L7=$(sql "SELECT id FROM lignes_grille WHERE grille_id = '$G7' AND deleted_at IS NULL")
+CTX_B="SELECT set_config('app.role', 'admin_commune', true), set_config('app.user_id', '$ID_B', true), set_config('app.commune_id', '$B', true); SET LOCAL ROLE siipi_app"
+approuver_tenu() { # grille
+  $PSQL -c "BEGIN; $CTX_B; SELECT 'ok:' FROM app.approuver_grille('$1', '$AUJ', 'TEST visa tenu'); SELECT pg_sleep(4); COMMIT;" 2>&1 \
+    | grep -oE '^ok:|GRILLE_[A-Z]+' | head -1
+}
+intrus() { # instruction — son refus, ou ce qu'elle rend
+  $PSQL -c "BEGIN; $CTX_B; SELECT pg_sleep(1.5); $1; COMMIT;" 2>&1 \
+    | grep -oE '^ERROR: +[A-Z_]+:|^ins:|^n:[0-9]+' | head -1 | sed -E 's/^ERROR: +//; s/:$//'
+}
+approuver_tenu "$G7" > "$T/tenu" &
+intrus "SELECT 'n:' || app.retirer_lignes_projet('$G7')" > "$T/intrus1" &
+intrus "INSERT INTO lignes_grille (grille_id, commune_id, categorie_code, mode, tarif) VALUES ('$G7', '$B', 'hotel', 'reel_levee', 4) RETURNING 'ins:'" > "$T/intrus2" &
+intrus "INSERT INTO criteres_majoration (ligne_id, commune_id, critere, borne_min, effet, valeur, ordre) VALUES ('$L7', '$B', 'surface_m2', 0, 'coefficient', 2, 1) RETURNING 'ins:'" > "$T/intrus3" &
+wait
+chk "pendant une approbation, ni retrait de ligne, ni ligne, ni majoration ajoutées : chacune attend, puis est refusée" "ok:|GRILLE_FIGEE|GRILLE_FIGEE|GRILLE_FIGEE" \
+    "$(cat "$T/tenu")|$(cat "$T/intrus1")|$(cat "$T/intrus2")|$(cat "$T/intrus3")"
+chk "… la grille approuvée est celle que l'approbation a contrôlée : sa ligne, aucune autre, aucune majoration" "1|1|0|0" \
+    "$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$G7' AND date_approbation_tutelle IS NOT NULL")|$(sql "SELECT count(*) FROM lignes_grille WHERE grille_id = '$G7' AND deleted_at IS NULL AND id = '$L7'")|$(sql "SELECT count(*) FROM lignes_grille WHERE grille_id = '$G7' AND id <> '$L7'")|$(sql "SELECT count(*) FROM criteres_majoration WHERE ligne_id = '$L7'")"
 chk "un projet se retire (204), et reste en base, retiré" "204|1" \
     "$(appel DELETE "/grilles-tarifaires/$GV" "$T_A")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$GV' AND deleted_at IS NOT NULL AND deleted_by = '$ID_A'")"
 

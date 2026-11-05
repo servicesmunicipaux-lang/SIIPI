@@ -39,6 +39,10 @@ const dateIso = z
     return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === j;
   }, 'Cette date n’existe pas : vérifiez le jour et le mois.')
   .refine((j) => j >= '1900-01-01' && j <= '2100-12-31', 'Date hors de l’intervalle admis (1900 à 2100).');
+// L'octet nul est du JSON valide, mais PostgreSQL refuse de le garder dans un
+// texte : sans ce refus, il finissait en erreur 500.
+const sansOctetNul = (t: string) => !t.includes('\u0000');
+const OCTET_NUL = 'Un texte ne peut pas contenir de caractère nul (\\u0000).';
 // Le jour à Tunis (UTC+1, sans heure d'été).
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
@@ -90,13 +94,13 @@ export const elementAssimileSchema = z
       .string()
       .trim()
       .regex(/^[a-z][a-z0-9_]{2,60}$/, 'Le code s’écrit en minuscules, chiffres et tiret bas, 3 à 61 caractères (ex. : hotel).'),
-    libelleFr: z.string().trim().min(1, 'Le libellé en français est obligatoire.').max(300),
-    libelleAr: z.string().trim().min(1, 'Le libellé en arabe est obligatoire.').max(300),
+    libelleFr: z.string().trim().min(1, 'Le libellé en français est obligatoire.').max(300).refine(sansOctetNul, OCTET_NUL),
+    libelleAr: z.string().trim().min(1, 'Le libellé en arabe est obligatoire.').max(300).refine(sansOctetNul, OCTET_NUL),
     ordre: z.number().int().min(0).max(10_000).default(0),
     // Vide seulement pour un texte de la base légale dont l'application attend un événement.
     dateEffet: dateIso.nullable(),
     provisoire: z.boolean().default(true),
-    reference: z.string().trim().max(500).nullable().optional(),
+    reference: z.string().trim().max(500).refine(sansOctetNul, OCTET_NUL).nullable().optional(),
     unitesEchelle: z.array(z.enum(UNITES_ECHELLE)).min(1).max(UNITES_ECHELLE.length).optional(),
     dangereux: z.boolean().optional(),
     // Le Journal officiel de la République tunisienne paraît depuis 1956.
@@ -114,19 +118,21 @@ export const elementAssimileSchema = z
 export const applicationElementSchema = z
   .object({
     dateEffet: dateIso,
-    reference: z.string().trim().min(5, 'Citez la pièce qui fixe la date d’application (5 caractères au moins).').max(500),
+    reference: z.string().trim().min(5, 'Citez la pièce qui fixe la date d’application (5 caractères au moins).').max(500).refine(sansOctetNul, OCTET_NUL),
   })
   .strict();
 
 export const finElementAssimileSchema = z
   .object({
     dateFin: dateIso,
-    reference: z.string().trim().min(5, 'Citez le texte qui met fin à cet élément (5 caractères au moins).').max(500),
+    reference: z.string().trim().min(5, 'Citez le texte qui met fin à cet élément (5 caractères au moins).').max(500).refine(sansOctetNul, OCTET_NUL),
   })
   .strict();
 
 export const retraitElementAssimileSchema = z
-  .object({ motif: z.string().trim().min(5, 'Dites pourquoi cet élément est retiré (5 caractères au moins).').max(500) })
+  .object({
+    motif: z.string().trim().min(5, 'Dites pourquoi cet élément est retiré (5 caractères au moins).').max(500).refine(sansOctetNul, OCTET_NUL),
+  })
   .strict();
 
 // Les attributs propres à chaque liste : ce que la base exige, dit avant elle.
