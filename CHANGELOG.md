@@ -52,7 +52,7 @@ Aucun nouveau module : cinq indicateurs au catalogue, et un radar sur l'écran I
   complet) ; une date d'étude impossible reçoit 400, jamais 500 ; le taux ODD se calcule avec les mesures du guide
   au lieu de recalculer production, pesées et voyages ; la campagne ne suppose plus qu'aucune moyenne nationale de
   caractérisation n'existe.
-- `kpi-5-axes` connaît désormais la famille `odd` dans le catalogue.
+- `kpi-5-axes` connaît désormais la famille `odd` dans le catalogue ; `completude`, que les pesées et la population débloquent aussi les ODD calculés, et la caractérisation l'indice de gaspillage alimentaire.
 
 ## [0.15.88] — 2026-11-03 — Un contrat échu ne donne plus ses circuits
 
