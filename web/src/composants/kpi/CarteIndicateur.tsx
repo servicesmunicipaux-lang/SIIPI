@@ -41,13 +41,41 @@ export function texteValeurOuFourchette(valeur: number, detail: unknown): string
   return max === null || max === valeur ? texteValeur(valeur) : `${texteValeur(valeur)} – ${texteValeur(max)}`;
 }
 
-/** La source d'une valeur retenue, en toutes lettres : « mesuré » ou « déclaré ». */
+/** La nature d'une valeur calculée qui n'est pas une mesure au sens strict (detail.nature, 097), ou null. */
+export function natureDuDetail(detail: unknown): 'estime' | 'approximation' | null {
+  const n = detail && typeof detail === 'object' ? (detail as Record<string, unknown>).nature : null;
+  return n === 'estime' || n === 'approximation' ? n : null;
+}
+const natureDe = (r: ResultatIndicateur) => natureDuDetail(r.detail);
+
+/**
+ * La source d'une valeur retenue, en toutes lettres : « mesuré » ou « déclaré ».
+ * Une valeur estimée ou approchée ne se dit pas « mesurée » : PastilleNature le dit
+ * à sa place — les deux côte à côte se contrediraient.
+ */
 export function PastilleSource({ r }: { r: ResultatIndicateur }) {
   const { t } = useTranslation();
-  if (r.statut !== 'renseigne' || !r.source) return null;
+  if (r.statut !== 'renseigne' || !r.source || (r.source === 'mesure' && natureDe(r))) return null;
   return (
     <Pastille ton={r.source === 'mesure' ? 'mesure' : 'declare'} titre={t(`kpi.sources.aide.${r.source}`)}>
       {t(`kpi.sources.court.${r.source}`)}
+    </Pastille>
+  );
+}
+
+/**
+ * Une valeur calculée qui n'est pas une mesure au sens strict (indicateurs ODD,
+ * migration 097) : « estimé » quand un terme l'est (le proxy des assimilés),
+ * « approximation » quand la formule l'est (la fraction organique compte les
+ * déchets verts). Dit en mots, à la place de « mesuré ».
+ */
+export function PastilleNature({ r }: { r: ResultatIndicateur }) {
+  const { t } = useTranslation();
+  const nature = natureDe(r);
+  if (r.statut !== 'renseigne' || r.source !== 'mesure' || !nature) return null;
+  return (
+    <Pastille ton="neutre" titre={t(`kpi.odd.nature.aide.${nature}`)}>
+      {t(`kpi.odd.nature.${nature}`)}
     </Pastille>
   );
 }
@@ -117,7 +145,10 @@ export function CarteIndicateur({
     >
       <span className="flex items-start justify-between gap-2">
         <span className={`text-sm leading-snug ${renseigne ? 'font-medium text-ardoise-800' : 'text-ardoise-600'}`}>{libelle}</span>
-        <PastilleSource r={r} />
+        <span className="flex shrink-0 flex-col items-end gap-1">
+          <PastilleSource r={r} />
+          <PastilleNature r={r} />
+        </span>
       </span>
 
       {renseigne ? (

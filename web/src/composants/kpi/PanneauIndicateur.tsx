@@ -33,9 +33,11 @@ import {
 } from '../../lib/api';
 import { formaterNombre } from '../../i18n';
 import { BoutonExport } from '../BoutonExport';
+import { useFormats } from '../../lib/formats';
 import { Chargement } from '../Elements';
 import { ChiffreCle } from '../ui/ChiffreCle';
-import { AtteinteObjectif, borneHaute, PastilleSource, texteValeur } from './CarteIndicateur';
+import { AtteinteObjectif, borneHaute, natureDuDetail, PastilleNature, PastilleSource, texteValeur } from './CarteIndicateur';
+import { ProvenanceOdd } from './ProvenanceOdd';
 import { boutonCompleter as bouton, LigneACompleter } from './LigneACompleter';
 import { bornesFenetre, decalerMois, finDeMois, libelleMois, type Fenetre } from './temps';
 
@@ -46,6 +48,8 @@ type Ligne = {
   valeur: number | null;
   valeurMax: number | null;
   source: PointSerie['source'] | null;
+  /** « estimé » ou « approximation » : dit à la place de « mesuré » (indicateurs ODD). */
+  nature: 'estime' | 'approximation' | null;
   n1: number | null;
   reference: number | null;
 };
@@ -76,6 +80,7 @@ export function PanneauIndicateur({
   onOuvrirEcran?: (ecran: string) => void;
 }) {
   const { t, i18n } = useTranslation();
+  const f = useFormats();
   const ar = i18n.language.startsWith('ar');
   const mensuel = indicateur?.granularite === 'mensuelle';
   const [fenetre, setFenetre] = useState<Fenetre>(mensuel ? '12m' : 'annees');
@@ -149,6 +154,7 @@ export function PanneauIndicateur({
         valeur: (s.get(m) as PointSerie | undefined)?.valeur ?? null,
         valeurMax: borneHaute((s.get(m) as PointSerie | undefined)?.detail),
         source: (s.get(m) as PointSerie | undefined)?.source ?? null,
+        nature: natureDuDetail((s.get(m) as PointSerie | undefined)?.detail),
         n1: (s1.get(decalerMois(m, -12)) as PointSerie | undefined)?.valeur ?? null,
         reference: (ref.get(m) as PointReference | undefined)?.moyenne ?? null,
       }));
@@ -162,6 +168,7 @@ export function PanneauIndicateur({
       valeur: (s.get(a) as PointSerie | undefined)?.valeur ?? null,
       valeurMax: borneHaute((s.get(a) as PointSerie | undefined)?.detail),
       source: (s.get(a) as PointSerie | undefined)?.source ?? null,
+      nature: natureDuDetail((s.get(a) as PointSerie | undefined)?.detail),
       n1: null,
       reference: (ref.get(a) as PointReference | undefined)?.moyenne ?? null,
     }));
@@ -193,11 +200,20 @@ export function PanneauIndicateur({
                 unite={r.unite && r.unite.trim() !== '' ? r.unite : null}
               />
               <PastilleSource r={r} />
+              <PastilleNature r={r} />
             </p>
           ) : (
             <p className="text-sm text-ardoise-500" title={t(`kpi.statuts.aide.${r.statut}`)}>{t(`kpi.statuts.${r.statut}`)}</p>
           )}
           <AtteinteObjectif r={r} />
+          {r.source === 'declare' && r.declaration?.source && (
+            <p className="text-xs text-ardoise-600">
+              {t('kpi.declaration.etude', {
+                source: r.declaration.source,
+                date: r.declaration.date_reference ? f.date(r.declaration.date_reference) : '—',
+              })}
+            </p>
+          )}
         </div>
         <button type="button" onClick={onFermer} className={`${bouton} shrink-0`}>
           {t('kpi.panneau.fermer')}
@@ -334,7 +350,7 @@ export function PanneauIndicateur({
                   <tr key={l.cle} className="border-t border-ardoise-100">
                     <td className="px-2 py-1.5">{l.libelle}</td>
                     <td className="chiffres px-2 py-1.5 text-end">{l.valeur === null ? <span className="text-ardoise-400">{t('kpi.statuts.non_renseigne')}</span> : nombreFourchette(l.valeur, l.valeurMax)}</td>
-                    <td className="px-2 py-1.5 text-xs">{l.source ? t(`kpi.sources.${l.source}`) : ''}</td>
+                    <td className="px-2 py-1.5 text-xs">{l.source === 'mesure' && l.nature ? t(`kpi.odd.nature.${l.nature}`) : l.source ? t(`kpi.sources.${l.source}`) : ''}</td>
                     {comparer && b.pas === 'mois' && <td className="chiffres px-2 py-1.5 text-end">{nombre(l.n1)}</td>}
                     {avecReference && <td className="chiffres px-2 py-1.5 text-end">{nombre(l.reference)}</td>}
                   </tr>
@@ -344,6 +360,8 @@ export function PanneauIndicateur({
           </div>
         </section>
       )}
+
+      <ProvenanceOdd r={r} />
 
       {/* --- La formule et les sources ------------------------------------------- */}
       <section className="space-y-3 rounded-xl border border-ardoise-200 bg-white p-4" aria-labelledby={`formule-${r.code}`}>

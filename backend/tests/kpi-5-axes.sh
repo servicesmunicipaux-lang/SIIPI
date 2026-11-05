@@ -325,7 +325,8 @@ chk "plus aucun « concours » dans le code de l'API, ses migrations nouvelles e
     "$(grep -rli concours src migrations tests seed 2>/dev/null \
        | grep -v -e 'migrations/050_' -e 'migrations/055_' -e 'migrations/063_' -e 'migrations/068_retrait_concours' -e 'tests/kpi-5-axes.sh' | wc -l)"
 chk "ni dans le contrat d'API servi" 0 "$(curl -s "$API/openapi.json" | grep -ci concours)"
-chk "le catalogue ne connaît plus que des indicateurs, sans points" "dma,donnee,indicateur|0" \
+# La famille « odd » s'ajoute depuis la v0.15.89 (Indicateurs ODD, migration 097).
+chk "le catalogue ne connaît plus que des indicateurs, sans points" "dma,donnee,indicateur,odd|0" \
     "$(req GET /kpi/indicateurs >/dev/null; val "','.join(sorted({i['famille'] for i in d['indicateurs']}))")|$(val "sum(1 for i in d['indicateurs'] if 'points' in i)")"
 
 echo

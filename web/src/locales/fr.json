@@ -3196,7 +3196,10 @@
       "taux": "En pourcentage, de 0 à 100.",
       "cible": "Cible",
       "cibleAide": "Ce à quoi la valeur se rapporte : sans cible, un ratio ne se lit pas.",
-      "commentaire": "Commentaire (facultatif)"
+      "commentaire": "Commentaire (facultatif)",
+      "source": "Source de l'étude",
+      "sourceAide": "L'étude ou le rapport dont vient la valeur (« Étude de caractérisation ANGeD 2025 »).",
+      "dateReference": "Date de l'étude"
     },
     "document": {
       "titre": "{{document}}",
@@ -3662,7 +3665,8 @@
       "commentaireFnct": "Commentaire de la FNCT : {{texte}}",
       "commentaireFnctChamp": "Commentaire de la FNCT",
       "commenter": "Enregistrer le commentaire",
-      "commentaireEnregistre": "Commentaire enregistré."
+      "commentaireEnregistre": "Commentaire enregistré.",
+      "etude": "D'après : {{source}}, {{date}}"
     },
     "carte": {
       "aide": "Chaque carte s'ouvre sur son graphique ; une carte « non renseigné » s'ouvre sur ce qui manque pour la calculer, avec de quoi le compléter sur place.",
@@ -3720,6 +3724,50 @@
       },
       "formule": "Formule",
       "sources": "Sources"
+    },
+    "odd": {
+      "titre": "Indicateurs ODD",
+      "aide": "Les indicateurs des objectifs de développement durable 11 et 12. Deux se calculent à partir des registres de la commune ; les autres se déclarent d'après une étude, avec sa source et sa date.",
+      "declarationsAide": "Ces indicateurs se déclarent d'après une étude : sans sa source et sa date, la valeur est refusée.",
+      "nature": {
+        "estime": "Estimé",
+        "approximation": "Approximation",
+        "aide": {
+          "estime": "Un des termes du calcul est une estimation (le gisement des déchets assimilés, tant que la commune ne l'a pas mesuré).",
+          "approximation": "La formule approche l'indicateur : la fraction organique compte aussi les déchets verts, que l'indicateur exclut."
+        }
+      },
+      "termes": {
+        "titre": "D'où vient chaque terme",
+        "terme": "Terme",
+        "valeur": "Valeur",
+        "provenance": "Provenance",
+        "collecte": "Déchets collectés (numérateur)",
+        "pese": "Pesé : {{peses}} voyages pesés sur {{attendus}} attendus",
+        "gisementMenager": "Gisement ménager",
+        "gisementAssimile": "Gisement assimilé",
+        "proxy": "Estimé : proxy national, {{part}} % des déchets municipaux (paramètre de la FNCT)",
+        "production": "Production spécifique",
+        "organiques": "Part des organiques",
+        "caracterisation": "Caractérisation retenue : {{niveau}}, {{annee}}",
+        "total": "Total de la commune",
+        "populationProvenance": "population {{n}} ({{source}})",
+        "productionProvenance": "production spécifique {{valeur}} kg/hab/j ({{source}})",
+        "recensement": "recensement",
+        "source": "Source : {{source}}"
+      },
+      "noteTauxCollecte": "Plus bas que le taux de collecte : celui-ci rapporte le pesé au seul gisement ménager, l'indicateur ODD y ajoute les déchets assimilés.",
+      "noteApproximation": "Une approximation : la fraction organique de la caractérisation comprend aussi les déchets verts, alors que l'indicateur ne compte que les déchets alimentaires. Une valeur déclarée d'après une étude la remplace."
+    },
+    "radar": {
+      "titre": "Complétude par axe",
+      "aide": "Pour chaque axe, les indicateurs renseignés parmi ceux qui s'appliquent à la commune. Il dit ce que la commune tient, pas ce qu'elle vaut ; un indicateur sans objet n'entre pas dans le compte.",
+      "compte": "{{n}} sur {{total}}",
+      "aucunApplicable": "aucun indicateur applicable",
+      "colonnes": {
+        "axe": "Axe",
+        "renseignes": "Indicateurs renseignés"
+      }
     }
   },
   "registres": {

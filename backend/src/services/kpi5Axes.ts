@@ -24,7 +24,7 @@ import { query } from '../db.js';
 
 export interface Indicateur {
   code: string;
-  famille: 'indicateur' | 'dma' | 'donnee';
+  famille: 'indicateur' | 'dma' | 'donnee' | 'odd';
   module: string | null;
   axe: number;
   libelle_fr: string;
@@ -42,6 +42,8 @@ export interface Indicateur {
   description_ar: string | null;
   /** La valeur est une fourchette : sa borne haute est detail.valeur_max (migration 089). */
   fourchette: boolean;
+  /** Une déclaration porte la source et la date de l'étude dont elle vient (migration 097). */
+  exige_source: boolean;
 }
 
 /** Ce que la commune a dit d'elle-même, et qui rend un indicateur « sans objet ». */
@@ -59,6 +61,9 @@ interface Declaration {
   saisi_le: string;
   commentaire_fnct: string | null;
   commente_le: string | null;
+  /** L'étude dont vient la valeur, et sa date (migration 097). */
+  source: string | null;
+  date_reference: string | null;
 }
 
 interface Mesure {
@@ -113,11 +118,20 @@ export interface CommuneKpi {
   indicateurs: Resultat[];
   /** « 14 indicateurs calculables sur 19 » : les sans-objet sortent du total. */
   couverture: { calculables: number; total: number };
+  /**
+   * Le radar de complétude (décision du 4 novembre, § 3.3) : par axe, les
+   * indicateurs renseignés parmi les applicables, toutes familles. Des comptes,
+   * jamais un chiffre global ni une comparaison entre communes.
+   */
+  completude: { axe: number; renseignes: number; applicables: number }[];
   axes: { axe: number; indice: number | null; renseignes: number; notes: number }[];
   dma: { indice: number | null; niveau: 'non_evalue' | 'initial' | 'en_preparation' | 'avance' | 'pret'; renseignes: number; total: number };
 }
 
 const arrondi = (n: number, d = 1) => Math.round(n * 10 ** d) / 10 ** d;
+
+/** Les paires d'indicateurs qui s'excluent : la mesure, et l'estimation faute de mesure. */
+const TAUX_EXCLUSIFS: [string, string][] = [['TAUX_COLLECTE', 'TAUX_COLLECTE_ESTIME']];
 
 // ---------------------------------------------------------------------------
 // Chargement
@@ -171,7 +185,7 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
     ),
     query<Declaration & { commune_id: string; indicateur_code: string; valeur: string; cible: string | null }>(
       `SELECT d.id, d.commune_id, d.indicateur_code, d.valeur, d.cible, d.commentaire, d.saisi_le,
-              u.full_name AS saisi_par, d.commentaire_fnct, d.commente_le
+              u.full_name AS saisi_par, d.commentaire_fnct, d.commente_le, d.source, d.date_reference
          FROM declarations_indicateurs d LEFT JOIN users u ON u.id = d.saisi_par
         WHERE d.annee = $1 AND d.mois IS NULL AND d.deleted_at IS NULL
           AND ($2::text[] IS NULL OR d.commune_id = ANY($2))`,
@@ -212,6 +226,8 @@ export async function charger(annee: number, communeIds?: string[]): Promise<Con
       saisi_le: d.saisi_le,
       commentaire_fnct: d.commentaire_fnct,
       commente_le: d.commente_le,
+      source: d.source,
+      date_reference: d.date_reference,
     });
   }
   const ranger = (lignes: typeof mesures) => {
@@ -365,10 +381,12 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
     if (!d) {
       return { ...base, statut: 'non_renseigne', source: null, valeur: null, cible: null, taux_atteinte: null, detail: {} } as Resultat;
     }
-    const taux = tauxDeclaration(ind, d);
+    // Un indicateur ODD n'a pas d'objectif : sa valeur déclarée, même en %, ne se
+    // lit pas comme une atteinte, et n'entre pas dans l'indice de son axe.
+    const taux = ind.famille === 'odd' ? null : tauxDeclaration(ind, d);
     // Un ratio sans cible ne se lit pas : sa valeur s'affiche, il reste « non
     // renseigné » pour les indices.
-    const renseigne = ind.saisie === 'nombre' || ind.saisie === 'montant' || taux != null;
+    const renseigne = ind.famille === 'odd' || ind.saisie === 'nombre' || ind.saisie === 'montant' || taux != null;
     return {
       ...base,
       statut: renseigne ? 'renseigne' : 'non_renseigne',
@@ -384,6 +402,8 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
         saisi_le: d.saisi_le,
         commentaire_fnct: d.commentaire_fnct,
         commente_le: d.commente_le,
+        source: d.source,
+        date_reference: d.date_reference,
       },
     } as Resultat;
   });
@@ -393,9 +413,28 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
   const applicables = indicateurs.filter((r) => r.statut !== 'sans_objet');
   const couverture = { calculables: applicables.filter((r) => r.statut === 'renseigne').length, total: applicables.length };
 
+  // --- Le radar de complétude : un indicateur « sans objet » sort du compte de
+  //     son axe, il ne le fait pas baisser. Le taux de collecte mesuré et le
+  //     taux estimé s'excluent par construction (tout pesé, ou rien de pesé,
+  //     migration 089) : ils comptent pour un seul indicateur, renseigné si l'un
+  //     l'est — sans quoi l'axe 1 ne pourrait jamais être complet.
+  const completude = [1, 2, 3, 4, 5].map((axe) => {
+    const lus = resultats.filter((r) => r.axe === axe && r.statut !== 'sans_objet');
+    let applicables = lus.length;
+    let renseignes = lus.filter((r) => r.statut === 'renseigne').length;
+    for (const [mesure, estime] of TAUX_EXCLUSIFS) {
+      const m = lus.find((r) => r.code === mesure);
+      const e = lus.find((r) => r.code === estime);
+      if (!m || !e) continue;
+      applicables -= 1;
+      if (m.statut === 'renseigne' && e.statut === 'renseigne') renseignes -= 1;
+    }
+    return { axe, renseignes, applicables };
+  });
+
   // --- Les axes : moyenne des taux d'atteinte renseignés --------------------
   const axes = [1, 2, 3, 4, 5].map((axe) => {
-    const lus = resultats.filter((r) => r.axe === axe && r.famille !== 'donnee' && r.statut !== 'sans_objet');
+    const lus = resultats.filter((r) => r.axe === axe && r.famille !== 'donnee' && r.famille !== 'odd' && r.statut !== 'sans_objet');
     const avecTaux = lus.filter((r): r is Resultat & { taux_atteinte: number } => r.taux_atteinte != null);
     return {
       axe,
@@ -422,6 +461,7 @@ export function calculerCommune(ctx: Contexte, communeId: string): CommuneKpi {
     profil,
     indicateurs: resultats,
     couverture,
+    completude,
     axes,
     dma: { indice: indiceDma, niveau, renseignes: dmaLus.length, total: dma.length },
   };

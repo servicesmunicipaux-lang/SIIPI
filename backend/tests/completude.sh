@@ -150,14 +150,15 @@ echo "3. Ce qu'un élément débloque — lu dans les dépendances du catalogue"
 # Le témoin : la règle des dépendances (070) écrite à la main.
 completude
 trie() { indicateurs "$1" | tr ',' '\n' | sort | paste -sd, -; }
-chk "les pesées débloquent le tonnage, la production par habitant, le coût à la tonne, DMA-4, et la collecte et le remplissage (lot K)" \
-    "COUT_TONNE,DMA-4,KG_HAB_J,TAUX_COLLECTE,TAUX_REMPLISSAGE,TONNAGE_T" "$(trie pesees)"
+chk "les pesées débloquent le tonnage, la production par habitant, le coût à la tonne, DMA-4, la collecte et le remplissage (lot K), et le taux de collecte ODD (v0.15.89)" \
+    "COUT_TONNE,DMA-4,KG_HAB_J,ODD_11_6_1_A,TAUX_COLLECTE,TAUX_REMPLISSAGE,TONNAGE_T" "$(trie pesees)"
 chk "un circuit suffit à M1-3 (communication), M3-3 (usage du numérique), et sert à la collecte estimée (lot K)" \
     "CIRCUITS,M1-3,M3-3,TAUX_COLLECTE_ESTIME" "$(trie circuits)"
-chk "la population (et la production théorique) débloque la production par habitant et les taux du guide (lot K)" \
-    "KG_HAB_J,TAUX_COLLECTE,TAUX_COLLECTE_ESTIME,TAUX_COUVERTURE" "$(trie population)"
+chk "la population (et la production théorique) débloque la production par habitant, les taux du guide (lot K) et les deux ODD calculés (v0.15.89)" \
+    "KG_HAB_J,ODD_11_6_1_A,ODD_12_3_1_B,TAUX_COLLECTE,TAUX_COLLECTE_ESTIME,TAUX_COUVERTURE" "$(trie population)"
 chk "le carburant : son indicateur et le coût à la tonne" "COUT_TONNE,ECO-CARBURANT" "$(trie carburant)"
-chk "le PCGD, la caractérisation, le périmètre ne débloquent aucun indicateur (ils servent ailleurs, l'aide le dit)" "||" \
+# La caractérisation débloque l'indice de gaspillage alimentaire depuis la v0.15.89 (migration 097).
+chk "le PCGD et le périmètre ne débloquent aucun indicateur (ils servent ailleurs, l'aide le dit) ; la caractérisation, l'indice de gaspillage alimentaire" "|ODD_12_3_1_B|" \
     "$(indicateurs pcgd)|$(indicateurs caracterisation)|$(indicateurs perimetre)"
 CATALOGUE=$(sql "SELECT string_agg(code, ',') FROM indicateurs_kpi")
 chk "aucun élément ne prétend débloquer un indicateur absent du catalogue" 0 \

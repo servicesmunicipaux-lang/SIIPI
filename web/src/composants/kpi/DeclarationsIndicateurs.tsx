@@ -5,6 +5,9 @@
 //
 // Une case vide n'est pas un zéro : elle reste « non renseignée ». Pour dire
 // « aucun accident », on saisit 0.
+//
+// Un indicateur ODD se déclare d'après une étude : sa source et sa date se
+// saisissent avec la valeur, et la base refuse l'une sans les autres (097).
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +22,11 @@ interface Ligne {
   valeur: string;
   cible: string;
   commentaire: string;
+  source: string;
+  dateReference: string;
 }
+
+const LIGNE_VIDE: Ligne = { valeur: '', cible: '', commentaire: '', source: '', dateReference: '' };
 
 const champ = 'min-h-10 rounded-lg border border-ardoise-300 bg-white px-2 text-sm disabled:bg-ardoise-50';
 const bouton = 'min-h-10 rounded-lg border border-ardoise-300 bg-white px-3 text-sm font-medium text-ardoise-700 hover:bg-ardoise-50 disabled:opacity-50';
@@ -27,6 +34,8 @@ const boutonPrincipal = 'min-h-11 rounded-lg bg-siipi-600 px-4 text-sm font-semi
 
 /** « 12,5 » ou « 12.5 » → 12.5 ; vide → null. */
 const nombre = (s: string) => (s.trim() === '' ? null : Number(s.trim().replace(/\s/g, '').replace(',', '.')));
+// Le jour à Tunis : une étude n'est pas datée dans l'avenir.
+const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
 export function DeclarationsIndicateurs({
   communeId,
@@ -59,7 +68,16 @@ export function DeclarationsIndicateurs({
     setDonnees(d);
     setLignes(
       Object.fromEntries(
-        d.declarations.map((v) => [v.code, { valeur: String(v.valeur ?? ''), cible: v.cible == null ? '' : String(v.cible), commentaire: v.commentaire ?? '' }])
+        d.declarations.map((v) => [
+          v.code,
+          {
+            valeur: String(v.valeur ?? ''),
+            cible: v.cible == null ? '' : String(v.cible),
+            commentaire: v.commentaire ?? '',
+            source: v.source ?? '',
+            dateReference: v.date_reference ?? '',
+          },
+        ])
       )
     );
     setCommentaires(Object.fromEntries(d.declarations.map((v) => [v.code, v.commentaire_fnct ?? ''])));
@@ -79,6 +97,7 @@ export function DeclarationsIndicateurs({
       ...[1, 2, 3, 4, 5].map((axe) => ({ cle: `axe${axe}`, titre: t('kpi.axeNomme', { n: axe, nom: t(`kpi.axes.${axe}`) }), liste: catalogue.filter((i) => i.famille === 'indicateur' && i.axe === axe) })),
       { cle: 'dma', titre: t('kpi.dma.titre'), liste: catalogue.filter((i) => i.famille === 'dma') },
       { cle: 'donnee', titre: t('kpi.declarations.donnees'), liste: catalogue.filter((i) => i.famille === 'donnee') },
+      { cle: 'odd', titre: t('kpi.odd.titre'), liste: catalogue.filter((i) => i.famille === 'odd') },
     ].filter((g) => g.liste.length > 0);
   }, [catalogue, t]);
 
@@ -122,7 +141,15 @@ export function DeclarationsIndicateurs({
               // « non renseigné » — il ne devient pas zéro.
               return [
                 i.code,
-                v == null ? null : { valeur: v, cible: l && nombre(l.cible) != null ? nombre(l.cible) : null, commentaire: l?.commentaire.trim() || null },
+                v == null
+                  ? null
+                  : {
+                      valeur: v,
+                      cible: l && nombre(l.cible) != null ? nombre(l.cible) : null,
+                      commentaire: l?.commentaire.trim() || null,
+                      source: l?.source.trim() || null,
+                      dateReference: l?.dateReference || null,
+                    },
               ];
             })
           ),
@@ -131,7 +158,7 @@ export function DeclarationsIndicateurs({
     );
 
   const maj = (code: string, champs: Partial<Ligne>) =>
-    setLignes((x) => ({ ...x, [code]: { ...(x[code] ?? { valeur: '', cible: '', commentaire: '' }), ...champs } }));
+    setLignes((x) => ({ ...x, [code]: { ...(x[code] ?? LIGNE_VIDE), ...champs } }));
 
   return (
     <section className="space-y-4">
@@ -180,9 +207,10 @@ export function DeclarationsIndicateurs({
         <div key={g.cle} className="space-y-2 rounded-xl border border-ardoise-200 bg-white p-4">
           <h2 className="font-semibold text-ardoise-900">{g.titre}</h2>
           {g.cle === 'dma' && <p className="rounded bg-blue-50 p-2 text-xs text-blue-900">{t('kpi.dma.anticipation')}</p>}
+          {g.cle === 'odd' && <p className="rounded bg-blue-50 p-2 text-xs text-blue-900">{t('kpi.odd.declarationsAide')}</p>}
           <ul className="divide-y divide-ardoise-100">
             {g.liste.map((i) => {
-              const l = lignes[i.code] ?? { valeur: '', cible: '', commentaire: '' };
+              const l = lignes[i.code] ?? LIGNE_VIDE;
               const declaree = parCode.get(i.code);
               const sug = suggestion[i.code];
               return (
@@ -193,6 +221,14 @@ export function DeclarationsIndicateurs({
                     {declaree && (
                       <p className="mt-1 text-xs text-blue-800">
                         {t('kpi.declaration.par', { qui: declaree.saisi_par ?? '—', date: f.date(declaree.saisi_le, { heure: true }) })}
+                      </p>
+                    )}
+                    {declaree?.source && (
+                      <p className="mt-1 text-xs text-ardoise-600">
+                        {t('kpi.declaration.etude', {
+                          source: declaree.source,
+                          date: declaree.date_reference ? f.date(declaree.date_reference) : '—',
+                        })}
                       </p>
                     )}
                     {declaree?.commentaire_fnct && !fnct && (
@@ -278,6 +314,34 @@ export function DeclarationsIndicateurs({
                             </button>
                           )}
                         </label>
+                      )}
+                      {i.exige_source && (
+                        <>
+                          <label className="text-xs text-ardoise-600">
+                            <span className="block">{t('ajout.declaration.source')}</span>
+                            <input
+                              value={l.source}
+                              disabled={enCours}
+                              onChange={(e) => maj(i.code, { source: e.target.value })}
+                              maxLength={500}
+                              aria-label={`${ar ? i.libelle_ar : i.libelle_fr} — ${t('ajout.declaration.source')}`}
+                              className={`${champ} w-56`}
+                            />
+                          </label>
+                          <label className="text-xs text-ardoise-600">
+                            <span className="block">{t('ajout.declaration.dateReference')}</span>
+                            <input
+                              type="date"
+                              dir="ltr"
+                              max={aujourdhui()}
+                              value={l.dateReference}
+                              disabled={enCours}
+                              onChange={(e) => maj(i.code, { dateReference: e.target.value })}
+                              aria-label={`${ar ? i.libelle_ar : i.libelle_fr} — ${t('ajout.declaration.dateReference')}`}
+                              className={`${champ} w-40`}
+                            />
+                          </label>
+                        </>
                       )}
                       <input
                         value={l.commentaire}

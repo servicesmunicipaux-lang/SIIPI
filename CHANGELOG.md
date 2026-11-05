@@ -5,6 +5,59 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.89] — 2026-11-05 — Indicateurs ODD et radar de complétude
+
+Le lot décidé le 4 novembre (`docs/specs_metier/DECISIONS_2026-11-04.md`, § 3), avant le codage du jalon G.
+Aucun nouveau module : cinq indicateurs au catalogue, et un radar sur l'écran Indicateurs.
+
+### Ajouté
+- **Une famille « Indicateurs ODD »** (`odd`, axe 3 ; migration 097). Le mot « WaCT » n'est pas un nom
+  d'indicateur : il n'apparaît que comme provenance du proxy.
+- **`ODD_11_6_1_A`, taux de collecte des déchets municipaux, calculé** : le pesé de la période, sur le gisement
+  ménager (production spécifique × population, saison comprise) plus le gisement assimilé. Le numérateur suit la
+  règle de `TAUX_COLLECTE` : seulement quand tous les voyages attendus sont pesés, sinon « non renseigné », jamais
+  un taux faussement bas. Avant le jalon G, le gisement assimilé est le **proxy national** : un paramètre national
+  daté, `part_assimiles_proxy` (30 %, référence : décision de la FNCT du 04/11/2026), modifiable par la FNCT,
+  qui ne sert qu'à l'estimation et jamais à une facturation. La valeur est donc toujours **estimée** dans ce lot.
+  `TAUX_COLLECTE` ne change pas ; le panneau explique pourquoi l'ODD est plus bas.
+- **`ODD_12_3_1_B`, indice de gaspillage alimentaire des ménages**, en **approximation** : production spécifique
+  × part des organiques de la caractérisation retenue (kg/hab/j, et le total de la commune en t/j). L'écran dit
+  pourquoi c'est une approximation (la fraction organique compte les déchets verts). Une valeur déclarée d'après
+  une étude la **remplace** : la règle vit dans le calcul (`app._mesures_odd_auto_periode` ne rend rien pour une
+  commune qui a déclaré l'année), si bien que la fiche, les séries et la vue nationale la suivent toutes.
+- **Trois ODD déclarables** — `ODD_11_6_1_B`, `ODD_12_5_1`, `FUITE_PLASTIQUE` —, jamais calculés.
+- **Une déclaration ODD porte sa source et la date de l'étude** : `declarations_indicateurs.source` et
+  `date_reference`, exigées par la base pour un indicateur marqué `exige_source` (une date passée, à Tunis) ;
+  `PUT /kpi/declarations` répond 400 en disant quoi citer. Les autres déclarations ne changent pas, et une
+  déclaration ancienne se retire toujours.
+- **La provenance de chaque terme** dans le détail de la valeur et dans le panneau : pesé (voyages pesés sur
+  attendus), population et sa source, production et sa source, proxy et sa part, caractérisation, son niveau et
+  son année. Une valeur estimée ou approchée porte la pastille « Estimé » ou « Approximation » à la place de
+  « Mesuré », sur la carte, dans le panneau et dans le tableau de sa série.
+- **Le radar de complétude** d'une commune (`completude` de `GET /kpi/5-axes`, `RadarCompletude.tsx`) : par
+  axe, les indicateurs renseignés parmi les applicables, toutes familles ; un indicateur « sans objet » sort du
+  compte au lieu de faire baisser son axe. Chaque axe porte son compte en mots (« 4 sur 7 ») ; aucun chiffre
+  global, aucune comparaison entre communes, aucun radar national ; un tableau équivalent pour l'accessibilité
+  et l'impression. Vérifié en français et en arabe, sur grand écran et sur téléphone.
+
+### Vérifié
+- Critère complet sur base neuve : 97 migrations, 097 rejouée sans effet ; 85 campagnes présentes et 85 enchaînées ;
+  `verifier:contrat` : 392 routes servies, 392 documentées ; `npm test` : 85 bilans, 3725 tests réussis, code de
+  sortie 0 ; `audit-blocs.py` : 9 blocs sous condition, tous leurs contrôles ont tourné ; `npm run lint` backend et
+  web.
+- Campagne `indicateurs-odd` (46 contrôles), avec un témoin indépendant (`tests/odd_attendus.py`, qui ne lit que le scénario et
+  la méthode décidée). Les mutants sont attrapés : sans le proxy, avec un mois partiellement pesé, sans le
+  contrôle de source en base, quand la déclaration ne remplace plus l'approximation, quand le radar compte les
+  indicateurs « sans objet » ou compte deux fois le taux mesuré et l'estimé, et quand un ODD déclaré redevient une
+  atteinte d'objectif.
+- Reprises de la relecture du lot : un ODD déclaré en pourcentage ne se lit pas comme « % de l'objectif » et
+  n'entre pas dans l'indice de l'axe 3 (il n'a pas d'objectif) ; dans le radar, le taux de collecte mesuré et le
+  taux estimé, qui s'excluent, comptent pour un seul indicateur (sans quoi l'axe 1 ne pouvait jamais être
+  complet) ; une date d'étude impossible reçoit 400, jamais 500 ; le taux ODD se calcule avec les mesures du guide
+  au lieu de recalculer production, pesées et voyages ; la campagne ne suppose plus qu'aucune moyenne nationale de
+  caractérisation n'existe.
+- `kpi-5-axes` connaît désormais la famille `odd` dans le catalogue ; `completude`, que les pesées et la population débloquent aussi les ODD calculés, et la caractérisation l'indice de gaspillage alimentaire.
+
 ## [0.15.88] — 2026-11-03 — Un contrat échu ne donne plus ses circuits
 
 Suite de la v0.15.87, relevée par sa relecture adversariale.

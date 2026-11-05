@@ -189,6 +189,8 @@ const ERREURS_DECLARATION: Record<string, number> = {
   DECLARATION_INDICATEUR_CALCULE: 400,
   DECLARATION_TAUX: 400,
   DECLARATION_CIBLE: 400,
+  DECLARATION_SOURCE: 400,
+  DECLARATION_DATE: 400,
 };
 
 kpi5AxesRouter.get(
@@ -202,7 +204,7 @@ kpi5AxesRouter.get(
       queryOne('SELECT a_abattoir, decharge_controlee_anged FROM parametres_commune WHERE commune_id = $1', [communeId]),
       query(
         `SELECT d.id, d.indicateur_code AS code, d.valeur::float, d.cible::float, d.commentaire, d.saisi_le,
-                u.full_name AS saisi_par, d.commentaire_fnct, d.commente_le
+                u.full_name AS saisi_par, d.commentaire_fnct, d.commente_le, d.source, d.date_reference
            FROM declarations_indicateurs d LEFT JOIN users u ON u.id = d.saisi_par
           WHERE d.commune_id = $1 AND d.annee = $2 AND d.mois IS NULL AND d.deleted_at IS NULL
           ORDER BY d.indicateur_code`,
@@ -232,6 +234,20 @@ const saisieSchema = z
     valeur: z.number().min(0).max(1e12),
     cible: z.number().positive().max(1e12).nullable().optional(),
     commentaire: z.string().trim().max(2000).nullable().optional(),
+    // L'étude dont vient la valeur, et sa date : exigées pour un indicateur ODD
+    // (indicateurs_kpi.exige_source, migration 097), facultatives ailleurs.
+    source: z.string().trim().max(500).nullable().optional(),
+    // Une date qui n'existe pas (le 30 février) est refusée ici : la base la
+    // rejetterait d'une erreur de conversion, rendue en 500.
+    dateReference: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.')
+      .refine((j) => {
+        const d = new Date(`${j}T00:00:00Z`);
+        return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === j;
+      }, 'Cette date n’existe pas : vérifiez le jour et le mois.')
+      .nullable()
+      .optional(),
   })
   .nullable();
 
@@ -272,6 +288,9 @@ kpi5AxesRouter.put(
       if (ind.saisie === 'ratio' && v.cible && v.valeur > v.cible * 10) {
         throw new ApiError(400, `« ${ind.libelle_fr} » : la valeur dépasse dix fois la cible — une erreur de saisie ?`);
       }
+      if (ind.exige_source && (!v.source || v.source.length < 3 || !v.dateReference)) {
+        throw new ApiError(400, `« ${ind.libelle_fr} » se déclare d'après une étude : citez sa source et sa date (dateReference).`);
+      }
     }
 
     try {
@@ -293,17 +312,18 @@ kpi5AxesRouter.put(
           }
           // Une correction remplace la déclaration en vigueur ; le journal
           // d'audit garde la précédente.
+          const valeurs = [communeId, code, annee, v.valeur, v.cible ?? null, v.commentaire || null, qui.sub, v.source || null, v.dateReference ?? null];
           const maj = await client.query(
             `UPDATE declarations_indicateurs
-                SET valeur = $4, cible = $5, commentaire = $6, saisi_par = $7, saisi_le = now()
+                SET valeur = $4, cible = $5, commentaire = $6, saisi_par = $7, saisi_le = now(), source = $8, date_reference = $9::date
               WHERE commune_id = $1 AND indicateur_code = $2 AND annee = $3 AND mois IS NULL AND deleted_at IS NULL`,
-            [communeId, code, annee, v.valeur, v.cible ?? null, v.commentaire || null, qui.sub]
+            valeurs
           );
           if (maj.rowCount === 0) {
             await client.query(
-              `INSERT INTO declarations_indicateurs (commune_id, indicateur_code, annee, valeur, cible, commentaire, saisi_par)
-               VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-              [communeId, code, annee, v.valeur, v.cible ?? null, v.commentaire || null, qui.sub]
+              `INSERT INTO declarations_indicateurs (commune_id, indicateur_code, annee, valeur, cible, commentaire, saisi_par, source, date_reference)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::date)`,
+              valeurs
             );
           }
         }
