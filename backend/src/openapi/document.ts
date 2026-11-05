@@ -85,6 +85,21 @@ import { chargementEtudeSchema } from '../routes/coutComplet.routes.js';
 import { inscriptionActeurSchema, faitsActeurSchema, demarcheSchema } from '../routes/acteursInformels.routes.js';
 import { elementListeSchema, finElementSchema, retraitElementSchema } from '../routes/reglesInformel.routes.js';
 import {
+  applicationElementSchema,
+  elementAssimileSchema,
+  finElementAssimileSchema,
+  retraitElementAssimileSchema,
+  UNITES_ECHELLE,
+} from '../routes/listesAssimiles.routes.js';
+import {
+  approbationGrilleSchema,
+  clotureGrilleSchema,
+  CRITERES_MAJORATION,
+  grilleSchema,
+  MODES_TARIF,
+  qGrilleEnVigueur,
+} from '../routes/grillesTarifaires.routes.js';
+import {
   demandeCarteSchema,
   pieceCarteSchema,
   accordCarteSchema,
@@ -4454,6 +4469,231 @@ registry.registerPath({
     body: { content: { 'application/json': { schema: retraitElementSchema } } },
   },
   responses: { 200: json(ElementListeNationale, 'Élément retiré.'), ...REPONSES_COMMUNES },
+});
+
+// --- Les listes nationales des déchets assimilés (jalon G, lot G1) -----------
+
+const LISTE_ASSIMILES = z.enum(['categories_activite_assimiles', 'flux_assimiles', 'base_legale_assimiles']);
+
+const ElementListeAssimiles = registry.register(
+  'ElementListeAssimiles',
+  z.object({
+    id: z.string().uuid(),
+    liste: LISTE_ASSIMILES,
+    code: z.string(),
+    libelle_fr: z.string(),
+    libelle_ar: z.string(),
+    ordre: z.number().int(),
+    date_effet: z.string().nullable().openapi({
+      description: 'Premier jour d’application. null : un texte de la base légale publié dont l’application attend un événement ; il n’est jamais en vigueur.',
+    }),
+    date_fin: z.string().nullable(),
+    reference_fin: z.string().nullable(),
+    provisoire: z.boolean(),
+    reference: z.string().nullable().openapi({ description: 'Le texte qui fonde l’élément ; pour la base légale, sa référence de publication (JORT).' }),
+    unites_echelle: z.array(z.enum(UNITES_ECHELLE)).nullable().openapi({ description: 'Catégories d’activité : les unités d’échelle du WaCT admises.' }),
+    dangereux: z.boolean().nullable().openapi({ description: 'Flux assimilés : à orienter vers sa filière, jamais couvert par une convention.' }),
+    date_publication: z.string().nullable().openapi({ description: 'Base légale : la date de publication au JORT.' }),
+    reference_effet: z.string().nullable().openapi({ description: 'Base légale : la pièce qui a fixé après coup la date d’application.' }),
+    created_at: z.string(),
+    retire_le: z.string().nullable(),
+    motif_retrait: z.string().nullable(),
+  })
+);
+const EtatElementAssimiles = z.enum(['en_vigueur', 'a_venir', 'en_attente', 'ferme', 'retire']).openapi({
+  description: 'en_attente : un texte sans date d’application — jamais « en vigueur » tant qu’elle n’est pas fixée.',
+});
+
+registry.registerPath({
+  method: 'get',
+  path: '/listes-assimiles',
+  tags: ['Paramètres nationaux'],
+  summary: 'Les listes nationales des déchets assimilés : catégories d’activité, flux, base légale',
+  description:
+    'Tenues par la FNCT (lot G1, migration 098) ; chaque élément porte son état du jour. Lisible par tout utilisateur authentifié : une commune y lit les catégories de sa grille tarifaire.',
+  security: SECURISE,
+  responses: {
+    200: json(
+      z.object({
+        jour: z.string(),
+        listes: z.array(z.object({ liste: LISTE_ASSIMILES, elements: z.array(ElementListeAssimiles.extend({ etat: EtatElementAssimiles })) })),
+      }),
+      'Listes.'
+    ),
+    401: REPONSES_COMMUNES[401],
+  },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/listes-assimiles/listes/{liste}',
+  tags: ['Paramètres nationaux'],
+  summary: 'Ajouter un élément daté à une liste des assimilés',
+  description:
+    'Une catégorie d’activité dit ses unités d’échelle ; un flux dit s’il est dangereux ; un texte de la base légale peut s’inscrire sans date d’application (dateEffet null) et avec sa date de publication. ' +
+    'Un attribut d’une autre liste : 400. Un élément de même code déjà ouvert : 409. Réservé à la FNCT.',
+  security: SECURISE,
+  request: {
+    params: z.object({ liste: LISTE_ASSIMILES }),
+    body: { content: { 'application/json': { schema: elementAssimileSchema } } },
+  },
+  responses: { 201: json(ElementListeAssimiles, 'Élément ajouté.'), 409: json(Erreur, 'Code déjà ouvert.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/listes-assimiles/elements/{id}/application',
+  tags: ['Paramètres nationaux'],
+  summary: 'Fixer la date d’application d’un texte inscrit sans elle',
+  description:
+    'Une seule fois, avec la pièce qui la fixe (proclamation, arrêté). SIIPI ne la déduit jamais. Un texte dont la date est déjà fixée, ou retiré : 404. Réservé à la FNCT.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: applicationElementSchema } } },
+  },
+  responses: { 200: json(ElementListeAssimiles, 'Date d’application fixée.'), 409: json(Erreur, 'Refus de la base.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/listes-assimiles/elements/{id}/fin',
+  tags: ['Paramètres nationaux'],
+  summary: 'Fermer un élément des listes des assimilés à une date',
+  description: 'Le texte a changé (une catégorie, un flux qui cesse ; une loi abrogée). Avec sa pièce, une fois. Réservé à la FNCT.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: finElementAssimileSchema } } },
+  },
+  responses: { 200: json(ElementListeAssimiles, 'Élément fermé.'), 409: json(Erreur, 'Déjà fermé.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/listes-assimiles/elements/{id}/retrait',
+  tags: ['Paramètres nationaux'],
+  summary: 'Retirer un élément des listes des assimilés saisi à tort',
+  description: 'Avec un motif. L’élément reste lisible ; il ne s’applique plus à aucune date. Réservé à la FNCT.',
+  security: SECURISE,
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: { content: { 'application/json': { schema: retraitElementAssimileSchema } } },
+  },
+  responses: { 200: json(ElementListeAssimiles, 'Élément retiré.'), ...REPONSES_COMMUNES },
+});
+
+// --- Les grilles tarifaires (jalon G, lot G1) --------------------------------
+
+const TAG_GRILLES = 'Grilles tarifaires';
+const GrilleTarifaire = registry.register(
+  'GrilleTarifaire',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    intitule: z.string().nullable(),
+    reference_arrete: z.string(),
+    date_arrete: z.string(),
+    reference_deliberation: z.string().nullable(),
+    date_deliberation: z.string().nullable(),
+    date_effet: z.string(),
+    date_fin: z.string().nullable(),
+    reference_fin: z.string().nullable(),
+    date_approbation_tutelle: z.string().nullable().openapi({ description: 'null : un projet, qui ne produit aucune assiette.' }),
+    reference_approbation: z.string().nullable(),
+    approuve_le: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    etat: z.enum(['projet', 'a_venir', 'en_vigueur', 'close']).openapi({ description: 'L’état du jour, à Tunis.' }),
+    lignes: z.array(
+      z.object({
+        id: z.string().uuid(),
+        categorie: z.string(),
+        categorie_fr: z.string().nullable(),
+        categorie_ar: z.string().nullable(),
+        mode: z.enum(MODES_TARIF).openapi({ description: 'Unité du tarif : DT/an, DT/mois, DT par levée, DT par tonne pesée.' }),
+        tarif: z.number(),
+        ordre: z.number().int(),
+        majorations: z.array(
+          z.object({
+            id: z.string().uuid(),
+            critere: z.enum(CRITERES_MAJORATION),
+            borne_min: z.number(),
+            borne_max: z.number().nullable().openapi({ description: 'null : sans plafond.' }),
+            effet: z.enum(['coefficient', 'ajout']),
+            valeur: z.number(),
+            ordre: z.number().int(),
+          })
+        ),
+      })
+    ),
+  })
+);
+const pGrille = z.object({ id: z.string().uuid() });
+const qCommuneGrille = z.object({ communeId: z.string().optional() });
+
+registry.registerPath({
+  method: 'get', path: '/grilles-tarifaires', tags: [TAG_GRILLES],
+  summary: 'Les grilles tarifaires d’une commune',
+  description: 'Projets et grilles approuvées, avec leur état du jour, leurs tarifs par catégorie et leurs majorations. La commune et la FNCT ; hors périmètre, rien.',
+  security: SECURISE,
+  request: { query: qCommuneGrille },
+  responses: { 200: json(z.array(GrilleTarifaire), 'Grilles.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/grilles-tarifaires/en-vigueur', tags: [TAG_GRILLES],
+  summary: 'La grille approuvée qui s’applique à une date',
+  description: 'null sans grille approuvée à cette date : un projet ne s’applique jamais. Date par défaut : aujourd’hui à Tunis.',
+  security: SECURISE,
+  request: { query: qCommuneGrille.merge(qGrilleEnVigueur) },
+  responses: { 200: json(z.object({ grille: GrilleTarifaire.nullable() }), 'Grille en vigueur, ou null.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/grilles-tarifaires/{id}', tags: [TAG_GRILLES],
+  summary: 'Une grille tarifaire',
+  security: SECURISE,
+  request: { params: pGrille },
+  responses: { 200: json(GrilleTarifaire, 'Grille.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/grilles-tarifaires', tags: [TAG_GRILLES],
+  summary: 'Enregistrer un projet de grille tarifaire (le directeur de la commune)',
+  description:
+    'L’arrêté, sa délibération, sa date d’effet, et un tarif par catégorie d’activité en vigueur à cette date (liste nationale), avec ses majorations. ' +
+    'Le projet ne s’applique pas avant l’approbation de la tutelle. Une catégorie inconnue, deux tranches qui se chevauchent : 400.',
+  security: SECURISE,
+  request: { query: qCommuneGrille, body: { content: { 'application/json': { schema: grilleSchema } } } },
+  responses: { 201: json(GrilleTarifaire, 'Projet enregistré.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'put', path: '/grilles-tarifaires/{id}', tags: [TAG_GRILLES],
+  summary: 'Remplacer un projet de grille en entier',
+  description: 'Un projet seulement : une grille approuvée ne se modifie plus (409) ; un nouvel arrêté fait une nouvelle grille.',
+  security: SECURISE,
+  request: { params: pGrille, body: { content: { 'application/json': { schema: grilleSchema } } } },
+  responses: { 200: json(GrilleTarifaire, 'Projet remplacé.'), 409: json(Erreur, 'Grille approuvée.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/grilles-tarifaires/{id}/approbation', tags: [TAG_GRILLES],
+  summary: 'Enregistrer l’approbation de la tutelle',
+  description:
+    'La commune inscrit l’approbation reçue : sa date (passée, après l’arrêté) et sa pièce. Refusée pour une grille sans tarif, une catégorie qui n’est plus en vigueur à la date d’effet, ' +
+    'ou une période déjà couverte par une autre grille approuvée (409). La grille est ensuite figée.',
+  security: SECURISE,
+  request: { params: pGrille, body: { content: { 'application/json': { schema: approbationGrilleSchema } } } },
+  responses: { 200: json(GrilleTarifaire, 'Grille approuvée.'), 409: json(Erreur, 'Refus.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/grilles-tarifaires/{id}/cloture', tags: [TAG_GRILLES],
+  summary: 'Clore une grille approuvée à une date',
+  description: 'Un nouvel arrêté la remplace : sa date de fin, avec sa pièce, une fois. Un projet se corrige par PUT (409).',
+  security: SECURISE,
+  request: { params: pGrille, body: { content: { 'application/json': { schema: clotureGrilleSchema } } } },
+  responses: { 200: json(GrilleTarifaire, 'Grille close.'), 409: json(Erreur, 'Déjà close, ou projet.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'delete', path: '/grilles-tarifaires/{id}', tags: [TAG_GRILLES],
+  summary: 'Retirer un projet de grille',
+  description: 'Retrait logique. Une grille approuvée ne se retire pas : elle se clôt (409).',
+  security: SECURISE,
+  request: { params: pGrille },
+  responses: { 204: { description: 'Projet retiré.' }, 409: json(Erreur, 'Grille approuvée.'), ...REPONSES_COMMUNES },
 });
 
 const ActeurInformel = registry.register(
@@ -9133,6 +9373,7 @@ export function genererDocumentOpenApi() {
       { name: 'Points : champs libres et actions', description: "Tableau attributaire des points de collecte (TDR §3.2.3, Jalon 6) : champs libres définis par la commune, étiquettes, actions planifiées sur une sélection et leur avancement. Filtrage et export par GET /circuits/points." },
       { name: 'Registres et lieux', description: "Lieux (marchés, cimetières, abattoirs…), pleins de carburant, fins de poste, dotations EPI, incidents du travail, commerces et conventions : les registres qui font mesurer par la plateforme ce que la fiche d’évaluation faisait déclarer." },
       { name: 'Contacts', description: "Annuaire de travail d'une commune (TDR §3.2.7) : interlocuteurs externes sans compte sur la plateforme. Lecture réservée à la commune et à la FNCT." },
+      { name: 'Grilles tarifaires', description: "Les grilles tarifaires des conventions de propreté (jalon G, lot G1) : une par arrêté, applicable seulement approuvée par la tutelle, alors figée. Aucun montant n'y est calculé." },
       { name: 'Supervision', description: "État de santé de l'API." },
     ],
   });
