@@ -94,10 +94,13 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
       setErreur(null);
       await charger();
     } catch (err) {
-      setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
+      const refus = err instanceof ErreurApi ? err.message : t('commun.erreur');
       // Un 409 dit que la grille a changé (modifiée, approuvée par un autre) :
       // elle est relue, pour que la décision se prenne sur ce qui est en base.
+      // Relue d'abord, le refus affiché ensuite : la relecture efface l'erreur
+      // d'un chargement précédent, et elle effaçait ce refus avec.
       if (err instanceof ErreurApi && err.statut === 409) await charger();
+      setErreur(refus);
     } finally {
       setEnvoi(false);
     }
