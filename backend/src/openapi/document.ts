@@ -96,6 +96,7 @@ import {
   clotureGrilleSchema,
   CRITERES_MAJORATION,
   grilleSchema,
+  modificationGrilleSchema,
   MODES_TARIF,
   qGrilleEnVigueur,
 } from '../routes/grillesTarifaires.routes.js';
@@ -4586,6 +4587,9 @@ const GrilleTarifaire = registry.register(
   'GrilleTarifaire',
   z.object({
     id: z.string().uuid(),
+    version: z.string().openapi({
+      description: 'Version de la grille lue : à renvoyer avec un remplacement ou une approbation, refusés (409) si la grille a changé depuis.',
+    }),
     commune_id: z.string(),
     intitule: z.string().nullable(),
     reference_arrete: z.string(),
@@ -4664,10 +4668,16 @@ registry.registerPath({
 registry.registerPath({
   method: 'put', path: '/grilles-tarifaires/{id}', tags: [TAG_GRILLES],
   summary: 'Remplacer un projet de grille en entier',
-  description: 'Un projet seulement : une grille approuvée ne se modifie plus (409) ; un nouvel arrêté fait une nouvelle grille.',
+  description:
+    'Un projet seulement : une grille approuvée ne se modifie plus (409) ; un nouvel arrêté fait une nouvelle grille. ' +
+    'Le corps porte la version lue (champ version de la grille) : si la grille a changé depuis, le remplacement est refusé (409), rien n’est écrit.',
   security: SECURISE,
-  request: { params: pGrille, body: { content: { 'application/json': { schema: grilleSchema } } } },
-  responses: { 200: json(GrilleTarifaire, 'Projet remplacé.'), 409: json(Erreur, 'Grille approuvée.'), ...REPONSES_COMMUNES },
+  request: { params: pGrille, body: { content: { 'application/json': { schema: modificationGrilleSchema } } } },
+  responses: {
+    ...REPONSES_COMMUNES,
+    200: json(GrilleTarifaire, 'Projet remplacé.'),
+    409: json(Erreur, 'Grille approuvée, retirée, ou modifiée depuis votre lecture.'),
+  },
 });
 registry.registerPath({
   method: 'post', path: '/grilles-tarifaires/{id}/approbation', tags: [TAG_GRILLES],
@@ -4675,14 +4685,15 @@ registry.registerPath({
   description:
     'La commune inscrit l’approbation reçue : sa date (passée, après l’arrêté) et sa pièce. Refusée en 409 pour une grille sans tarif, déjà approuvée, ou dont la période ' +
     'est déjà couverte par une autre grille approuvée de la commune ; en 400 pour une catégorie qui n’est pas en vigueur à la date d’effet, ou une date d’approbation future ou antérieure à l’arrêté. ' +
-    'Une date de fin saisie avec le projet a l’arrêté pour pièce. La grille est ensuite figée.',
+    'Une date de fin saisie avec le projet a l’arrêté pour pièce. Le corps porte la version lue : si la grille a changé depuis, refus (409) — la tutelle a approuvé ce que le directeur a lu. ' +
+    'La grille est ensuite figée.',
   security: SECURISE,
   request: { params: pGrille, body: { content: { 'application/json': { schema: approbationGrilleSchema } } } },
   responses: {
     ...REPONSES_COMMUNES,
     200: json(GrilleTarifaire, 'Grille approuvée.'),
     400: json(Erreur, 'Catégorie hors de la liste à la date d’effet, ou date d’approbation invalide.'),
-    409: json(Erreur, 'Grille sans tarif, déjà approuvée, ou période déjà couverte.'),
+    409: json(Erreur, 'Grille sans tarif, déjà approuvée, modifiée depuis votre lecture, ou période déjà couverte.'),
   },
 });
 registry.registerPath({

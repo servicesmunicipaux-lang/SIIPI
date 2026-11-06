@@ -469,7 +469,10 @@ GRANT UPDATE (intitule, reference_arrete, date_arrete, reference_deliberation, d
 -- l'inscrit. La procédure verrouille la commune le temps de contrôler qu'aucune
 -- autre grille approuvée ne couvre la même période — deux approbations
 -- simultanées passeraient sinon toutes deux.
-CREATE OR REPLACE FUNCTION app.approuver_grille(p_grille uuid, p_date date, p_reference text)
+-- La version lue entre dans la signature : la forme à trois arguments ne reste
+-- pas à côté (une base d'essai l'a reçue avant elle).
+DROP FUNCTION IF EXISTS app.approuver_grille(uuid, date, text);
+CREATE OR REPLACE FUNCTION app.approuver_grille(p_grille uuid, p_date date, p_reference text, p_version text)
   RETURNS grilles_tarifaires
   LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS
 $$
@@ -477,6 +480,7 @@ DECLARE
   g grilles_tarifaires%ROWTYPE;
   v_autre grilles_tarifaires%ROWTYPE;
   v_categorie text;
+  v_version text;
 BEGIN
   SELECT * INTO g FROM grilles_tarifaires WHERE id = p_grille AND deleted_at IS NULL;
   IF g.id IS NULL OR NOT app.peut_emettre_document(g.commune_id) THEN
@@ -497,6 +501,17 @@ BEGIN
   PERFORM 1 FROM communes WHERE id = g.commune_id FOR NO KEY UPDATE;
   IF g.date_approbation_tutelle IS NOT NULL THEN
     RAISE EXCEPTION 'GRILLE_DEJA_APPROUVEE: cette grille a été approuvée le %.', to_char(g.date_approbation_tutelle, 'DD/MM/YYYY')
+      USING ERRCODE = 'check_violation';
+  END IF;
+  -- La version lue par le directeur. L'approbation de la tutelle porte sur le
+  -- projet qu'il a sous les yeux : si la grille a changé depuis (un autre
+  -- directeur l'a remplacée, un autre onglet), l'approuver figerait des tarifs
+  -- que personne n'a relus, et une grille approuvée ne se corrige plus. Chaque
+  -- remplacement réécrit la ligne de la grille, donc son xmin ; un verrou, lui,
+  -- n'y touche pas. La ligne est verrouillée : elle ne change plus d'ici la fin.
+  SELECT xmin::text INTO v_version FROM grilles_tarifaires WHERE id = p_grille;
+  IF p_version IS DISTINCT FROM v_version THEN
+    RAISE EXCEPTION 'GRILLE_MODIFIEE: la grille a changé depuis que vous l''avez lue ; rechargez-la et relisez ses tarifs avant d''enregistrer l''approbation.'
       USING ERRCODE = 'check_violation';
   END IF;
   IF p_date IS NULL OR p_date > app.jour_tunis() THEN
@@ -542,10 +557,10 @@ BEGIN
   RETURN g;
 END
 $$;
-REVOKE ALL ON FUNCTION app.approuver_grille(uuid, date, text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION app.approuver_grille(uuid, date, text) TO siipi_app;
-COMMENT ON FUNCTION app.approuver_grille(uuid, date, text) IS
-  'Enregistre l''approbation d''une grille par la tutelle (lot G1) : sa date (passée, après l''arrêté) et sa pièce. Refuse une grille sans tarif, une catégorie qui n''est pas en vigueur à la date d''effet, et une période déjà couverte par une autre grille approuvée de la commune. Verrouille la grille, puis la commune : un remplacement du projet en cours, ou une autre approbation de la commune, se termine d''abord. Une date de fin saisie avec le projet a l''arrêté pour pièce. Introuvable hors du périmètre du directeur.';
+REVOKE ALL ON FUNCTION app.approuver_grille(uuid, date, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app.approuver_grille(uuid, date, text, text) TO siipi_app;
+COMMENT ON FUNCTION app.approuver_grille(uuid, date, text, text) IS
+  'Enregistre l''approbation d''une grille par la tutelle (lot G1) : sa date (passée, après l''arrêté) et sa pièce. Refuse une grille sans tarif, une catégorie qui n''est pas en vigueur à la date d''effet, et une période déjà couverte par une autre grille approuvée de la commune. Verrouille la grille, puis la commune : un remplacement du projet en cours, ou une autre approbation de la commune, se termine d''abord. Une date de fin saisie avec le projet a l''arrêté pour pièce. Refuse une version périmée (GRILLE_MODIFIEE) : p_version est le xmin de la grille lue par le directeur, et la grille a changé depuis. Introuvable hors du périmètre du directeur.';
 
 -- Les lignes d'un projet, retirées pour être remplacées. Un UPDATE direct de
 -- deleted_at échouerait : la ligne retirée ne passe plus la politique de lecture

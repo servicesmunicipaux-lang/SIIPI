@@ -16381,7 +16381,7 @@ export interface paths {
         };
         /**
          * Remplacer un projet de grille en entier
-         * @description Un projet seulement : une grille approuvée ne se modifie plus (409) ; un nouvel arrêté fait une nouvelle grille.
+         * @description Un projet seulement : une grille approuvée ne se modifie plus (409) ; un nouvel arrêté fait une nouvelle grille. Le corps porte la version lue (champ version de la grille) : si la grille a changé depuis, le remplacement est refusé (409), rien n’est écrit.
          */
         put: {
             parameters: {
@@ -16421,6 +16421,7 @@ export interface paths {
                                 ordre: number;
                             }[];
                         }[];
+                        version: string;
                     };
                 };
             };
@@ -16470,7 +16471,7 @@ export interface paths {
                         "application/json": components["schemas"]["Erreur"];
                     };
                 };
-                /** @description Grille approuvée. */
+                /** @description Grille approuvée, retirée, ou modifiée depuis votre lecture. */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -16567,7 +16568,7 @@ export interface paths {
         put?: never;
         /**
          * Enregistrer l’approbation de la tutelle
-         * @description La commune inscrit l’approbation reçue : sa date (passée, après l’arrêté) et sa pièce. Refusée en 409 pour une grille sans tarif, déjà approuvée, ou dont la période est déjà couverte par une autre grille approuvée de la commune ; en 400 pour une catégorie qui n’est pas en vigueur à la date d’effet, ou une date d’approbation future ou antérieure à l’arrêté. Une date de fin saisie avec le projet a l’arrêté pour pièce. La grille est ensuite figée.
+         * @description La commune inscrit l’approbation reçue : sa date (passée, après l’arrêté) et sa pièce. Refusée en 409 pour une grille sans tarif, déjà approuvée, ou dont la période est déjà couverte par une autre grille approuvée de la commune ; en 400 pour une catégorie qui n’est pas en vigueur à la date d’effet, ou une date d’approbation future ou antérieure à l’arrêté. Une date de fin saisie avec le projet a l’arrêté pour pièce. Le corps porte la version lue : si la grille a changé depuis, refus (409) — la tutelle a approuvé ce que le directeur a lu. La grille est ensuite figée.
          */
         post: {
             parameters: {
@@ -16583,6 +16584,7 @@ export interface paths {
                     "application/json": {
                         dateApprobation: string;
                         reference: string;
+                        version: string;
                     };
                 };
             };
@@ -16632,7 +16634,7 @@ export interface paths {
                         "application/json": components["schemas"]["Erreur"];
                     };
                 };
-                /** @description Grille sans tarif, déjà approuvée, ou période déjà couverte. */
+                /** @description Grille sans tarif, déjà approuvée, modifiée depuis votre lecture, ou période déjà couverte. */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -32748,6 +32750,8 @@ export interface components {
         GrilleTarifaire: {
             /** Format: uuid */
             id: string;
+            /** @description Version de la grille lue : à renvoyer avec un remplacement ou une approbation, refusés (409) si la grille a changé depuis. */
+            version: string;
             commune_id: string;
             intitule: string | null;
             reference_arrete: string;

@@ -60,9 +60,14 @@ function lireNombre(v: string): number | null {
   const s = v.trim().replace(',', '.');
   return s === '' ? null : Number(s);
 }
+// Ce que la base garde (NUMERIC(12, 3)) : trois décimales, 999 999 999,999 au
+// plus. La règle se dit avant l'envoi : l'API refuserait d'un « Requête
+// invalide » qui ne nomme ni la case ni la règle.
+const MONTANT_MAX = 999_999_999.999;
+const auMillieme = (n: number) => Math.round(n * 1000) / 1000 === n && Math.abs(n) <= MONTANT_MAX;
 const positif = (v: string) => {
   const n = lireNombre(v);
-  return n !== null && Number.isFinite(n) && n > 0;
+  return n !== null && Number.isFinite(n) && n > 0 && auMillieme(n);
 };
 
 /** Les catégories d'activité en vigueur à une date : ni à venir, ni fermées, ni retirées. */
@@ -193,8 +198,8 @@ export function FormulaireGrilleTarifaire({
       const haut = lireNombre(m.borneMax);
       const ordre = Number(m.ordre);
       if (!m.critere) problemes.push(t('ajout.grilleTarifaire.problemes.majCritere', p));
-      if (bas === null || !Number.isFinite(bas) || bas < 0) problemes.push(t('ajout.grilleTarifaire.problemes.majBorneMin', p));
-      if (haut !== null && (!Number.isFinite(haut) || (bas !== null && Number.isFinite(bas) && haut <= bas))) {
+      if (bas === null || !Number.isFinite(bas) || bas < 0 || !auMillieme(bas)) problemes.push(t('ajout.grilleTarifaire.problemes.majBorneMin', p));
+      if (haut !== null && (!Number.isFinite(haut) || !auMillieme(haut) || (bas !== null && Number.isFinite(bas) && haut <= bas))) {
         problemes.push(t('ajout.grilleTarifaire.problemes.majBorneMax', p));
       }
       if (!m.effet) problemes.push(t('ajout.grilleTarifaire.problemes.majEffet', p));
@@ -256,7 +261,8 @@ export function FormulaireGrilleTarifaire({
       })),
     };
     try {
-      if (grille) await api.modifierGrilleTarifaire(grille.id, saisie);
+      // La version lue part avec la modification : si un autre l'a changée entre-temps, refus (409).
+      if (grille) await api.modifierGrilleTarifaire(grille.id, { ...saisie, version: grille.version });
       else await api.creerGrilleTarifaire(communeId, saisie);
       await onFait();
     } catch (err) {

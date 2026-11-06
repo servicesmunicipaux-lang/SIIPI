@@ -71,8 +71,11 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
     }
   }, [communeId, t]);
 
+  // Le rechargement garde la liste à l'écran : la remettre à vide démontait les
+  // formulaires ouverts, et un changement de langue (qui renouvelle `t`, donc
+  // `charger`) effaçait la grille en cours de saisie. Une autre commune remonte
+  // l'écran entier (clé de l'espace communal).
   useEffect(() => {
-    setGrilles(null);
     void charger();
   }, [charger]);
 
@@ -92,6 +95,9 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
       await charger();
     } catch (err) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
+      // Un 409 dit que la grille a changé (modifiée, approuvée par un autre) :
+      // elle est relue, pour que la décision se prenne sur ce qui est en base.
+      if (err instanceof ErreurApi && err.statut === 409) await charger();
     } finally {
       setEnvoi(false);
     }
@@ -193,7 +199,9 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
                           })}
                         </p>
                       )}
-                      {g.reference_fin && <p className="text-xs text-ardoise-500">{t('communal.grilles.closePar', { texte: g.reference_fin })}</p>}
+                      {/* La pièce de la fin, sans dire « close » : une grille bornée dès son arrêté a sa fin
+                          fixée, et reste en vigueur jusqu'à elle. */}
+                      {g.reference_fin && <p className="text-xs text-ardoise-500">{t('communal.grilles.finDecideePar', { texte: g.reference_fin })}</p>}
                     </div>
                     {peutEcrire && geste?.id !== g.id && (
                       <div className="flex max-w-full flex-wrap gap-2">
@@ -264,7 +272,12 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
                         onClick={() =>
                           void (geste.nature === 'approbation'
                             ? executer(
-                                () => api.approuverGrilleTarifaire(g.id, { dateApprobation: geste.date, reference: geste.texte.trim() }),
+                                () =>
+                                  api.approuverGrilleTarifaire(g.id, {
+                                    dateApprobation: geste.date,
+                                    reference: geste.texte.trim(),
+                                    version: g.version,
+                                  }),
                                 t('communal.grilles.messages.approuvee')
                               )
                             : executer(

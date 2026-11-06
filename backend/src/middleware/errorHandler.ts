@@ -75,6 +75,12 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   if (lecture) {
     return res.status(lecture.statut).json({ error: lecture.message });
   }
+  // Un paramètre de chemin qu'Express ne sait pas décoder (« /grilles-tarifaires/%E0 ») :
+  // il lève une URIError avant toute route, même sans compte. La requête est
+  // illisible, le serveur va bien — la renvoyer en 500 faisait croire à une panne.
+  if (err instanceof URIError) {
+    return res.status(400).json({ error: 'Adresse illisible : un paramètre du chemin n’est pas un encodage URL valide.' });
+  }
   // Refus opposé par la base elle-même. Une politique RLS qui bloque une
   // écriture hors périmètre n'est pas une panne : c'est le cloisonnement qui
   // fonctionne. Le renvoyer en 500 avait deux effets fâcheux — le client

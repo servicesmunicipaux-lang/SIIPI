@@ -61,7 +61,19 @@ const borne = z
 // texte : sans ce refus, il finissait en erreur 500.
 const sansOctetNul = (t: string) => !t.includes('\u0000');
 const OCTET_NUL = 'Un texte ne peut pas contenir de caractère nul (\\u0000).';
+// zod compte les unités UTF-16, la base compte les caractères : un caractère hors
+// du plan de base (un chiffre mathématique gras copié d'un PDF) en vaut deux pour zod,
+// un pour la base. Une longueur minimale se vérifie donc aussi en caractères —
+// sinon la base refusait d'un message générique ce que zod avait laissé passer.
+const auMoinsCaracteres = (n: number) => (t: string) => [...t].length >= n;
 const estUuid = (s: string) => z.string().uuid().safeParse(s).success;
+// La version d'une grille lue (le xmin de sa ligne, que chaque remplacement
+// renouvelle) : un remplacement ou une approbation la renvoie, et la base les
+// refuse (409) si la grille a changé depuis — sans elle, le dernier à écrire
+// effaçait le travail de l'autre, ou l'approbation figeait un projet non relu.
+const versionLue = z
+  .string()
+  .regex(/^\d{1,20}$/, 'La version de la grille lue est attendue : rechargez la grille, puis recommencez.');
 
 const ACTE_DU_DIRECTEUR = 'Une grille tarifaire est un acte de la commune : son directeur l’enregistre, la FNCT la lit.';
 
@@ -74,6 +86,7 @@ const REFUS: Record<string, number> = {
   GRILLE_DEJA_APPROUVEE: 409,
   GRILLE_CHEVAUCHEMENT: 409,
   GRILLE_VIDE: 409,
+  GRILLE_MODIFIEE: 409,
   GRILLE_APPROBATION: 409,
   GRILLE_NAISSANCE: 400,
   GRILLE_DATE_APPROBATION: 400,
@@ -91,6 +104,7 @@ const CONTRAINTES: Record<string, string> = {
   majoration_tranche: 'Une tranche va d’une borne basse positive à une borne haute plus grande (ou sans plafond).',
   lignes_grille_tarif_positif: 'Un tarif est strictement positif (le millime au moins).',
   majoration_valeur: 'Un coefficient ou un ajout est strictement positif (le millième au moins).',
+  grilles_approbation_entiere: 'L’approbation cite sa pièce (3 caractères au moins) et ne précède pas l’arrêté.',
 };
 function refus(err: unknown): never {
   if (err instanceof ApiError) throw err;
@@ -112,7 +126,7 @@ function refus(err: unknown): never {
 // Une grille, avec son état du jour et ses lignes ; une ligne, avec le libellé
 // de sa catégorie et ses majorations dans leur ordre d'application.
 const SELECT_GRILLES = `
-  SELECT g.id, g.commune_id, g.intitule, g.reference_arrete, g.date_arrete,
+  SELECT g.id, g.xmin::text AS version, g.commune_id, g.intitule, g.reference_arrete, g.date_arrete,
          g.reference_deliberation, g.date_deliberation, g.date_effet, g.date_fin, g.reference_fin,
          g.date_approbation_tutelle, g.reference_approbation, g.approuve_le, g.created_at, g.updated_at,
          CASE WHEN g.date_approbation_tutelle IS NULL THEN 'projet'
@@ -170,10 +184,16 @@ export const ligneGrilleSchema = z
   })
   .strict();
 
-export const grilleSchema = z
+const objetGrille = z
   .object({
     intitule: z.string().trim().max(200).refine(sansOctetNul, OCTET_NUL).nullable().optional(),
-    referenceArrete: z.string().trim().min(3, 'La référence de l’arrêté est obligatoire.').max(300).refine(sansOctetNul, OCTET_NUL),
+    referenceArrete: z
+      .string()
+      .trim()
+      .min(3, 'La référence de l’arrêté est obligatoire.')
+      .max(300)
+      .refine(sansOctetNul, OCTET_NUL)
+      .refine(auMoinsCaracteres(3), 'La référence de l’arrêté est obligatoire (3 caractères au moins).'),
     dateArrete: dateIso,
     referenceDeliberation: z.string().trim().max(300).refine(sansOctetNul, OCTET_NUL).nullable().optional(),
     dateDeliberation: dateIso.nullable().optional(),
@@ -181,24 +201,46 @@ export const grilleSchema = z
     dateFin: dateIso.nullable().optional(),
     lignes: z.array(ligneGrilleSchema).max(200).default([]),
   })
+  .strict();
+const finApresEffet = (g: { dateFin?: string | null; dateEffet: string }) => !g.dateFin || g.dateFin > g.dateEffet;
+const categoriesUniques = (g: { lignes: { categorie: string }[] }) =>
+  new Set(g.lignes.map((l) => l.categorie)).size === g.lignes.length;
+const REGLE_FIN = { message: 'La date de fin suit la date d’effet.', path: ['dateFin'] };
+const REGLE_CATEGORIES = { message: 'Une catégorie d’activité a un seul tarif par grille.', path: ['lignes'] };
+
+export const grilleSchema = objetGrille.refine(finApresEffet, REGLE_FIN).refine(categoriesUniques, REGLE_CATEGORIES);
+
+// Le remplacement d'un projet : la même saisie, et la version lue.
+export const modificationGrilleSchema = objetGrille
+  .extend({ version: versionLue })
   .strict()
-  .refine((g) => !g.dateFin || g.dateFin > g.dateEffet, { message: 'La date de fin suit la date d’effet.', path: ['dateFin'] })
-  .refine((g) => new Set(g.lignes.map((l) => l.categorie)).size === g.lignes.length, {
-    message: 'Une catégorie d’activité a un seul tarif par grille.',
-    path: ['lignes'],
-  });
+  .refine(finApresEffet, REGLE_FIN)
+  .refine(categoriesUniques, REGLE_CATEGORIES);
 
 export const approbationGrilleSchema = z
   .object({
     dateApprobation: dateIso,
-    reference: z.string().trim().min(3, 'Citez la pièce de l’approbation de la tutelle (lettre, visa).').max(300).refine(sansOctetNul, OCTET_NUL),
+    reference: z
+      .string()
+      .trim()
+      .min(3, 'Citez la pièce de l’approbation de la tutelle (lettre, visa).')
+      .max(300)
+      .refine(sansOctetNul, OCTET_NUL)
+      .refine(auMoinsCaracteres(3), 'Citez la pièce de l’approbation de la tutelle (3 caractères au moins).'),
+    version: versionLue,
   })
   .strict();
 
 export const clotureGrilleSchema = z
   .object({
     dateFin: dateIso,
-    reference: z.string().trim().min(3, 'Citez la pièce qui met fin à cette grille (le nouvel arrêté).').max(300).refine(sansOctetNul, OCTET_NUL),
+    reference: z
+      .string()
+      .trim()
+      .min(3, 'Citez la pièce qui met fin à cette grille (le nouvel arrêté).')
+      .max(300)
+      .refine(sansOctetNul, OCTET_NUL)
+      .refine(auMoinsCaracteres(3), 'Citez la pièce qui met fin à cette grille (3 caractères au moins).'),
   })
   .strict();
 
@@ -297,20 +339,23 @@ grillesTarifairesRouter.put(
     if (g.etat !== 'projet') {
       throw new ApiError(409, 'Une grille approuvée ne se modifie plus ; un nouvel arrêté fait une nouvelle grille.');
     }
-    const d = grilleSchema.parse(req.body);
+    const d = modificationGrilleSchema.parse(req.body);
     try {
       await withTransaction(async (client) => {
+        // La version lue est comparée dans la mise à jour même : une modification
+        // concurrente validée entre-temps a renouvelé le xmin, et la ligne ne
+        // répond plus — PostgreSQL réévalue la condition sur sa dernière version.
         const maj = await client.query(
           `UPDATE grilles_tarifaires
               SET intitule = $2, reference_arrete = $3, date_arrete = $4, reference_deliberation = $5,
                   date_deliberation = $6, date_effet = $7, date_fin = $8
-            WHERE id = $1 AND deleted_at IS NULL AND date_approbation_tutelle IS NULL
+            WHERE id = $1 AND deleted_at IS NULL AND date_approbation_tutelle IS NULL AND xmin::text = $9
             RETURNING id`,
           [g.id, d.intitule || null, d.referenceArrete, d.dateArrete, d.referenceDeliberation || null,
-           d.dateDeliberation ?? null, d.dateEffet, d.dateFin ?? null]
+           d.dateDeliberation ?? null, d.dateEffet, d.dateFin ?? null, d.version]
         );
         if (maj.rows.length === 0) {
-          throw new ApiError(409, 'Cette grille a changé entre-temps (approuvée ou retirée) : rechargez-la.');
+          throw new ApiError(409, 'Cette grille a changé depuis que vous l’avez lue (modifiée, approuvée ou retirée) : rechargez-la, puis recommencez.');
         }
         await client.query('SELECT app.retirer_lignes_projet($1)', [g.id]);
         await ecrireLignes(client, g.id, d.lignes);
@@ -330,7 +375,7 @@ grillesTarifairesRouter.post(
     const d = approbationGrilleSchema.parse(req.body);
     if (!estUuid(req.params.id)) throw new ApiError(404, 'Grille introuvable.');
     try {
-      await queryOne('SELECT id FROM app.approuver_grille($1, $2, $3)', [req.params.id, d.dateApprobation, d.reference]);
+      await queryOne('SELECT id FROM app.approuver_grille($1, $2, $3, $4)', [req.params.id, d.dateApprobation, d.reference, d.version]);
     } catch (err) {
       refus(err);
     }

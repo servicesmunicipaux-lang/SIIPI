@@ -43,6 +43,11 @@ const dateIso = z
 // texte : sans ce refus, il finissait en erreur 500.
 const sansOctetNul = (t: string) => !t.includes('\u0000');
 const OCTET_NUL = 'Un texte ne peut pas contenir de caractère nul (\\u0000).';
+// zod compte les unités UTF-16, la base compte les caractères : un caractère hors
+// du plan de base (un chiffre mathématique gras copié d'un PDF) en vaut deux pour zod,
+// un pour la base. Une longueur minimale se vérifie donc aussi en caractères —
+// sinon la base refusait d'un message générique ce que zod avait laissé passer.
+const auMoinsCaracteres = (n: number) => (t: string) => [...t].length >= n;
 // Le jour à Tunis (UTC+1, sans heure d'été).
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
@@ -118,20 +123,38 @@ export const elementAssimileSchema = z
 export const applicationElementSchema = z
   .object({
     dateEffet: dateIso,
-    reference: z.string().trim().min(5, 'Citez la pièce qui fixe la date d’application (5 caractères au moins).').max(500).refine(sansOctetNul, OCTET_NUL),
+    reference: z
+      .string()
+      .trim()
+      .min(5, 'Citez la pièce qui fixe la date d’application (5 caractères au moins).')
+      .max(500)
+      .refine(sansOctetNul, OCTET_NUL)
+      .refine(auMoinsCaracteres(5), 'Citez la pièce qui fixe la date d’application (5 caractères au moins).'),
   })
   .strict();
 
 export const finElementAssimileSchema = z
   .object({
     dateFin: dateIso,
-    reference: z.string().trim().min(5, 'Citez le texte qui met fin à cet élément (5 caractères au moins).').max(500).refine(sansOctetNul, OCTET_NUL),
+    reference: z
+      .string()
+      .trim()
+      .min(5, 'Citez le texte qui met fin à cet élément (5 caractères au moins).')
+      .max(500)
+      .refine(sansOctetNul, OCTET_NUL)
+      .refine(auMoinsCaracteres(5), 'Citez le texte qui met fin à cet élément (5 caractères au moins).'),
   })
   .strict();
 
 export const retraitElementAssimileSchema = z
   .object({
-    motif: z.string().trim().min(5, 'Dites pourquoi cet élément est retiré (5 caractères au moins).').max(500).refine(sansOctetNul, OCTET_NUL),
+    motif: z
+      .string()
+      .trim()
+      .min(5, 'Dites pourquoi cet élément est retiré (5 caractères au moins).')
+      .max(500)
+      .refine(sansOctetNul, OCTET_NUL)
+      .refine(auMoinsCaracteres(5), 'Dites pourquoi cet élément est retiré (5 caractères au moins).'),
   })
   .strict();
 
@@ -170,8 +193,15 @@ const traduireRefus = (err: unknown): never => {
   if (e.constraint === 'elements_fin_apres_effet') {
     throw new ApiError(400, 'La fin doit suivre la date d’application de l’élément ; un texte sans date d’application ne se ferme pas.');
   }
+  if (e.constraint === 'elements_fin_referencee') throw new ApiError(400, 'Citez le texte qui met fin à cet élément (5 caractères au moins).');
+  if (e.constraint === 'elements_retrait_motive') throw new ApiError(400, 'Dites pourquoi cet élément est retiré (5 caractères au moins).');
+  // Une pièce trop courte (ELEMENT_EFFET) est une saisie à corriger : 400 ; un
+  // élément figé, fermé, né autrement qu'ouvert : l'état des choses s'y oppose, 409.
   const code = e.message?.match(/^(ELEMENT_[A-Z]+): /)?.[1];
-  if (code) throw new ApiError(409, e.message!.slice(code.length + 2));
+  if (code) {
+    const texte = e.message!.slice(code.length + 2);
+    throw new ApiError(code === 'ELEMENT_EFFET' ? 400 : 409, texte.charAt(0).toUpperCase() + texte.slice(1));
+  }
   throw err;
 };
 
@@ -259,14 +289,19 @@ listesAssimilesRouter.post(
   asyncHandler(async (req, res) => {
     const { motif } = retraitElementAssimileSchema.parse(req.body);
     if (!idValide(req.params.id)) throw elementIntrouvable();
-    const ligne = await queryOne(
-      `UPDATE elements_listes_nationales e
-          SET retire_le = now(), retire_par = app.current_user_id(), motif_retrait = $2
-        WHERE e.id = $1 AND e.liste = ANY ($3::text[]) AND e.retire_le IS NULL
-        RETURNING ${COLONNES_ELEMENT}`,
-      [req.params.id, motif, LISTES_ASSIMILES]
-    );
-    if (!ligne) throw elementIntrouvable();
-    res.json(ligne);
+    try {
+      const ligne = await queryOne(
+        `UPDATE elements_listes_nationales e
+            SET retire_le = now(), retire_par = app.current_user_id(), motif_retrait = $2
+          WHERE e.id = $1 AND e.liste = ANY ($3::text[]) AND e.retire_le IS NULL
+          RETURNING ${COLONNES_ELEMENT}`,
+        [req.params.id, motif, LISTES_ASSIMILES]
+      );
+      if (!ligne) throw elementIntrouvable();
+      res.json(ligne);
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      traduireRefus(err);
+    }
   })
 );

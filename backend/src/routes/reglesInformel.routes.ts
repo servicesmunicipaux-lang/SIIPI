@@ -24,7 +24,17 @@ export const reglesInformelRouter = Router();
 
 export const LISTES_NATIONALES = ['pieces_carte_precollecteur', 'jalons_accompagnement'] as const;
 
-const dateIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.');
+// Une date qui n'existe pas (le 30 février), ou une année que PostgreSQL ne
+// lit pas (0000), est refusée ici : la base la rejetterait d'une erreur de
+// conversion, rendue en 500.
+const dateIso = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date attendue au format AAAA-MM-JJ.')
+  .refine((j) => {
+    const d = new Date(`${j}T00:00:00Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === j;
+  }, 'Cette date n’existe pas : vérifiez le jour et le mois.')
+  .refine((j) => j >= '1900-01-01' && j <= '2100-12-31', 'Date hors de l’intervalle admis (1900 à 2100).');
 // Le jour à Tunis (UTC+1, sans heure d'été).
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
@@ -140,10 +150,12 @@ reglesInformelRouter.post(
     if (!z.string().uuid().safeParse(req.params.id).success) throw new ApiError(404, 'Élément introuvable.');
     try {
       const ligne = await queryOne(
+        // Ses listes seulement : la table porte aussi celles des assimilés (098),
+        // qui ont leurs routes et leurs règles (/listes-assimiles).
         `UPDATE elements_listes_nationales e SET date_fin = $2, reference_fin = $3
-          WHERE e.id = $1 AND e.retire_le IS NULL
+          WHERE e.id = $1 AND e.liste = ANY ($4::text[]) AND e.retire_le IS NULL
           RETURNING ${COLONNES_ELEMENT}`,
-        [req.params.id, d.dateFin, d.reference]
+        [req.params.id, d.dateFin, d.reference, LISTES_NATIONALES]
       );
       if (!ligne) throw new ApiError(404, 'Élément introuvable, ou retiré.');
       res.json(ligne);
@@ -164,9 +176,9 @@ reglesInformelRouter.post(
     const ligne = await queryOne(
       `UPDATE elements_listes_nationales e
           SET retire_le = now(), retire_par = app.current_user_id(), motif_retrait = $2
-        WHERE e.id = $1 AND e.retire_le IS NULL
+        WHERE e.id = $1 AND e.liste = ANY ($3::text[]) AND e.retire_le IS NULL
         RETURNING ${COLONNES_ELEMENT}`,
-      [req.params.id, motif]
+      [req.params.id, motif, LISTES_NATIONALES]
     );
     if (!ligne) throw new ApiError(404, 'Élément introuvable, ou déjà retiré.');
     res.json(ligne);

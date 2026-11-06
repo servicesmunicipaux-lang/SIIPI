@@ -17,7 +17,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, type ElementListeAssimiles, type ListesAssimiles as Listes } from '../../lib/api';
+import { api, ErreurApi, type ElementListeAssimiles, type ListesAssimiles as Listes } from '../../lib/api';
 import { useFormats } from '../../lib/formats';
 import { Pastille, type TonPastille } from '../ui/Pastille';
 
@@ -47,6 +47,14 @@ const TON_ETAT: Record<Element['etat'], TonPastille> = {
   retire: 'neutre',
 };
 
+// Le format d'un code, celui que l'API et la base exigent : dit sous le champ
+// avant l'envoi, plutôt qu'en « Requête invalide » après.
+const CODE_VALIDE = /^[a-z][a-z0-9_]{2,60}$/;
+
+// Un texte de la base légale peut dater de 1956 (le Journal officiel paraît
+// depuis) ; une catégorie, un flux, depuis 2000 — comme la base l'exige.
+const PREMIER_JOUR = (legale: boolean) => (legale ? '1956-01-01' : '2000-01-01');
+
 // Un exemple de code par liste : le format attendu se montre mieux qu'il ne se décrit.
 const EXEMPLE_CODE: Record<Liste, string> = {
   categories_activite_assimiles: 'hotel',
@@ -73,7 +81,7 @@ export function ListesAssimiles(props: {
   return (
     <>
       {listes.listes.map((l) => (
-        <CarteListe key={l.liste} liste={l.liste} elements={l.elements} onFait={onFait} onErreur={onErreur} />
+        <CarteListe key={l.liste} liste={l.liste} elements={l.elements} onFait={onFait} />
       ))}
     </>
   );
@@ -84,13 +92,8 @@ type Geste =
   | { id: string; nature: 'retrait'; texte: string }
   | { id: string; nature: 'application'; date: string; texte: string };
 
-function CarteListe(props: {
-  liste: Liste;
-  elements: Element[];
-  onFait: (m: string) => void;
-  onErreur: (e: unknown) => void;
-}) {
-  const { liste, elements, onFait, onErreur } = props;
+function CarteListe(props: { liste: Liste; elements: Element[]; onFait: (m: string) => void }) {
+  const { liste, elements, onFait } = props;
   const { t, i18n } = useTranslation();
   const f = useFormats();
   const categorie = liste === 'categories_activite_assimiles';
@@ -112,10 +115,15 @@ function CarteListe(props: {
   const [s, setS] = useState(vide);
   const [geste, setGeste] = useState<Geste | null>(null);
   const [envoi, setEnvoi] = useState(false);
+  // Le refus d'un geste se dit dans la carte qui l'a fait : en haut de la page
+  // des paramètres nationaux, loin du formulaire, on ne le voyait pas.
+  const [erreur, setErreur] = useState<string | null>(null);
   const cle = (suite: string) => `national.parametres.assimiles.${suite}`;
+  const messageErreur = (e: unknown) => (e instanceof ErreurApi ? e.message : t('commun.erreur'));
 
   async function ajouter() {
     setEnvoi(true);
+    setErreur(null);
     try {
       await api.ajouterElementAssimiles(liste, {
         code: s.code.trim(),
@@ -132,7 +140,7 @@ function CarteListe(props: {
       setS(vide);
       onFait(t(cle('messages.ajoute')));
     } catch (e) {
-      onErreur(e);
+      setErreur(messageErreur(e));
     } finally {
       setEnvoi(false);
     }
@@ -141,6 +149,7 @@ function CarteListe(props: {
   async function confirmer() {
     if (!geste) return;
     setEnvoi(true);
+    setErreur(null);
     try {
       if (geste.nature === 'fin') {
         await api.fermerElementAssimiles(geste.id, { dateFin: geste.date, reference: geste.texte.trim() });
@@ -154,7 +163,7 @@ function CarteListe(props: {
       }
       setGeste(null);
     } catch (e) {
-      onErreur(e);
+      setErreur(messageErreur(e));
     } finally {
       setEnvoi(false);
     }
@@ -178,8 +187,13 @@ function CarteListe(props: {
   const basculerUnite = (u: Unite) =>
     setS({ ...s, unites: s.unites.includes(u) ? s.unites.filter((x) => x !== u) : [...s.unites, u] });
 
+  const codeInvalide = s.code.trim() !== '' && !CODE_VALIDE.test(s.code.trim());
+  const ordreInvalide =
+    s.ordre.trim() !== '' && !(Number.isInteger(Number(s.ordre)) && Number(s.ordre) >= 0 && Number(s.ordre) <= 10_000);
   const saisieIncomplete =
     !s.code.trim() ||
+    codeInvalide ||
+    ordreInvalide ||
     !s.fr.trim() ||
     !s.ar.trim() ||
     (!s.dateEffet && !(legale && s.sansDate)) ||
@@ -292,7 +306,7 @@ function CarteListe(props: {
                         <input
                           type="date"
                           min={
-                            (geste.nature === 'fin' ? e.date_effet : e.date_publication) ?? '2000-01-01'
+                            (geste.nature === 'fin' ? e.date_effet : e.date_publication) ?? PREMIER_JOUR(legale)
                           }
                           value={geste.date}
                           onChange={(ev) => setGeste({ ...geste, date: ev.target.value })}
@@ -335,6 +349,12 @@ function CarteListe(props: {
         </ul>
       )}
 
+      {erreur && (
+        <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
+          {erreur}
+        </p>
+      )}
+
       <div className="grid gap-3 rounded-lg border border-siipi-200 bg-siipi-50/40 p-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-sm">
           <span className="font-medium">{t(cle('champs.libelleFr'))}</span>
@@ -364,7 +384,9 @@ function CarteListe(props: {
             placeholder={EXEMPLE_CODE[liste]}
             className={champ}
             dir="ltr"
+            aria-invalid={codeInvalide || undefined}
           />
+          {codeInvalide && <span className="mt-1 block text-xs text-red-800">{t(cle('champs.codeFormat'))}</span>}
         </label>
         <label className="text-sm">
           <span className="font-medium">{t(cle('champs.ordre'))}</span>
@@ -373,10 +395,13 @@ function CarteListe(props: {
             inputMode="numeric"
             step="1"
             min="0"
+            max="10000"
             value={s.ordre}
             onChange={(e) => setS({ ...s, ordre: e.target.value })}
             className={champ}
+            aria-invalid={ordreInvalide || undefined}
           />
+          {ordreInvalide && <span className="mt-1 block text-xs text-red-800">{t(cle('champs.ordreFormat'))}</span>}
         </label>
 
         {legale && (
@@ -384,7 +409,7 @@ function CarteListe(props: {
             <span className="font-medium">{t(cle('champs.datePublication'))}</span>
             <input
               type="date"
-              min="2000-01-01"
+              min={PREMIER_JOUR(true)}
               max={aujourdhui()}
               value={s.datePublication}
               onChange={(e) => setS({ ...s, datePublication: e.target.value })}
@@ -398,7 +423,7 @@ function CarteListe(props: {
           </span>
           <input
             type="date"
-            min={s.datePublication || '2000-01-01'}
+            min={s.datePublication || PREMIER_JOUR(legale)}
             value={legale && s.sansDate ? '' : s.dateEffet}
             disabled={legale && s.sansDate}
             onChange={(e) => setS({ ...s, dateEffet: e.target.value })}

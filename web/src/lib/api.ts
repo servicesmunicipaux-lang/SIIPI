@@ -275,6 +275,7 @@ export type ListesAssimiles = Reponse<'/listes-assimiles', 'get'>;
 export type ElementListeAssimiles = ListesAssimiles['listes'][number]['elements'][number];
 export type GrilleTarifaire = Reponse<'/grilles-tarifaires/{id}', 'get'>;
 export type SaisieGrilleTarifaire = Corps<'/grilles-tarifaires', 'post'>;
+export type ModificationGrilleTarifaire = Corps<'/grilles-tarifaires/{id}', 'put'>;
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
 export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
@@ -1378,7 +1379,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(saisie),
     }),
-  modifierGrilleTarifaire: (id: string, saisie: SaisieGrilleTarifaire) =>
+  modifierGrilleTarifaire: (id: string, saisie: ModificationGrilleTarifaire) =>
     requete<GrilleTarifaire>(`/grilles-tarifaires/${id}`, { method: 'PUT', body: JSON.stringify(saisie) }),
   approuverGrilleTarifaire: (id: string, saisie: Corps<'/grilles-tarifaires/{id}/approbation', 'post'>) =>
     requete<GrilleTarifaire>(`/grilles-tarifaires/${id}/approbation`, { method: 'POST', body: JSON.stringify(saisie) }),

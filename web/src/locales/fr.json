@@ -401,7 +401,9 @@
           "dateFin": "Date de fin",
           "texteFin": "Texte qui y met fin",
           "pieceApplication": "Pièce qui fixe la date d’application",
-          "motif": "Motif du retrait"
+          "motif": "Motif du retrait",
+          "codeFormat": "Minuscules sans accent, chiffres et tiret bas, 3 à 61 caractères, en commençant par une lettre (ex. : hotel).",
+          "ordreFormat": "Un nombre entier, de 0 à 10 000."
         },
         "gestes": {
           "ajouter": "Ajouter",
@@ -3136,7 +3138,7 @@
       "periodeBornee": "Du {{debut}} au {{fin}} (exclu)",
       "projetNeSappliquePas": "Projet : cette grille ne s'applique pas tant que l'approbation de la tutelle n'est pas enregistrée.",
       "approuvee": "Approuvée par la tutelle le {{date}} ({{reference}})",
-      "closePar": "Close par : {{texte}}",
+      "finDecideePar": "Fin décidée par : {{texte}}",
       "sansTarif": "Aucun tarif dans cette grille.",
       "tableau": "Les tarifs de la grille {{reference}}",
       "colonnes": {
@@ -3453,12 +3455,12 @@
         "ligneCategorie": "la catégorie du tarif {{n}} ;",
         "ligneHorsListe": "une catégorie en vigueur à la date d’effet pour le tarif {{n}} ;",
         "ligneMode": "le mode du tarif {{n}} ;",
-        "ligneTarif": "un montant positif pour le tarif {{n}} ;",
+        "ligneTarif": "un montant positif, au millime près (trois décimales au plus, 999 999 999,999 au plus), pour le tarif {{n}} ;",
         "majCritere": "le critère de la majoration {{m}} du tarif {{n}} ;",
-        "majBorneMin": "une borne basse positive ou nulle pour la majoration {{m}} du tarif {{n}} ;",
-        "majBorneMax": "une borne haute au-dessus de la borne basse pour la majoration {{m}} du tarif {{n}} ;",
+        "majBorneMin": "une borne basse positive ou nulle, au millième près, pour la majoration {{m}} du tarif {{n}} ;",
+        "majBorneMax": "une borne haute au-dessus de la borne basse, au millième près, pour la majoration {{m}} du tarif {{n}} ;",
         "majEffet": "l’effet de la majoration {{m}} du tarif {{n}} ;",
-        "majValeur": "une valeur positive pour la majoration {{m}} du tarif {{n}} ;",
+        "majValeur": "une valeur positive, au millième près, pour la majoration {{m}} du tarif {{n}} ;",
         "majOrdre": "un rang entre 1 et 100 pour la majoration {{m}} du tarif {{n}} ;",
         "majRang": "un seul rang par critère, et un critère par rang, dans le tarif {{n}} ;",
         "majChevauchement": "des tranches qui ne se chevauchent pas pour « {{critere}} » dans le tarif {{n}} ;"
