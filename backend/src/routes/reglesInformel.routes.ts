@@ -35,6 +35,11 @@ const dateIso = z
     return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === j;
   }, 'Cette date n’existe pas : vérifiez le jour et le mois.')
   .refine((j) => j >= '1900-01-01' && j <= '2100-12-31', 'Date hors de l’intervalle admis (1900 à 2100).');
+// zod compte les unités UTF-16, la base compte les caractères : un caractère hors
+// du plan de base en vaut deux pour zod, un pour la base. Une longueur minimale
+// se vérifie donc aussi en caractères — sinon la base refusait d'un message
+// générique ce que zod avait laissé passer.
+const auMoinsCaracteres = (n: number) => (t: string) => [...t].length >= n;
 // Le jour à Tunis (UTC+1, sans heure d'été).
 const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
@@ -96,12 +101,24 @@ export const elementListeSchema = z
 export const finElementSchema = z
   .object({
     dateFin: dateIso,
-    reference: z.string().trim().min(5, 'Citez le texte qui met fin à cet élément (5 caractères au moins).').max(500),
+    reference: z
+      .string()
+      .trim()
+      .min(5, 'Citez le texte qui met fin à cet élément (5 caractères au moins).')
+      .max(500)
+      .refine(auMoinsCaracteres(5), 'Citez le texte qui met fin à cet élément (5 caractères au moins).'),
   })
   .strict();
 
 export const retraitElementSchema = z
-  .object({ motif: z.string().trim().min(5, 'Dites pourquoi cet élément est retiré (5 caractères au moins).').max(500) })
+  .object({
+    motif: z
+      .string()
+      .trim()
+      .min(5, 'Dites pourquoi cet élément est retiré (5 caractères au moins).')
+      .max(500)
+      .refine(auMoinsCaracteres(5), 'Dites pourquoi cet élément est retiré (5 caractères au moins).'),
+  })
   .strict();
 
 // Les refus de la base, rendus en mots.
@@ -112,6 +129,8 @@ const traduireRefus = (err: unknown): never => {
   }
   if (e.constraint === 'elements_date_plausible') throw new ApiError(400, 'La date d’effet ne peut pas précéder l’an 2000.');
   if (e.constraint === 'elements_fin_apres_effet') throw new ApiError(400, 'La fin doit suivre la date d’effet de l’élément.');
+  if (e.constraint === 'elements_fin_referencee') throw new ApiError(400, 'Citez le texte qui met fin à cet élément (5 caractères au moins).');
+  if (e.constraint === 'elements_retrait_motive') throw new ApiError(400, 'Dites pourquoi cet élément est retiré (5 caractères au moins).');
   const code = e.message?.match(/^(ELEMENT_[A-Z]+): /)?.[1];
   if (code) throw new ApiError(409, e.message!.slice(code.length + 2));
   throw err;
@@ -173,14 +192,19 @@ reglesInformelRouter.post(
   asyncHandler(async (req, res) => {
     const { motif } = retraitElementSchema.parse(req.body);
     if (!z.string().uuid().safeParse(req.params.id).success) throw new ApiError(404, 'Élément introuvable.');
-    const ligne = await queryOne(
-      `UPDATE elements_listes_nationales e
-          SET retire_le = now(), retire_par = app.current_user_id(), motif_retrait = $2
-        WHERE e.id = $1 AND e.liste = ANY ($3::text[]) AND e.retire_le IS NULL
-        RETURNING ${COLONNES_ELEMENT}`,
-      [req.params.id, motif, LISTES_NATIONALES]
-    );
-    if (!ligne) throw new ApiError(404, 'Élément introuvable, ou déjà retiré.');
-    res.json(ligne);
+    try {
+      const ligne = await queryOne(
+        `UPDATE elements_listes_nationales e
+            SET retire_le = now(), retire_par = app.current_user_id(), motif_retrait = $2
+          WHERE e.id = $1 AND e.liste = ANY ($3::text[]) AND e.retire_le IS NULL
+          RETURNING ${COLONNES_ELEMENT}`,
+        [req.params.id, motif, LISTES_NATIONALES]
+      );
+      if (!ligne) throw new ApiError(404, 'Élément introuvable, ou déjà retiré.');
+      res.json(ligne);
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      traduireRefus(err);
+    }
   })
 );

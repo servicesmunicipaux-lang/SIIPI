@@ -3464,7 +3464,8 @@
         "majOrdre": "un rang entre 1 et 100 pour la majoration {{m}} du tarif {{n}} ;",
         "majRang": "un seul rang par critère, et un critère par rang, dans le tarif {{n}} ;",
         "majChevauchement": "des tranches qui ne se chevauchent pas pour « {{critere}} » dans le tarif {{n}} ;"
-      }
+      },
+      "conflit": "La grille a été relue : annulez, puis rouvrez « Modifier le projet » pour repartir de la version à jour (la saisie en cours ne sera pas gardée)."
     }
   },
   "prestataire": {

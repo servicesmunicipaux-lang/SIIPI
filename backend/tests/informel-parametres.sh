@@ -209,6 +209,10 @@ chk "exigée à partir de sa date, pas la veille" "1|0" \
     "$(sql "SELECT count(*) FROM app.liste_nationale('pieces_carte_precollecteur', '2001-06-01') WHERE code = 'test_photo_identite'")|$(sql "SELECT count(*) FROM app.liste_nationale('pieces_carte_precollecteur', '2000-12-31') WHERE code = 'test_photo_identite'")"
 chk "une fin sans texte : refusée" 400 \
     "$(appel POST "/regles-informel/elements/$ID_A/fin" "$T_FNCT" '{"dateFin":"2002-01-01","reference":"x"}')"
+# zod compte les unités UTF-16, la base les caractères : « n°𝟓𝟐 » fait six unités
+# et quatre caractères. Le refus vient de l'API, en clair, pas d'une contrainte.
+chk "un texte de fin qui ne fait cinq caractères qu'en unités UTF-16 : 400, qui le dit" "400|1" \
+    "$(appel POST "/regles-informel/elements/$ID_A/fin" "$T_FNCT" '{"dateFin":"2002-01-01","reference":"n°\ud835\udfd3\ud835\udfd0"}')|$(val "1 if '5 caractères' in json.dumps(d, ensure_ascii=False) else 0")"
 chk "une fin qui précède la date d'effet : refusée" 400 \
     "$(appel POST "/regles-informel/elements/$ID_A/fin" "$T_FNCT" '{"dateFin":"2000-06-01","reference":"TEST texte abrogatif"}')"
 chk "une commune ne ferme pas un élément" 403 \
@@ -233,6 +237,8 @@ chk "les états du jour : fermée, en vigueur, à venir" "ferme|en_vigueur|a_ven
     "$(etat "$ID_A")|$(val "[e['etat'] for l in d['listes'] for e in l['elements'] if e['code']=='test_photo_identite' and e['date_fin'] is None][0]")|$(etat "$ID_B")"
 chk "un retrait sans motif : refusé" 400 \
     "$(appel POST "/regles-informel/elements/$ID_B/retrait" "$T_FNCT" '{"motif":"non"}')"
+chk "un motif qui ne fait cinq caractères qu'en unités UTF-16 : 400, qui le dit" "400|1" \
+    "$(appel POST "/regles-informel/elements/$ID_B/retrait" "$T_FNCT" '{"motif":"n°\ud835\udfd3\ud835\udfd0"}')|$(val "1 if '5 caractères' in json.dumps(d, ensure_ascii=False) else 0")"
 CODE=$(appel POST "/regles-informel/elements/$ID_B/retrait" "$T_FNCT" '{"motif":"TEST saisie à tort"}')
 chk "l'étape saisie à tort se retire, avec son motif" "200|TEST saisie à tort" "$CODE|$(val "d['motif_retrait']")"
 appel GET /regles-informel "$T_D" >/dev/null

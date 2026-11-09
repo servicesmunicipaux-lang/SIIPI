@@ -158,6 +158,8 @@ chk "aucun élément TEST n'a été écrit par ces refus" 0 \
 
 echo
 echo "2. Les listes des assimilés : ce que fait la FNCT"
+EN_VIGUEUR="len([e for l in d['listes'] if l['liste']=='categories_activite_assimiles' for e in l['elements'] if e['etat']=='en_vigueur'])"
+N0=$(appel GET /listes-assimiles "$T_F" >/dev/null; val "$EN_VIGUEUR")
 # Un flux ou un texte légal posé par la migration n'aurait pas d'auteur : il
 # n'y en a aucun, seule la FNCT les inscrit.
 chk "les catégories de départ sont là, ouvertes, provisoires, chacune avec ses unités ; aucun flux ni texte légal n'est inventé" "9|9|0" \
@@ -207,10 +209,14 @@ ID_H=$(sql "SELECT id FROM elements_listes_nationales WHERE code = 'test_huiles'
 chk "un motif de retrait qui ne fait cinq caractères qu'en unités UTF-16 : 400, qui le dit ; l'élément n'est pas retiré" "400|1|1" \
     "$(appel POST "/listes-assimiles/elements/$ID_H/retrait" "$T_F" '{"motif":"n°\ud835\udfd3\ud835\udfd0"}')|$(val "1 if '5 caractères' in json.dumps(d, ensure_ascii=False) else 0")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE id = '$ID_H' AND retire_le IS NULL")"
 # Depuis 098, la table porte aussi les listes des assimilés : les routes du
-# secteur informel ne touchent que les leurs.
-ID_CAFE=$(sql "SELECT id FROM elements_listes_nationales WHERE liste = 'categories_activite_assimiles' AND code = 'cafe' AND retire_le IS NULL")
+# secteur informel ne touchent que les leurs. La sonde vise une catégorie de la
+# campagne, jamais une réelle : si la route régressait, c'est elle qui serait
+# fermée puis retirée, et le rendu de la table l'efface en partant.
+chk "… une catégorie pour éprouver la portée des routes du secteur informel" 201 \
+    "$(element categories_activite_assimiles "$T_F" '{"code":"test_portee","libelleFr":"TEST Portée des routes","libelleAr":"نطاق","dateEffet":"2000-01-01","unitesEchelle":["m2"]}')"
+ID_PORTEE=$(sql "SELECT id FROM elements_listes_nationales WHERE code = 'test_portee' AND retire_le IS NULL AND date_fin IS NULL")
 chk "les routes du secteur informel ne ferment ni ne retirent une catégorie des assimilés (404), et refusent une date impossible (400, jamais 500)" "404|404|400|1" \
-    "$(appel POST "/regles-informel/elements/$ID_CAFE/fin" "$T_F" '{"dateFin":"2031-01-01","reference":"TEST portée des routes"}')|$(appel POST "/regles-informel/elements/$ID_CAFE/retrait" "$T_F" '{"motif":"TEST portée des routes"}')|$(appel POST "/regles-informel/elements/$ID_CAFE/fin" "$T_F" '{"dateFin":"2026-02-30","reference":"TEST portée des routes"}')|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE id = '$ID_CAFE' AND retire_le IS NULL AND date_fin IS NULL")"
+    "$(appel POST "/regles-informel/elements/$ID_PORTEE/fin" "$T_F" '{"dateFin":"2031-01-01","reference":"TEST portée des routes"}')|$(appel POST "/regles-informel/elements/$ID_PORTEE/retrait" "$T_F" '{"motif":"TEST portée des routes"}')|$(appel POST "/regles-informel/elements/$ID_PORTEE/fin" "$T_F" '{"dateFin":"2026-02-30","reference":"TEST portée des routes"}')|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE id = '$ID_PORTEE' AND retire_le IS NULL AND date_fin IS NULL")"
 chk "les listes du secteur informel n'ont pas bougé" "$PIECES_AVANT" \
     "$(sql "SELECT count(*) FROM app.liste_nationale('pieces_carte_precollecteur', app.jour_tunis())")"
 
@@ -332,7 +338,7 @@ chk "… une approbation ne se refait pas (409)" 409 \
 echo
 echo "5. Une grille approuvée est figée"
 chk "elle ne se remplace plus (409)" 409 "$(appel PUT "/grilles-tarifaires/$G1" "$T_A" "$(grille TEST-ARRETE-1 2026-02-01 "[$L_CAFE]")")"
-chk "elle ne se retire pas (409)" 409 "$(appel DELETE "/grilles-tarifaires/$G1" "$T_A")"
+chk "elle ne se retire pas (409)" 409 "$(appel DELETE "/grilles-tarifaires/$G1?version=$(version_de "$G1")" "$T_A")"
 L1=$(sql "SELECT id FROM lignes_grille WHERE grille_id = '$G1' AND deleted_at IS NULL")
 chk "la base refuse d'en réécrire l'arrêté" GRILLE_FIGEE \
     "$(en_base admin_commune "$ID_A" "$A" "UPDATE grilles_tarifaires SET reference_arrete = 'TEST autre' WHERE id = '$G1'")"
@@ -403,7 +409,7 @@ remplacer_en_base "$G5" & approuver_b "$G5" "$V5" > "$T/course5" &
 ATTENTE5=$(attendre_verrou g1_attend_course5 1); wait
 chk "une approbation pendant le remplacement du projet attend, puis voit que la grille a changé : refus" "attente|GRILLE_MODIFIEE|0|0|t" \
     "$ATTENTE5|$(cat "$T/course5")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$G5' AND date_approbation_tutelle IS NOT NULL")|$(sql "SELECT count(*) FROM lignes_grille WHERE grille_id = '$G5' AND deleted_at IS NULL")|$(sql "SELECT intitule = 'TEST remplacé' FROM grilles_tarifaires WHERE id = '$G5'")"
-appel DELETE "/grilles-tarifaires/$G5" "$T_B" >/dev/null
+appel DELETE "/grilles-tarifaires/$G5?version=$(version_de "$G5")" "$T_B" >/dev/null
 CREE_G6=$(appel POST "/grilles-tarifaires?communeId=$B" "$T_B" "{\"intitule\":\"TEST bornée\",\"referenceArrete\":\"TEST-ARRETE-B2\",\"dateArrete\":\"2026-01-10\",\"dateEffet\":\"2026-02-01\",\"dateFin\":\"2026-12-31\",\"lignes\":[$L_CAFE]}"); G6=$(val "d['id']")
 chk "un projet borné dès l'arrêté (date de fin saisie) s'approuve : l'arrêté est la pièce de sa fin" "201|200|2026-12-31|TEST-ARRETE-B2" \
     "$CREE_G6|$(appel POST "/grilles-tarifaires/$G6/approbation" "$T_B" "$(approbation "$G6" 2026-01-20 "TEST visa B")")|$(val "d['date_fin']")|$(val "d['reference_fin']")"
@@ -441,8 +447,14 @@ CREE_G8=$(appel POST "/grilles-tarifaires?communeId=$B" "$T_B" "{\"intitule\":\"
 ID_EPH=$(sql "SELECT id FROM elements_listes_nationales WHERE code = 'test_ephemere' AND retire_le IS NULL")
 chk "un projet dont une catégorie a été fermée après la saisie de ses tarifs ne s'approuve pas : 400, qui la nomme ; il reste un projet" "201|200|400|1|projet" \
     "$CREE_G8|$(appel POST "/listes-assimiles/elements/$ID_EPH/fin" "$T_F" '{"dateFin":"2025-01-01","reference":"TEST arrêté de fin"}')|$(appel POST "/grilles-tarifaires/$G8/approbation" "$T_B" "$(approbation "$G8" 2025-05-20 "TEST visa B4")")|$(val "1 if 'test_ephemere' in d['error'] else 0")|$(appel GET "/grilles-tarifaires/$G8" "$T_B" >/dev/null; val "d['etat']")"
-chk "un projet se retire (204), et reste en base, retiré" "204|1" \
-    "$(appel DELETE "/grilles-tarifaires/$GV" "$T_A")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$GV' AND deleted_at IS NOT NULL AND deleted_by = '$ID_A'")"
+# Le retrait porte, lui aussi, la version lue : retirer le projet qu'un autre
+# vient de remplacer effacerait son travail.
+VGV=$(version_de "$GV")
+chk "un retrait sans la version lue : 400" 400 "$(appel DELETE "/grilles-tarifaires/$GV" "$T_A")"
+chk "… avec une version dépassée (le projet remplacé depuis) : 409, et le projet reste" "200|409|0" \
+    "$(appel PUT "/grilles-tarifaires/$GV" "$T_A" "$(grille TEST-VIDE 2027-06-01 '[]' "$VGV")")|$(appel DELETE "/grilles-tarifaires/$GV?version=$VGV" "$T_A")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$GV' AND deleted_at IS NOT NULL")"
+chk "un projet se retire (204), avec sa version, et reste en base, retiré" "204|1" \
+    "$(appel DELETE "/grilles-tarifaires/$GV?version=$(version_de "$GV")" "$T_A")|$(sql "SELECT count(*) FROM grilles_tarifaires WHERE id = '$GV' AND deleted_at IS NOT NULL AND deleted_by = '$ID_A'")"
 
 # -----------------------------------------------------------------------------
 echo
@@ -454,9 +466,9 @@ chk "un prestataire de A n'y a pas accès (403), et la base ne lui en montre auc
     "$(appel GET "/grilles-tarifaires?communeId=$A" "$T_P")|$($PSQL -c "BEGIN; SELECT set_config('app.role', 'gestionnaire_prestataire', true), set_config('app.user_id', '$ID_P', true), set_config('app.commune_id', '$A', true); SET LOCAL ROLE siipi_app; SELECT 'n:' || count(*) FROM grilles_tarifaires; ROLLBACK;" 2>&1 | grep -oE '^n:[0-9]+' | cut -d: -f2)|$($PSQL -c "BEGIN; SELECT set_config('app.role', 'gestionnaire_prestataire', true), set_config('app.user_id', '$ID_P', true), set_config('app.commune_id', '$A', true); SET LOCAL ROLE siipi_app; SELECT 'n:' || count(*) FROM lignes_grille; ROLLBACK;" 2>&1 | grep -oE '^n:[0-9]+' | cut -d: -f2)"
 # Les catégories en vigueur, comptées : la route rend toujours trois listes, et
 # compter les listes ne verrait pas une politique qui en cacherait les éléments.
-EN_VIGUEUR="len([e for l in d['listes'] if l['liste']=='categories_activite_assimiles' for e in l['elements'] if e['etat']=='en_vigueur'])"
+# La campagne en a ajouté deux encore en vigueur (le kiosque, la portée).
 N_F=$(appel GET /listes-assimiles "$T_F" >/dev/null; val "$EN_VIGUEUR")
-chk "une commune lit les catégories en vigueur, les mêmes que la FNCT (les neuf de départ et le kiosque)" "200|10|10" \
+chk "une commune lit les catégories en vigueur, les mêmes que la FNCT (celles d'avant la campagne, le kiosque et la portée)" "200|$((N0 + 2))|$((N0 + 2))" \
     "$(appel GET /listes-assimiles "$T_A")|$(val "$EN_VIGUEUR")|$N_F"
 chk "le journal d'audit garde l'approbation et la clôture" "t|t" \
     "$(sql "SELECT count(*) > 0 FROM audit_log WHERE table_name = 'grilles_tarifaires' AND record_id = '$G1' AND 'date_approbation_tutelle' = ANY (changed_fields)")|$(sql "SELECT count(*) > 0 FROM audit_log WHERE table_name = 'grilles_tarifaires' AND record_id = '$G1' AND 'date_fin' = ANY (changed_fields)")"

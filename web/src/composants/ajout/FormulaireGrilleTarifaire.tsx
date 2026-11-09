@@ -115,14 +115,22 @@ export function FormulaireGrilleTarifaire({
   grille,
   onFait,
   onAnnuler,
+  onConflit,
 }: {
   communeId: string;
   /** Un projet à remplacer ; absent, le formulaire crée une grille. */
   grille?: GrilleTarifaire;
   onFait: () => void | Promise<void>;
   onAnnuler: () => void;
+  /** Le remplacement a été refusé : la grille a changé depuis l'ouverture. L'écran la relit. */
+  onConflit?: () => void | Promise<void>;
 }) {
   const { t, i18n } = useTranslation();
+  // La version de la grille telle qu'elle était à l'ouverture du formulaire, avec
+  // le contenu qu'il en a tiré. La lire au moment d'enregistrer prendrait celle
+  // d'une grille relue entre-temps par l'écran (changement de langue, autre geste),
+  // et le remplacement d'un autre directeur serait écrasé sans refus.
+  const [versionLue] = useState(grille?.version);
   const arabe = i18n.language.startsWith('ar');
   const [elements, setElements] = useState<ElementListeAssimiles[] | null>(null);
   const [intitule, setIntitule] = useState(grille?.intitule ?? '');
@@ -262,11 +270,20 @@ export function FormulaireGrilleTarifaire({
     };
     try {
       // La version lue part avec la modification : si un autre l'a changée entre-temps, refus (409).
-      if (grille) await api.modifierGrilleTarifaire(grille.id, { ...saisie, version: grille.version });
+      if (grille) await api.modifierGrilleTarifaire(grille.id, { ...saisie, version: versionLue ?? grille.version });
       else await api.creerGrilleTarifaire(communeId, saisie);
       await onFait();
     } catch (err) {
-      setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
+      const refus = err instanceof ErreurApi ? err.message : t('commun.erreur');
+      // Un 409 : la grille a changé depuis l'ouverture. L'écran la relit ; le
+      // formulaire garde la saisie et la version d'ouverture — il continue donc
+      // d'être refusé, et dit comment repartir de la grille relue.
+      if (grille && err instanceof ErreurApi && err.statut === 409) {
+        await onConflit?.();
+        setErreur(`${refus} ${t('ajout.grilleTarifaire.conflit')}`);
+      } else {
+        setErreur(refus);
+      }
     } finally {
       setEnvoi(false);
     }

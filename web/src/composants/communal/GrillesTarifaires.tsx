@@ -45,8 +45,11 @@ const TON_ETAT: Record<GrilleTarifaire['etat'], TonPastille> = {
   close: 'neutre',
 };
 
+// La version de la grille est prise à l'ouverture du panneau d'approbation : c'est
+// celle que le directeur a sous les yeux en remplissant la date et la pièce. La
+// lire au clic prendrait celle d'une grille relue entre-temps sous le panneau.
 type Geste =
-  | { id: string; nature: 'approbation'; date: string; texte: string }
+  | { id: string; nature: 'approbation'; date: string; texte: string; version: string }
   | { id: string; nature: 'cloture'; date: string; texte: string };
 
 export function GrillesTarifaires({ communeId }: { communeId: string }) {
@@ -99,7 +102,12 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
       // elle est relue, pour que la décision se prenne sur ce qui est en base.
       // Relue d'abord, le refus affiché ensuite : la relecture efface l'erreur
       // d'un chargement précédent, et elle effaçait ce refus avec.
-      if (err instanceof ErreurApi && err.statut === 409) await charger();
+      // Le panneau se ferme : le rouvrir, c'est repartir de la grille relue, et de
+      // sa version.
+      if (err instanceof ErreurApi && err.statut === 409) {
+        setGeste(null);
+        await charger();
+      }
       setErreur(refus);
     } finally {
       setEnvoi(false);
@@ -156,6 +164,7 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
                   communeId={communeId}
                   grille={g}
                   onAnnuler={() => setModifiee(null)}
+                  onConflit={charger}
                   onFait={async () => {
                     setModifiee(null);
                     setMessage(t('communal.grilles.messages.modifiee'));
@@ -216,7 +225,7 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
                             <button
                               type="button"
                               className={boutonDiscret}
-                              onClick={() => setGeste({ id: g.id, nature: 'approbation', date: '', texte: '' })}
+                              onClick={() => setGeste({ id: g.id, nature: 'approbation', date: '', texte: '', version: g.version })}
                             >
                               {t('communal.grilles.gestes.approuver')}
                             </button>
@@ -226,7 +235,7 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
                               disabled={envoi}
                               onClick={() => {
                                 if (window.confirm(t('communal.grilles.gestes.confirmerRetrait'))) {
-                                  void executer(() => api.retirerGrilleTarifaire(g.id), t('communal.grilles.messages.retiree'));
+                                  void executer(() => api.retirerGrilleTarifaire(g.id, g.version), t('communal.grilles.messages.retiree'));
                                 }
                               }}
                             >
@@ -279,7 +288,7 @@ export function GrillesTarifaires({ communeId }: { communeId: string }) {
                                   api.approuverGrilleTarifaire(g.id, {
                                     dateApprobation: geste.date,
                                     reference: geste.texte.trim(),
-                                    version: g.version,
+                                    version: geste.version,
                                   }),
                                 t('communal.grilles.messages.approuvee')
                               )

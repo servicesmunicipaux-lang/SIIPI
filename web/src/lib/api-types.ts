@@ -16485,11 +16485,13 @@ export interface paths {
         post?: never;
         /**
          * Retirer un projet de grille
-         * @description Retrait logique. Une grille approuvée ne se retire pas : elle se clôt (409).
+         * @description Retrait logique. Une grille approuvée ne se retire pas : elle se clôt (409). Le paramètre version est celle de la grille lue : si elle a changé depuis, le retrait est refusé (409), rien n’est retiré.
          */
         delete: {
             parameters: {
-                query?: never;
+                query: {
+                    version: string;
+                };
                 header?: never;
                 path: {
                     id: string;
@@ -16541,7 +16543,7 @@ export interface paths {
                         "application/json": components["schemas"]["Erreur"];
                     };
                 };
-                /** @description Grille approuvée. */
+                /** @description Grille approuvée, ou modifiée depuis votre lecture. */
                 409: {
                     headers: {
                         [name: string]: unknown;

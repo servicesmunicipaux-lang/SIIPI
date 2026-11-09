@@ -99,6 +99,7 @@ import {
   modificationGrilleSchema,
   MODES_TARIF,
   qGrilleEnVigueur,
+  qRetraitGrille,
 } from '../routes/grillesTarifaires.routes.js';
 import {
   demandeCarteSchema,
@@ -4707,10 +4708,16 @@ registry.registerPath({
 registry.registerPath({
   method: 'delete', path: '/grilles-tarifaires/{id}', tags: [TAG_GRILLES],
   summary: 'Retirer un projet de grille',
-  description: 'Retrait logique. Une grille approuvée ne se retire pas : elle se clôt (409).',
+  description:
+    'Retrait logique. Une grille approuvée ne se retire pas : elle se clôt (409). ' +
+    'Le paramètre version est celle de la grille lue : si elle a changé depuis, le retrait est refusé (409), rien n’est retiré.',
   security: SECURISE,
-  request: { params: pGrille },
-  responses: { 204: { description: 'Projet retiré.' }, 409: json(Erreur, 'Grille approuvée.'), ...REPONSES_COMMUNES },
+  request: { params: pGrille, query: qRetraitGrille },
+  responses: {
+    ...REPONSES_COMMUNES,
+    204: { description: 'Projet retiré.' },
+    409: json(Erreur, 'Grille approuvée, ou modifiée depuis votre lecture.'),
+  },
 });
 
 const ActeurInformel = registry.register(

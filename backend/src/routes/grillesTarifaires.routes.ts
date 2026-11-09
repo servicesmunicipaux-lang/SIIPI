@@ -406,15 +406,33 @@ grillesTarifairesRouter.post(
   })
 );
 
+// Le retrait d'un projet porte, lui aussi, la version lue : retirer la grille
+// qu'un autre directeur vient de remplacer effacerait son travail sans qu'il le
+// sache, et un projet retiré ne revient pas.
+export const qRetraitGrille = z.object({ version: versionLue });
+
 grillesTarifairesRouter.delete(
   '/:id',
   requireAuth,
   requireRole('admin_commune'),
   asyncHandler(async (req, res) => {
     const g = await lireGrille(req.params.id) as { id: string };
+    const { version } = qRetraitGrille.parse(req.query);
     try {
-      const r = await queryOne<{ supprimer: boolean }>("SELECT app.supprimer('grilles_tarifaires', $1)", [g.id]);
-      if (!r?.supprimer) throw new ApiError(404, 'Grille introuvable.');
+      await withTransaction(async (client) => {
+        // La ligne verrouillée d'abord : un remplacement en cours se termine, et
+        // c'est sa version validée qui se compare.
+        const lue = await client.query<{ version: string }>(
+          'SELECT xmin::text AS version FROM grilles_tarifaires WHERE id = $1 AND deleted_at IS NULL FOR UPDATE',
+          [g.id]
+        );
+        if (lue.rows.length === 0) throw new ApiError(404, 'Grille introuvable.');
+        if (lue.rows[0].version !== version) {
+          throw new ApiError(409, 'Cette grille a changé depuis que vous l’avez lue (modifiée ou approuvée) : rechargez-la avant de la retirer.');
+        }
+        const r = await client.query<{ supprimer: boolean }>("SELECT app.supprimer('grilles_tarifaires', $1)", [g.id]);
+        if (!r.rows[0]?.supprimer) throw new ApiError(404, 'Grille introuvable.');
+      });
     } catch (err) {
       refus(err);
     }

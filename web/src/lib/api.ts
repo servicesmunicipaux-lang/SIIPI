@@ -1385,7 +1385,8 @@ export const api = {
     requete<GrilleTarifaire>(`/grilles-tarifaires/${id}/approbation`, { method: 'POST', body: JSON.stringify(saisie) }),
   cloreGrilleTarifaire: (id: string, saisie: Corps<'/grilles-tarifaires/{id}/cloture', 'post'>) =>
     requete<GrilleTarifaire>(`/grilles-tarifaires/${id}/cloture`, { method: 'POST', body: JSON.stringify(saisie) }),
-  retirerGrilleTarifaire: (id: string) => requete<void>(`/grilles-tarifaires/${id}`, { method: 'DELETE' }),
+  retirerGrilleTarifaire: (id: string, version: string) =>
+    requete<void>(`/grilles-tarifaires/${id}?version=${encodeURIComponent(version)}`, { method: 'DELETE' }),
   // --- Lot 17.2 : la matrice des densités, le tonnage estimé -------------------
   densites: () => requete<DensiteReference[]>('/volumetrie/densites'),
   ajouterDensite: (saisie: Corps<'/volumetrie/densites', 'post'>) =>
