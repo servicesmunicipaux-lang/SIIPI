@@ -1,4 +1,5 @@
 import type { Request } from 'express';
+import { ApiError } from './middleware/errorHandler.js';
 
 /**
  * Commune sur laquelle porte une requête de lecture.
@@ -25,4 +26,19 @@ export function communeDemandee(req: Request): string | null {
   }
   if (req.user?.role === 'gestionnaire_prestataire') return null;
   return req.user?.communeId ?? null;
+}
+
+/**
+ * La commune d'une requête qui en exige une : celle que désigne communeDemandee,
+ * ou un refus qui dit quoi corriger.
+ *
+ * Un caractère de contrôle (l'octet nul) dans l'identifiant ferait échouer
+ * PostgreSQL (500) : un tel identifiant ne désigne aucune commune, elle est
+ * introuvable (404), comme une commune hors du périmètre.
+ */
+export function communeRequise(req: Request): string {
+  const c = communeDemandee(req);
+  if (!c) throw new ApiError(400, 'Commune requise (paramètre communeId).');
+  if (/[\u0000-\u001f]/.test(c)) throw new ApiError(404, 'Commune introuvable.');
+  return c;
 }

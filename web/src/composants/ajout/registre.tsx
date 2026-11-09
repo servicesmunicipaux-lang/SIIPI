@@ -27,6 +27,7 @@ import { FormulaireCircuit } from './FormulaireCircuit';
 import { FormulaireContact } from './FormulaireContact';
 import { FormulaireDocument, type TypeDocumentEmis } from './FormulaireDocument';
 import { FormulaireEngin } from './FormulaireEngin';
+import { FormulaireGrilleTarifaire } from './FormulaireGrilleTarifaire';
 import { FormulaireLieu } from './FormulaireLieu';
 import { FormulairePcgd } from './FormulairePcgd';
 import { FormulairePoint } from './FormulairePoint';
@@ -111,6 +112,8 @@ const FORMULAIRES: Record<TypeFormulaire, Omit<EntreeFormulaire, 'type'>> = {
   'declaration-panne': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('declaration_panne') },
   // Le connecteur GPS (lot 17.4) : la commune seule rattache un boîtier ; la FNCT lit.
   'boitier-gps': { rubrique: 'moyens', roles: COMMUNE, Formulaire: FormulaireBoitierGps },
+  // Les grilles tarifaires des conventions (jalon G, lot G1) : un acte de la commune ; la FNCT lit.
+  'grille-tarifaire': { rubrique: 'references', roles: COMMUNE, Formulaire: FormulaireGrilleTarifaire },
 };
 
 const ECRANS: Record<TypeEcran, Omit<EntreeEcran, 'type'>> = {

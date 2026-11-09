@@ -15631,6 +15631,1121 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/listes-assimiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les listes nationales des déchets assimilés : catégories d’activité, flux, base légale
+         * @description Tenues par la FNCT (lot G1, migration 098) ; chaque élément porte son état du jour. Lisible par tout utilisateur authentifié : une commune y lit les catégories de sa grille tarifaire.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Listes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            jour: string;
+                            listes: {
+                                /** @enum {string} */
+                                liste: "categories_activite_assimiles" | "flux_assimiles" | "base_legale_assimiles";
+                                elements: (components["schemas"]["ElementListeAssimiles"] & {
+                                    /**
+                                     * @description en_attente : un texte sans date d’application — jamais « en vigueur » tant qu’elle n’est pas fixée.
+                                     * @enum {string}
+                                     */
+                                    etat: "en_vigueur" | "a_venir" | "en_attente" | "ferme" | "retire";
+                                })[];
+                            }[];
+                        };
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/listes-assimiles/listes/{liste}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ajouter un élément daté à une liste des assimilés
+         * @description Une catégorie d’activité dit ses unités d’échelle ; un flux dit s’il est dangereux ; un texte de la base légale peut s’inscrire sans date d’application (dateEffet null) et avec sa date de publication. Un attribut d’une autre liste : 400. Un élément de même code déjà ouvert : 409. Réservé à la FNCT.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    liste: "categories_activite_assimiles" | "flux_assimiles" | "base_legale_assimiles";
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        code: string;
+                        libelleFr: string;
+                        libelleAr: string;
+                        /** @default 0 */
+                        ordre?: number;
+                        dateEffet: string | null;
+                        /** @default true */
+                        provisoire?: boolean;
+                        reference?: string | null;
+                        unitesEchelle?: ("chambre" | "lit" | "chaise" | "table" | "etal" | "m2" | "eleve" | "employe")[];
+                        dangereux?: boolean;
+                        datePublication?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Élément ajouté. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ElementListeAssimiles"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Code déjà ouvert. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/listes-assimiles/elements/{id}/application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fixer la date d’application d’un texte inscrit sans elle
+         * @description Une seule fois, avec la pièce qui la fixe (proclamation, arrêté). SIIPI ne la déduit jamais. Un texte dont la date est déjà fixée, ou retiré : 404. Réservé à la FNCT.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateEffet: string;
+                        reference: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Date d’application fixée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ElementListeAssimiles"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Refus de la base. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/listes-assimiles/elements/{id}/fin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fermer un élément des listes des assimilés à une date
+         * @description Le texte a changé (une catégorie, un flux qui cesse ; une loi abrogée). Avec sa pièce, une fois. Réservé à la FNCT.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateFin: string;
+                        reference: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Élément fermé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ElementListeAssimiles"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Déjà fermé. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/listes-assimiles/elements/{id}/retrait": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retirer un élément des listes des assimilés saisi à tort
+         * @description Avec un motif. L’élément reste lisible ; il ne s’applique plus à aucune date. Réservé à la FNCT.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Élément retiré. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ElementListeAssimiles"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grilles-tarifaires": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les grilles tarifaires d’une commune
+         * @description Projets et grilles approuvées, avec leur état du jour, leurs tarifs par catégorie et leurs majorations. La commune et la FNCT ; hors périmètre, rien.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Grilles. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GrilleTarifaire"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Enregistrer un projet de grille tarifaire (le directeur de la commune)
+         * @description L’arrêté, sa délibération, sa date d’effet, et un tarif par catégorie d’activité en vigueur à cette date (liste nationale), avec ses majorations. Le projet ne s’applique pas avant l’approbation de la tutelle. Une catégorie inconnue, deux tranches qui se chevauchent : 400.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        intitule?: string | null;
+                        referenceArrete: string;
+                        dateArrete: string;
+                        referenceDeliberation?: string | null;
+                        dateDeliberation?: string | null;
+                        dateEffet: string;
+                        dateFin?: string | null;
+                        /** @default [] */
+                        lignes?: {
+                            categorie: string;
+                            /** @enum {string} */
+                            mode: "forfait_annuel" | "forfait_mensuel" | "reel_levee" | "reel_poids";
+                            tarif: number;
+                            /** @default [] */
+                            majorations?: {
+                                /** @enum {string} */
+                                critere: "surface_m2" | "frequence_hebdo" | "capacite_conteneur_l" | "nb_points_vente";
+                                /** @default 0 */
+                                borneMin?: number;
+                                borneMax?: number | null;
+                                /** @enum {string} */
+                                effet: "coefficient" | "ajout";
+                                valeur: number;
+                                ordre: number;
+                            }[];
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Projet enregistré. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GrilleTarifaire"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grilles-tarifaires/en-vigueur": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La grille approuvée qui s’applique à une date
+         * @description null sans grille approuvée à cette date : un projet ne s’applique jamais. Date par défaut : aujourd’hui à Tunis.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    date?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Grille en vigueur, ou null. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            grille: components["schemas"]["GrilleTarifaire"] & (Record<string, never> | null);
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grilles-tarifaires/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Une grille tarifaire */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Grille. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GrilleTarifaire"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Remplacer un projet de grille en entier
+         * @description Un projet seulement : une grille approuvée ne se modifie plus (409) ; un nouvel arrêté fait une nouvelle grille. Le corps porte la version lue (champ version de la grille) : si la grille a changé depuis, le remplacement est refusé (409), rien n’est écrit.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        intitule?: string | null;
+                        referenceArrete: string;
+                        dateArrete: string;
+                        referenceDeliberation?: string | null;
+                        dateDeliberation?: string | null;
+                        dateEffet: string;
+                        dateFin?: string | null;
+                        /** @default [] */
+                        lignes?: {
+                            categorie: string;
+                            /** @enum {string} */
+                            mode: "forfait_annuel" | "forfait_mensuel" | "reel_levee" | "reel_poids";
+                            tarif: number;
+                            /** @default [] */
+                            majorations?: {
+                                /** @enum {string} */
+                                critere: "surface_m2" | "frequence_hebdo" | "capacite_conteneur_l" | "nb_points_vente";
+                                /** @default 0 */
+                                borneMin?: number;
+                                borneMax?: number | null;
+                                /** @enum {string} */
+                                effet: "coefficient" | "ajout";
+                                valeur: number;
+                                ordre: number;
+                            }[];
+                        }[];
+                        version: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Projet remplacé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GrilleTarifaire"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Grille approuvée, retirée, ou modifiée depuis votre lecture. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Retirer un projet de grille
+         * @description Retrait logique. Une grille approuvée ne se retire pas : elle se clôt (409). Le paramètre version est celle de la grille lue : si elle a changé depuis, le retrait est refusé (409), rien n’est retiré.
+         */
+        delete: {
+            parameters: {
+                query: {
+                    version: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Projet retiré. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Grille approuvée, ou modifiée depuis votre lecture. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grilles-tarifaires/{id}/approbation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enregistrer l’approbation de la tutelle
+         * @description La commune inscrit l’approbation reçue : sa date (passée, après l’arrêté) et sa pièce. Refusée en 409 pour une grille sans tarif, déjà approuvée, ou dont la période est déjà couverte par une autre grille approuvée de la commune ; en 400 pour une catégorie qui n’est pas en vigueur à la date d’effet, ou une date d’approbation future ou antérieure à l’arrêté. Une date de fin saisie avec le projet a l’arrêté pour pièce. Le corps porte la version lue : si la grille a changé depuis, refus (409) — la tutelle a approuvé ce que le directeur a lu. La grille est ensuite figée.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateApprobation: string;
+                        reference: string;
+                        version: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Grille approuvée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GrilleTarifaire"];
+                    };
+                };
+                /** @description Catégorie hors de la liste à la date d’effet, ou date d’approbation invalide. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Grille sans tarif, déjà approuvée, modifiée depuis votre lecture, ou période déjà couverte. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/grilles-tarifaires/{id}/cloture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clore une grille approuvée à une date
+         * @description Un nouvel arrêté la remplace : sa date de fin, avec sa pièce, une fois. Un projet se corrige par PUT (409).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateFin: string;
+                        reference: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Grille close. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GrilleTarifaire"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Déjà close, ou projet. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/acteurs-informels": {
         parameters: {
             query?: never;
@@ -31605,6 +32720,87 @@ export interface components {
             created_at: string;
             retire_le: string | null;
             motif_retrait: string | null;
+        };
+        ElementListeAssimiles: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            liste: "categories_activite_assimiles" | "flux_assimiles" | "base_legale_assimiles";
+            code: string;
+            libelle_fr: string;
+            libelle_ar: string;
+            ordre: number;
+            /** @description Premier jour d’application. null : un texte de la base légale publié dont l’application attend un événement ; il n’est jamais en vigueur. */
+            date_effet: string | null;
+            date_fin: string | null;
+            reference_fin: string | null;
+            provisoire: boolean;
+            /** @description Le texte qui fonde l’élément ; pour la base légale, sa référence de publication (JORT). */
+            reference: string | null;
+            /** @description Catégories d’activité : les unités d’échelle du WaCT admises. */
+            unites_echelle: ("chambre" | "lit" | "chaise" | "table" | "etal" | "m2" | "eleve" | "employe")[] | null;
+            /** @description Flux assimilés : à orienter vers sa filière, jamais couvert par une convention. */
+            dangereux: boolean | null;
+            /** @description Base légale : la date de publication au JORT. */
+            date_publication: string | null;
+            /** @description Base légale : la pièce qui a fixé après coup la date d’application. */
+            reference_effet: string | null;
+            created_at: string;
+            retire_le: string | null;
+            motif_retrait: string | null;
+        };
+        GrilleTarifaire: {
+            /** Format: uuid */
+            id: string;
+            /** @description Version de la grille lue : à renvoyer avec un remplacement ou une approbation, refusés (409) si la grille a changé depuis. */
+            version: string;
+            commune_id: string;
+            intitule: string | null;
+            reference_arrete: string;
+            date_arrete: string;
+            reference_deliberation: string | null;
+            date_deliberation: string | null;
+            date_effet: string;
+            date_fin: string | null;
+            reference_fin: string | null;
+            /** @description null : un projet, qui ne produit aucune assiette. */
+            date_approbation_tutelle: string | null;
+            reference_approbation: string | null;
+            approuve_le: string | null;
+            created_at: string;
+            updated_at: string;
+            /**
+             * @description L’état du jour, à Tunis.
+             * @enum {string}
+             */
+            etat: "projet" | "a_venir" | "en_vigueur" | "close";
+            lignes: {
+                /** Format: uuid */
+                id: string;
+                categorie: string;
+                categorie_fr: string | null;
+                categorie_ar: string | null;
+                /**
+                 * @description Unité du tarif : DT/an, DT/mois, DT par levée, DT par tonne pesée.
+                 * @enum {string}
+                 */
+                mode: "forfait_annuel" | "forfait_mensuel" | "reel_levee" | "reel_poids";
+                tarif: number;
+                ordre: number;
+                majorations: {
+                    /** Format: uuid */
+                    id: string;
+                    /** @enum {string} */
+                    critere: "surface_m2" | "frequence_hebdo" | "capacite_conteneur_l" | "nb_points_vente";
+                    borne_min: number;
+                    /** @description null : sans plafond. */
+                    borne_max: number | null;
+                    /** @enum {string} */
+                    effet: "coefficient" | "ajout";
+                    valeur: number;
+                    ordre: number;
+                }[];
+            }[];
         };
         ActeurInformel: {
             /** Format: uuid */

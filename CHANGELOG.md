@@ -5,6 +5,91 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.90] — 2026-11-09 — Jalon G, lot G1 : les listes nationales des assimilés et les grilles tarifaires
+
+Le premier lot du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 1, § 3.3, § 7 ; décisions du
+4 novembre 2026). Les référentiels sur lesquels reposeront les établissements (G2) et les conventions (G4).
+Aucun montant n'est calculé : l'assiette vient au lot G6, et la ligne rouge n° 5 (aucune facturation) tient.
+
+### Ajouté
+- **Trois listes nationales datées**, tenues par la FNCT, sur le mécanisme de 091 (`elements_listes_nationales` ;
+  migration 098) :
+  - les **catégories d'activité** des établissements, chacune avec les **unités d'échelle du WaCT** qu'elle admet
+    (chambres, lits, chaises, tables, étals, m², élèves, employés). Une liste de départ de neuf catégories est posée,
+    **provisoire**, à valider par la FNCT ;
+  - les **flux de déchets assimilés**, avec le marqueur **« dangereux »** (un tel flux va vers sa filière, jamais
+    dans une convention) ;
+  - la **base légale** des conventions, avec la date de publication au JORT. **Un texte publié dont l'application
+    attend un événement s'inscrit sans date d'application** : il est « en attente », jamais en vigueur, et sa date se
+    fixe **une seule fois, avec sa pièce** (le décret-loi n° 4 du 30 septembre 2026 attend la proclamation des
+    résultats des élections municipales). Un texte de la base légale peut s'appliquer **depuis 1956** (la loi
+    n° 96-41 en est un) ; une catégorie ou un flux, depuis 2000.
+  
+  Aucun flux ni aucun texte légal n'est posé par la migration : SIIPI n'invente ni un flux ni une référence. Chaque
+  attribut n'appartient qu'à sa liste, et la base le tient. Les listes du secteur informel ne changent pas.
+- **Les grilles tarifaires** des communes (`grilles_tarifaires`, `lignes_grille`, `criteres_majoration`) : une par
+  arrêté municipal, avec sa délibération, sa date d'effet et sa date de fin ; un tarif par catégorie d'activité en
+  vigueur à la date d'effet, selon un mode (forfait annuel, forfait mensuel, réel à la levée, réel au poids) dont
+  découle l'unité ; des **majorations paramétrées sans code** (critère, tranche [basse ; haute[, coefficient ou
+  ajout, rang d'application), dont les tranches d'un même critère ne se chevauchent pas.
+  - **Une grille n'est applicable qu'approuvée.** La commune enregistre l'approbation de la tutelle par
+    `app.approuver_grille` : une date passée et postérieure à l'arrêté, une pièce, au moins un tarif, des catégories
+    en vigueur à la date d'effet (contrôlées de nouveau à l'approbation), et **aucune autre grille approuvée sur la
+    même période**. Un projet borné dès l'arrêté a l'arrêté pour pièce de sa fin.
+  - **L'approbation porte sur le projet que le directeur a lu.** Chaque grille rend sa **version** (le xmin de sa
+    ligne, que chaque remplacement renouvelle) ; le remplacement d'un projet, son approbation et son retrait la
+    renvoient, et sont refusés (409) si la grille a changé depuis — un autre directeur, un autre onglet. L'écran
+    envoie la version de l'ouverture du formulaire ou du panneau, jamais celle d'une liste relue entre-temps. Sans
+    cela, l'approbation figeait des tarifs que personne n'avait relus, et un remplacement ou un retrait effaçait le
+    travail d'un autre.
+  - **La base tient les courses**, pas l'ordre des appels de l'API : l'approbation verrouille la grille, puis la
+    commune ; les lignes et les majorations verrouillent la grille avant d'être écrites. Une approbation attend un
+    remplacement en cours ; une ligne ajoutée ou retirée pendant une approbation attend, puis est refusée ; deux
+    approbations de la même commune se suivent.
+  - **Approuvée, elle est figée**, ses lignes et majorations avec elle ; seule sa date de fin se fixe, une fois, avec
+    sa pièce, quand un nouvel arrêté la remplace. Un projet se modifie et se retire ; une grille approuvée ne se
+    retire pas.
+  - `app.grille_en_vigueur(commune, date)` : la grille approuvée qui s'applique à une date, jamais un projet (la
+    convention la prendra à sa date de début, lot G4).
+  - Le directeur de la commune écrit ; la FNCT lit sans geste ; un prestataire ne voit rien.
+- Routes `/listes-assimiles` (lecture : tout utilisateur ; écriture : FNCT) et `/grilles-tarifaires` (lecture :
+  commune et FNCT ; écriture : le directeur), documentées dans le contrat. Ce que la base ne garde pas est refusé
+  en 400 avec ce qu'il faut corriger, jamais en 500 : un montant au-delà de 999 999 999,999 ou plus fin que le
+  millime, une année hors de 1900 à 2100, un octet nul dans un texte ou dans l'identifiant de commune, une
+  longueur qui ne tient qu'en unités UTF-16.
+- Écrans : la section « Déchets assimilés » des paramètres nationaux (FNCT) ; l'écran « Grilles tarifaires » du pôle
+  Pilotage, avec son formulaire unique du registre « + Ajouter » pour créer et modifier un projet. En français et en
+  arabe, vérifiés sur grand écran et sur téléphone. La règle d'un code, d'un ordre ou d'un montant se dit avant
+  l'envoi ; le refus d'un geste s'affiche dans sa carte.
+
+### Corrigé
+- Les routes du secteur informel (`/regles-informel/elements/{id}/fin` et `/retrait`) ne touchent plus que leurs
+  listes : depuis 098, la même table porte celles des assimilés. Une date impossible y reçoit 400, plus 500 ; une
+  longueur minimale s'y compte en caractères, comme la base.
+- Une adresse mal encodée (`/grilles-tarifaires/%E0`) reçoit 400, plus 500, sur toutes les routes : le gestionnaire
+  d'erreurs reconnaît l'erreur de décodage d'Express.
+- `tests/outils/tables_nationales.sh` rend les lignes présentes par une mise à jour (seulement celles qui ont changé)
+  et réinsère les disparues ; un rendu refusé s'affiche. Un élément de liste fermé, retiré ou daté après coup
+  faisait échouer le rendu entier, en silence.
+- `communeRequise` vit dans `perimetre.ts`, une seule copie pour les grilles et la période transitoire.
+
+### Vérifié
+- Campagne `grilles-tarifaires` (117 contrôles), qui commence par ce que la plateforme refuse ; elle travaille
+  dans deux communes de test avec des comptes temporaires, rend ligne entière la table nationale des listes, et
+  efface en commençant les restes d'un passage interrompu. Ses courses se jouent en base, entre sessions, et
+  chacune **prouve que la session concurrente a attendu un verrou** (sinon le refus attendu pourrait venir d'une
+  session partie trop tard).
+- Mutants attrapés : sans contrôle de chevauchement, sans figement de la grille approuvée, avec une date
+  d'application réécrivable, sans contrôle de la catégorie, sans l'état « en attente » côté API ; puis, après les
+  revues : sans verrou de la grille, de la commune, des lignes ou des majorations, sans contrôle de la version (en
+  base, au remplacement, au retrait), sans contrôle des catégories à l'approbation, avec la date de la grille
+  ignorée, sans pièce de fin pour un projet borné.
+- Trois relectures adversariales indépendantes ; leurs constats confirmés sont corrigés avant la livraison. Les
+  refus de version sont aussi vérifiés à l'écran : remplacement et approbation refusés après une modification
+  concurrente et une relecture de la liste, puis acceptés une fois la grille rouverte.
+- Critère complet sur base neuve : 86 campagnes enchaînées, 3844 contrôles réussis, aucun échec ;
+  contrat : 405 routes servies, 405 documentées.
+
 ## [0.15.89] — 2026-11-05 — Indicateurs ODD et radar de complétude
 
 Le lot décidé le 4 novembre (`docs/specs_metier/DECISIONS_2026-11-04.md`, § 3), avant le codage du jalon G.

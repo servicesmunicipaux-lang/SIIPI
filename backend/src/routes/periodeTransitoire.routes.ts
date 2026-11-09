@@ -24,7 +24,7 @@ import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 import { exportable } from '../services/export.js';
 import { JEU_CONVERSION_INFORMEL } from '../services/jeuxExport.js';
-import { communeDemandee } from '../perimetre.js';
+import { communeDemandee, communeRequise } from '../perimetre.js';
 
 export const periodeTransitoireRouter = Router();
 
@@ -82,15 +82,6 @@ function refus(err: unknown): never {
     throw new ApiError(REFUS[code], texte.charAt(0).toUpperCase() + texte.slice(1));
   }
   throw err;
-}
-
-function communeRequise(req: Parameters<typeof communeDemandee>[0]) {
-  const c = communeDemandee(req);
-  if (!c) throw new ApiError(400, 'Commune requise (paramètre communeId).');
-  // Un caractère de contrôle (l'octet nul) ferait échouer PostgreSQL (500) : un
-  // tel identifiant ne désigne aucune commune.
-  if (/[\u0000-\u001f]/.test(c)) throw new ApiError(404, 'Commune introuvable.');
-  return c;
 }
 
 // La commune doit exister : can_read_commune est vrai pour la FNCT quelle que soit

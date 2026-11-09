@@ -59,27 +59,50 @@ rendre_tables_nationales() {
   for t in $TABLES_NATIONALES; do
     # Le JSON gardé entre dans le corps du bloc entre $json$ : aucune
     # apostrophe ni barre oblique à échapper.
-    $PSQL >/dev/null 2>&1 <<SQL
+    #
+    # Les lignes encore présentes sont rendues par UPDATE, et seulement celles
+    # qui ont changé ; seules les lignes disparues sont réinsérées. Un INSERT …
+    # ON CONFLICT DO UPDATE de toutes les lignes gardées passait chacune par les
+    # déclencheurs d'insertion : une table dont un déclencheur refuse de faire
+    # naître une ligne fermée, retirée ou datée après coup (les listes nationales,
+    # 091 et 098) faisait échouer le rendu entier, en silence. Le refus s'affiche
+    # désormais : le contrôle « tables rendues » échouerait de toute façon, mais
+    # sans dire pourquoi.
+    if ! $PSQL -v ON_ERROR_STOP=1 >/dev/null <<SQL
 DO \$rendre\$
 DECLARE
   gardees json := \$json\$$(cat "$TABLES_NATIONALES_DIR/$t.json")\$json\$;
-  cles text; colonnes text; mises_a_jour text;
+  cles text; cles_t text; cles_s text; colonnes text; colonnes_s text;
 BEGIN
-  SELECT string_agg(quote_ident(a.attname), ',' ORDER BY a.attnum) INTO cles
+  SELECT string_agg(quote_ident(a.attname), ',' ORDER BY a.attnum),
+         string_agg('t.' || quote_ident(a.attname), ',' ORDER BY a.attnum),
+         string_agg('s.' || quote_ident(a.attname), ',' ORDER BY a.attnum)
+    INTO cles, cles_t, cles_s
     FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY (i.indkey)
    WHERE i.indrelid = '$t'::regclass AND i.indisprimary;
   SELECT string_agg(quote_ident(attname), ',' ORDER BY attnum),
-         string_agg(format('%1\$I = EXCLUDED.%1\$I', attname), ',' ORDER BY attnum)
-    INTO colonnes, mises_a_jour
+         string_agg('s.' || quote_ident(attname), ',' ORDER BY attnum)
+    INTO colonnes, colonnes_s
     FROM pg_attribute
    WHERE attrelid = '$t'::regclass AND attnum > 0 AND NOT attisdropped AND attgenerated = '';
+  -- Les lignes que la campagne a ajoutées.
   EXECUTE format('DELETE FROM %s WHERE (%s) NOT IN (SELECT %s FROM json_populate_recordset(NULL::%s, \$1))',
                  '$t', cles, cles, '$t') USING gardees;
-  EXECUTE format('INSERT INTO %s (%s) SELECT %s FROM json_populate_recordset(NULL::%s, \$1) ON CONFLICT (%s) DO UPDATE SET %s',
-                 '$t', colonnes, colonnes, '$t', cles, mises_a_jour) USING gardees;
+  -- Les lignes gardées encore là, qui ont changé (comparées en jsonb : un type
+  -- sans égalité, comme json, ferait échouer une comparaison de lignes).
+  EXECUTE format('UPDATE %1\$s t SET (%2\$s) = ROW(%3\$s) FROM json_populate_recordset(NULL::%1\$s, \$1) s '
+                 'WHERE (%4\$s) = (%5\$s) AND to_jsonb(t) IS DISTINCT FROM to_jsonb(s)',
+                 '$t', colonnes, colonnes_s, cles_t, cles_s) USING gardees;
+  -- Les lignes gardées qui ont disparu.
+  EXECUTE format('INSERT INTO %1\$s (%2\$s) SELECT %3\$s FROM json_populate_recordset(NULL::%1\$s, \$1) s '
+                 'WHERE NOT EXISTS (SELECT 1 FROM %1\$s t WHERE (%4\$s) = (%5\$s))',
+                 '$t', colonnes, colonnes_s, cles_t, cles_s) USING gardees;
 END
 \$rendre\$;
 SQL
+    then
+      echo "La table nationale $t n'a pas pu être rendue : voir le refus ci-dessus." >&2
+    fi
   done
   return 0
 }
