@@ -22,6 +22,7 @@ import type { IndicateurCatalogue, ResultatIndicateur } from '../../lib/api';
 import { formaterNombre } from '../../i18n';
 import { ChiffreCle } from '../ui/ChiffreCle';
 import { Pastille } from '../ui/Pastille';
+import { DetailConventions } from './DetailConventions';
 import { libelleMois } from './temps';
 
 /** La valeur mise en forme — sans l'unité, qui se pose à côté en petit. */
@@ -168,6 +169,7 @@ export function CarteIndicateur({
       )}
 
       <AtteinteObjectif r={r} />
+      <DetailConventions r={r} compact />
 
       {renseigne &&
         (courbe && renseignes > 0 ? (
