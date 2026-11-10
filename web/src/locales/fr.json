@@ -4111,6 +4111,14 @@
       "formule": "Formule",
       "sources": "Sources"
     },
+    "conventions": {
+      "titre": "Établissements sous convention",
+      "sousConvention": "{{n}} établissements sous convention, sur {{cible}} visés",
+      "dontAVerifier": ", dont {{m}} à vérifier.",
+      "fin": ".",
+      "dontAVerifierCourt": "dont {{m}} à vérifier",
+      "aide": "« À vérifier » porte sur l’identité de l’établissement (un doublon probable, une adresse à confirmer), pas sur sa convention : il reste compté. La commune le confirme ou le ferme dans l’écran Établissements."
+    },
     "odd": {
       "titre": "Indicateurs ODD",
       "aide": "Les indicateurs des objectifs de développement durable 11 et 12. Deux se calculent à partir des registres de la commune ; les autres se déclarent d'après une étude, avec sa source et sa date.",

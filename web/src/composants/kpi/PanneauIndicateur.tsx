@@ -37,6 +37,7 @@ import { useFormats } from '../../lib/formats';
 import { Chargement } from '../Elements';
 import { ChiffreCle } from '../ui/ChiffreCle';
 import { AtteinteObjectif, borneHaute, natureDuDetail, PastilleNature, PastilleSource, texteValeur } from './CarteIndicateur';
+import { DetailConventions } from './DetailConventions';
 import { ProvenanceOdd } from './ProvenanceOdd';
 import { boutonCompleter as bouton, LigneACompleter } from './LigneACompleter';
 import { bornesFenetre, decalerMois, finDeMois, libelleMois, type Fenetre } from './temps';
@@ -362,6 +363,7 @@ export function PanneauIndicateur({
       )}
 
       <ProvenanceOdd r={r} />
+      <DetailConventions r={r} />
 
       {/* --- La formule et les sources ------------------------------------------- */}
       <section className="space-y-3 rounded-xl border border-ardoise-200 bg-white p-4" aria-labelledby={`formule-${r.code}`}>

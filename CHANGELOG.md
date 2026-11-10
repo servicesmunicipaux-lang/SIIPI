@@ -5,6 +5,35 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.92] — 2026-11-10 — M2-2 : un établissement « à vérifier » sous convention reste compté
+
+Décision de la FNCT du 10 novembre 2026, sur la PR du lot G2a (option B). « À vérifier » porte sur l'**identité**
+d'un établissement (un doublon probable, une adresse à confirmer), pas sur la validité de sa **convention** : un
+établissement qui a une convention signée est réel. Le sortir du calcul ferait perdre la trace d'un contrat, et
+réconcilierait un écart en silence (règle 1.5) ; l'indicateur le montre au contraire.
+
+### Modifié
+- **M2-2** (migration 100, sans aucune donnée changée) compte les établissements sous convention dans la période,
+  **actifs ou à vérifier** ; un fermé, jamais. La cible : les établissements actifs, plus les « à vérifier » sous
+  convention. Un « à vérifier » **sans** convention reste hors de la cible : un doublon probable de l'import ne la
+  gonfle pas. Le détail de l'indicateur porte `sous_convention` et `dont_a_verifier`, à côté de `cible`.
+- Le registre des établissements est **tenu** dès qu'il porte un établissement que M2-2 compte (un « à vérifier »
+  sous convention suffit) ; « Ma commune dans SIIPI » compte les établissements non fermés.
+- Les trois fonctions sont réécrites telles qu'elles sont en base après 099, sur les seuls passages qui lisaient
+  `commerces.actif` : `app._mesures_kpi_auto_periode_base`, `app._source_tenue_base`, `app._element_completude`.
+
+### Ajouté
+- Le panneau de M2-2 dit « N établissements sous convention, sur C visés, dont M à vérifier », et pourquoi ils
+  restent comptés ; sa carte porte une pastille « dont M à vérifier » quand il y en a. En français et en arabe.
+
+### Vérifié
+- `kpi-sources` mesure la valeur, la cible et le détail de M2-2 dans chaque cas : un conventionné passé « à
+  vérifier » (compté, dont 1), un « à vérifier » sans convention (hors de la cible), un registre qui ne porte plus que
+  des « à vérifier » (tenu), la confirmation (retour), un fermé sous convention (jamais compté).
+- Écran vérifié en français et en arabe sur une commune de test (2 sous convention sur 3 visés, dont 1 à vérifier).
+- Critère complet sur base neuve : 87 campagnes enchaînées, 3920 contrôles réussis, aucun échec ; contrat : 411 routes
+  servies, 411 documentées ; migration 100 rejouée deux fois ; aucun contrôle sous condition sauté.
+
 ## [0.15.91] — 2026-11-10 — Jalon G, lot G2a : les établissements
 
 Le deuxième lot du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 0 G-3 et G-4, § 3.1). Le

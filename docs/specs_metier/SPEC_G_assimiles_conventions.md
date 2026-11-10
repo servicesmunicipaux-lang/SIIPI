@@ -139,7 +139,7 @@ La commune **adopte** ou **écarte** (avec motif) ; une proposition écartée re
 
 **`lignes_convention`** : flux (liste nationale des **déchets assimilés** ; un flux dangereux est **refusé**), conteneur affecté, fréquence hebdomadaire, quantité estimée.
 
-La convention garde aussi le lien avec l'indicateur M2-2 existant : une convention active compte pour l'indicateur, une seule fois, sans table parallèle.
+La convention garde aussi le lien avec l'indicateur M2-2 existant : une convention active compte pour l'indicateur, une seule fois, sans table parallèle. **Un établissement « à vérifier » sous convention reste compté** (décision de la FNCT du 10/11/2026 : le statut porte sur l'identité, pas sur la convention), et le détail de l'indicateur dit « N sous convention, dont M à vérifier » (v0.15.92, migration 100).
 
 ### 3.5 Levées et campagne de pesée — deux flux découplés
 
