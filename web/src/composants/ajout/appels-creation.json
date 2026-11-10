@@ -45,7 +45,8 @@
     "creerContact"
   ],
   "commerce": [
-    "ajouterAuRegistre"
+    "creerEtablissement",
+    "modifierEtablissement"
   ],
   "convention": [
     "ajouterAuRegistre"

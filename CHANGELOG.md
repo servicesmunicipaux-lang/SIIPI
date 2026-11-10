@@ -5,6 +5,69 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.91] — 2026-11-10 — Jalon G, lot G2a : les établissements
+
+Le deuxième lot du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 0 G-3 et G-4, § 3.1). Le
+registre des commerces devient celui des **établissements** auxquels s'adresseront les conventions (G4). L'import
+de la liste TCL et des jeux open data vient au lot G2b ; le recensement Kobo, au lot G3.
+
+### Ajouté
+- **Les établissements** (migration 099, sur la table `commerces`, que les conventions de B5.3 désignent déjà) :
+  - une **catégorie d'activité** prise dans la liste nationale du jour (lot G1), et l'**unité d'échelle** que cette
+    catégorie admet, avec sa valeur entière (chambres, chaises, élèves…) ; la base refuse une catégorie inconnue,
+    fermée ou retirée, et une unité que la catégorie n'admet pas ;
+  - le **matricule fiscal** (format de la DGI, ramené en majuscules sans espaces ni barres), **unique dans la
+    commune** ; le secteur de collecte de la commune ; une position relevée avec sa précision, en Tunisie seulement ;
+    la surface ; le marqueur « produit des déchets dangereux » ; la **source** de la fiche (saisie, import TCL, open
+    data, Kobo, antérieure), figée une fois posée.
+  - **Un établissement n'est jamais supprimé** (décision G-4) : il est **actif**, **fermé** avec sa date de
+    fermeture et un motif, ou **à vérifier** avec un motif. Il se rouvre avec un motif ; l'historique des statuts
+    reste au journal d'audit. `app.supprimer` ne le connaît plus, l'application n'a aucun droit `DELETE` sur la
+    table, et la base refuse de poser `deleted_at`.
+  - `actif` devient une **colonne calculée** (statut « actif ») : l'indicateur M2-2 et les conventions de B5.3 ne
+    comptent que les établissements actifs, comme avant. **Un établissement « à vérifier » sort du compte de M2-2**,
+    comme un fermé (un doublon probable ne gonfle pas la cible), et y revient dès qu'il est confirmé actif. Les fiches
+    antérieures gardent une catégorie vide ; celles qui étaient inactives passent « à vérifier », avec un motif qui le
+    dit. « Antérieur » ne qualifie qu'elles : la source n'a plus de valeur par défaut, et la base refuse une
+    inscription nouvelle qui se dirait antérieure (elle serait dispensée de catégorie).
+  - Une catégorie fermée par la FNCT après l'inscription **reste celle de l'établissement** : sa fiche se corrige
+    sans reclassement, son unité se garde ou se retire ; une autre unité ou une autre catégorie se prennent dans la
+    liste du jour.
+  - **Doublons probables** : à l'enregistrement, l'API rend les établissements actifs de la commune qui portent le
+    même nom (sans accents, casse ni ponctuation) ou se trouvent à moins de 5 m. Ils sont **montrés, jamais
+    fusionnés** : la commune décide.
+- **L'identification d'un établissement sans matricule** (décision G-3) : le nom du responsable, son téléphone et
+  l'**empreinte** de son CIN vivent dans une table à part, `identites_commerces`, sur le modèle des pré-collecteurs
+  (lot 16.1) — **le CIN n'est jamais écrit**, seule son empreinte HMAC calculée par l'API. Elle est **fermée** tant
+  que l'hébergement n'est pas accrédité (`hebergement_pii_accredite`) et que la commune n'a pas enregistré son
+  récépissé de l'INPDP ; sa lecture est consignée au journal des accès ; seul le directeur de la commune la lit.
+  La liste ne montre que l'état de l'identification (matricule, CIN, à compléter), calculé, jamais l'identité.
+- Routes `/etablissements` (liste filtrée et exportable en CSV et Excel, fiche, création, modification, statut,
+  identité) : le directeur écrit, la FNCT lit sans geste (403), un prestataire ne voit rien. Un établissement hors
+  périmètre est introuvable (404) ; un matricule déjà inscrit, un statut inchangé ou changé entre-temps reçoivent
+  409. Documentées dans le contrat.
+- L'écran « Établissements » du pôle Pilotage, à côté des grilles tarifaires : filtres, export, gestes de statut,
+  panneau d'identification (lu sur demande seulement) ; son formulaire unique du registre « + Ajouter »
+  (`ajout/FormulaireEtablissement.tsx`) dit la règle d'un matricule ou d'une position avant l'envoi et montre les
+  doublons probables avant de se fermer. En français et en arabe. Une liste nationale illisible (réseau, session)
+  se dit et se réessaie, jamais confondue avec une liste vide ; seule la dernière recherche s'affiche ; le
+  formulaire des conventions ne propose que les établissements actifs, avec leur adresse.
+
+### Modifié
+- `/registres/commerces` ne se lit plus qu'en lecture : la création, la modification et la suppression passent par
+  `/etablissements`. L'écran « Registres » renvoie vers le nouvel écran.
+
+### Vérifié
+- Campagne `etablissements` (69 contrôles), qui commence par ce que la plateforme refuse ; elle travaille dans des
+  communes de test avec des comptes temporaires, rend ligne entière la table nationale des paramètres, retire une
+  catégorie nationale le temps d'une transaction annulée, et prouve que le CIN fictif n'apparaît nulle part : ni
+  en base, ni dans les réponses d'écriture et de lecture de l'identité, ni dans les journaux. `kpi-sources` crée
+  ses établissements par la nouvelle route et vérifie la valeur de M2-2 quand un établissement passe « à vérifier ».
+- Une relecture adversariale indépendante (base, API et campagnes, écran) ; ses constats confirmés ou plausibles
+  sont corrigés avant la livraison.
+- Critère complet sur base neuve : 87 campagnes enchaînées, 3916 contrôles réussis, aucun échec ; contrat :
+  411 routes servies, 411 documentées ; migration 099 rejouée deux fois ; aucun contrôle sous condition sauté.
+
 ## [0.15.90] — 2026-11-09 — Jalon G, lot G1 : les listes nationales des assimilés et les grilles tarifaires
 
 Le premier lot du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 1, § 3.3, § 7 ; décisions du

@@ -49,9 +49,10 @@ import { Catalogue } from '../composants/ajout/Catalogue';
 import { MaCommune } from '../composants/communal/MaCommune';
 import { EcranWapla } from '../composants/wapla/EcranWapla';
 import { GrillesTarifaires } from '../composants/communal/GrillesTarifaires';
+import { Etablissements } from '../composants/communal/Etablissements';
 import type { EcranAjout } from '../composants/ajout/registre';
 
-type Onglet = 'accueil' | 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'coutCollecte' | 'grillesTarifaires' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'gps' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
+type Onglet = 'accueil' | 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'coutCollecte' | 'grillesTarifaires' | 'etablissements' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'gps' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -101,6 +102,8 @@ const ENTREES: EntreeNavigation<Onglet>[] = [
   { cle: 'coutCollecte',  pole: 'pilotage' },
   // Les tarifs des conventions de propreté (jalon G, lot G1), arrêtés par la commune et approuvés par la tutelle.
   { cle: 'grillesTarifaires', pole: 'pilotage' },
+  // Les établissements à conventionner (jalon G, lot G2a), jamais supprimés : fermés.
+  { cle: 'etablissements', pole: 'pilotage' },
   // La couche WaPla : des estimations de planification, à part de SIIPI.
   { cle: 'wapla',         pole: 'pilotage' },
 
@@ -356,6 +359,7 @@ export function EspaceCommunal({
         {onglet === 'coutComplet' && <CoutComplet communeId={communeId} />}
         {onglet === 'coutCollecte' && <CoutCollecte communeId={communeId} />}
         {onglet === 'grillesTarifaires' && <GrillesTarifaires communeId={communeId} />}
+        {onglet === 'etablissements' && <Etablissements communeId={communeId} />}
         {onglet === 'wapla' && <EcranWapla communeId={communeId} fnct={estFnct} />}
         {onglet === 'acteursInformels' && cadreInformelActif && <ActeursInformels communeId={communeId} />}
         {onglet === 'contacts' && <Contacts communeId={communeId} />}

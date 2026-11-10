@@ -1098,7 +1098,8 @@
       "wapla": "Bilan de planification (WaPla)",
       "documents": "Documents",
       "gps": "Intégration GPS",
-      "grillesTarifaires": "Grilles tarifaires"
+      "grillesTarifaires": "Grilles tarifaires",
+      "etablissements": "Établissements"
     },
     "etats": {
       "fait": "Fait",
@@ -3181,6 +3182,88 @@
         "close": "Grille close.",
         "retiree": "Projet de grille retiré."
       }
+    },
+    "etablissements": {
+      "titre": "Établissements",
+      "chapeau": "Les commerces, institutions et services de la commune, tels qu’ils seront conventionnés. Un établissement ne se supprime jamais : il se ferme, avec la date constatée et son motif.",
+      "nouveau": "Nouvel établissement",
+      "lectureSeule": "La commune recense ses établissements ; la FNCT les lit.",
+      "messages": {
+        "inscrit": "Établissement inscrit.",
+        "modifie": "Fiche modifiée.",
+        "ferme": "Établissement fermé : il reste dans la liste, avec sa date de fermeture.",
+        "a_verifier": "Établissement signalé à vérifier.",
+        "actif": "Établissement actif."
+      },
+      "filtres": {
+        "statut": "Statut",
+        "tous": "Tous",
+        "recherche": "Rechercher (nom, matricule, adresse)"
+      },
+      "statuts": {
+        "actif": "Actif",
+        "ferme": "Fermé",
+        "a_verifier": "À vérifier"
+      },
+      "aucun": "Aucun établissement inscrit pour l’instant.",
+      "aucunFiltre": "Aucun établissement ne répond à ces critères.",
+      "dangereux": "Déchets dangereux",
+      "sousConvention": "Sous convention",
+      "categorieNonRenseignee": "Catégorie non renseignée",
+      "identifiants": {
+        "matricule": "Matricule fiscal",
+        "cin": "Identifié par le CIN du responsable",
+        "a_completer": "Identifiant à compléter"
+      },
+      "sources": {
+        "anterieur": "Inscrit avant le jalon G",
+        "saisie": "Saisi au portail",
+        "import_tcl": "Importé de la liste TCL",
+        "open_data": "Importé d’un fichier open data",
+        "kobo": "Recensé par Kobo"
+      },
+      "positionRelevee": "position relevée (± {{precision}} m)",
+      "sansPosition": "position non relevée",
+      "fermeLe": "Fermé le {{date}} — {{motif}}",
+      "aVerifier": "À vérifier : {{motif}}",
+      "gestes": {
+        "modifier": "Modifier",
+        "fermer": "Fermer",
+        "aVerifier": "Signaler à vérifier",
+        "rouvrir": "Rouvrir",
+        "confirmer": "Confirmer actif",
+        "identite": "Identité du responsable"
+      },
+      "aides": {
+        "ferme": "La fermeture se constate : sa date n’est pas dans l’avenir. L’établissement reste dans la liste, fermé.",
+        "a_verifier": "Dites ce qui reste à vérifier (adresse, activité, doublon possible…).",
+        "actif": "Dites pourquoi l’établissement est (de nouveau) actif."
+      },
+      "champs": {
+        "dateFermeture": "Date de fermeture constatée",
+        "motif": "Motif (5 caractères au moins)"
+      },
+      "confirmer": {
+        "ferme": "Confirmer la fermeture",
+        "a_verifier": "Signaler",
+        "actif": "Confirmer"
+      },
+      "identite": {
+        "titre": "Identité du responsable",
+        "aide": "Le nom, le téléphone et le CIN du responsable se tiennent à part de la fiche : lus par le seul directeur, chaque lecture est journalisée ; le CIN n’est jamais gardé, seulement son empreinte.",
+        "gardeHebergement": "L’hébergement des données personnelles n’est pas encore accrédité par la FNCT : aucune identité ne s’enregistre d’ici là. Une identité déjà enregistrée peut toujours être retirée.",
+        "gardeRecepisse": "La commune n’a pas encore enregistré son récépissé de déclaration INPDP (paramètres de la commune) : aucune identité ne s’enregistre d’ici là.",
+        "lire": "Afficher l’identité (lecture journalisée)",
+        "absente": "Aucune identité enregistrée.",
+        "cinEnregistre": "CIN enregistré (empreinte)",
+        "sansCin": "sans CIN",
+        "nom": "Nom du responsable",
+        "telephone": "Téléphone (8 chiffres)",
+        "cin": "CIN (8 chiffres ; jamais gardé en clair)",
+        "enregistrer": "Enregistrer l’identité",
+        "retirer": "Retirer l’identité",
+        "confirmerRetrait": "Retirer l’identité du responsable de cet établissement ?"
+      }
     }
   },
   "ajout": {
@@ -3272,7 +3355,7 @@
       "incident": "Un incident du travail",
       "dotation-epi": "Une dotation EPI",
       "contact": "Un contact",
-      "commerce": "Un commerce",
+      "commerce": "Un établissement",
       "convention": "Une convention de propreté",
       "prestataire": "Un prestataire",
       "import-contacts": "Des contacts (fichier CSV)",
@@ -3466,6 +3549,63 @@
         "majChevauchement": "des tranches qui ne se chevauchent pas pour « {{critere}} » dans le tarif {{n}} ;"
       },
       "conflit": "La grille a été relue : annulez, puis rouvrez « Modifier le projet » pour repartir de la version à jour (la saisie en cours ne sera pas gardée)."
+    },
+    "etablissement": {
+      "titre": "Inscrire un établissement",
+      "titreModification": "Modifier la fiche de l’établissement",
+      "aide": "Un commerce, une institution ou un service à conventionner. La catégorie vient de la liste nationale ; la position, si elle a été relevée sur place, avec sa précision. Un établissement ne se supprime jamais : il se ferme.",
+      "nom": "Raison sociale",
+      "categorie": "Catégorie d’activité",
+      "choisir": "— choisir —",
+      "horsListe": "{{code}} — pas en vigueur aujourd’hui",
+      "categorieGardee": "Catégorie fermée depuis l’inscription : elle reste celle de l’établissement. Son unité se garde ou se retire ; pour en changer, choisissez une catégorie en vigueur.",
+      "listeIndisponible": "La liste nationale des catégories d’activité n’a pas pu être lue. Rien n’est perdu : réessayez.",
+      "nature": "Nature",
+      "natures": {
+        "commerce": "Commerce ou service",
+        "institution": "Institution publique"
+      },
+      "activite": "Activité déclarée",
+      "matricule": "Matricule fiscal",
+      "matriculeNormalise": "Sera gardé sous la forme {{matricule}}",
+      "matriculeFormat": "Sept chiffres et la lettre clé (1234567A), puis, s’ils sont connus, le code TVA, le code catégorie et le numéro d’établissement (1234567A/A/M/000).",
+      "adresse": "Adresse",
+      "secteur": "Secteur",
+      "aucunSecteur": "— aucun —",
+      "surface": "Surface (m²)",
+      "unite": "Unité d’échelle",
+      "aucuneUnite": "— aucune —",
+      "valeur": "Nombre d’unités",
+      "position": "Position relevée sur place",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "precision": "Précision (m)",
+      "positionAide": "Seulement si elle a été relevée (téléphone, GPS) : jamais déduite de l’adresse. Les trois cases ensemble, ou aucune.",
+      "dangereux": "Produit des déchets dangereux (à orienter vers leur filière ; jamais couverts par une convention)",
+      "pourEnregistrer": "Pour enregistrer :",
+      "problemes": {
+        "nom": "la raison sociale ;",
+        "categorie": "une catégorie d’activité en vigueur aujourd’hui ;",
+        "matricule": "un matricule fiscal au bon format (ou aucun) ;",
+        "echelle": "une unité d’échelle avec son nombre, positif (ou aucune des deux) ;",
+        "unite": "une unité que la catégorie admet ;",
+        "surface": "une surface positive (ou aucune) ;",
+        "positionEntiere": "la position entière : latitude, longitude et précision (ou aucune) ;",
+        "positionTunisie": "une position en Tunisie (vérifiez l’ordre latitude, longitude) ;",
+        "precision": "une précision positive, de 1 000 m au plus ;"
+      },
+      "doublons": {
+        "titre": "« {{nom}} » est enregistré. Ces établissements lui ressemblent :",
+        "aide": "SIIPI ne fusionne rien. Si c’est le même établissement, fermez l’une des deux fiches avec le motif « doublon » ; sinon, gardez les deux.",
+        "memeNom": "même raison sociale",
+        "proche": "à {{distance}} m",
+        "compris": "J’ai vu, fermer"
+      },
+      "statuts": {
+        "actif": "actif",
+        "ferme": "fermé",
+        "a_verifier": "à vérifier"
+      }
     }
   },
   "prestataire": {
@@ -4224,7 +4364,8 @@
       "mlRealises": "Mètres linéaires réalisés",
       "terminer": "Terminer",
       "termine": "Nettoyage terminé."
-    }
+    },
+    "etablissementsAilleurs": "Les établissements s’inscrivent, se modifient et se ferment dans l’écran « Établissements » (pôle Pilotage). Les conventions ci-dessous les choisissent dans cette liste."
   },
   "gouvernorats": {
     "Tunis": "Tunis",

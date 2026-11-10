@@ -13,7 +13,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type NomRegistre } from '../../lib/api';
+import { api, ErreurApi, type NomRegistreSaisi } from '../../lib/api';
 
 export type TypeChamp = 'texte' | 'nombre' | 'date' | 'choix' | 'ouiNon' | 'engin' | 'agent' | 'commerce';
 
@@ -25,7 +25,7 @@ export interface ChampRegistre {
 }
 
 /** Les champs de chaque registre : les clés sont celles de l'API (sourcesKpi.routes.ts). */
-export const CHAMPS_REGISTRES: Record<NomRegistre, ChampRegistre[]> = {
+export const CHAMPS_REGISTRES: Record<NomRegistreSaisi, ChampRegistre[]> = {
   'fins-de-poste': [
     { cle: 'vehiculeId', type: 'engin', requis: true },
     { cle: 'jour', type: 'date', requis: true },
@@ -54,12 +54,6 @@ export const CHAMPS_REGISTRES: Record<NomRegistre, ChampRegistre[]> = {
     { cle: 'joursArret', type: 'nombre' },
     { cle: 'description', type: 'texte' },
   ],
-  commerces: [
-    { cle: 'nom', type: 'texte', requis: true },
-    { cle: 'categorie', type: 'choix', options: ['commerce', 'institution'] },
-    { cle: 'activite', type: 'texte' },
-    { cle: 'adresse', type: 'texte' },
-  ],
   conventions: [
     { cle: 'commerceId', type: 'commerce', requis: true },
     { cle: 'type', type: 'choix', requis: true, options: ['collecte', 'nettoyage', 'tri', 'autre'] },
@@ -83,7 +77,7 @@ export function FormulaireRegistre({
   onAnnuler,
 }: {
   communeId: string;
-  nom: NomRegistre;
+  nom: NomRegistreSaisi;
   onFait: () => void | Promise<void>;
   /** Absent dans l'écran du registre, où le formulaire reste ouvert au-dessus de la liste. */
   onAnnuler?: () => void;
@@ -109,7 +103,12 @@ export function FormulaireRegistre({
       setOptions({
         engin: (e as { id: string; registration: string }[]).map((x) => [x.id, x.registration]),
         agent: (a as { id: string; nom_complet: string }[]).map((x) => [x.id, x.nom_complet]),
-        commerce: (c as { id: string; nom: string }[]).map((x) => [x.id, x.nom]),
+        // Une convention s'adresse à un établissement actif. Un fermé (un doublon
+        // fermé, par exemple) ne s'offre pas : il porterait une convention que M2-2
+        // ne compte pas. L'adresse départage deux raisons sociales identiques.
+        commerce: (c as { id: string; nom: string; adresse: string | null; statut: string }[])
+          .filter((x) => x.statut === 'actif')
+          .map((x) => [x.id, x.adresse ? `${x.nom} — ${x.adresse}` : x.nom]),
       })
     );
   }, [communeId, champs]);

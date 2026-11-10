@@ -572,3 +572,51 @@ export const JEU_CONVERSION_INFORMEL: JeuExport = {
     { cle: 'masque', fr: 'Masqué (moins de 5 acteurs)', ar: 'محجوب (أقل من 5 فاعلين)', type: 'booleen' },
   ],
 };
+
+const STATUTS_ETABLISSEMENT = {
+  actif: { fr: 'Actif', ar: 'ناشط' },
+  ferme: { fr: 'Fermé', ar: 'مغلق' },
+  a_verifier: { fr: 'À vérifier', ar: 'للتثبت' },
+};
+const SOURCES_ETABLISSEMENT = {
+  anterieur: { fr: 'Antérieur au jalon G', ar: 'سابق للمرحلة ز' },
+  saisie: { fr: 'Saisie', ar: 'إدخال يدوي' },
+  import_tcl: { fr: 'Import TCL', ar: 'توريد قائمة المعلوم على المؤسسات' },
+  open_data: { fr: 'Open data', ar: 'بيانات مفتوحة' },
+  kobo: { fr: 'Recensement Kobo', ar: 'تعداد كوبو' },
+};
+const IDENTIFIANTS_ETABLISSEMENT = {
+  matricule: { fr: 'Matricule fiscal', ar: 'المعرف الجبائي' },
+  cin: { fr: 'CIN (empreinte)', ar: 'بطاقة التعريف (بصمة)' },
+  a_completer: { fr: 'À compléter', ar: 'للاستكمال' },
+};
+
+/**
+ * Jalon G, lot G2a — les établissements de la commune. L'identité du
+ * responsable n'y figure jamais : elle vit à part, lue par le seul directeur.
+ */
+export const JEU_ETABLISSEMENTS: JeuExport = {
+  nom: 'etablissements',
+  titre: { fr: 'Établissements', ar: 'المؤسسات' },
+  colonnes: [
+    { cle: 'nom', fr: 'Raison sociale', ar: 'الاسم التجاري' },
+    { cle: 'matricule_fiscal', fr: 'Matricule fiscal', ar: 'المعرف الجبائي' },
+    { cle: 'statut_identifiant', fr: 'Identifiant', ar: 'المعرف', libelles: IDENTIFIANTS_ETABLISSEMENT },
+    { cle: 'categorie_activite_fr', fr: 'Catégorie d’activité', ar: 'صنف النشاط' },
+    { cle: 'activite', fr: 'Activité déclarée', ar: 'النشاط المصرح به' },
+    { cle: 'adresse', fr: 'Adresse', ar: 'العنوان' },
+    { cle: 'secteur', fr: 'Secteur', ar: 'القطاع' },
+    { cle: 'latitude', fr: 'Latitude', ar: 'خط العرض', type: 'nombre' },
+    { cle: 'longitude', fr: 'Longitude', ar: 'خط الطول', type: 'nombre' },
+    { cle: 'precision_m', fr: 'Précision (m)', ar: 'الدقة (م)', type: 'nombre' },
+    { cle: 'unite_echelle', fr: 'Unité d’échelle', ar: 'وحدة القياس' },
+    { cle: 'valeur_echelle', fr: 'Nombre d’unités', ar: 'عدد الوحدات', type: 'nombre' },
+    { cle: 'surface_m2', fr: 'Surface (m²)', ar: 'المساحة (م²)', type: 'nombre' },
+    { cle: 'produit_dangereux', fr: 'Produit dangereux', ar: 'منتوج خطر', type: 'booleen' },
+    { cle: 'statut', fr: 'Statut', ar: 'الحالة', libelles: STATUTS_ETABLISSEMENT },
+    { cle: 'ferme_le', fr: 'Fermé le', ar: 'تاريخ الغلق', type: 'date' },
+    { cle: 'motif_statut', fr: 'Motif du statut', ar: 'سبب الحالة' },
+    { cle: 'source_creation', fr: 'Source', ar: 'المصدر', libelles: SOURCES_ETABLISSEMENT },
+    { cle: 'sous_convention', fr: 'Sous convention aujourd’hui', ar: 'مشمول باتفاقية اليوم', type: 'booleen' },
+  ],
+};

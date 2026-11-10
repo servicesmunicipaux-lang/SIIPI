@@ -18,7 +18,7 @@
 // semblant de le remplacer.
 
 import type { ComponentType } from 'react';
-import type { NomRegistre } from '../../lib/api';
+import type { NomRegistreSaisi } from '../../lib/api';
 import appels from './appels-creation.json';
 import { FormulaireAgent } from './FormulaireAgent';
 import { FormulaireBoitierGps } from './FormulaireBoitierGps';
@@ -27,6 +27,7 @@ import { FormulaireCircuit } from './FormulaireCircuit';
 import { FormulaireContact } from './FormulaireContact';
 import { FormulaireDocument, type TypeDocumentEmis } from './FormulaireDocument';
 import { FormulaireEngin } from './FormulaireEngin';
+import { FormulaireEtablissement } from './FormulaireEtablissement';
 import { FormulaireGrilleTarifaire } from './FormulaireGrilleTarifaire';
 import { FormulaireLieu } from './FormulaireLieu';
 import { FormulairePcgd } from './FormulairePcgd';
@@ -70,7 +71,7 @@ const COMMUNE_ET_FNCT = ['admin_commune', 'super_admin_fnct'] as const;
 // La commune tient son PCGD et ses études ; la FNCT les lit (la base le tient).
 const COMMUNE = ['admin_commune'] as const;
 
-const registre = (nom: NomRegistre) => {
+const registre = (nom: NomRegistreSaisi) => {
   const Formulaire = (p: PropsFormulaireAjout) => <FormulaireRegistre nom={nom} {...p} />;
   Formulaire.displayName = `FormulaireRegistre(${nom})`;
   return Formulaire;
@@ -102,7 +103,8 @@ const FORMULAIRES: Record<TypeFormulaire, Omit<EntreeFormulaire, 'type'>> = {
   incident: { rubrique: 'registres', roles: COMMUNE_ET_FNCT, Formulaire: registre('incidents') },
   'dotation-epi': { rubrique: 'registres', roles: COMMUNE_ET_FNCT, Formulaire: registre('epi') },
   contact: { rubrique: 'partenaires', roles: COMMUNE_ET_FNCT, Formulaire: FormulaireContact },
-  commerce: { rubrique: 'partenaires', roles: COMMUNE_ET_FNCT, Formulaire: registre('commerces') },
+  // Un établissement (jalon G, lot G2a) : la commune l'inscrit, la FNCT le lit.
+  commerce: { rubrique: 'partenaires', roles: COMMUNE, Formulaire: FormulaireEtablissement },
   convention: { rubrique: 'partenaires', roles: COMMUNE_ET_FNCT, Formulaire: registre('conventions') },
   'import-contacts': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportContacts },
   'import-parc': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportParc },

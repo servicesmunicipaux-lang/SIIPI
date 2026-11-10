@@ -170,6 +170,8 @@ export type Lieu = Reponse<'/poi', 'get'>[number];
 export type SaisieLieu = Corps<'/poi', 'post'>;
 export type LieuPublic = Reponse<'/citoyen/lieux', 'get'>[number];
 export type NomRegistre = 'carburant' | 'fins-de-poste' | 'epi' | 'incidents' | 'commerces' | 'conventions';
+/** Les registres qui se saisissent ici : les établissements ont leurs routes (/etablissements, jalon G). */
+export type NomRegistreSaisi = Exclude<NomRegistre, 'commerces'>;
 export type LigneGouvernorat = Reponse<'/observatoire/gouvernorats', 'get'>[number];
 // Refonte, lot 4 : le déploiement mois par mois, la répartition d'un indicateur, la carte.
 export type LigneActivite = Reponse<'/observatoire/activite', 'get'>[number];
@@ -276,6 +278,14 @@ export type ElementListeAssimiles = ListesAssimiles['listes'][number]['elements'
 export type GrilleTarifaire = Reponse<'/grilles-tarifaires/{id}', 'get'>;
 export type SaisieGrilleTarifaire = Corps<'/grilles-tarifaires', 'post'>;
 export type ModificationGrilleTarifaire = Corps<'/grilles-tarifaires/{id}', 'put'>;
+export type Etablissement = Reponse<'/etablissements/{id}', 'get'>;
+export type EtablissementEnregistre = Etablissement & {
+  doublons_probables: { id: string; nom: string; statut: Etablissement['statut']; distance_m: number | null; meme_nom: boolean }[];
+};
+export type SaisieEtablissement = Corps<'/etablissements', 'post'>;
+export type StatutEtablissement = Etablissement['statut'];
+export type IdentiteEtablissement = Reponse<'/etablissements/{id}/identite', 'get'>;
+export type SaisieIdentiteEtablissement = Corps<'/etablissements/{id}/identite', 'put'>;
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
 export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
@@ -1385,6 +1395,30 @@ export const api = {
     requete<GrilleTarifaire>(`/grilles-tarifaires/${id}/approbation`, { method: 'POST', body: JSON.stringify(saisie) }),
   cloreGrilleTarifaire: (id: string, saisie: Corps<'/grilles-tarifaires/{id}/cloture', 'post'>) =>
     requete<GrilleTarifaire>(`/grilles-tarifaires/${id}/cloture`, { method: 'POST', body: JSON.stringify(saisie) }),
+  // --- Jalon G, lot G2a : les établissements (écriture : le directeur) ----------
+  etablissements: (communeId: string, filtres: { statut?: StatutEtablissement; categorieActivite?: string; q?: string } = {}) => {
+    const p = new URLSearchParams({ communeId });
+    for (const [k, v] of Object.entries(filtres)) if (v) p.set(k, v);
+    return requete<Etablissement[]>(`/etablissements?${p.toString()}`);
+  },
+  etablissement: (id: string) => requete<Etablissement>(`/etablissements/${id}`),
+  creerEtablissement: (communeId: string, saisie: SaisieEtablissement) =>
+    requete<EtablissementEnregistre>(`/etablissements?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  modifierEtablissement: (id: string, saisie: SaisieEtablissement) =>
+    requete<EtablissementEnregistre>(`/etablissements/${id}`, { method: 'PUT', body: JSON.stringify(saisie) }),
+  changerStatutEtablissement: (id: string, saisie: Corps<'/etablissements/{id}/statut', 'post'>) =>
+    requete<Etablissement>(`/etablissements/${id}/statut`, { method: 'POST', body: JSON.stringify(saisie) }),
+  gardeIdentiteEtablissements: (communeId: string) =>
+    requete<{ communeId: string; accredite: boolean; recepisse: boolean }>(
+      `/etablissements/garde-identite?communeId=${encodeURIComponent(communeId)}`
+    ),
+  identiteEtablissement: (id: string) => requete<IdentiteEtablissement>(`/etablissements/${id}/identite`),
+  enregistrerIdentiteEtablissement: (id: string, saisie: SaisieIdentiteEtablissement) =>
+    requete<IdentiteEtablissement>(`/etablissements/${id}/identite`, { method: 'PUT', body: JSON.stringify(saisie) }),
+  retirerIdentiteEtablissement: (id: string) => requete<void>(`/etablissements/${id}/identite`, { method: 'DELETE' }),
   retirerGrilleTarifaire: (id: string, version: string) =>
     requete<void>(`/grilles-tarifaires/${id}?version=${encodeURIComponent(version)}`, { method: 'DELETE' }),
   // --- Lot 17.2 : la matrice des densités, le tonnage estimé -------------------
@@ -1543,12 +1577,12 @@ export const api = {
     requete<ActionPlanifiee[]>(`/points/actions?communeId=${encodeURIComponent(communeId)}&poiId=${encodeURIComponent(poiId)}`),
   registre: (nom: NomRegistre, communeId: string) =>
     requete<Record<string, any>[]>(`/registres/${nom}?communeId=${encodeURIComponent(communeId)}`),
-  ajouterAuRegistre: (nom: NomRegistre, communeId: string, saisie: Record<string, unknown>) =>
+  ajouterAuRegistre: (nom: NomRegistreSaisi, communeId: string, saisie: Record<string, unknown>) =>
     requete<Record<string, any>>(`/registres/${nom}?communeId=${encodeURIComponent(communeId)}`, {
       method: 'POST',
       body: JSON.stringify(saisie),
     }),
-  retirerDuRegistre: (nom: NomRegistre, id: string) =>
+  retirerDuRegistre: (nom: NomRegistreSaisi, id: string) =>
     requete<void>(`/registres/${nom}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   enregistrerFrontiere: (communeId: string, geometry: unknown) =>

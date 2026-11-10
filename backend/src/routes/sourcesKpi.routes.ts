@@ -408,14 +408,10 @@ registresRouter.delete(
 // 5. Les commerces et leurs conventions de propreté
 // ===========================================================================
 
-export const commerceSchema = z.object({
-  nom: z.string().trim().min(1).max(160),
-  categorie: z.enum(['commerce', 'institution']).optional(),
-  activite: z.string().trim().max(160).nullable().optional(),
-  adresse: z.string().trim().max(300).nullable().optional(),
-  actif: z.boolean().optional(),
-});
-
+// En lecture seule depuis le jalon G (lot G2a, migration 099) : un établissement
+// s'inscrit, se modifie et se ferme par /etablissements, et ne se supprime
+// jamais. Cette liste reste celle où le formulaire des conventions choisit un
+// établissement, jusqu'au lot G4.
 registresRouter.get(
   '/commerces',
   requireAuth,
@@ -424,7 +420,8 @@ registresRouter.get(
     const communeId = communeRequise(req);
     res.json(
       await query(
-        `SELECT c.*, EXISTS (
+        `SELECT c.id, c.commune_id, c.nom, c.categorie, c.activite, c.categorie_activite, c.adresse, c.statut, c.actif,
+                c.created_at, c.updated_at, EXISTS (
                   SELECT 1 FROM conventions_commerciales cv
                    WHERE cv.commerce_id = c.id AND cv.deleted_at IS NULL
                      AND cv.date_debut <= (now() AT TIME ZONE 'Africa/Tunis')::date
@@ -433,53 +430,6 @@ registresRouter.get(
         [communeId]
       )
     );
-  })
-);
-
-registresRouter.post(
-  '/commerces',
-  requireAuth,
-  requireRole(...ROLES),
-  asyncHandler(async (req, res) => {
-    const communeId = communeRequise(req);
-    const d = commerceSchema.parse(req.body);
-    res.status(201).json(
-      await queryOne(
-        `INSERT INTO commerces (commune_id, nom, categorie, activite, adresse, actif)
-         VALUES ($1, $2, COALESCE($3, 'commerce'), $4, $5, COALESCE($6, true)) RETURNING *`,
-        [communeId, d.nom, d.categorie ?? null, d.activite || null, d.adresse || null, d.actif ?? null]
-      )
-    );
-  })
-);
-
-registresRouter.patch(
-  '/commerces/:id',
-  requireAuth,
-  requireRole(...ROLES),
-  asyncHandler(async (req, res) => {
-    const d = commerceSchema.partial().parse(req.body);
-    const modifie = await queryOne(
-      `UPDATE commerces SET nom = COALESCE($2, nom), categorie = COALESCE($3, categorie),
-              activite = CASE WHEN $4::boolean THEN $5 ELSE activite END,
-              adresse = CASE WHEN $6::boolean THEN $7 ELSE adresse END,
-              actif = COALESCE($8, actif), updated_at = now()
-        WHERE id = $1 AND deleted_at IS NULL RETURNING *`,
-      [req.params.id, d.nom ?? null, d.categorie ?? null, d.activite !== undefined, d.activite || null,
-       d.adresse !== undefined, d.adresse || null, d.actif ?? null]
-    );
-    if (!modifie) throw new ApiError(404, 'Commerce introuvable.');
-    res.json(modifie);
-  })
-);
-
-registresRouter.delete(
-  '/commerces/:id',
-  requireAuth,
-  requireRole(...ROLES),
-  asyncHandler(async (req, res) => {
-    await retirer('commerces', req.params.id, 'Commerce');
-    res.status(204).end();
   })
 );
 
