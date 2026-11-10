@@ -66,6 +66,13 @@ BEGIN
 END
 $$;
 
+-- « Antérieur » ne qualifie que les lignes d'avant ce lot, posées ci-dessus par le
+-- défaut. Laissé en place, il dispenserait de catégorie toute inscription qui
+-- omettrait sa source (un import, un écrivain futur) et la daterait à tort d'avant
+-- le jalon G. Une inscription nouvelle dit donc sa source, et le déclencheur refuse
+-- « antérieur ».
+ALTER TABLE commerces ALTER COLUMN source_creation DROP DEFAULT;
+
 -- ---------------------------------------------------------------------------
 -- 2. Les règles qui tiennent en une ligne
 -- ---------------------------------------------------------------------------
@@ -128,12 +135,20 @@ BEGIN
     RAISE EXCEPTION 'ETABLISSEMENT_JAMAIS_SUPPRIME: un établissement recensé ne se supprime pas ; il se ferme, avec sa date et son motif.'
       USING ERRCODE = 'check_violation';
   END IF;
+  IF TG_OP = 'INSERT' AND NEW.source_creation = 'anterieur' THEN
+    RAISE EXCEPTION 'SOURCE_ANTERIEURE: une inscription nouvelle dit sa source (saisie, import TCL, open data, Kobo) ; « antérieur » ne qualifie que les fiches d''avant le jalon G.'
+      USING ERRCODE = 'check_violation';
+  END IF;
   -- La catégorie et son unité : vérifiées contre la liste nationale du jour, à
-  -- l'inscription et à chaque changement — jamais réécrites quand la liste change
-  -- ensuite (une catégorie fermée plus tard reste celle que l'établissement avait).
-  IF NEW.categorie_activite IS NOT NULL
-     AND (TG_OP = 'INSERT' OR NEW.categorie_activite IS DISTINCT FROM OLD.categorie_activite
-          OR NEW.unite_echelle IS DISTINCT FROM OLD.unite_echelle) THEN
+  -- l'inscription et quand elles changent — jamais réécrites quand la liste change
+  -- ensuite. Une catégorie fermée plus tard reste celle que l'établissement avait :
+  -- on corrige son adresse ou on retire son unité sans le reclasser. Seule une
+  -- unité nouvelle se lit dans la liste du jour, qui ne la connaît plus.
+  IF NEW.categorie_activite IS NULL THEN
+    IF NEW.unite_echelle IS NOT NULL THEN
+      RAISE EXCEPTION 'UNITE_ECHELLE: une unité d''échelle suppose une catégorie d''activité.' USING ERRCODE = 'check_violation';
+    END IF;
+  ELSIF TG_OP = 'INSERT' OR NEW.categorie_activite IS DISTINCT FROM OLD.categorie_activite THEN
     SELECT e.unites_echelle INTO v_unites
       FROM app.liste_nationale('categories_activite_assimiles', app.jour_tunis()) e
      WHERE e.code = NEW.categorie_activite;
@@ -145,8 +160,18 @@ BEGIN
       RAISE EXCEPTION 'UNITE_ECHELLE: l''unité « % » n''est pas une unité d''échelle de la catégorie « % ».', NEW.unite_echelle, NEW.categorie_activite
         USING ERRCODE = 'check_violation';
     END IF;
-  ELSIF NEW.categorie_activite IS NULL AND NEW.unite_echelle IS NOT NULL THEN
-    RAISE EXCEPTION 'UNITE_ECHELLE: une unité d''échelle suppose une catégorie d''activité.' USING ERRCODE = 'check_violation';
+  ELSIF NEW.unite_echelle IS NOT NULL AND NEW.unite_echelle IS DISTINCT FROM OLD.unite_echelle THEN
+    SELECT e.unites_echelle INTO v_unites
+      FROM app.liste_nationale('categories_activite_assimiles', app.jour_tunis()) e
+     WHERE e.code = NEW.categorie_activite;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'UNITE_ECHELLE: la catégorie « % » n''est plus en vigueur : son unité d''échelle se garde ou se retire, elle ne se change pas.', NEW.categorie_activite
+        USING ERRCODE = 'check_violation';
+    END IF;
+    IF NOT (NEW.unite_echelle = ANY (COALESCE(v_unites, ARRAY[]::text[]))) THEN
+      RAISE EXCEPTION 'UNITE_ECHELLE: l''unité « % » n''est pas une unité d''échelle de la catégorie « % ».', NEW.unite_echelle, NEW.categorie_activite
+        USING ERRCODE = 'check_violation';
+    END IF;
   END IF;
   IF NEW.zone_id IS NOT NULL AND (TG_OP = 'INSERT' OR NEW.zone_id IS DISTINCT FROM OLD.zone_id)
      AND NOT EXISTS (SELECT 1 FROM zones_collecte z WHERE z.id = NEW.zone_id AND z.commune_id = NEW.commune_id AND z.deleted_at IS NULL) THEN

@@ -103,7 +103,12 @@ export function FormulaireRegistre({
       setOptions({
         engin: (e as { id: string; registration: string }[]).map((x) => [x.id, x.registration]),
         agent: (a as { id: string; nom_complet: string }[]).map((x) => [x.id, x.nom_complet]),
-        commerce: (c as { id: string; nom: string }[]).map((x) => [x.id, x.nom]),
+        // Une convention s'adresse à un établissement actif. Un fermé (un doublon
+        // fermé, par exemple) ne s'offre pas : il porterait une convention que M2-2
+        // ne compte pas. L'adresse départage deux raisons sociales identiques.
+        commerce: (c as { id: string; nom: string; adresse: string | null; statut: string }[])
+          .filter((x) => x.statut === 'actif')
+          .map((x) => [x.id, x.adresse ? `${x.nom} — ${x.adresse}` : x.nom]),
       })
     );
   }, [communeId, champs]);

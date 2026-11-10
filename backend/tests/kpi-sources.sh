@@ -185,6 +185,15 @@ C1=$(cat "$T/c1")
 req POST /registres/conventions "{\"commerceId\":\"$C1\",\"type\":\"collecte\",\"dateDebut\":\"$AN-01-01\",\"dateFin\":\"$AN-12-31\",\"tonnageEstime\":1.5,\"observation\":\"TEST-SRC\"}" >/dev/null
 NCOM=$(sql "SELECT count(*) FROM commerces WHERE commune_id='$COMMUNE' AND deleted_at IS NULL AND actif")
 chk "conventions : 1 commerce conventionné sur $NCOM, mesuré" "renseigne|mesure|1|$(python3 -c "print(round(1/$NCOM,3))")" "$(etat M2-2)"
+# Un établissement « à vérifier » (un doublon probable de l'import, une adresse à
+# confirmer) sort du compte, comme un fermé : il ne gonfle pas la cible de M2-2.
+# Les nombres sont comparés en valeur, quelle que soit leur écriture JSON.
+m22() { axes; val "(lambda i: f\"{i['source']}|{float(i['valeur']):g}|{round(float(i['taux_atteinte']),3):g}\")(next(i for i in d['indicateurs'] if i['code']=='M2-2'))"; }
+C2=$(sql "SELECT id FROM commerces WHERE commune_id='$COMMUNE' AND nom='TEST-SRC Lycée' AND deleted_at IS NULL")
+chk "un établissement « à vérifier » sort de la cible de M2-2 : 1 sur $((NCOM-1))" "200|mesure|1|$(python3 -c "print(f'{round(1/($NCOM-1),3):g}')")" \
+    "$(req POST "/etablissements/$C2/statut" '{"statut":"a_verifier","motif":"TEST-SRC doublon probable"}')|$(m22)"
+chk "… confirmé actif, il y revient : 1 sur $NCOM" "200|mesure|1|$(python3 -c "print(f'{round(1/$NCOM,3):g}')")" \
+    "$(req POST "/etablissements/$C2/statut" '{"statut":"actif","motif":"TEST-SRC vérifié sur place"}')|$(m22)"
 declarer '{"ECO-CARBURANT":{"valeur":99999}}'
 chk "carburant déclaré seul" "renseigne|declare|99999" "$(etat ECO-CARBURANT | cut -d'|' -f1-3)"
 req POST /registres/carburant "{\"vehiculeId\":\"$V\",\"datePlein\":\"$AN-02-01\",\"litres\":100,\"montantTnd\":215.5,\"kilometrage\":120000}" >/dev/null

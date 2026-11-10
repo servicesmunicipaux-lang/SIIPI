@@ -170,6 +170,7 @@ const ACTE_DE_LA_COMMUNE = 'La commune recense ses établissements : son directe
 const REFUS: Record<string, number> = {
   CATEGORIE_INCONNUE: 400,
   UNITE_ECHELLE: 400,
+  SOURCE_ANTERIEURE: 400,
   SECTEUR_AUTRE_COMMUNE: 400,
   FERMETURE_FUTURE: 400,
   ETABLISSEMENT_JAMAIS_SUPPRIME: 409,

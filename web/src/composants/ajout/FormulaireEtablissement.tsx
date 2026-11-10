@@ -23,7 +23,7 @@ import {
   type EtablissementEnregistre,
   type SaisieEtablissement,
 } from '../../lib/api';
-import { Chargement } from '../Elements';
+import { Chargement, Erreur } from '../Elements';
 import { CadreAjout, champAjout } from './CadreAjout';
 
 type Unite = NonNullable<SaisieEtablissement['uniteEchelle']>;
@@ -61,6 +61,8 @@ export function FormulaireEtablissement({
   const arabe = i18n.language.startsWith('ar');
   const e = etablissement;
   const [categories, setCategories] = useState<ElementListeAssimiles[] | null>(null);
+  const [listeIndisponible, setListeIndisponible] = useState(false);
+  const [essai, setEssai] = useState(0);
   const [secteurs, setSecteurs] = useState<{ id: string; name: string }[]>([]);
   const [nom, setNom] = useState(e?.nom ?? '');
   const [nature, setNature] = useState<'commerce' | 'institution'>(e?.categorie ?? 'commerce');
@@ -80,32 +82,43 @@ export function FormulaireEtablissement({
   const [envoi, setEnvoi] = useState(false);
   const [enregistre, setEnregistre] = useState<EtablissementEnregistre | null>(null);
 
+  // Une liste qui n'a pas pu se lire n'est pas une liste vide : la confondre
+  // dirait « pas en vigueur aujourd'hui » d'une catégorie que la FNCT n'a pas
+  // touchée, et bloquerait l'enregistrement sans dire pourquoi.
   useEffect(() => {
+    setListeIndisponible(false);
     api
       .listesAssimiles()
       .then((l) => setCategories(categoriesDuJour(l.listes.find((x) => x.liste === 'categories_activite_assimiles')?.elements ?? [], aujourdhui())))
-      .catch(() => setCategories([]));
+      .catch(() => setListeIndisponible(true));
     api
       .zones(communeId)
       .then((z) => setSecteurs(z.map((x: { id: string; name: string }) => ({ id: x.id, name: x.name }))))
       .catch(() => setSecteurs([]));
-  }, [communeId]);
+  }, [communeId, essai]);
 
   const categorieChoisie = useMemo(() => categories?.find((c) => c.code === categorie) ?? null, [categories, categorie]);
-  const unitesPermises = (categorieChoisie?.unites_echelle ?? []) as Unite[];
-  // Une catégorie d'avant le jalon G, ou fermée depuis, n'est plus dans la liste
-  // du jour : elle se montre telle quelle, et doit être remplacée pour enregistrer.
+  // Une catégorie fermée depuis l'inscription n'est plus dans la liste du jour.
+  // Gardée telle quelle, elle reste celle de l'établissement (la base ne la
+  // relit pas) : on corrige une adresse sans reclasser. Son unité se garde ou se
+  // retire ; une autre unité, ou une autre catégorie, se prend dans la liste du jour.
+  const codeInitial = e?.categorie_activite ?? null;
   const horsListe = categorie !== '' && categories !== null && !categorieChoisie;
+  const categorieGardee = horsListe && categorie === codeInitial;
+  const uniteInitiale = (e?.unite_echelle as Unite | null) ?? null;
+  const unitesPermises = (
+    categorieChoisie?.unites_echelle ?? (categorieGardee && uniteInitiale ? [uniteInitiale] : [])
+  ) as Unite[];
 
   const problemes: string[] = [];
   const cle = (s: string) => `ajout.etablissement.problemes.${s}`;
   if (!nom.trim()) problemes.push(t(cle('nom')));
-  if (!categorie || horsListe) problemes.push(t(cle('categorie')));
+  if (!categorie || (horsListe && !categorieGardee)) problemes.push(t(cle('categorie')));
   if (matricule.trim() && !MATRICULE_VALIDE.test(normaliserMatricule(matricule))) problemes.push(t(cle('matricule')));
   const nValeur = lireNombre(valeur);
   if (Boolean(unite) !== (nValeur !== null)) problemes.push(t(cle('echelle')));
   if (nValeur !== null && !(Number.isFinite(nValeur) && nValeur > 0)) problemes.push(t(cle('echelle')));
-  if (unite && categorieChoisie && !unitesPermises.includes(unite)) problemes.push(t(cle('unite')));
+  if (unite && (categorieChoisie || categorieGardee) && !unitesPermises.includes(unite)) problemes.push(t(cle('unite')));
   const nSurface = lireNombre(surface);
   if (nSurface !== null && !(Number.isFinite(nSurface) && nSurface > 0)) problemes.push(t(cle('surface')));
   const [lat, lng, prec] = [lireNombre(latitude), lireNombre(longitude), lireNombre(precision)];
@@ -171,6 +184,9 @@ export function FormulaireEtablissement({
       </div>
     );
   }
+  if (listeIndisponible) {
+    return <Erreur message={t('ajout.etablissement.listeIndisponible')} onReessayer={() => setEssai((n) => n + 1)} />;
+  }
   if (!categories) return <Chargement />;
 
   const libelle = (c: ElementListeAssimiles) => (arabe ? c.libelle_ar : c.libelle_fr);
@@ -192,13 +208,14 @@ export function FormulaireEtablissement({
         </label>
         <label className="text-sm">
           {t('ajout.etablissement.categorie')}
-          <select value={categorie} onChange={(ev) => { setCategorie(ev.target.value); setUnite(''); }} className={champAjout} aria-invalid={horsListe || undefined}>
+          <select value={categorie} onChange={(ev) => { setCategorie(ev.target.value); setUnite(''); setValeur(''); }} className={champAjout} aria-invalid={horsListe || undefined}>
             <option value="">{t('ajout.etablissement.choisir')}</option>
             {horsListe && <option value={categorie}>{t('ajout.etablissement.horsListe', { code: categorie })}</option>}
             {categories.map((c) => (
               <option key={c.id} value={c.code}>{libelle(c)}</option>
             ))}
           </select>
+          {categorieGardee && <span className="mt-1 block text-xs text-ardoise-600">{t('ajout.etablissement.categorieGardee')}</span>}
         </label>
         <label className="text-sm">
           {t('ajout.etablissement.nature')}
@@ -241,7 +258,7 @@ export function FormulaireEtablissement({
         </label>
         <label className="text-sm">
           {t('ajout.etablissement.unite')}
-          <select value={unite} onChange={(ev) => setUnite(ev.target.value as Unite | '')} disabled={!categorieChoisie} className={`${champAjout} disabled:bg-ardoise-100`}>
+          <select value={unite} onChange={(ev) => { setUnite(ev.target.value as Unite | ''); if (!ev.target.value) setValeur(''); }} disabled={!categorieChoisie && !categorieGardee} className={`${champAjout} disabled:bg-ardoise-100`}>
             <option value="">{t('ajout.etablissement.aucuneUnite')}</option>
             {unitesPermises.map((u) => (
               <option key={u} value={u}>{t(`national.parametres.assimiles.unites.${u}`)}</option>

@@ -14,7 +14,7 @@
 //
 // La commune écrit ; la FNCT lit, sans aucun geste.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Etablissement, type IdentiteEtablissement, type StatutEtablissement } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -53,11 +53,18 @@ export function Etablissements({ communeId }: { communeId: string }) {
   const [identiteOuverte, setIdentiteOuverte] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
+  // Seule la dernière lecture demandée s'affiche : une recherche plus ancienne,
+  // plus lente, écrirait sinon ses résultats sous le texte de la nouvelle.
+  const derniereLecture = useRef(0);
   const charger = useCallback(async () => {
+    const numero = ++derniereLecture.current;
     try {
-      setListe(await api.etablissements(communeId, { statut: filtreStatut || undefined, q: recherche.trim() || undefined }));
+      const lue = await api.etablissements(communeId, { statut: filtreStatut || undefined, q: recherche.trim() || undefined });
+      if (numero !== derniereLecture.current) return;
+      setListe(lue);
       setErreur(null);
     } catch (err) {
+      if (numero !== derniereLecture.current) return;
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
     }
   }, [communeId, filtreStatut, recherche, t]);

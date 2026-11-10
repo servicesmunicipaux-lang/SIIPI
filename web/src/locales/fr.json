@@ -3558,6 +3558,8 @@
       "categorie": "Catégorie d’activité",
       "choisir": "— choisir —",
       "horsListe": "{{code}} — pas en vigueur aujourd’hui",
+      "categorieGardee": "Catégorie fermée depuis l’inscription : elle reste celle de l’établissement. Son unité se garde ou se retire ; pour en changer, choisissez une catégorie en vigueur.",
+      "listeIndisponible": "La liste nationale des catégories d’activité n’a pas pu être lue. Rien n’est perdu : réessayez.",
       "nature": "Nature",
       "natures": {
         "commerce": "Commerce ou service",

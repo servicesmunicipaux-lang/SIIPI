@@ -45,10 +45,12 @@ appel() { # méthode chemin jeton [corps] — code HTTP, corps dans $T/r.json
 }
 val() { python3 -c "import json;d=json.load(open('$T/r.json'));print($1)" 2>/dev/null || echo erreur; }
 # Une écriture directe en base, sous le rôle de l'application et le compte $2 (rôle $1, commune $3).
-en_base() { # rôle utilisateur commune instruction — le refus de la base, ou « ok »
-  $PSQL -c "BEGIN; SELECT set_config('app.role', '$1', true), set_config('app.user_id', '$2', true), set_config('app.commune_id', '$3', true);
+# Un préambule ($5), joué en administrateur dans la même transaction, prépare un état
+# que la transaction annule ensuite (une catégorie retirée de la liste nationale).
+en_base() { # rôle utilisateur commune instruction [préambule] — le refus de la base, ou « ok »
+  $PSQL -c "BEGIN; ${5:+$5;} SELECT set_config('app.role', '$1', true), set_config('app.user_id', '$2', true), set_config('app.commune_id', '$3', true);
             SET LOCAL ROLE siipi_app; $4; ROLLBACK;" 2>&1 \
-    | grep -oE '^ERROR: +[A-Z_]+:|permission denied|violates row-level security|violates (check|unique) constraint "[a-z_]+"' | head -1 \
+    | grep -oE '^ERROR: +[A-Z_]+:|permission denied|violates row-level security|violates not-null constraint|violates (check|unique) constraint "[a-z_]+"' | head -1 \
     | sed -E 's/^ERROR: +//; s/:$//; s/violates (check|unique) constraint "([a-z_]+)"/\2/' | grep . || echo ok
 }
 
@@ -108,6 +110,10 @@ chk "la base refuse d'elle-même une catégorie vide hors des lignes antérieure
     "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO commerces (commune_id, nom, source_creation) VALUES ('$A', 'TEST', 'saisie')")"
 chk "… une catégorie inconnue" CATEGORIE_INCONNUE \
     "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO commerces (commune_id, nom, categorie_activite, source_creation) VALUES ('$A', 'TEST', 'casino', 'saisie')")"
+chk "… une inscription qui tait sa source (plus de valeur par défaut, qui l'aurait dite « antérieure »)" "violates not-null constraint" \
+    "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO commerces (commune_id, nom, categorie_activite) VALUES ('$A', 'TEST', 'cafe')")"
+chk "… une inscription nouvelle qui se dit « antérieure » au jalon G" SOURCE_ANTERIEURE \
+    "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO commerces (commune_id, nom, source_creation) VALUES ('$A', 'TEST', 'anterieur')")"
 chk "… et une inscription par la FNCT" "violates row-level security" \
     "$(en_base super_admin_fnct "$ID_F" "" "INSERT INTO commerces (commune_id, nom, categorie_activite, source_creation) VALUES ('$A', 'TEST', 'cafe', 'saisie')")"
 chk "la base n'a aucune colonne pour un CIN en clair (seulement son empreinte)" "empreinte_cin" \
@@ -137,6 +143,17 @@ chk "la fiche se modifie en entier : un café, 30 chaises" "200|cafe|chaise|30" 
 chk "… le directeur d'une autre commune ne la modifie pas (404)" 404 "$(appel PUT "/etablissements/$E3" "$T_B" "$(etab 'TEST' cafe)")"
 chk "la base refuse de changer la source d'un établissement" SOURCE_FIGEE \
     "$(en_base admin_commune "$ID_A" "$A" "UPDATE commerces SET source_creation = 'kobo' WHERE id = '$E3'")"
+# La catégorie « hôtel » retirée de la liste nationale, le temps d'une transaction
+# annulée : l'hôtel inscrit la garde, et se corrige sans être reclassé.
+RETRAIT_HOTEL="UPDATE elements_listes_nationales SET retire_le = now(), motif_retrait = 'TEST retrait de la campagne' WHERE liste = 'categories_activite_assimiles' AND code = 'hotel' AND retire_le IS NULL"
+chk "catégorie retirée ensuite : l'adresse se corrige et l'unité se retire, sans reclassement" "ok|ok" \
+    "$(en_base admin_commune "$ID_A" "$A" "UPDATE commerces SET adresse = 'TEST rue corrigée' WHERE id = '$E1'" "$RETRAIT_HOTEL")|$(en_base admin_commune "$ID_A" "$A" "UPDATE commerces SET unite_echelle = NULL, valeur_echelle = NULL WHERE id = '$E1'" "$RETRAIT_HOTEL")"
+chk "… mais son unité ne se change pas : la liste du jour ne la connaît plus" UNITE_ECHELLE \
+    "$(en_base admin_commune "$ID_A" "$A" "UPDATE commerces SET unite_echelle = 'lit' WHERE id = '$E1'" "$RETRAIT_HOTEL")"
+chk "… et la catégorie retirée ne se choisit plus" CATEGORIE_INCONNUE \
+    "$(en_base admin_commune "$ID_A" "$A" "UPDATE commerces SET categorie_activite = 'hotel', unite_echelle = NULL, valeur_echelle = NULL WHERE id = '$E3'" "$RETRAIT_HOTEL")"
+chk "la catégorie de la liste nationale n'a pas bougé (transactions annulées)" 1 \
+    "$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'categories_activite_assimiles' AND code = 'hotel' AND retire_le IS NULL AND date_fin IS NULL")"
 chk "la liste se filtre (statut, catégorie, recherche)" "3|1|1" \
     "$(appel GET "/etablissements?communeId=$A&statut=actif" "$T_A" >/dev/null; val "len(d)")|$(appel GET "/etablissements?communeId=$A&categorieActivite=cafe" "$T_A" >/dev/null; val "len(d)")|$(appel GET "/etablissements?communeId=$A&q=1234567" "$T_A" >/dev/null; val "len(d)")"
 chk "la liste s'exporte en CSV, avec ses en-têtes" "200|1" \
@@ -188,11 +205,14 @@ chk "hébergement accrédité, mais sans récépissé INPDP de la commune : 409,
 $PSQL -c "INSERT INTO parametres_commune (commune_id, recepisse_inpdp, recepisse_inpdp_date) VALUES ('$A', 'TEST-0002/2026', DATE '2026-01-15')
           ON CONFLICT (commune_id) DO UPDATE SET recepisse_inpdp = EXCLUDED.recepisse_inpdp, recepisse_inpdp_date = EXCLUDED.recepisse_inpdp_date" >/dev/null
 chk "garde ouverte : l'identité s'enregistre ; téléphone normalisé, CIN réduit à son empreinte" "200|20123456|True|cin" \
-    "$(appel PUT "/etablissements/$E3/identite" "$T_A" "$IDENT")|$(val "d['telephone']")|$(val "d['cin_enregistre']")|$(appel GET "/etablissements/$E3" "$T_A" >/dev/null; val "d['statut_identifiant']")"
-chk "le CIN n'est écrit nulle part en clair : ni dans l'identité, ni au journal d'audit, ni au journal des consultations" "1|0|0|0" \
-    "$(sql "SELECT count(*) FROM identites_commerces WHERE commerce_id = '$E3' AND empreinte_cin ~ '^[0-9a-f]{64}$' AND empreinte_cin NOT LIKE '%12345678%'")|$(sql "SELECT count(*) FROM audit_log WHERE table_name = 'identites_commerces' OR (COALESCE(old_data::text, '') || COALESCE(new_data::text, '')) LIKE '%12345678%'")|$(sql "SELECT count(*) FROM access_log WHERE endpoint::text LIKE '%12345678%'")|$(grep -c '12345678' "$T/r.json")"
+    "$(appel PUT "/etablissements/$E3/identite" "$T_A" "$IDENT"; cp "$T/r.json" "$T/identite_ecrite.json")|$(val "d['telephone']")|$(val "d['cin_enregistre']")|$(appel GET "/etablissements/$E3" "$T_A" >/dev/null; val "d['statut_identifiant']")"
 chk "le directeur la lit, et la lecture est journalisée avec l'établissement" "200|TEST Responsable|1" \
-    "$(appel GET "/etablissements/$E3/identite" "$T_A")|$(val "d['nom_responsable']")|$(sql "SELECT count(*) FROM access_log WHERE '$E3' = ANY (commerce_ids) AND user_id = '$ID_A'")"
+    "$(appel GET "/etablissements/$E3/identite" "$T_A"; cp "$T/r.json" "$T/identite_lue.json")|$(val "d['nom_responsable']")|$(sql "SELECT count(*) FROM access_log WHERE '$E3' = ANY (commerce_ids) AND user_id = '$ID_A'")"
+# Après l'écriture ET la lecture : chaque endroit où le CIN pourrait revenir existe
+# et est fouillé — les réponses de l'écriture et de la lecture (ni le CIN ni son
+# empreinte), le journal d'audit, les lignes entières du journal des consultations.
+chk "le CIN n'est écrit nulle part en clair : identité, réponses, journal d'audit, journal des consultations" "1|0|0|0|t|0" \
+    "$(sql "SELECT count(*) FROM identites_commerces WHERE commerce_id = '$E3' AND empreinte_cin ~ '^[0-9a-f]{64}$' AND empreinte_cin NOT LIKE '%12345678%'")|$(cat "$T/identite_ecrite.json" "$T/identite_lue.json" | grep -c '12345678')|$(cat "$T/identite_ecrite.json" "$T/identite_lue.json" | grep -c 'empreinte')|$(sql "SELECT count(*) FROM audit_log WHERE table_name = 'identites_commerces' OR (COALESCE(old_data::text, '') || COALESCE(new_data::text, '')) LIKE '%12345678%'")|$(sql "SELECT count(*) >= 1 FROM access_log WHERE '$E3' = ANY (commerce_ids)")|$(sql "SELECT count(*) FROM access_log a WHERE row_to_json(a)::text LIKE '%12345678%'")"
 chk "… la FNCT ne la lit pas (403), le directeur d'une autre commune non plus (404)" "403|404" \
     "$(appel GET "/etablissements/$E3/identite" "$T_F")|$(appel GET "/etablissements/$E3/identite" "$T_B")"
 chk "… la liste n'en dit rien : ni nom, ni téléphone" "0|0" \
