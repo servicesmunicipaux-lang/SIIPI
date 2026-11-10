@@ -19,9 +19,6 @@ const VUES: Vue[] = ['lieux', 'fins-de-poste', 'carburant', 'epi', 'incidents', 
 export function Registres({ communeId }: { communeId: string }) {
   const { t } = useTranslation();
   const [vue, setVue] = useState<Vue>('lieux');
-  // Une nouvelle entrée au registre des commerces doit apparaître dans la
-  // liste déroulante des conventions : la clé remonte ce dernier.
-  const [versionCommerces, setVersionCommerces] = useState(0);
 
   return (
     <div className="space-y-4">
@@ -87,14 +84,10 @@ export function Registres({ communeId }: { communeId: string }) {
       )}
       {vue === 'conventions' && (
         <div className="space-y-6">
+          {/* Les établissements s'inscrivent et se ferment dans leur écran (jalon G) ; les
+              conventions les choisissent ici, jusqu'au lot G4. */}
+          <p className="rounded-lg bg-ardoise-50 p-3 text-sm text-ardoise-700">{t('registres.etablissementsAilleurs')}</p>
           <RegistreSimple
-            communeId={communeId}
-            nom="commerces"
-            onModifie={() => setVersionCommerces((v) => v + 1)}
-            colonnes={[{ cle: 'nom' }, { cle: 'categorie', type: 'choix', prefixe: 'commerces.options.categorie' }, { cle: 'activite' }, { cle: 'sous_convention', type: 'ouiNon' }]}
-          />
-          <RegistreSimple
-            key={versionCommerces}
             communeId={communeId}
             nom="conventions"
             colonnes={[

@@ -178,9 +178,10 @@ chk "une dotation dont le renouvellement précède la remise est refusée" 400 \
 
 echo
 echo "6. Conventions (M2-2), carburant, accidents"
-req POST "/registres/commerces?communeId=$COMMUNE" '{"nom":"TEST-SRC Boulangerie"}' >/dev/null
-C1=$(val "d['id']")
-req POST "/registres/commerces?communeId=$COMMUNE" '{"nom":"TEST-SRC Lycée","categorie":"institution"}' >/dev/null
+# Depuis le jalon G (lot G2a), un établissement s'inscrit par /etablissements,
+# avec sa catégorie d'activité de la liste nationale.
+chk "deux établissements s'inscrivent (une boulangerie, un lycée)" "201|201"     "$(req POST "/etablissements?communeId=$COMMUNE" '{"nom":"TEST-SRC Boulangerie","categorieActivite":"boulangerie"}'; C1=$(val "d['id']"); echo "$C1" > "$T/c1")|$(req POST "/etablissements?communeId=$COMMUNE" '{"nom":"TEST-SRC Lycée","categorie":"institution","categorieActivite":"ecole"}')"
+C1=$(cat "$T/c1")
 req POST /registres/conventions "{\"commerceId\":\"$C1\",\"type\":\"collecte\",\"dateDebut\":\"$AN-01-01\",\"dateFin\":\"$AN-12-31\",\"tonnageEstime\":1.5,\"observation\":\"TEST-SRC\"}" >/dev/null
 NCOM=$(sql "SELECT count(*) FROM commerces WHERE commune_id='$COMMUNE' AND deleted_at IS NULL AND actif")
 chk "conventions : 1 commerce conventionné sur $NCOM, mesuré" "renseigne|mesure|1|$(python3 -c "print(round(1/$NCOM,3))")" "$(etat M2-2)"

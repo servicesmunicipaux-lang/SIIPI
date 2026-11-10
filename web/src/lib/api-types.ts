@@ -9077,296 +9077,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/registres/commerces": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Les commerces et institutions à conventionner (M2-2) */
-        get: {
-            parameters: {
-                query?: {
-                    communeId?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Registre. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        }[];
-                    };
-                };
-                /** @description Requête invalide — le détail indique les champs en cause. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Authentification requise, ou jeton expiré. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        /** Commerce : saisie */
-        post: {
-            parameters: {
-                query?: {
-                    communeId?: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        nom: string;
-                        /** @enum {string} */
-                        categorie?: "commerce" | "institution";
-                        activite?: string | null;
-                        adresse?: string | null;
-                        actif?: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description Ligne enregistrée. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-                /** @description Requête invalide — le détail indique les champs en cause. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Authentification requise, ou jeton expiré. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/registres/commerces/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Commerce : retrait logique */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Retiré. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Requête invalide — le détail indique les champs en cause. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Authentification requise, ou jeton expiré. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        /** Modifier un commerce */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": {
-                        nom?: string;
-                        /** @enum {string} */
-                        categorie?: "commerce" | "institution";
-                        activite?: string | null;
-                        adresse?: string | null;
-                        actif?: boolean;
-                    };
-                };
-            };
-            responses: {
-                /** @description Commerce modifié. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-                /** @description Requête invalide — le détail indique les champs en cause. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Authentification requise, ou jeton expiré. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Erreur"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
     "/registres/conventions": {
         parameters: {
             query?: never;
@@ -9583,6 +9293,85 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/registres/commerces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les établissements, en lecture : la liste où le formulaire des conventions choisit (M2-2)
+         * @description En lecture seule depuis le jalon G (lot G2a) : un établissement s’inscrit, se modifie et se ferme par /etablissements, et ne se supprime jamais.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Établissements. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -16741,6 +16530,786 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/etablissements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les établissements d’une commune
+         * @description Commerces, institutions et services, avec leur statut (actif, fermé, à vérifier), leur catégorie de la liste nationale et le statut de leur identifiant. Le directeur et la FNCT ; hors périmètre, rien. L’identité du responsable n’y figure jamais.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    statut?: "actif" | "ferme" | "a_verifier";
+                    categorieActivite?: string;
+                    zoneId?: string;
+                    q?: string;
+                    format?: "csv" | "xlsx";
+                    langue?: "fr" | "ar";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Établissements, par ordre alphabétique. Avec `?format=csv` ou `?format=xlsx`, le même contenu en fichier à télécharger. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Etablissement"][];
+                        "text/csv": string;
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Inscrire un établissement (le directeur de la commune)
+         * @description Catégorie en vigueur à la date du jour (liste nationale) et unité d’échelle qu’elle admet ; matricule fiscal normalisé, unique dans la commune (409) ; position avec sa précision, en Tunisie. La réponse nomme les doublons probables : l’inscription se fait, la commune décide. La FNCT lit, elle n’inscrit pas (403).
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nom: string;
+                        /**
+                         * @default commerce
+                         * @enum {string}
+                         */
+                        categorie?: "commerce" | "institution";
+                        categorieActivite: string;
+                        activite?: string | null;
+                        matriculeFiscal?: string | null;
+                        adresse?: string | null;
+                        /** Format: uuid */
+                        zoneId?: string | null;
+                        latitude?: number | null;
+                        longitude?: number | null;
+                        precisionM?: number | null;
+                        /** @enum {string|null} */
+                        uniteEchelle?: "chambre" | "lit" | "chaise" | "table" | "etal" | "m2" | "eleve" | "employe" | null;
+                        valeurEchelle?: number | null;
+                        surfaceM2?: number | null;
+                        /** @default false */
+                        produitDangereux?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Établissement inscrit. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Etablissement"] & {
+                            /** @description Même raison sociale, ou position à moins de 5 m : mesurés et montrés, jamais fusionnés. La commune décide. */
+                            doublons_probables: {
+                                /** Format: uuid */
+                                id: string;
+                                nom: string;
+                                /** @enum {string} */
+                                statut: "actif" | "ferme" | "a_verifier";
+                                /** @description Distance en mètres, quand les deux positions sont relevées. */
+                                distance_m: number | null;
+                                meme_nom: boolean;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Matricule déjà inscrit. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/etablissements/garde-identite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Peut-on enregistrer l’identité d’un responsable ?
+         * @description Il faut l’hébergement accrédité, déclaré par la FNCT, et le récépissé INPDP de la commune. Sans l’un des deux, aucune identité ne s’enregistre.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description État de la garde. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            communeId: string;
+                            accredite: boolean;
+                            recepisse: boolean;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/etablissements/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Un établissement */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Établissement. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Etablissement"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Modifier la fiche d’un établissement
+         * @description La fiche entière. Le statut se change par /statut ; la source ne change jamais.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nom: string;
+                        /**
+                         * @default commerce
+                         * @enum {string}
+                         */
+                        categorie?: "commerce" | "institution";
+                        categorieActivite: string;
+                        activite?: string | null;
+                        matriculeFiscal?: string | null;
+                        adresse?: string | null;
+                        /** Format: uuid */
+                        zoneId?: string | null;
+                        latitude?: number | null;
+                        longitude?: number | null;
+                        precisionM?: number | null;
+                        /** @enum {string|null} */
+                        uniteEchelle?: "chambre" | "lit" | "chaise" | "table" | "etal" | "m2" | "eleve" | "employe" | null;
+                        valeurEchelle?: number | null;
+                        surfaceM2?: number | null;
+                        /** @default false */
+                        produitDangereux?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Fiche modifiée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Etablissement"] & {
+                            /** @description Même raison sociale, ou position à moins de 5 m : mesurés et montrés, jamais fusionnés. La commune décide. */
+                            doublons_probables: {
+                                /** Format: uuid */
+                                id: string;
+                                nom: string;
+                                /** @enum {string} */
+                                statut: "actif" | "ferme" | "a_verifier";
+                                /** @description Distance en mètres, quand les deux positions sont relevées. */
+                                distance_m: number | null;
+                                meme_nom: boolean;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Matricule déjà inscrit. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/etablissements/{id}/statut": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fermer, signaler à vérifier ou rouvrir un établissement
+         * @description Une fermeture porte sa date (constatée, jamais dans l’avenir) et son motif ; « à vérifier » et la réouverture, leur motif. Un établissement ne se supprime jamais : l’historique des statuts est au journal d’audit.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        statut: "actif" | "ferme" | "a_verifier";
+                        date?: string;
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Statut changé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Etablissement"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Déjà dans ce statut, ou changé entre-temps. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/etablissements/{id}/identite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** L’identité du responsable (le seul directeur, lecture journalisée) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Identité. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            commerce_id: string;
+                            nom_responsable: string;
+                            telephone: string | null;
+                            /** @description Un CIN a été enregistré (son empreinte) ; le CIN lui-même ne sort jamais. */
+                            cin_enregistre: boolean;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Enregistrer l’identité du responsable
+         * @description Nom, téléphone, CIN. Le CIN n’est jamais écrit : seule son empreinte l’est, calculée par l’API. Refusé (409) tant que l’hébergement n’est pas accrédité ou que la commune n’a pas son récépissé INPDP.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomResponsable: string;
+                        telephone?: string | null;
+                        cin?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Identité enregistrée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            commerce_id: string;
+                            nom_responsable: string;
+                            telephone: string | null;
+                            /** @description Un CIN a été enregistré (son empreinte) ; le CIN lui-même ne sort jamais. */
+                            cin_enregistre: boolean;
+                            created_at: string;
+                            updated_at: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Garde fermée. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Retirer l’identité du responsable
+         * @description Toujours possible, garde ouverte ou non : la garde empêche d’écrire une identité, jamais de l’effacer.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Identité retirée. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -32801,6 +33370,52 @@ export interface components {
                     ordre: number;
                 }[];
             }[];
+        };
+        Etablissement: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            /** @description Raison sociale. */
+            nom: string;
+            /**
+             * @description Nature lue par l’indicateur M2-2.
+             * @enum {string}
+             */
+            categorie: "commerce" | "institution";
+            /** @description L’activité telle que la source la donne. */
+            activite: string | null;
+            /** @description Code de la liste nationale ; vide seulement pour une ligne antérieure au jalon G. */
+            categorie_activite: string | null;
+            categorie_activite_fr: string | null;
+            categorie_activite_ar: string | null;
+            /** @description Normalisé : 1234567A, ou 1234567AAM000. */
+            matricule_fiscal: string | null;
+            /**
+             * @description Calculé : matricule, cin (une empreinte est enregistrée) ou a_completer.
+             * @enum {string}
+             */
+            statut_identifiant: "matricule" | "cin" | "a_completer";
+            adresse: string | null;
+            /** Format: uuid */
+            zone_id: string | null;
+            secteur: string | null;
+            latitude: number | null;
+            longitude: number | null;
+            precision_m: number | null;
+            unite_echelle: string | null;
+            valeur_echelle: number | null;
+            surface_m2: number | null;
+            produit_dangereux: boolean;
+            /** @enum {string} */
+            statut: "actif" | "ferme" | "a_verifier";
+            ferme_le: string | null;
+            motif_statut: string | null;
+            /** @enum {string} */
+            source_creation: "anterieur" | "saisie" | "import_tcl" | "open_data" | "kobo";
+            /** @description Une convention en cours aujourd’hui (à Tunis). */
+            sous_convention: boolean;
+            created_at: string;
+            updated_at: string;
         };
         ActeurInformel: {
             /** Format: uuid */

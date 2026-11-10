@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type NomRegistre } from '../../lib/api';
+import { api, ErreurApi, type NomRegistreSaisi } from '../../lib/api';
 import { useFormats } from '../../lib/formats';
 import { formaterNombre } from '../../i18n';
 import { Chargement } from '../Elements';
@@ -31,7 +31,7 @@ export function RegistreSimple({
   onModifie,
 }: {
   communeId: string;
-  nom: NomRegistre;
+  nom: NomRegistreSaisi;
   colonnes: ColonneRegistre[];
   onModifie?: () => void;
 }) {

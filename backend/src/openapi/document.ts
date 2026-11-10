@@ -102,6 +102,15 @@ import {
   qRetraitGrille,
 } from '../routes/grillesTarifaires.routes.js';
 import {
+  etablissementSchema,
+  identiteEtablissementSchema,
+  IDENTIFIANTS_ETABLISSEMENT,
+  qEtablissements,
+  SOURCES_ETABLISSEMENT,
+  STATUTS_ETABLISSEMENT,
+  statutEtablissementSchema,
+} from '../routes/etablissements.routes.js';
+import {
   demandeCarteSchema,
   pieceCarteSchema,
   accordCarteSchema,
@@ -174,7 +183,6 @@ import {
   finDePosteSchema,
   dotationSchema,
   incidentSchema as incidentTravailSchema,
-  commerceSchema,
   conventionSchema,
   TYPES_POI,
 } from '../routes/sourcesKpi.routes.js';
@@ -2541,7 +2549,6 @@ for (const [chemin, nom, schema, resume] of [
   ['fins-de-poste', 'Fin de poste', finDePosteSchema, 'La check-list de fin de poste — « benne bâchée avant transit », obligatoire (M1-9)'],
   ['epi', 'Dotation', dotationSchema, 'La dotation en équipements de protection individuelle (M1-6)'],
   ['incidents', 'Incident', incidentTravailSchema, 'Le journal des incidents du travail (axe 5) — un journal vide ne dit pas « zéro accident »'],
-  ['commerces', 'Commerce', commerceSchema, 'Les commerces et institutions à conventionner (M2-2)'],
   ['conventions', 'Convention', conventionSchema, 'Les conventions de propreté des commerces (M2-2)'],
 ] as const) {
   registry.registerPath({
@@ -2559,9 +2566,12 @@ for (const [chemin, nom, schema, resume] of [
   });
 }
 registry.registerPath({
-  method: 'patch', path: '/registres/commerces/{id}', tags: [TAG_SOURCES], summary: 'Modifier un commerce', security: SECURISE,
-  request: { params: pId, body: { content: { 'application/json': { schema: commerceSchema.partial() } } } },
-  responses: { 200: json(Ligne, 'Commerce modifié.'), ...REPONSES_COMMUNES },
+  method: 'get', path: '/registres/commerces', tags: [TAG_SOURCES],
+  summary: 'Les établissements, en lecture : la liste où le formulaire des conventions choisit (M2-2)',
+  description:
+    'En lecture seule depuis le jalon G (lot G2a) : un établissement s’inscrit, se modifie et se ferme par /etablissements, et ne se supprime jamais.',
+  security: SECURISE,
+  request: { query: qCommuneSeule }, responses: { 200: json(z.array(Ligne), 'Établissements.'), ...REPONSES_COMMUNES },
 });
 
 // --- Observatoire national -------------------------------------------------
@@ -4718,6 +4728,144 @@ registry.registerPath({
     204: { description: 'Projet retiré.' },
     409: json(Erreur, 'Grille approuvée, ou modifiée depuis votre lecture.'),
   },
+});
+
+// --- Jalon G, lot G2a : les établissements (migration 099) ---------------------
+const TAG_ETABLISSEMENTS = 'Établissements';
+const Etablissement = registry.register(
+  'Etablissement',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    nom: z.string().openapi({ description: 'Raison sociale.' }),
+    categorie: z.enum(['commerce', 'institution']).openapi({ description: 'Nature lue par l’indicateur M2-2.' }),
+    activite: z.string().nullable().openapi({ description: 'L’activité telle que la source la donne.' }),
+    categorie_activite: z.string().nullable().openapi({ description: 'Code de la liste nationale ; vide seulement pour une ligne antérieure au jalon G.' }),
+    categorie_activite_fr: z.string().nullable(),
+    categorie_activite_ar: z.string().nullable(),
+    matricule_fiscal: z.string().nullable().openapi({ description: 'Normalisé : 1234567A, ou 1234567AAM000.' }),
+    statut_identifiant: z.enum(IDENTIFIANTS_ETABLISSEMENT).openapi({ description: 'Calculé : matricule, cin (une empreinte est enregistrée) ou a_completer.' }),
+    adresse: z.string().nullable(),
+    zone_id: z.string().uuid().nullable(),
+    secteur: z.string().nullable(),
+    latitude: z.number().nullable(),
+    longitude: z.number().nullable(),
+    precision_m: z.number().nullable(),
+    unite_echelle: z.string().nullable(),
+    valeur_echelle: z.number().nullable(),
+    surface_m2: z.number().nullable(),
+    produit_dangereux: z.boolean(),
+    statut: z.enum(STATUTS_ETABLISSEMENT),
+    ferme_le: z.string().nullable(),
+    motif_statut: z.string().nullable(),
+    source_creation: z.enum(SOURCES_ETABLISSEMENT),
+    sous_convention: z.boolean().openapi({ description: 'Une convention en cours aujourd’hui (à Tunis).' }),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+);
+const DoublonProbable = z.object({
+  id: z.string().uuid(),
+  nom: z.string(),
+  statut: z.enum(STATUTS_ETABLISSEMENT),
+  distance_m: z.number().nullable().openapi({ description: 'Distance en mètres, quand les deux positions sont relevées.' }),
+  meme_nom: z.boolean(),
+});
+const EtablissementEnregistre = Etablissement.extend({
+  doublons_probables: z.array(DoublonProbable).openapi({
+    description: 'Même raison sociale, ou position à moins de 5 m : mesurés et montrés, jamais fusionnés. La commune décide.',
+  }),
+});
+const IdentiteEtablissement = z.object({
+  commerce_id: z.string().uuid(),
+  nom_responsable: z.string(),
+  telephone: z.string().nullable(),
+  cin_enregistre: z.boolean().openapi({ description: 'Un CIN a été enregistré (son empreinte) ; le CIN lui-même ne sort jamais.' }),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+const pEtablissement = z.object({ id: z.string().uuid() });
+const qCommuneEtablissements = z.object({ communeId: z.string().optional() });
+
+registry.registerPath({
+  method: 'get', path: '/etablissements', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Les établissements d’une commune',
+  description:
+    'Commerces, institutions et services, avec leur statut (actif, fermé, à vérifier), leur catégorie de la liste nationale et le statut de leur identifiant. ' +
+    'Le directeur et la FNCT ; hors périmètre, rien. L’identité du responsable n’y figure jamais.',
+  security: SECURISE,
+  request: { query: qCommuneEtablissements.merge(qEtablissements).extend({ ...paramsExport }) },
+  responses: { 200: jsonOuExport(z.array(Etablissement), 'Établissements, par ordre alphabétique.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/etablissements/garde-identite', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Peut-on enregistrer l’identité d’un responsable ?',
+  description: 'Il faut l’hébergement accrédité, déclaré par la FNCT, et le récépissé INPDP de la commune. Sans l’un des deux, aucune identité ne s’enregistre.',
+  security: SECURISE,
+  request: { query: qCommuneEtablissements },
+  responses: {
+    200: json(z.object({ communeId: z.string(), accredite: z.boolean(), recepisse: z.boolean() }), 'État de la garde.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'get', path: '/etablissements/{id}', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Un établissement', security: SECURISE,
+  request: { params: pEtablissement },
+  responses: { 200: json(Etablissement, 'Établissement.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/etablissements', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Inscrire un établissement (le directeur de la commune)',
+  description:
+    'Catégorie en vigueur à la date du jour (liste nationale) et unité d’échelle qu’elle admet ; matricule fiscal normalisé, unique dans la commune (409) ; position avec sa précision, en Tunisie. ' +
+    'La réponse nomme les doublons probables : l’inscription se fait, la commune décide. La FNCT lit, elle n’inscrit pas (403).',
+  security: SECURISE,
+  request: { query: qCommuneEtablissements, body: { content: { 'application/json': { schema: etablissementSchema } } } },
+  responses: { ...REPONSES_COMMUNES, 201: json(EtablissementEnregistre, 'Établissement inscrit.'), 409: json(Erreur, 'Matricule déjà inscrit.') },
+});
+registry.registerPath({
+  method: 'put', path: '/etablissements/{id}', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Modifier la fiche d’un établissement',
+  description: 'La fiche entière. Le statut se change par /statut ; la source ne change jamais.',
+  security: SECURISE,
+  request: { params: pEtablissement, body: { content: { 'application/json': { schema: etablissementSchema } } } },
+  responses: { ...REPONSES_COMMUNES, 200: json(EtablissementEnregistre, 'Fiche modifiée.'), 409: json(Erreur, 'Matricule déjà inscrit.') },
+});
+registry.registerPath({
+  method: 'post', path: '/etablissements/{id}/statut', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Fermer, signaler à vérifier ou rouvrir un établissement',
+  description:
+    'Une fermeture porte sa date (constatée, jamais dans l’avenir) et son motif ; « à vérifier » et la réouverture, leur motif. ' +
+    'Un établissement ne se supprime jamais : l’historique des statuts est au journal d’audit.',
+  security: SECURISE,
+  request: { params: pEtablissement, body: { content: { 'application/json': { schema: statutEtablissementSchema } } } },
+  responses: { ...REPONSES_COMMUNES, 200: json(Etablissement, 'Statut changé.'), 409: json(Erreur, 'Déjà dans ce statut, ou changé entre-temps.') },
+});
+registry.registerPath({
+  method: 'get', path: '/etablissements/{id}/identite', tags: [TAG_ETABLISSEMENTS],
+  summary: 'L’identité du responsable (le seul directeur, lecture journalisée)',
+  security: SECURISE,
+  request: { params: pEtablissement },
+  responses: { 200: json(IdentiteEtablissement, 'Identité.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'put', path: '/etablissements/{id}/identite', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Enregistrer l’identité du responsable',
+  description:
+    'Nom, téléphone, CIN. Le CIN n’est jamais écrit : seule son empreinte l’est, calculée par l’API. ' +
+    'Refusé (409) tant que l’hébergement n’est pas accrédité ou que la commune n’a pas son récépissé INPDP.',
+  security: SECURISE,
+  request: { params: pEtablissement, body: { content: { 'application/json': { schema: identiteEtablissementSchema } } } },
+  responses: { ...REPONSES_COMMUNES, 200: json(IdentiteEtablissement, 'Identité enregistrée.'), 409: json(Erreur, 'Garde fermée.') },
+});
+registry.registerPath({
+  method: 'delete', path: '/etablissements/{id}/identite', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Retirer l’identité du responsable',
+  description: 'Toujours possible, garde ouverte ou non : la garde empêche d’écrire une identité, jamais de l’effacer.',
+  security: SECURISE,
+  request: { params: pEtablissement },
+  responses: { 204: { description: 'Identité retirée.' }, ...REPONSES_COMMUNES },
 });
 
 const ActeurInformel = registry.register(
