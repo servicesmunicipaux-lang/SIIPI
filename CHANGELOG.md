@@ -5,6 +5,42 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.93] — 2026-11-10 — M2-2 : la cible d'une période ne compte que les établissements déjà inscrits
+
+Constaté le 10 novembre 2026 en vérifiant la v0.15.92 à l'écran (JC-016). La cible de M2-2 comptait les
+établissements selon leur statut **d'aujourd'hui**, sans borne de période : un établissement inscrit aujourd'hui entrait
+dans la cible de 2022, de 2023… La série annuelle (panneau « Évolution », « Les données du graphique ») disait
+« 0 établissement sous convention, source : mesuré » pour des années où le registre n'existait pas — un zéro mesuré là
+où rien n'était tenu (règle 1.1). Avec une convention datée d'avant l'inscription, la même année disait « 1 sur 2,
+mesuré ». Le défaut date de 051 et de 070 ; 099 et 100 l'ont gardé.
+
+### Corrigé
+- **M2-2** (migration 101, sans aucune donnée changée) : une période ne connaît que les établissements **inscrits au
+  plus tard à sa fin** (`commerces.created_at`, jour de Tunis), pour la cible comme pour les conventionnés. Une
+  convention datée d'avant l'inscription n'y ramène pas l'établissement : la cible de cette période-là n'est pas connue,
+  et « 1 sur 1 » serait aussi faux que « 0 sur 1 ».
+- La source **`commerces`** suit la même borne : avant la première inscription, le registre n'est pas tenu, et la
+  période dit « non renseigné » (avec « Ce qui manque : le registre des établissements »).
+- Ce qui ne change pas (v0.15.92) : un « à vérifier » sous convention dans la période reste compté ; sans convention, il
+  reste hors de la cible ; un fermé n'est jamais compté. La fermeture n'est **pas** rejouée dans le passé : la table ne
+  garde que le dernier statut (une réouverture efface `ferme_le`, l'historique est au journal d'audit), et ne sait pas
+  dire quel était le statut d'un établissement en 2023. L'inscription, elle, est un fait daté qui ne bouge pas.
+- Deux fonctions réécrites depuis leur définition en base après 100 (`pg_get_functiondef`), sur les seuls passages de
+  M2-2 et de la source `commerces` : `app._mesures_kpi_auto_periode_base`, `app._source_tenue_base`.
+  `app._element_completude` n'est pas touchée : elle compte le registre au jour demandé.
+
+### Vérifié
+- `kpi-sources` éprouve désormais M2-2 sur **l'année en cours** (ses établissements s'inscrivent aujourd'hui), et
+  prouve l'inverse sur 2022 : sous une convention qui couvre 2022, M2-2 y est « non renseigné », la source `commerces`
+  n'y est pas tenue (l'année, un mois), la série annuelle 2022–année en cours n'a qu'un point, et le mois d'avant
+  l'inscription n'a aucune ligne M2-2. Jusqu'ici, ses contrôles de M2-2 passaient en 2022 **grâce** au défaut.
+- Mutant : les définitions de 100 remises en place, ces quatre contrôles échouent (2022 : « renseigné, mesuré, 1 sur
+  2 » ; série : 5 points depuis 2022) ; 101 remise, ils passent.
+- Critère complet sur base neuve (migrations 000 → 101, puis 101 rejouée ; ordre de chargement de référence) :
+  `npm test` code 0 — contrat 411 routes servies, 411 documentées ; 87 campagnes, 87 bilans, 3 925 contrôles
+  réussis, aucun échec ; 87 campagnes présentes, 87 enchaînées ; `audit-blocs.py` : 9 blocs sous condition, tous
+  leurs contrôles ont tourné ; `npm run lint` backend et web sans erreur.
+
 ## [0.15.92] — 2026-11-10 — M2-2 : un établissement « à vérifier » sous convention reste compté
 
 Décision de la FNCT du 10 novembre 2026, sur la PR du lot G2a (option B). « À vérifier » porte sur l'**identité**

@@ -180,17 +180,38 @@ echo
 echo "6. Conventions (M2-2), carburant, accidents"
 # Depuis le jalon G (lot G2a), un établissement s'inscrit par /etablissements,
 # avec sa catégorie d'activité de la liste nationale.
+#
+# M2-2 s'éprouve sur l'ANNÉE EN COURS, pas sur $AN (migration 101) : une période
+# ne connaît que les établissements inscrits au plus tard à sa fin, et ceux de la
+# campagne s'inscrivent aujourd'hui. Jusqu'à la v0.15.92, ces contrôles passaient
+# en $AN parce que la cible ignorait la date d'inscription — le défaut même
+# qu'ils auraient dû refuser. $AN sert désormais à prouver l'inverse : l'année
+# d'avant l'inscription dit « non renseigné », même sous une convention qui la
+# couvre.
+ANC=$(sql "SELECT extract(year FROM app.jour_tunis())::int")
+JOUR=$(sql "SELECT app.jour_tunis()")
+MOIS=$(sql "SELECT date_trunc('month', app.jour_tunis())::date")
+# etat_an <année> <code> : comme etat, pour une autre année que $AN.
+etat_an() { req GET "/kpi/5-axes?communeId=$COMMUNE&annee=$1" >/dev/null; val "(lambda i: f\"{i['statut']}|{i['source']}|{i['valeur']}|{None if i['taux_atteinte'] is None else round(i['taux_atteinte'],3)}\")(next(i for i in d['indicateurs'] if i['code']=='$2'))"; }
 chk "deux établissements s'inscrivent (une boulangerie, un lycée)" "201|201"     "$(req POST "/etablissements?communeId=$COMMUNE" '{"nom":"TEST-SRC Boulangerie","categorieActivite":"boulangerie"}'; C1=$(val "d['id']"); echo "$C1" > "$T/c1")|$(req POST "/etablissements?communeId=$COMMUNE" '{"nom":"TEST-SRC Lycée","categorie":"institution","categorieActivite":"ecole"}')"
 C1=$(cat "$T/c1")
-req POST /registres/conventions "{\"commerceId\":\"$C1\",\"type\":\"collecte\",\"dateDebut\":\"$AN-01-01\",\"dateFin\":\"$AN-12-31\",\"tonnageEstime\":1.5,\"observation\":\"TEST-SRC\"}" >/dev/null
+# Une convention datée de $AN à la fin de l'année en cours : elle couvre l'année
+# d'avant l'inscription, qu'elle ne doit pas rendre mesurée.
+chk "une convention couvre $AN à $ANC" 201     "$(req POST /registres/conventions "{\"commerceId\":\"$C1\",\"type\":\"collecte\",\"dateDebut\":\"$AN-01-01\",\"dateFin\":\"$ANC-12-31\",\"tonnageEstime\":1.5,\"observation\":\"TEST-SRC\"}")"
 NCOM=$(sql "SELECT count(*) FROM commerces WHERE commune_id='$COMMUNE' AND deleted_at IS NULL AND actif")
-chk "conventions : 1 commerce conventionné sur $NCOM, mesuré" "renseigne|mesure|1|$(python3 -c "print(round(1/$NCOM,3))")" "$(etat M2-2)"
+chk "conventions : 1 commerce conventionné sur $NCOM en $ANC, mesuré" "renseigne|mesure|1|$(python3 -c "print(round(1/$NCOM,3))")" "$(etat_an "$ANC" M2-2)"
+chk "en $AN, avant toute inscription, M2-2 est « non renseigné », pas « 0 mesuré », même sous convention"     "non_renseigne|None|None|None" "$(etat M2-2)"
+chk "… et le registre des établissements n'y est pas tenu, ni pour un mois de $AN" "f|f"     "$(sql "SELECT app._source_tenue_base('$COMMUNE', 'commerces', DATE '$AN-01-01', DATE '$AN-12-31', NULL)")|$(sql "SELECT app._source_tenue_base('$COMMUNE', 'commerces', DATE '$AN-06-01', DATE '$AN-06-30', NULL)")"
+chk "la série annuelle $AN–$ANC n'a qu'un point : l'année de l'inscription" "200|1|$ANC-01-01|mesure"     "$(req GET "/kpi/serie?communeId=$COMMUNE&code=M2-2&debut=$AN-01-01&fin=$ANC-12-31&pas=annee")|$(val "len(d)")|$(val "d[0]['periode_debut']")|$(val "d[0]['source']")"
+# M2-2 est annuel : sa série n'a pas de pas mensuel. La borne vaut pourtant pour
+# toute période ; elle s'éprouve sur le calcul lui-même.
+chk "le mois d'avant l'inscription n'a aucune ligne M2-2 ; le mois de l'inscription en a une" "0|1"     "$(sql "SELECT count(*) FROM app._mesures_kpi_auto_periode_base((DATE '$MOIS' - interval '1 month')::date, DATE '$MOIS' - 1, ARRAY['$COMMUNE']) WHERE code = 'M2-2'")|$(sql "SELECT count(*) FROM app._mesures_kpi_auto_periode_base(DATE '$MOIS', DATE '$JOUR', ARRAY['$COMMUNE']) WHERE code = 'M2-2'")"
 # « À vérifier » porte sur l'identité, pas sur la convention (décision du
 # 10/11/2026, migration 100) : sous convention, l'établissement reste compté, et
 # le détail le dit ; sans convention, il sort de la cible (un doublon probable ne
 # la gonfle pas). Les nombres sont comparés en valeur, quelle que soit leur
 # écriture JSON.
-m22() { axes; val "(lambda i: f\"{i['source']}|{float(i['valeur']):g}|{round(float(i['taux_atteinte']),3):g}|{i['detail']['cible']}|{i['detail']['sous_convention']}|{i['detail']['dont_a_verifier']}\")(next(i for i in d['indicateurs'] if i['code']=='M2-2'))"; }
+m22() { req GET "/kpi/5-axes?communeId=$COMMUNE&annee=$ANC" >/dev/null; val "(lambda i: f\"{i['source']}|{float(i['valeur']):g}|{round(float(i['taux_atteinte']),3):g}|{i['detail']['cible']}|{i['detail']['sous_convention']}|{i['detail']['dont_a_verifier']}\")(next(i for i in d['indicateurs'] if i['code']=='M2-2'))"; }
 C2=$(sql "SELECT id FROM commerces WHERE commune_id='$COMMUNE' AND nom='TEST-SRC Lycée' AND deleted_at IS NULL")
 chk "le détail de M2-2 dit la cible et les établissements sous convention : $NCOM, 1, dont 0 à vérifier" "mesure|1|$(python3 -c "print(f'{round(1/$NCOM,3):g}')")|$NCOM|1|0" "$(m22)"
 chk "l'établissement conventionné passe « à vérifier » : il reste compté, et le détail le dit (dont 1 à vérifier)" "200|mesure|1|$(python3 -c "print(f'{round(1/$NCOM,3):g}')")|$NCOM|1|1" \
@@ -198,11 +219,11 @@ chk "l'établissement conventionné passe « à vérifier » : il reste compté,
 chk "un établissement « à vérifier » sans convention sort de la cible : 1 sur $((NCOM-1))" "200|mesure|1|$(python3 -c "print(f'{round(1/($NCOM-1),3):g}')")|$((NCOM-1))|1|1" \
     "$(req POST "/etablissements/$C2/statut" '{"statut":"a_verifier","motif":"TEST-SRC doublon probable"}')|$(m22)"
 chk "… le registre ne porte plus que des « à vérifier », dont un sous convention : il reste tenu" "t" \
-    "$(sql "SELECT app._source_tenue_base('$COMMUNE', 'commerces', DATE '$AN-01-01', DATE '$AN-12-31', NULL)")"
+    "$(sql "SELECT app._source_tenue_base('$COMMUNE', 'commerces', DATE '$ANC-01-01', DATE '$ANC-12-31', NULL)")"
 chk "confirmés actifs, ils reviennent : 1 sur $NCOM, dont 0 à vérifier" "200|200|mesure|1|$(python3 -c "print(f'{round(1/$NCOM,3):g}')")|$NCOM|1|0" \
     "$(req POST "/etablissements/$C1/statut" '{"statut":"actif","motif":"TEST-SRC vérifié sur place"}')|$(req POST "/etablissements/$C2/statut" '{"statut":"actif","motif":"TEST-SRC vérifié sur place"}')|$(m22)"
 chk "un établissement fermé, même sous convention, n'est jamais compté" "200|mesure|0|0|$((NCOM-1))|0|0" \
-    "$(req POST "/etablissements/$C1/statut" "{\"statut\":\"ferme\",\"date\":\"$AN-12-31\",\"motif\":\"TEST-SRC fermeture constatée\"}")|$(m22)"
+    "$(req POST "/etablissements/$C1/statut" "{\"statut\":\"ferme\",\"date\":\"$JOUR\",\"motif\":\"TEST-SRC fermeture constatée\"}")|$(m22)"
 req POST "/etablissements/$C1/statut" '{"statut":"actif","motif":"TEST-SRC rouvert pour la suite"}' >/dev/null
 declarer '{"ECO-CARBURANT":{"valeur":99999}}'
 chk "carburant déclaré seul" "renseigne|declare|99999" "$(etat ECO-CARBURANT | cut -d'|' -f1-3)"
