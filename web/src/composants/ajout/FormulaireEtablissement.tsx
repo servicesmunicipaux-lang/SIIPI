@@ -29,7 +29,7 @@ import { CadreAjout, champAjout } from './CadreAjout';
 type Unite = NonNullable<SaisieEtablissement['uniteEchelle']>;
 
 // Le jour à Tunis : la catégorie se vérifie en vigueur ce jour-là.
-const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
+export const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0, 10);
 
 /** Le matricule tel que la base le gardera (majuscules, sans espace ni barre). */
 const normaliserMatricule = (m: string) => m.toUpperCase().replace(/[\s./\\-]/g, '');
@@ -41,7 +41,7 @@ function lireNombre(v: string): number | null {
   return s === '' ? null : Number(s);
 }
 
-function categoriesDuJour(elements: ElementListeAssimiles[], jour: string) {
+export function categoriesDuJour(elements: ElementListeAssimiles[], jour: string) {
   return elements.filter((e) => !e.retire_le && e.date_effet && e.date_effet <= jour && (!e.date_fin || e.date_fin > jour));
 }
 

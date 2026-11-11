@@ -17315,6 +17315,648 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/etablissements/import/colonnes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lire les colonnes d’un fichier à importer (liste TCL, open data)
+         * @description CSV ou Excel (.xlsx, première feuille), tel que la commune le tient. Rend ses en-têtes, trois lignes d’exemple et la correspondance proposée : le modèle enregistré par la commune pour ce type de fichier, sinon d’après les en-têtes usuels. Rien n’est écrit. Le directeur de la commune ; la FNCT lit (403).
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        source: "import_tcl" | "open_data";
+                        nomFichier: string;
+                        contenu: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Colonnes et correspondance proposée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            fichier: string;
+                            /** @enum {string} */
+                            source: "import_tcl" | "open_data";
+                            /** @description La feuille lue, pour un classeur Excel (la première seulement). */
+                            feuille: string | null;
+                            avertissements: string[];
+                            /** @description Lignes de données (sans l’en-tête). */
+                            lignes: number;
+                            /** @description Les en-têtes du fichier, rendus uniques (« Colonne 3 » pour un en-tête vide). */
+                            entetes: string[];
+                            /** @description Les trois premières lignes, pour reconnaître les colonnes. */
+                            exemples: string[][];
+                            champs: {
+                                /** @enum {string} */
+                                cle: "nom" | "activite" | "matricule_fiscal" | "adresse" | "latitude" | "longitude" | "precision_m" | "surface_m2";
+                                fr: string;
+                                ar: string;
+                                obligatoire: boolean;
+                            }[];
+                            correspondance: {
+                                nom?: string | null;
+                                activite?: string | null;
+                                matricule_fiscal?: string | null;
+                                adresse?: string | null;
+                                latitude?: string | null;
+                                longitude?: string | null;
+                                precision_m?: string | null;
+                                surface_m2?: string | null;
+                            };
+                            /** @description enregistree : le modèle de la commune pour ce type de fichier ; proposee : d’après les en-têtes usuels ; aucune. */
+                            provenance: {
+                                /** @enum {string} */
+                                nom?: "enregistree" | "proposee" | "aucune";
+                                /** @enum {string} */
+                                activite?: "enregistree" | "proposee" | "aucune";
+                                /** @enum {string} */
+                                matricule_fiscal?: "enregistree" | "proposee" | "aucune";
+                                /** @enum {string} */
+                                adresse?: "enregistree" | "proposee" | "aucune";
+                                /** @enum {string} */
+                                latitude?: "enregistree" | "proposee" | "aucune";
+                                /** @enum {string} */
+                                longitude?: "enregistree" | "proposee" | "aucune";
+                                /** @enum {string} */
+                                precision_m?: "enregistree" | "proposee" | "aucune";
+                                /** @enum {string} */
+                                surface_m2?: "enregistree" | "proposee" | "aucune";
+                            };
+                            modeleEnregistre: boolean;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/etablissements/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer une liste d’établissements : l’aperçu, puis l’écriture
+         * @description Avec la correspondance des colonnes retenue. valider: false rend l’aperçu ligne par ligne sans rien écrire ; valider: true relit le fichier, le rapproche de nouveau et écrit ses seules lignes valides en une transaction, puis garde la correspondance pour l’import suivant. Même matricule : rattaché (cases vides remplies, différences montrées, jamais écrasées) ; même raison sociale ou moins de 5 m : créé « à vérifier », le doublon nommé ; une activité sans catégorie attend sa correspondance. Un jeu open data exige sa licence et son producteur.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        source: "import_tcl" | "open_data";
+                        nomFichier: string;
+                        contenu: string;
+                        correspondance: {
+                            nom?: string | null;
+                            activite?: string | null;
+                            matricule_fiscal?: string | null;
+                            adresse?: string | null;
+                            latitude?: string | null;
+                            longitude?: string | null;
+                            precision_m?: string | null;
+                            surface_m2?: string | null;
+                        };
+                        licence?: string | null;
+                        producteur?: string | null;
+                        urlSource?: string | null;
+                        precisionFichier?: number | null;
+                        /** @default false */
+                        valider?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Aperçu (rien n’est écrit). */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            fichier: string;
+                            /** @enum {string} */
+                            source: "import_tcl" | "open_data";
+                            feuille: string | null;
+                            avertissements: string[];
+                            resume: {
+                                creer: number;
+                                a_verifier: number;
+                                rattacher: number;
+                                inchange: number;
+                                sans_categorie: number;
+                                erreur: number;
+                            };
+                            /** @description Les activités du fichier sans catégorie : à faire correspondre (PUT /etablissements/correspondances-activites), jamais devinées. */
+                            activitesSansCategorie: {
+                                activite: string;
+                                lignes: number;
+                            }[];
+                            lignes: {
+                                /** @description Ligne du fichier, en-tête compris (la première ligne de données est la 2). */
+                                numero: number;
+                                /** @enum {string} */
+                                action: "creer" | "a_verifier" | "rattacher" | "inchange" | "sans_categorie" | "erreur";
+                                nom: string;
+                                activite: string | null;
+                                categorie_activite: string | null;
+                                /** @enum {string|null} */
+                                categorie_provenance: "correspondance" | "libelle" | null;
+                                erreurs: string[];
+                                /** @description Pour « à vérifier » : le doublon probable, nommé — jamais fusionné. */
+                                doublon: {
+                                    nom: string;
+                                    /** @enum {string} */
+                                    raison: "meme_nom" | "proche";
+                                    distance_m: number | null;
+                                    ligne: number | null;
+                                    /** Format: uuid */
+                                    id: string | null;
+                                } | null;
+                                rattache_a: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    nom: string;
+                                    statut: string;
+                                } | null;
+                                /** @description Ce que le rattachement remplit : des cases vides seulement. */
+                                remplis: string[];
+                                /** @description Ce qui diffère de l’inscrit : montré, jamais écrasé. */
+                                differences: {
+                                    champ: string;
+                                    inscrit: string;
+                                    fichier: string;
+                                }[];
+                                avertissements: string[];
+                            }[];
+                            ecrit: boolean;
+                            /** Format: uuid */
+                            importId?: string;
+                            crees?: number;
+                            aVerifier?: number;
+                            rattaches?: number;
+                        };
+                    };
+                };
+                /** @description Import écrit. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            fichier: string;
+                            /** @enum {string} */
+                            source: "import_tcl" | "open_data";
+                            feuille: string | null;
+                            avertissements: string[];
+                            resume: {
+                                creer: number;
+                                a_verifier: number;
+                                rattacher: number;
+                                inchange: number;
+                                sans_categorie: number;
+                                erreur: number;
+                            };
+                            /** @description Les activités du fichier sans catégorie : à faire correspondre (PUT /etablissements/correspondances-activites), jamais devinées. */
+                            activitesSansCategorie: {
+                                activite: string;
+                                lignes: number;
+                            }[];
+                            lignes: {
+                                /** @description Ligne du fichier, en-tête compris (la première ligne de données est la 2). */
+                                numero: number;
+                                /** @enum {string} */
+                                action: "creer" | "a_verifier" | "rattacher" | "inchange" | "sans_categorie" | "erreur";
+                                nom: string;
+                                activite: string | null;
+                                categorie_activite: string | null;
+                                /** @enum {string|null} */
+                                categorie_provenance: "correspondance" | "libelle" | null;
+                                erreurs: string[];
+                                /** @description Pour « à vérifier » : le doublon probable, nommé — jamais fusionné. */
+                                doublon: {
+                                    nom: string;
+                                    /** @enum {string} */
+                                    raison: "meme_nom" | "proche";
+                                    distance_m: number | null;
+                                    ligne: number | null;
+                                    /** Format: uuid */
+                                    id: string | null;
+                                } | null;
+                                rattache_a: {
+                                    /** Format: uuid */
+                                    id: string;
+                                    nom: string;
+                                    statut: string;
+                                } | null;
+                                /** @description Ce que le rattachement remplit : des cases vides seulement. */
+                                remplis: string[];
+                                /** @description Ce qui diffère de l’inscrit : montré, jamais écrasé. */
+                                differences: {
+                                    champ: string;
+                                    inscrit: string;
+                                    fichier: string;
+                                }[];
+                                avertissements: string[];
+                            }[];
+                            ecrit: boolean;
+                            /** Format: uuid */
+                            importId?: string;
+                            crees?: number;
+                            aVerifier?: number;
+                            rattaches?: number;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description La base a changé pendant l’import : rien n’a été écrit. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/etablissements/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le journal des imports d’établissements
+         * @description Chaque import validé : fichier et empreinte, licence et producteur (open data), correspondance, comptes. Ne se modifie pas.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Imports, du plus récent au plus ancien. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            commune_id: string;
+                            /** @enum {string} */
+                            source: "import_tcl" | "open_data";
+                            nom_fichier: string;
+                            empreinte_fichier: string;
+                            licence: string | null;
+                            producteur: string | null;
+                            url_source: string | null;
+                            precision_declaree: number | null;
+                            correspondance: {
+                                [key: string]: string | null;
+                            };
+                            nb_crees: number;
+                            nb_a_verifier: number;
+                            nb_rattaches: number;
+                            nb_inchanges: number;
+                            nb_sans_categorie: number;
+                            nb_erreurs: number;
+                            saisi_par_nom: string | null;
+                            created_at: string;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/etablissements/correspondances-activites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les correspondances activité → catégorie de la commune */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Correspondances, par activité. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            commune_id: string;
+                            activite: string;
+                            categorie_activite: string;
+                            categorie_activite_fr?: string | null;
+                            categorie_activite_ar?: string | null;
+                            en_vigueur?: boolean;
+                            updated_at: string;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Poser ou corriger la catégorie d’une activité du fichier
+         * @description Une catégorie en vigueur aujourd’hui (liste nationale). Une par activité et par commune ; se corrige, ne se supprime pas. Le directeur de la commune.
+         */
+        put: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        activite: string;
+                        categorieActivite: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Correspondance enregistrée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            commune_id: string;
+                            activite: string;
+                            categorie_activite: string;
+                            categorie_activite_fr?: string | null;
+                            categorie_activite_ar?: string | null;
+                            en_vigueur?: boolean;
+                            updated_at: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/acteurs-informels": {
         parameters: {
             query?: never;

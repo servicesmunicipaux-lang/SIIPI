@@ -3193,7 +3193,8 @@
         "modifie": "Fiche modifiée.",
         "ferme": "Établissement fermé : il reste dans la liste, avec sa date de fermeture.",
         "a_verifier": "Établissement signalé à vérifier.",
-        "actif": "Établissement actif."
+        "actif": "Établissement actif.",
+        "importe": "Import enregistré : son bilan est au journal des imports, en bas de la liste. Les établissements « à vérifier » attendent votre décision."
       },
       "filtres": {
         "statut": "Statut",
@@ -3263,6 +3264,12 @@
         "enregistrer": "Enregistrer l’identité",
         "retirer": "Retirer l’identité",
         "confirmerRetrait": "Retirer l’identité du responsable de cet établissement ?"
+      },
+      "importer": "Importer une liste",
+      "imports": {
+        "titre": "Imports",
+        "comptes": "{{crees}} créé(s), {{aVerifier}} à vérifier, {{rattaches}} complété(s), {{attente}} en attente de catégorie, {{erreurs}} erreur(s).",
+        "licence": "Licence : {{licence}} — producteur : {{producteur}}."
       }
     }
   },
@@ -3366,7 +3373,8 @@
       "bon-travail": "Un bon de travail",
       "declaration-panne": "Une déclaration de panne",
       "boitier-gps": "Un boîtier GPS",
-      "grille-tarifaire": "Grille tarifaire"
+      "grille-tarifaire": "Grille tarifaire",
+      "import-etablissements": "La liste TCL ou un jeu open data (CSV, Excel)"
     },
     "precisions": {
       "circuit": "Avec son fichier GPX, KML ou GeoJSON",
@@ -3605,6 +3613,79 @@
         "actif": "actif",
         "ferme": "fermé",
         "a_verifier": "à vérifier"
+      }
+    },
+    "importEtablissements": {
+      "titre": "Importer une liste d’établissements",
+      "aide": "La liste TCL de la commune, ou un jeu de données ouvertes, en CSV ou en Excel (.xlsx), tels qu’ils sont : vous indiquez quelle colonne porte quoi, SIIPI garde ce choix pour la prochaine fois. Rien n’est enregistré avant la dernière étape.",
+      "etapes": {
+        "fichier": "1. Le fichier",
+        "colonnes": "2. Les colonnes — {{fichier}}, {{lignes}} lignes",
+        "apercu": "3. L’aperçu"
+      },
+      "sources": {
+        "import_tcl": "Liste TCL de la commune",
+        "open_data": "Jeu de données ouvertes (open data)"
+      },
+      "licence": "Licence du jeu de données",
+      "producteur": "Producteur (qui le publie)",
+      "urlSource": "Adresse de la source (facultative)",
+      "precision": "Précision des positions (m), si le fichier ne la donne pas",
+      "precisionAide": "Sans précision, les positions du fichier sont laissées de côté : SIIPI ne garde pas une position dont il ignore la justesse.",
+      "choisir": "Choisir le fichier (CSV ou Excel)",
+      "autreFichier": "{{fichier}} — choisir un autre fichier",
+      "feuille": "Feuille lue : « {{feuille}} ».",
+      "modeleEnregistre": "Les colonnes reprennent la correspondance que la commune a gardée pour ce type de fichier. Corrigez-la si le fichier a changé.",
+      "modeleNouveau": "Premier import de ce type de fichier : SIIPI propose une colonne pour chaque champ d’après les en-têtes. Vérifiez avec les exemples, corrigez au besoin ; votre choix sera gardé.",
+      "champSiipi": "Champ de SIIPI",
+      "colonneFichier": "Colonne de votre fichier",
+      "exemples": "Exemples (premières lignes)",
+      "obligatoire": "obligatoire",
+      "aucuneColonne": "— aucune —",
+      "provenances": {
+        "enregistree": "Gardée par la commune",
+        "proposee": "Proposée",
+        "aucune": "À choisir",
+        "modifiee": "Modifiée"
+      },
+      "voirApercu": "Voir l’aperçu",
+      "relireApercu": "Relire l’aperçu",
+      "actions": {
+        "creer": "À créer",
+        "a_verifier": "À vérifier",
+        "rattacher": "À rattacher",
+        "inchange": "Inchangé",
+        "sans_categorie": "Sans catégorie",
+        "erreur": "Erreur"
+      },
+      "sansCategorie": {
+        "titre": "Des activités du fichier n’ont pas encore de catégorie",
+        "aide": "SIIPI ne devine pas une catégorie. Choisissez-la une fois pour chaque activité : la correspondance est gardée par la commune, et sert aux imports suivants.",
+        "lignes": "{{n}} ligne(s)",
+        "choisir": "Catégorie de « {{activite}} »",
+        "enregistrer": "Enregistrer"
+      },
+      "ligne": "Ligne {{n}}",
+      "detail": {
+        "memeNom": "Doublon probable : même raison sociale que « {{nom}} ».",
+        "proche": "Doublon probable : à {{distance}} m de « {{nom}} ».",
+        "ligneFichier": "(ligne {{n}} du fichier)",
+        "rattache": "Même matricule que « {{nom}} » :",
+        "remplis": "se remplissent {{champs}} (cases vides seulement).",
+        "difference": "{{champ}} diffère — inscrit : « {{inscrit}} », fichier : « {{fichier}} ». Gardé tel quel.",
+        "rienARemplir": "rien à remplir, ses cases sont déjà renseignées."
+      },
+      "tronque": "{{n}} lignes affichées sur {{total}}, les erreurs et ce qui attend d’abord.",
+      "valider": "Importer ({{n}} lignes)",
+      "bilan": "Import enregistré : {{crees}} établissement(s) créé(s), {{aVerifier}} à vérifier, {{rattaches}} complété(s).",
+      "problemes": {
+        "licence": "La licence du jeu de données est obligatoire (2 caractères au moins).",
+        "producteur": "Le producteur du jeu de données est obligatoire (2 caractères au moins).",
+        "url": "L’adresse de la source commence par http:// ou https://.",
+        "precision": "La précision est un nombre de mètres, de 1 à 1 000.",
+        "obligatoire": "« {{champ}} » : choisissez la colonne du fichier qui la porte.",
+        "memeColonne": "La colonne « {{colonne}} » ne peut pas servir à la fois « {{a}} » et « {{b}} ».",
+        "position": "Une position se lit avec sa latitude ET sa longitude : choisissez les deux colonnes, ou aucune."
       }
     }
   },

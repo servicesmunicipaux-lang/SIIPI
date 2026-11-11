@@ -16,7 +16,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type Etablissement, type IdentiteEtablissement, type StatutEtablissement } from '../../lib/api';
+import { api, ErreurApi, type Etablissement, type IdentiteEtablissement, type ImportEtablissementsJournal, type StatutEtablissement } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useFormats } from '../../lib/formats';
 import { formaterNombre } from '../../i18n';
@@ -80,6 +80,18 @@ export function Etablissements({ communeId }: { communeId: string }) {
     setMessage(t('communal.etablissements.messages.inscrit'));
     await charger();
   });
+  // Le journal des imports : chaque fichier, sa source et, pour l'open data, sa licence.
+  const [imports, setImports] = useState<ImportEtablissementsJournal[]>([]);
+  const chargerImports = useCallback(() => {
+    api.importsEtablissements(communeId).then(setImports).catch(() => setImports([]));
+  }, [communeId]);
+  useEffect(() => chargerImports(), [chargerImports]);
+  const importer = useAjoutEnLigne('import-etablissements', communeId, t('communal.etablissements.importer'), async () => {
+    // Le formulaire se referme : le bilan se dit ici, et le détail reste au journal des imports.
+    setMessage(t('communal.etablissements.messages.importe'));
+    await charger();
+    chargerImports();
+  });
 
   const changerStatut = async () => {
     if (!geste) return;
@@ -120,11 +132,13 @@ export function Etablissements({ communeId }: { communeId: string }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {ajout.bouton}
+          {importer.bouton}
           <BoutonExport chemin={cheminExport} desactive={liste.length === 0} />
         </div>
       </header>
       {!peutEcrire && <p className="rounded-lg bg-ardoise-50 p-3 text-sm text-ardoise-700">{t('communal.etablissements.lectureSeule')}</p>}
       {ajout.formulaire}
+      {importer.formulaire}
       {message && (
         <p role="status" className="rounded-lg bg-siipi-50 p-3 text-sm text-siipi-800">
           {message}
@@ -275,6 +289,33 @@ export function Etablissements({ communeId }: { communeId: string }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {imports.length > 0 && (
+        <section className="space-y-2" aria-labelledby="journal-imports">
+          <h2 id="journal-imports" className="text-base font-semibold text-ardoise-900">{t('communal.etablissements.imports.titre')}</h2>
+          <ul className="space-y-2">
+            {imports.map((i) => (
+              <li key={i.id} className="rounded-lg border border-ardoise-200 bg-white p-3 text-sm">
+                <p className="font-medium text-ardoise-900">
+                  {i.nom_fichier} <span className="font-normal text-ardoise-500">— {t(`ajout.importEtablissements.sources.${i.source}`)}, {f.date(i.created_at)}</span>
+                </p>
+                <p className="text-xs text-ardoise-600">
+                  {t('communal.etablissements.imports.comptes', {
+                    crees: nombre(i.nb_crees),
+                    aVerifier: nombre(i.nb_a_verifier),
+                    rattaches: nombre(i.nb_rattaches),
+                    attente: nombre(i.nb_sans_categorie),
+                    erreurs: nombre(i.nb_erreurs),
+                  })}
+                </p>
+                {i.licence && (
+                  <p className="text-xs text-ardoise-600">{t('communal.etablissements.imports.licence', { licence: i.licence, producteur: i.producteur ?? '—' })}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );
