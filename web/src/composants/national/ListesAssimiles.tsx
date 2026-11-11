@@ -111,6 +111,7 @@ function CarteListe(props: { liste: Liste; elements: Element[]; onFait: (m: stri
     unites: [] as Unite[],
     dangereux: false,
     datePublication: '',
+    abrogeParCode: '',
   };
   const [s, setS] = useState(vide);
   const [geste, setGeste] = useState<Geste | null>(null);
@@ -135,7 +136,7 @@ function CarteListe(props: { liste: Liste; elements: Element[]; onFait: (m: stri
         reference: s.reference.trim() || null,
         ...(categorie ? { unitesEchelle: UNITES.filter((u) => s.unites.includes(u)) } : {}),
         ...(flux ? { dangereux: s.dangereux } : {}),
-        ...(legale ? { datePublication: s.datePublication || null } : {}),
+        ...(legale ? { datePublication: s.datePublication || null, abrogeParCode: s.abrogeParCode.trim() || null } : {}),
       });
       setS(vide);
       onFait(t(cle('messages.ajoute')));
@@ -188,11 +189,15 @@ function CarteListe(props: { liste: Liste; elements: Element[]; onFait: (m: stri
     setS({ ...s, unites: s.unites.includes(u) ? s.unites.filter((x) => x !== u) : [...s.unites, u] });
 
   const codeInvalide = s.code.trim() !== '' && !CODE_VALIDE.test(s.code.trim());
+  // Le texte abrogeant se désigne par son code, au même format ; jamais lui-même.
+  const abrogeant = s.abrogeParCode.trim();
+  const abrogeantInvalide = legale && abrogeant !== '' && (!CODE_VALIDE.test(abrogeant) || abrogeant === s.code.trim());
   const ordreInvalide =
     s.ordre.trim() !== '' && !(Number.isInteger(Number(s.ordre)) && Number(s.ordre) >= 0 && Number(s.ordre) <= 10_000);
   const saisieIncomplete =
     !s.code.trim() ||
     codeInvalide ||
+    abrogeantInvalide ||
     ordreInvalide ||
     !s.fr.trim() ||
     !s.ar.trim() ||
@@ -255,6 +260,9 @@ function CarteListe(props: { liste: Liste; elements: Element[]; onFait: (m: stri
                       </p>
                     )}
                     {e.reference && <p className="text-xs text-ardoise-500">{e.reference}</p>}
+                    {e.abroge_par_code && (
+                      <p className="text-xs text-ardoise-600">{t(cle('abrogePar'), { code: e.abroge_par_code })}</p>
+                    )}
                     {e.reference_effet && (
                       <p className="text-xs text-ardoise-500">
                         {t(cle('applicationFixeePar'), { texte: e.reference_effet })}
@@ -404,6 +412,25 @@ function CarteListe(props: { liste: Liste; elements: Element[]; onFait: (m: stri
           {ordreInvalide && <span className="mt-1 block text-xs text-red-800">{t(cle('champs.ordreFormat'))}</span>}
         </label>
 
+        {legale && (
+          <label className="text-sm">
+            <span className="font-medium">{t(cle('champs.abrogeParCode'))}</span>
+            <input
+              value={s.abrogeParCode}
+              onChange={(e) => setS({ ...s, abrogeParCode: e.target.value })}
+              placeholder="dl_2026_4"
+              maxLength={61}
+              dir="ltr"
+              className={champ}
+              aria-invalid={abrogeantInvalide || undefined}
+            />
+            {abrogeantInvalide ? (
+              <span className="mt-1 block text-xs text-red-800">{t(cle('champs.abrogeParCodeFormat'))}</span>
+            ) : (
+              <span className="mt-1 block text-xs text-ardoise-500">{t(cle('champs.abrogeParCodeAide'))}</span>
+            )}
+          </label>
+        )}
         {legale && (
           <label className="text-sm">
             <span className="font-medium">{t(cle('champs.datePublication'))}</span>

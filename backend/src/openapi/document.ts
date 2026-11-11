@@ -2829,7 +2829,7 @@ const DocumentEmis = registry.register(
   z.object({
     id: z.string().uuid(),
     commune_id: z.string(),
-    type_document: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur']),
+    type_document: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete']),
     exercice: z.number().int(),
     numero: z.number().int().openapi({ description: 'Rang continu dans le registre commune × type × exercice. Jamais réutilisé.' }),
     numero_affiche: z.string().openapi({ example: 'BC-2026-00042' }),
@@ -2861,7 +2861,7 @@ registry.registerPath({
   request: {
     query: z.object({
       communeId: paramCommuneId.optional(),
-      type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur']).optional(),
+      type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete']).optional(),
       exercice: z.number().int().optional(),
       statut: z.enum(['emis', 'annule']).optional(),
     }),
@@ -2887,7 +2887,7 @@ registry.registerPath({
   method: 'get',
   path: '/documents/gabarits',
   tags: ['Documents'],
-  summary: 'Les gabarits des documents scellés (lot 16.2 ; carte de pré-collecteur, lot I2)',
+  summary: 'Les gabarits des documents scellés (lot 16.2 ; carte de pré-collecteur, lot I2 ; convention de propreté, lot G4a)',
   description:
     'Pour chaque type : titres FR/AR, référence, champs (clé, libellés, nature, obligatoire, unité), signatures, et statut — « provisoire » jusqu’à la validation par un chef de dépôt (décision du 16/10/2026). Le contenu d’un document émis doit suivre son gabarit.',
   security: SECURISE,
@@ -2895,7 +2895,7 @@ registry.registerPath({
     200: json(
       z.array(
         z.object({
-          type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur']),
+          type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete']),
           statut: z.enum(['provisoire', 'valide']),
           fr: z.string(),
           ar: z.string(),
@@ -2972,7 +2972,7 @@ registry.registerPath({
   path: '/documents/{id}/annuler',
   tags: ['Documents'],
   summary: 'Annuler un document, avec un motif',
-  description: 'Le numéro reste au registre et le contenu reste lisible. Un document déjà annulé répond 409. Réservé à l’admin de la commune.',
+  description: 'Le numéro reste au registre et le contenu reste lisible. Un document déjà annulé répond 409, comme le texte d’une convention signée (elle se résilie). Réservé à l’admin de la commune.',
   security: SECURISE,
   request: {
     params: z.object({ id: z.string().uuid() }),
@@ -4531,6 +4531,9 @@ const ElementListeAssimiles = registry.register(
     unites_echelle: z.array(z.enum(UNITES_ECHELLE)).nullable().openapi({ description: 'Catégories d’activité : les unités d’échelle du WaCT admises.' }),
     dangereux: z.boolean().nullable().openapi({ description: 'Flux assimilés : à orienter vers sa filière, jamais couvert par une convention.' }),
     date_publication: z.string().nullable().openapi({ description: 'Base légale : la date de publication au JORT.' }),
+    abroge_par_code: z.string().nullable().openapi({
+      description: 'Base légale : le code du texte qui abroge celui-ci ; quand il prend date d’application, celui-ci prend fin le même jour.',
+    }),
     reference_effet: z.string().nullable().openapi({ description: 'Base légale : la pièce qui a fixé après coup la date d’application.' }),
     created_at: z.string(),
     retire_le: z.string().nullable(),
@@ -5122,7 +5125,7 @@ registry.registerPath({
     'Le directeur de la commune ; la FNCT lit (403).',
   security: SECURISE,
   request: { query: qCommuneConventions, body: { content: { 'application/json': { schema: conventionSchema } } } },
-  responses: { ...REPONSES_COMMUNES, 201: json(Convention, 'Brouillon enregistré.') },
+  responses: { ...REPONSES_COMMUNES, 201: json(Convention, 'Brouillon enregistré.'), 409: json(Erreur, 'Établissement fermé ou sans catégorie d’activité.') },
 });
 registry.registerPath({
   method: 'put', path: '/conventions/{id}', tags: [TAG_CONVENTIONS],

@@ -57,10 +57,21 @@ const texte = (min: number, max: number, libelle: string) =>
 // La version d'une convention lue : le xmin de sa ligne, que chaque écriture renouvelle.
 const versionLue = z.string().regex(/^\d{1,20}$/, 'La version de la convention lue est attendue : rouvrez-la, puis recommencez.');
 
-/** Le lendemain d'un an après le début, moins un jour : une convention est annuelle. */
+/**
+ * La fin la plus tardive d'une convention annuelle : la veille du même jour, un an
+ * après. Comme PostgreSQL (date + 1 an) : un 29 février donne le 28 février de
+ * l'année suivante, puis la veille — sans quoi l'écran proposerait une fin que la
+ * base refuse.
+ */
 function finMaximale(debut: string): string {
-  const d = new Date(`${debut}T00:00:00Z`);
-  d.setUTCFullYear(d.getUTCFullYear() + 1);
+  // zod exécute le .refine même quand la date est déjà refusée par son format :
+  // une date illisible ne doit pas lever ici (RangeError, donc 500), mais laisser
+  // le refus du format répondre 400.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(debut)) return '9999-12-31';
+  const [a, m, j] = debut.split('-').map(Number);
+  const jours = new Date(Date.UTC(a + 1, m, 0)).getUTCDate();
+  const d = new Date(Date.UTC(a + 1, m - 1, Math.min(j, jours)));
+  if (Number.isNaN(d.getTime())) return '9999-12-31';
   d.setUTCDate(d.getUTCDate() - 1);
   return d.toISOString().slice(0, 10);
 }
@@ -149,6 +160,9 @@ const SELECT_CONVENTIONS = `
          CASE
            WHEN cv.nature = 'registre' THEN 'registre'
            WHEN cv.statut IN ('brouillon', 'instruite') THEN cv.statut
+           -- Résiliée avant (ou le jour de) son début, elle ne couvrira jamais un jour :
+           -- « résiliée » tout de suite, jamais « à venir ».
+           WHEN cv.statut = 'resiliee' AND cv.date_resiliation <= cv.date_debut THEN 'resiliee'
            WHEN app.jour_tunis() < cv.date_debut THEN 'a_venir'
            WHEN app.jour_tunis() <= (CASE WHEN cv.date_resiliation IS NOT NULL THEN LEAST(cv.date_fin, cv.date_resiliation - 1) ELSE cv.date_fin END)
              THEN 'active'
@@ -194,6 +208,7 @@ async function lireConvention(id: string) {
 const REFUS: Record<string, number> = {
   REGISTRE_FERME: 409,
   CONVENTION_NAISSANCE: 400,
+  CONVENTION_HORS_PERIMETRE: 404,
   ETABLISSEMENT_FERME: 409,
   CATEGORIE_REQUISE: 409,
   CONVENTION_FIGEE: 409,
@@ -214,6 +229,7 @@ const REFUS: Record<string, number> = {
   SIGNATURE_PIECE: 400,
   RESILIATION_DATE: 400,
   RESILIATION_MOTIF: 400,
+  DOCUMENT_INCOMPLET: 409,
 };
 const CONTRAINTES: Record<string, string> = {
   conventions_annuelle: 'Une convention est annuelle : elle finit au plus tard la veille du même jour, un an après son début.',

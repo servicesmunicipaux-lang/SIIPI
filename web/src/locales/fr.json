@@ -403,7 +403,10 @@
           "pieceApplication": "Pièce qui fixe la date d’application",
           "motif": "Motif du retrait",
           "codeFormat": "Minuscules sans accent, chiffres et tiret bas, 3 à 61 caractères, en commençant par une lettre (ex. : hotel).",
-          "ordreFormat": "Un nombre entier, de 0 à 10 000."
+          "ordreFormat": "Un nombre entier, de 0 à 10 000.",
+          "abrogeParCode": "Abrogé par (code du texte)",
+          "abrogeParCodeAide": "Facultatif : quand ce texte-là prend date d’application, celui-ci prend fin le même jour.",
+          "abrogeParCodeFormat": "Le code d’un texte de la base légale, au même format que le code (ex. : dl_2026_4), et jamais celui de ce texte."
         },
         "gestes": {
           "ajouter": "Ajouter",
@@ -420,7 +423,8 @@
           "ferme": "Élément fermé.",
           "applicationFixee": "Date d’application fixée.",
           "retire": "Élément retiré."
-        }
+        },
+        "abrogePar": "Abrogé par le texte « {{code}} » : il prend fin le jour où celui-ci s’applique."
       }
     },
     "moyenneNationale": {
@@ -3345,7 +3349,8 @@
         "signee": "Convention de « {{etablissement}} » signée : le document scellé est émis.",
         "resiliee": "Convention de « {{etablissement}} » résiliée.",
         "retiree": "Brouillon de « {{etablissement}} » retiré (il reste lisible au journal)."
-      }
+      },
+      "introuvable": "La convention de « {{etablissement}} » est introuvable : elle a été retirée entre-temps. La liste est à jour."
     }
   },
   "ajout": {
@@ -4577,7 +4582,7 @@
       "terminer": "Terminer",
       "termine": "Nettoyage terminé."
     },
-    "etablissementsAilleurs": "Les établissements s’inscrivent, se modifient et se ferment dans l’écran « Établissements » (pôle Pilotage). Les conventions ci-dessous les choisissent dans cette liste.",
+    "etablissementsAilleurs": "Les établissements s’inscrivent, se modifient et se ferment dans l’écran « Établissements » du pôle Pilotage.",
     "conventionsAilleurs": "Les conventions de propreté se rédigent, s’instruisent, se signent et se résilient dans l’écran « Conventions » du pôle Pilotage."
   },
   "gouvernorats": {

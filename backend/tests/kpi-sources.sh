@@ -274,10 +274,12 @@ echo "9. Aucune commune réelle n'a reçu de ligne (JC-011, JC-012)"
 chk "la commune de test porte bien les registres de la campagne (engins, agents, lieux, paramètres)" "t|t|t|1" \
     "$([ "$(sql "SELECT count(*) FROM vehicules WHERE commune_id = '$COMMUNE'")" -ge 1 ] && echo t || echo f)|$([ "$(sql "SELECT count(*) FROM personnel WHERE commune_id = '$COMMUNE'")" -ge 1 ] && echo t || echo f)|$([ "$(sql "SELECT count(*) FROM poi WHERE commune_id = '$COMMUNE'")" -ge 1 ] && echo t || echo f)|$(sql "SELECT count(*) FROM parametres_commune WHERE commune_id = '$COMMUNE'")"
 base_reelle_intacte "pendant la campagne"
+rendre_tables_nationales
 nettoyer
 chk "ses communes de test, leurs registres et ses directeurs sont effacés" "0|0|0" \
     "$(sql "SELECT count(*) FROM communes WHERE id IN ($ESSAI)")|$(sql "SELECT count(*) FROM vehicules WHERE commune_id IN ($ESSAI)")|$(sql "SELECT count(*) FROM users WHERE email LIKE 'test.compte.%@siipi.tn'")"
 base_reelle_intacte "en partant"
+tables_nationales_rendues "en partant"
 echo
 echo "----------------------------------------------------------------"
 printf '  %s réussis, %s échecs\n' "$pass" "$fail"

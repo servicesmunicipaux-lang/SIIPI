@@ -5,6 +5,97 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.95] — 2026-11-11 — Jalon G, lot G4a : les conventions de propreté
+
+Le lot G4a du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 1, § 3.4, § 8 ; décisions du 4 novembre
+et du 11 novembre 2026 : les neuf propositions de G4, et la base légale pré-remplie). Une convention lie un
+établissement (G2) à la grille tarifaire approuvée de la commune (G1) ; signée, elle devient un document scellé. Les
+avenants et le renouvellement viennent au lot G4b ; le montant dû, à l'assiette (G6).
+
+### Ajouté
+- **Le cycle de vie** (migration 103, sur `conventions_commerciales`) : brouillon → instruite → signée → résiliée. Les
+  statuts gardés en base sont ceux-là ; **« à venir », « active » et « expirée » se calculent d'après les dates**, à
+  Tunis — aucun passage de nuit ne les écrit. Chaque geste passe par une fonction de la base, **sous verrou de la
+  convention et de l'établissement**, avec **la version lue** (le xmin), refusé en 409 si la convention a changé :
+  - **l'instruction** (`app.instruire_convention`) : une grille **approuvée en vigueur à la date de début**, son
+    **tarif pour la catégorie** de l'établissement, **au moins un flux** de la liste nationale et **aucun dangereux**,
+    un établissement **non fermé** (« à vérifier » est admis), **aucun chevauchement** avec une convention signée du
+    même établissement. Chaque refus dit ce qui manque ; la grille, le mode et le tarif sont retenus ;
+  - **la reprise** en brouillon d'une convention instruite, pour la corriger ;
+  - **la signature** (`app.signer_convention`) : tout se vérifie de nouveau ; la date est passée et la pièce citée ;
+    **le document scellé `convention_proprete` est émis** (préfixe **CV**, numéro continu par commune et par exercice),
+    qui recopie **la base légale en vigueur le jour de la signature** (intitulés et dates du JORT), la grille et son
+    arrêté, le tarif et les déchets couverts. **Aucun montant dû n'y figure** (lot G6). La signature n'est refusée que
+    si aucun texte n'est en vigueur ce jour-là. Son document **ne s'annule pas** : la convention se résilie ;
+  - **la résiliation** (`app.resilier_convention`) : sa date d'effet (le premier jour sans convention), entre la
+    signature et la fin, un motif et une pièce ; le document signé reste tel quel.
+
+  Une convention est **annuelle** (au plus un an). Un brouillon se modifie et se retire (il reste en base) ; une
+  convention signée ne se modifie plus, en base non plus.
+- **Les lignes d'une convention** (`lignes_convention`) : un flux de la liste nationale des déchets assimilés (un flux
+  dangereux est refusé : il va vers sa filière), le conteneur affecté s'il y en a un, de 1 à 21 levées par semaine, le
+  volume estimé par levée.
+- **La base légale pré-remplie** (décision du 11 novembre 2026) : la loi n° 96-41, le Code de la fiscalité locale, la
+  loi organique n° 2018-29 et le décret-loi n° 4 du 30 septembre 2026 (JORT n° 96), **sans date d'application** tant
+  que la FNCT ne l'a pas fixée. Ces textes sont **provisoires**, à vérifier au JORT par la FNCT, qui les corrige, en
+  ajoute, en ferme ou en retire depuis les paramètres nationaux. **L'abrogation est une donnée** (`abroge_par_code`,
+  le code du texte abrogeant, que la FNCT pose à l'inscription) : quand la date d'application du décret-loi se fixe, la
+  loi organique n° 2018-29 prend fin le même jour, avec sa pièce. Le lien suit le **code**, pas une ligne : un texte
+  corrigé (retiré puis réinscrit) reste lié, et un texte réinscrit — ou daté — après que son abrogeant a pris date
+  prend fin aussitôt. Un texte qui s'appliquerait le jour de son abrogation ou après est **refusé en mots** (jamais
+  laissé « en vigueur ») ; deux écritures simultanées de la FNCT passent l'une après l'autre (verrou par code).
+- **M2-2** compte une convention **dès sa signature**, sur sa période effective (jusqu'à la veille d'une
+  résiliation) ; un brouillon ou une convention instruite ne comptent pas. Une seule définition, la vue
+  `conventions_comptees`, sert l'indicateur et les écrans « sous convention ».
+- Routes `/conventions` (liste, détail, brouillon, remplacement, retrait, instruction, reprise, signature,
+  résiliation), documentées dans le contrat. Le directeur écrit ; la FNCT lit sans geste (403) ; un prestataire ne
+  voit rien.
+- L'écran « Conventions » du pôle Pilotage : la liste par statut, l'état calculé, les gestes de l'état présent, le
+  détail des déchets couverts, l'impression A4 bilingue du document (« modèle provisoire » jusqu'à la validation du
+  gabarit) ; le formulaire unique du registre « + Ajouter » (`ajout/FormulaireConvention.tsx`), qui ne propose ni un
+  établissement fermé ni un flux dangereux. En français et en arabe.
+
+- **Deux relectures adversariales du lot, corrigées avant la livraison :**
+  - une convention **résiliée avant son début** (ou le jour même) ne couvre aucun jour : elle est « résiliée », jamais
+    « à venir », et **ne compte pas pour M2-2** ;
+  - hors du périmètre de l'appelant, une convention est introuvable (404) **avant tout autre contrôle**, même quand le
+    directeur d'une autre commune vise la commune de l'établissement ; un établissement d'une autre commune, ou
+    inexistant, est introuvable — dire qu'il est fermé renseignerait sur son existence ;
+  - le document d'une convention **ne naît que de sa signature** : la route générique d'émission le refuse en mots, et
+    la base aussi (il désigne une convention instruite, sans document) ;
+  - un texte inscrit ou daté par l'API est **relu** : la réponse dit s'il est né clos ;
+  - une date de début illisible répond 400, jamais 500 ; un geste sur une convention retirée ailleurs se dit en tête
+    de l'écran ; le code du texte abrogeant se vérifie dans l'écran avant l'envoi ;
+  - la signature vérifie que **toutes les cases requises du gabarit** sont dans le contenu avant d'émettre ; la grille
+    s'imprime même sans intitulé ; le montant du tarif s'écrit **indépendamment de la locale du serveur** (sur un
+    serveur en français, 120 DT se serait imprimé « 120 000 DT ») ;
+  - le **document d'une convention** ne s'annule pas **par l'API non plus** (409, qui dit de résilier), et l'écran du
+    registre des documents n'offre plus ce geste ;
+  - la fin la plus tardive d'une convention se calcule **comme la base** (un 29 février) dans l'API et dans l'écran ;
+  - la FNCT désigne le texte abrogeant depuis les paramètres nationaux (« Abrogé par »).
+
+### Modifié
+- `/registres/conventions` ne se lit plus qu'en lecture : la création et le retrait passent par `/conventions`. Les
+  lignes du registre d'avant G4 (aucune dans la base principale) restent, marquées « registre », comptées par M2-2
+  comme avant ; la base refuse qu'on y ajoute une ligne.
+
+### Vérifié
+- Campagne `conventions` (83 contrôles), qui commence par ce que la plateforme refuse ; elle travaille dans des
+  communes de test avec des comptes temporaires, **ses dates comptées depuis le jour** (elle passe le 1er janvier comme
+  le 31 décembre), rend ligne entière la table nationale des listes, et éprouve le cycle entier (résiliation avant le
+  début comprise), le document scellé (toutes les cases requises du gabarit, aucune autre, aucun montant ; l'émission
+  directe et l'annulation refusées en base et par l'API), M2-2, la base légale et tous les chemins de l'abrogation,
+  contradictions refusées comprises (dans des transactions annulées), l'abrogeant inscrit et daté par la FNCT.
+  `documents` compte désormais six gabarits. L'outil `tests/outils/convention_signee.sh` bâtit une convention signée pour les
+  campagnes qui en ont besoin ; `kpi-sources` éprouve M2-2 avec de vraies conventions signées, et prouve en partant
+  qu'elle a rendu la table nationale des listes ligne pour ligne.
+- Écran vérifié sur une commune de test : rédaction, instruction, signature, document imprimé, résiliation ; en arabe
+  (RTL) et sur téléphone, avant les relectures ; leurs retouches d'écran (le refus d'une convention retirée ailleurs,
+  le contrôle du code abrogeant) sont vérifiées par le typage et le lint seulement.
+- Critère complet sur base neuve (migrations 000 → 103, la 103 rejouée une seconde fois, chargement dans l'ordre de
+  référence) : contrat **423/423** routes, **89/89** campagnes, **4 078** contrôles réussis, aucun échec ;
+  `audit-blocs` : les 9 blocs sous condition ont tous tourné. Lint backend et web sans erreur.
+
 ## [0.15.94] — 2026-11-11 — Jalon G, lot G2b : l'import des établissements (liste TCL, open data)
 
 Le lot G2b du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 3.2 ; décisions du 4 novembre, G-4 : la

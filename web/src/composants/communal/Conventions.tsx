@@ -119,11 +119,17 @@ export function Conventions({ communeId }: { communeId: string }) {
       // La convention a changé, ou une condition manque : la liste se relit d'abord
       // (sinon le prochain essai partirait encore avec l'ancienne version), puis le
       // refus s'affiche dans la carte.
-      if (err instanceof ErreurApi && err.statut === 409) {
+      if (err instanceof ErreurApi && (err.statut === 409 || err.statut === 404)) {
         await charger();
         if (ouverte?.id === c.id) setOuverte(await api.convention(c.id).catch(() => null));
       }
-      setRefusCarte({ id: c.id, texte });
+      // Introuvable (retirée dans un autre onglet) : sa carte disparaît à la relecture,
+      // le refus se dit donc en tête de l'écran — sinon le geste échouerait en silence.
+      if (err instanceof ErreurApi && err.statut === 404) {
+        setErreur(t('communal.conventions.introuvable', { etablissement: c.etablissement }));
+      } else {
+        setRefusCarte({ id: c.id, texte });
+      }
     } finally {
       setEnvoi(false);
     }
@@ -193,9 +199,11 @@ export function Conventions({ communeId }: { communeId: string }) {
                   communeId={communeId}
                   convention={modifiee}
                   onAnnuler={() => setModifiee(null)}
-                  onFait={async () => {
+                  onFait={async (r) => {
                     setModifiee(null);
                     setMessage(t('communal.conventions.messages.modifiee', { etablissement: c.etablissement }));
+                    // Le détail ouvert montre la convention telle qu'elle vient d'être enregistrée.
+                    if (ouverte?.id === c.id) setOuverte(r ?? null);
                     await charger();
                   }}
                 />

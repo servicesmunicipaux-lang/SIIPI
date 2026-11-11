@@ -53,7 +53,7 @@ const aujourdhui = () => new Date(Date.now() + 3_600_000).toISOString().slice(0,
 
 const COLONNES_ELEMENT = `
   e.id, e.liste, e.code, e.libelle_fr, e.libelle_ar, e.ordre, e.date_effet, e.date_fin, e.reference_fin,
-  e.provisoire, e.reference, e.unites_echelle, e.dangereux, e.date_publication, e.reference_effet,
+  e.provisoire, e.reference, e.unites_echelle, e.dangereux, e.date_publication, e.reference_effet, e.abroge_par_code,
   e.created_at, e.retire_le, e.motif_retrait`;
 
 type Element = { liste: string; date_effet: string | null; date_fin: string | null; retire_le: string | null };
@@ -111,6 +111,14 @@ export const elementAssimileSchema = z
     // Le Journal officiel de la République tunisienne paraît depuis 1956.
     datePublication: dateIso
       .refine((j) => j >= '1956-01-01', 'Une date de publication au JORT ne précède pas 1956.')
+      .nullable()
+      .optional(),
+    // Base légale seulement : le code du texte qui abroge celui-ci. Quand ce texte
+    // prend date d'application, celui-ci prend fin le même jour (migration 103).
+    abrogeParCode: z
+      .string()
+      .trim()
+      .regex(/^[a-z][a-z0-9_]{2,60}$/, 'Le texte abrogeant se désigne par son code (minuscules, chiffres et tiret bas).')
       .nullable()
       .optional(),
   })
@@ -172,6 +180,8 @@ function attributsDeLaListe(liste: string, d: z.infer<typeof elementAssimileSche
     throw new ApiError(400, flux ? 'Un flux assimilé dit s’il est dangereux ou non.' : 'Seul un flux assimilé porte le marqueur « dangereux ».');
   }
   if (!legale && d.datePublication) throw new ApiError(400, 'Seul un texte de la base légale porte une date de publication.');
+  if (!legale && d.abrogeParCode) throw new ApiError(400, 'Seul un texte de la base légale est abrogé par un autre.');
+  if (d.abrogeParCode && d.abrogeParCode === d.code) throw new ApiError(400, 'Un texte ne s’abroge pas lui-même.');
   if (!legale && d.dateEffet === null) throw new ApiError(400, 'La date d’effet est obligatoire, sauf pour un texte de la base légale dont l’application attend un événement.');
   if (legale && d.datePublication && d.dateEffet && d.dateEffet < d.datePublication) {
     throw new ApiError(400, 'Un texte ne s’applique pas avant d’être publié : la date d’application suit la publication.');
@@ -219,16 +229,20 @@ listesAssimilesRouter.post(
     const d = elementAssimileSchema.parse(req.body);
     attributsDeLaListe(liste, d);
     try {
+      const cree = await queryOne<{ id: string }>(
+        `INSERT INTO elements_listes_nationales AS e
+           (liste, code, libelle_fr, libelle_ar, ordre, date_effet, provisoire, reference,
+            unites_echelle, dangereux, date_publication, abroge_par_code, saisi_par)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, app.current_user_id())
+         RETURNING e.id`,
+        [liste, d.code, d.libelleFr, d.libelleAr, d.ordre, d.dateEffet, d.provisoire, d.reference || null,
+         d.unitesEchelle ?? null, d.dangereux ?? null, d.datePublication ?? null, d.abrogeParCode ?? null]
+      );
+      // Relu : un texte dont l'abrogeant a déjà pris date naît clos, par un
+      // déclencheur AFTER que RETURNING ne voit pas.
+      if (!cree) throw new ApiError(500, 'Le texte n’a pas été inscrit ; recommencez.');
       res.status(201).json(
-        await queryOne(
-          `INSERT INTO elements_listes_nationales AS e
-             (liste, code, libelle_fr, libelle_ar, ordre, date_effet, provisoire, reference,
-              unites_echelle, dangereux, date_publication, saisi_par)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, app.current_user_id())
-           RETURNING ${COLONNES_ELEMENT}`,
-          [liste, d.code, d.libelleFr, d.libelleAr, d.ordre, d.dateEffet, d.provisoire, d.reference || null,
-           d.unitesEchelle ?? null, d.dangereux ?? null, d.datePublication ?? null]
-        )
+        await queryOne(`SELECT ${COLONNES_ELEMENT} FROM elements_listes_nationales e WHERE e.id = $1`, [cree.id])
       );
     } catch (err) {
       traduireRefus(err);
@@ -244,14 +258,16 @@ listesAssimilesRouter.post(
     const d = applicationElementSchema.parse(req.body);
     if (!idValide(req.params.id)) throw elementIntrouvable();
     try {
-      const ligne = await queryOne(
+      const fixe = await queryOne<{ id: string }>(
         `UPDATE elements_listes_nationales e SET date_effet = $2, reference_effet = $3
           WHERE e.id = $1 AND e.liste = 'base_legale_assimiles' AND e.retire_le IS NULL AND e.date_effet IS NULL
-          RETURNING ${COLONNES_ELEMENT}`,
+          RETURNING e.id`,
         [req.params.id, d.dateEffet, d.reference]
       );
-      if (!ligne) throw new ApiError(404, 'Texte introuvable, retiré, ou dont la date d’application est déjà fixée.');
-      res.json(ligne);
+      if (!fixe) throw new ApiError(404, 'Texte introuvable, retiré, ou dont la date d’application est déjà fixée.');
+      // Relu : daté, un texte dont l'abrogeant s'applique déjà prend fin aussitôt,
+      // par un déclencheur AFTER que RETURNING ne voit pas.
+      res.json(await queryOne(`SELECT ${COLONNES_ELEMENT} FROM elements_listes_nationales e WHERE e.id = $1`, [fixe.id]));
     } catch (err) {
       if (err instanceof ApiError) throw err;
       traduireRefus(err);

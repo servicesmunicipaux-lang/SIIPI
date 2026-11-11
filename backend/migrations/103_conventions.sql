@@ -25,7 +25,7 @@
 -- s'inscrivent ici (décision du 11 novembre 2026), provisoires ; la FNCT fixe la
 -- date d'application du décret-loi n° 4 de 2026, en ajoute, en ferme ou en retire.
 -- Quand elle fixe cette date, la loi organique n° 2018-29, qu'il abroge, prend
--- fin le même jour : le lien est une donnée (`abroge_par`), pas du code.
+-- fin le même jour : le lien est une donnée (`abroge_par_code`), pas du code.
 --
 -- Le registre simple d'avant G4 (051) reste lisible, en lecture seule, compté par
 -- M2-2 comme avant ; aucune convention ne s'y ajoute plus.
@@ -34,127 +34,112 @@
 -- ---------------------------------------------------------------------------
 -- 1. La base légale : l'abrogation tenue comme une donnée, et les textes connus
 -- ---------------------------------------------------------------------------
-ALTER TABLE elements_listes_nationales ADD COLUMN IF NOT EXISTS abroge_par UUID REFERENCES elements_listes_nationales(id);
-ALTER TABLE elements_listes_nationales DROP CONSTRAINT IF EXISTS elements_abroge_par_liste;
-ALTER TABLE elements_listes_nationales ADD CONSTRAINT elements_abroge_par_liste
-  CHECK (abroge_par IS NULL OR liste = 'base_legale_assimiles');
-COMMENT ON COLUMN elements_listes_nationales.abroge_par IS
-  'Base légale seulement : le texte qui abroge celui-ci. Quand la date d''application du texte abrogeant se fixe, ce texte-ci prend fin le même jour (fin posée par la base, avec sa pièce). Posé à l''inscription, figé ensuite.';
+-- Le texte abrogeant se désigne par son CODE, pas par l'identifiant d'une ligne :
+-- un texte se corrige en le retirant et en l'inscrivant de nouveau (un élément ne
+-- se réécrit pas), et un lien vers une ligne retirée ne fermerait plus rien. Le
+-- code, lui, survit à la correction ; la FNCT le pose à l'inscription.
+ALTER TABLE elements_listes_nationales ADD COLUMN IF NOT EXISTS abroge_par_code TEXT;
+ALTER TABLE elements_listes_nationales DROP CONSTRAINT IF EXISTS elements_abroge_par_code;
+ALTER TABLE elements_listes_nationales ADD CONSTRAINT elements_abroge_par_code CHECK (
+  abroge_par_code IS NULL
+  OR (liste = 'base_legale_assimiles' AND abroge_par_code ~ '^[a-z][a-z0-9_]{2,60}$' AND abroge_par_code <> code));
+COMMENT ON COLUMN elements_listes_nationales.abroge_par_code IS
+  'Base légale seulement : le code du texte qui abroge celui-ci. Quand ce texte prend date d''application (fixée, ou inscrite avec elle), celui-ci prend fin le même jour, avec sa pièce, posée par la base. Posé à l''inscription, figé ensuite.';
 
--- Quand la date d'application d'un texte se fixe (de vide à une date), les textes
--- qu'il abroge prennent fin ce jour-là. Un texte déjà fermé, ou retiré, n'est pas
--- touché : sa fin a été fixée une fois, avec sa propre pièce.
+-- Les deux sens d'une abrogation, tenus par la base, dès qu'un texte prend date
+-- (inscrit avec sa date d'application, ou date fixée ensuite) :
+--   - il est l'abrogeant : les textes ouverts qui le désignent finissent ce jour-là ;
+--   - il est l'abrogé, et son abrogeant a déjà pris date : il finit ce jour-là — dès
+--     sa naissance s'il est inscrit (ou réinscrit après correction) avec sa date.
+-- Un texte abrogé qui s'appliquerait le jour de son abrogation ou après n'aurait
+-- jamais été en vigueur : c'est une saisie contradictoire, refusée en mots, jamais
+-- ignorée (elle laisserait « en vigueur » un texte que la donnée dit abrogé).
+-- Un texte déjà fermé ou retiré n'est pas touché : sa fin a été fixée une fois.
 CREATE OR REPLACE FUNCTION app.appliquer_abrogations() RETURNS trigger
   LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS
 $$
+DECLARE
+  v_abrogeant elements_listes_nationales;
+  v_contraire elements_listes_nationales;
 BEGIN
-  IF NEW.liste = 'base_legale_assimiles' AND OLD.date_effet IS NULL AND NEW.date_effet IS NOT NULL THEN
-    UPDATE elements_listes_nationales a
-       SET date_fin = NEW.date_effet,
-           reference_fin = left('Abrogé par ' || NEW.libelle_fr || ', applicable le '
-                                || to_char(NEW.date_effet, 'DD/MM/YYYY') || ' (' || NEW.reference_effet || ')', 500)
-     WHERE a.abroge_par = NEW.id AND a.date_fin IS NULL AND a.retire_le IS NULL
-       AND a.date_effet IS NOT NULL AND a.date_effet < NEW.date_effet;
+  IF NEW.liste <> 'base_legale_assimiles' OR NEW.retire_le IS NOT NULL
+     OR NEW.date_effet IS NULL OR (TG_OP = 'UPDATE' AND OLD.date_effet IS NOT NULL) THEN
+    RETURN NULL;
+  END IF;
+  -- Deux écritures simultanées de la FNCT (dater l'abrogeant, inscrire l'abrogé) ne
+  -- voient pas chacune la ligne non validée de l'autre : un verrou par code abrogeant,
+  -- pris dans l'ordre pour ne pas s'interbloquer, les fait passer l'une après l'autre,
+  -- et la seconde lit ce que la première a validé.
+  PERFORM pg_advisory_xact_lock(hashtext('abrogation:' || c))
+     FROM unnest(ARRAY[NEW.code, NEW.abroge_par_code]) AS c
+    WHERE c IS NOT NULL
+    ORDER BY c;
+
+  -- Sens 1 : ce texte abroge ceux qui le désignent.
+  SELECT * INTO v_contraire FROM elements_listes_nationales a
+   WHERE a.liste = 'base_legale_assimiles' AND a.abroge_par_code = NEW.code AND a.id <> NEW.id
+     AND a.date_fin IS NULL AND a.retire_le IS NULL AND a.date_effet IS NOT NULL AND a.date_effet >= NEW.date_effet
+   LIMIT 1;
+  IF v_contraire.id IS NOT NULL THEN
+    RAISE EXCEPTION 'ELEMENT_ABROGATION: « % » désigne ce texte comme son abrogeant, mais s''applique le % : un texte abrogé s''applique avant son abrogation. Corrigez l''une des deux dates.',
+      v_contraire.libelle_fr, to_char(v_contraire.date_effet, 'DD/MM/YYYY') USING ERRCODE = 'check_violation';
+  END IF;
+  UPDATE elements_listes_nationales a
+     SET date_fin = NEW.date_effet,
+         reference_fin = left('Abrogé par ' || NEW.libelle_fr || ', applicable le ' || to_char(NEW.date_effet, 'DD/MM/YYYY')
+                              || COALESCE(' (' || NEW.reference_effet || ')', ''), 500)
+   WHERE a.liste = 'base_legale_assimiles' AND a.abroge_par_code = NEW.code AND a.id <> NEW.id
+     AND a.date_fin IS NULL AND a.retire_le IS NULL AND a.date_effet IS NOT NULL AND a.date_effet < NEW.date_effet;
+
+  -- Sens 2 : ce texte est abrogé par un texte qui a déjà pris date.
+  IF NEW.abroge_par_code IS NOT NULL THEN
+    SELECT * INTO v_abrogeant FROM elements_listes_nationales x
+     WHERE x.liste = 'base_legale_assimiles' AND x.code = NEW.abroge_par_code AND x.retire_le IS NULL AND x.date_effet IS NOT NULL
+     ORDER BY x.date_effet LIMIT 1;
+    IF v_abrogeant.id IS NOT NULL THEN
+      IF v_abrogeant.date_effet <= NEW.date_effet THEN
+        RAISE EXCEPTION 'ELEMENT_ABROGATION: ce texte est abrogé par « % », applicable le % : il doit s''appliquer avant cette date. Corrigez la date, ou le texte abrogeant.',
+          v_abrogeant.libelle_fr, to_char(v_abrogeant.date_effet, 'DD/MM/YYYY') USING ERRCODE = 'check_violation';
+      END IF;
+      UPDATE elements_listes_nationales
+         SET date_fin = v_abrogeant.date_effet,
+             reference_fin = left('Abrogé par ' || v_abrogeant.libelle_fr || ', applicable le ' || to_char(v_abrogeant.date_effet, 'DD/MM/YYYY')
+                                  || COALESCE(' (' || v_abrogeant.reference_effet || ')', ''), 500)
+       WHERE id = NEW.id AND date_fin IS NULL;
+    END IF;
   END IF;
   RETURN NULL;
 END
 $$;
 DROP TRIGGER IF EXISTS trg_appliquer_abrogations ON elements_listes_nationales;
-CREATE TRIGGER trg_appliquer_abrogations AFTER UPDATE OF date_effet ON elements_listes_nationales
+CREATE TRIGGER trg_appliquer_abrogations AFTER INSERT OR UPDATE OF date_effet ON elements_listes_nationales
   FOR EACH ROW EXECUTE FUNCTION app.appliquer_abrogations();
 
 -- Les textes connus (décision du 11 novembre 2026), provisoires jusqu'à leur
 -- vérification au JORT par la FNCT. Chacun s'inscrit s'il n'y est pas déjà :
 -- rejouée, la migration n'ajoute rien, et un texte que la FNCT aurait inscrit
--- elle-même sous ce code n'est pas doublé.
-INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, ordre, date_effet, date_publication, provisoire, reference)
-SELECT 'base_legale_assimiles', t.code, t.fr, t.ar, t.ordre, t.effet, t.publication, true, t.reference
+-- elle-même sous ce code n'est pas doublé. La « reference » est la note de travail
+-- de la FNCT ; le document d'une convention n'en cite que l'intitulé et le JORT.
+INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, ordre, date_effet, date_publication, provisoire, reference, abroge_par_code)
+SELECT 'base_legale_assimiles', t.code, t.fr, t.ar, t.ordre, t.effet, t.publication, true, t.reference, t.abroge_par
   FROM (VALUES
     ('loi_1996_41', 'Loi n° 96-41 du 10 juin 1996, relative aux déchets et au contrôle de leur gestion et de leur élimination',
      'القانون عدد 41 لسنة 1996 المؤرخ في 10 جوان 1996 المتعلق بالنفايات وبمراقبة التصرف فيها وإزالتها',
-     10, DATE '1996-06-10', DATE '1996-06-10', 'JORT du 10 juin 1996 — date donnée par la FNCT le 11/11/2026, à vérifier au JORT'),
+     10, DATE '1996-06-10', DATE '1996-06-10', 'JORT du 10 juin 1996 — date donnée par la FNCT le 11/11/2026, à vérifier au JORT', NULL),
     ('code_fiscalite_locale', 'Code de la fiscalité locale',
      'مجلة الجباية المحلية',
-     20, DATE '1997-02-03', DATE '1997-02-03', 'JORT du 3 février 1997 — date donnée par la FNCT le 11/11/2026, à vérifier au JORT'),
+     20, DATE '1997-02-03', DATE '1997-02-03', 'JORT du 3 février 1997 — date donnée par la FNCT le 11/11/2026, à vérifier au JORT', NULL),
     ('lo_2018_29', 'Loi organique n° 2018-29 du 9 mai 2018, relative au Code des collectivités locales',
      'القانون الأساسي عدد 29 لسنة 2018 المؤرخ في 9 ماي 2018 المتعلق بمجلة الجماعات المحلية',
-     30, DATE '2018-05-09', DATE '2018-05-09', 'JORT du 9 mai 2018 — date donnée par la FNCT le 11/11/2026, à vérifier au JORT ; abrogée par l''article 139 du décret-loi n° 4 de 2026')
-  ) AS t(code, fr, ar, ordre, effet, publication, reference)
+     30, DATE '2018-05-09', DATE '2018-05-09', 'JORT du 9 mai 2018 — date donnée par la FNCT le 11/11/2026, à vérifier au JORT ; abrogée par l''article 139 du décret-loi n° 4 de 2026', 'dl_2026_4'),
+    -- Le décret-loi n° 4 de 2026 : publié, applicable après la proclamation des
+    -- résultats des élections municipales (article 136). Sa date d'application reste
+    -- vide ; la FNCT la fixe, avec sa pièce.
+    ('dl_2026_4', 'Décret-loi n° 4 du 30 septembre 2026, relatif aux conseils municipaux',
+     'المرسوم عدد 4 المؤرخ في 30 سبتمبر 2026 المتعلق بالمجالس البلدية',
+     40, NULL, DATE '2026-09-30', 'JORT n° 96 du 30 septembre 2026 ; applicable après la proclamation des résultats des élections municipales (article 136) — date d''application à fixer par la FNCT', NULL)
+  ) AS t(code, fr, ar, ordre, effet, publication, reference, abroge_par)
  WHERE NOT EXISTS (SELECT 1 FROM elements_listes_nationales x WHERE x.liste = 'base_legale_assimiles' AND x.code = t.code);
-
--- Le décret-loi n° 4 de 2026 : publié, applicable après la proclamation des
--- résultats des élections municipales (article 136). Sa date d'application reste
--- vide ; la FNCT la fixe, avec sa pièce.
-INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, ordre, date_effet, date_publication, provisoire, reference)
-SELECT 'base_legale_assimiles', 'dl_2026_4',
-       'Décret-loi n° 4 du 30 septembre 2026, relatif aux conseils municipaux',
-       'المرسوم عدد 4 المؤرخ في 30 سبتمبر 2026 المتعلق بالمجالس البلدية',
-       40, NULL, DATE '2026-09-30', true,
-       'JORT n° 96 du 30 septembre 2026 ; applicable après la proclamation des résultats des élections municipales (article 136) — date d''application à fixer par la FNCT'
- WHERE NOT EXISTS (SELECT 1 FROM elements_listes_nationales x WHERE x.liste = 'base_legale_assimiles' AND x.code = 'dl_2026_4');
-
--- Le lien d'abrogation se pose sur la loi organique, si elle n'en a pas encore.
--- `abroge_par` est figé par le contrôle des éléments (098) : on ne le pose que
--- dans la transaction de la migration, sous un drapeau que le contrôle connaît.
-CREATE OR REPLACE FUNCTION app.controler_element_liste() RETURNS trigger
-  LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS
-$$
-DECLARE
-  v_fige jsonb;
-  v_libres text[] := ARRAY['date_fin', 'reference_fin', 'retire_le', 'retire_par', 'motif_retrait'];
-BEGIN
-  IF TG_OP = 'INSERT' THEN
-    IF NEW.retire_le IS NOT NULL OR NEW.date_fin IS NOT NULL THEN
-      RAISE EXCEPTION 'ELEMENT_NAISSANCE: un élément s''inscrit ouvert ; il se ferme ou se retire ensuite.'
-        USING ERRCODE = 'check_violation';
-    END IF;
-    IF NEW.reference_effet IS NOT NULL THEN
-      RAISE EXCEPTION 'ELEMENT_NAISSANCE: la pièce d''une date d''application ne s''inscrit qu''en la fixant, après coup.'
-        USING ERRCODE = 'check_violation';
-    END IF;
-    RETURN NEW;
-  END IF;
-  IF to_jsonb(NEW) = to_jsonb(OLD) THEN
-    RETURN NEW;
-  END IF;
-  IF OLD.retire_le IS NOT NULL THEN
-    RAISE EXCEPTION 'ELEMENT_FIGE: cet élément est retiré ; il reste lisible tel quel.' USING ERRCODE = 'check_violation';
-  END IF;
-  IF OLD.date_effet IS NULL THEN
-    v_libres := v_libres || ARRAY['date_effet', 'reference_effet'];
-    IF NEW.date_effet IS NOT NULL AND length(btrim(COALESCE(NEW.reference_effet, ''))) < 5 THEN
-      RAISE EXCEPTION 'ELEMENT_EFFET: une date d''application se fixe avec la pièce qui la fonde (proclamation, arrêté).'
-        USING ERRCODE = 'check_violation';
-    END IF;
-    IF NEW.date_effet IS NULL AND NEW.reference_effet IS NOT NULL THEN
-      RAISE EXCEPTION 'ELEMENT_EFFET: une pièce sans date d''application ne fixe rien.' USING ERRCODE = 'check_violation';
-    END IF;
-  END IF;
-  -- Le lien d'abrogation : posé une fois, par la migration qui inscrit les textes.
-  IF OLD.abroge_par IS NULL AND current_setting('app.pose_abrogation', true) = 'oui' THEN
-    v_libres := v_libres || ARRAY['abroge_par'];
-  END IF;
-  v_fige := to_jsonb(NEW) - v_libres;
-  IF v_fige IS DISTINCT FROM (to_jsonb(OLD) - v_libres) THEN
-    RAISE EXCEPTION 'ELEMENT_FIGE: un élément de liste ne se réécrit pas ; fermez-le à une date et ajoutez-en un autre, ou retirez-le s''il était faux.'
-      USING ERRCODE = 'check_violation';
-  END IF;
-  IF OLD.date_fin IS NOT NULL AND (NEW.date_fin, NEW.reference_fin) IS DISTINCT FROM (OLD.date_fin, OLD.reference_fin) THEN
-    RAISE EXCEPTION 'ELEMENT_FERME: cet élément est déjà fermé au %.', to_char(OLD.date_fin, 'DD/MM/YYYY')
-      USING ERRCODE = 'check_violation';
-  END IF;
-  RETURN NEW;
-END
-$$;
-
-SELECT set_config('app.pose_abrogation', 'oui', true);
-UPDATE elements_listes_nationales lo
-   SET abroge_par = dl.id
-  FROM elements_listes_nationales dl
- WHERE lo.liste = 'base_legale_assimiles' AND lo.code = 'lo_2018_29' AND lo.abroge_par IS NULL
-   AND lo.retire_le IS NULL AND lo.date_fin IS NULL
-   AND dl.liste = 'base_legale_assimiles' AND dl.code = 'dl_2026_4' AND dl.retire_le IS NULL;
-SELECT set_config('app.pose_abrogation', '', true);
 
 -- ---------------------------------------------------------------------------
 -- 2. La convention : le registre de 051, étendu
@@ -308,6 +293,28 @@ BEGIN
   RETURN NEW;
 END
 $$;
+-- Le document d'une convention naît de sa signature, et de rien d'autre : il désigne
+-- une convention instruite de la même commune, qui n'a pas encore de document.
+-- La route générique d'émission le refuse déjà ; la base le tient aussi.
+CREATE OR REPLACE FUNCTION app.controler_naissance_document_convention() RETURNS trigger
+  LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS
+$$
+BEGIN
+  IF NEW.type_document = 'convention_proprete' AND NOT (
+       NEW.objet_type = 'convention'
+       AND EXISTS (SELECT 1 FROM conventions_commerciales cv
+                    WHERE cv.id::text = NEW.objet_id AND cv.commune_id = NEW.commune_id
+                      AND cv.statut = 'instruite' AND cv.document_id IS NULL AND cv.deleted_at IS NULL)) THEN
+    RAISE EXCEPTION 'DOCUMENT_CONVENTION: le document d''une convention naît de sa signature (app.signer_convention), jamais d''une émission directe.'
+      USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END
+$$;
+DROP TRIGGER IF EXISTS trg_controler_naissance_document_convention ON documents_emis;
+CREATE TRIGGER trg_controler_naissance_document_convention BEFORE INSERT ON documents_emis
+  FOR EACH ROW EXECUTE FUNCTION app.controler_naissance_document_convention();
+
 DROP TRIGGER IF EXISTS trg_garder_document_convention ON documents_emis;
 CREATE TRIGGER trg_garder_document_convention BEFORE UPDATE ON documents_emis
   FOR EACH ROW EXECUTE FUNCTION app.garder_document_convention();
@@ -324,6 +331,14 @@ DECLARE
   v_editables text[] := ARRAY['type', 'date_debut', 'date_fin', 'exercice', 'observation', 'updated_at'];
 BEGIN
   IF TG_OP = 'INSERT' THEN
+    -- Hors du périmètre de l'appelant, la convention est introuvable, AVANT tout
+    -- autre contrôle. Ce déclencheur (SECURITY DEFINER) passe avant la politique
+    -- d'insertion : sans ce contrôle, le directeur d'une autre commune apprendrait
+    -- qu'un établissement de celle-ci existe et qu'il est fermé (CLAUDE.md § 5).
+    IF NOT app.peut_emettre_document(NEW.commune_id) THEN
+      RAISE EXCEPTION 'CONVENTION_HORS_PERIMETRE: une convention se rédige par le directeur de la commune.'
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
     IF NEW.nature IS DISTINCT FROM 'convention' THEN
       RAISE EXCEPTION 'REGISTRE_FERME: le registre simple d''avant le jalon G ne reçoit plus de ligne ; une convention s''inscrit comme convention.'
         USING ERRCODE = 'check_violation';
@@ -331,8 +346,14 @@ BEGIN
     IF NEW.statut IS DISTINCT FROM 'brouillon' THEN
       RAISE EXCEPTION 'CONVENTION_NAISSANCE: une convention naît brouillon ; elle s''instruit et se signe ensuite.' USING ERRCODE = 'check_violation';
     END IF;
+    -- Un établissement d'une autre commune, ou inexistant, est introuvable — avant
+    -- tout autre contrôle : dire qu'il est fermé, ou sans catégorie, renseignerait
+    -- sur son existence (CLAUDE.md § 5).
     SELECT c.statut, c.categorie_activite INTO v_statut_commerce, v_categorie
-      FROM commerces c WHERE c.id = NEW.commerce_id AND c.deleted_at IS NULL;
+      FROM commerces c WHERE c.id = NEW.commerce_id AND c.commune_id = NEW.commune_id AND c.deleted_at IS NULL;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'COMMERCE_AUTRE_COMMUNE: établissement introuvable dans cette commune.' USING ERRCODE = 'insufficient_privilege';
+    END IF;
     IF v_statut_commerce = 'ferme' THEN
       RAISE EXCEPTION 'ETABLISSEMENT_FERME: cet établissement est fermé ; rouvrez-le avant de lui proposer une convention.' USING ERRCODE = 'check_violation';
     END IF;
@@ -565,10 +586,13 @@ BEGIN
 END
 $$;
 
--- Un montant en dinars, tel qu'imprimé : « 1 200,000 DT ».
+-- Un montant en dinars, tel qu'imprimé : « 1 200,000 DT ». Les séparateurs du
+-- format sont littéraux (« , » et « . »), pas ceux de la locale (G, D) : sur un
+-- serveur installé en français, D vaudrait « , », et le remplacement qui suit
+-- imprimerait 120 DT comme « 120 000 DT » dans un document scellé.
 CREATE OR REPLACE FUNCTION app._dinars(p numeric) RETURNS text
   LANGUAGE sql IMMUTABLE AS
-$$ SELECT replace(replace(to_char(p, 'FM999G999G999G990D000'), ',', ' '), '.', ',') || ' DT' $$;
+$$ SELECT replace(replace(to_char(p, 'FM999,999,999,990.000'), ',', ' '), '.', ',') || ' DT' $$;
 
 CREATE OR REPLACE FUNCTION app.signer_convention(p_id uuid, p_version text, p_date date, p_reference text)
   RETURNS conventions_commerciales
@@ -654,8 +678,9 @@ BEGIN
     'exercice', v.exercice::text,
     'date_debut', to_char(v.date_debut, 'YYYY-MM-DD'),
     'date_fin', to_char(v.date_fin, 'YYYY-MM-DD'),
-    'grille', v_grille.intitule || ' — arrêté ' || v_grille.reference_arrete || ' du ' || to_char(v_grille.date_arrete, 'DD/MM/YYYY')
-              || ', approuvé le ' || to_char(v_grille.date_approbation_tutelle, 'DD/MM/YYYY') || ' (' || v_grille.reference_approbation || ')',
+    'grille', concat_ws(' — ', NULLIF(btrim(COALESCE(v_grille.intitule, '')), ''),
+                        'arrêté ' || v_grille.reference_arrete || ' du ' || to_char(v_grille.date_arrete, 'DD/MM/YYYY')
+                        || ', approuvé le ' || to_char(v_grille.date_approbation_tutelle, 'DD/MM/YYYY') || ' (' || v_grille.reference_approbation || ')'),
     'tarif', v_tarif,
     'flux', v_flux,
     'base_legale', v_base,
@@ -663,6 +688,13 @@ BEGIN
     'reference_signature', btrim(p_reference),
     'observations', NULLIF(btrim(COALESCE(v.observation, '')), '')
   ));
+  -- Les cases requises du gabarit (backend/src/documents/gabarits.ts), toutes
+  -- présentes : un document scellé ne se corrige plus, une case vide y resterait.
+  IF EXISTS (SELECT 1 FROM unnest(ARRAY['etablissement', 'categorie', 'type', 'exercice', 'date_debut', 'date_fin', 'grille',
+                                        'tarif', 'flux', 'base_legale', 'date_signature', 'reference_signature']) k
+              WHERE NOT (v_contenu ? k)) THEN
+    RAISE EXCEPTION 'DOCUMENT_INCOMPLET: une case requise du document manque ; rien n''est signé.' USING ERRCODE = 'check_violation';
+  END IF;
   v_doc := app.emettre_document(v.commune_id, 'convention_proprete', v_contenu, 'convention', v.id::text);
   UPDATE conventions_commerciales
      SET statut = 'signee', date_signature = p_date, reference_signature = btrim(p_reference), document_id = v_doc.id,
@@ -724,7 +756,8 @@ CREATE OR REPLACE VIEW conventions_comptees WITH (security_invoker = true) AS
          CASE WHEN cv.date_resiliation IS NOT NULL THEN LEAST(cv.date_fin, cv.date_resiliation - 1) ELSE cv.date_fin END AS date_fin,
          cv.deleted_at
     FROM conventions_commerciales cv
-   WHERE cv.nature = 'registre' OR cv.statut IN ('signee', 'resiliee');
+   WHERE (cv.nature = 'registre' OR cv.statut IN ('signee', 'resiliee'))
+     AND (cv.date_resiliation IS NULL OR cv.date_resiliation > cv.date_debut);
 COMMENT ON VIEW conventions_comptees IS
   'Les conventions qui comptent (M2-2, « sous convention ») : le registre d''avant le jalon G, et les conventions signées, sur leur période effective (une résiliation la termine la veille de sa date). Un brouillon ou une convention instruite n''y figurent pas.';
 GRANT SELECT ON conventions_comptees TO siipi_app;

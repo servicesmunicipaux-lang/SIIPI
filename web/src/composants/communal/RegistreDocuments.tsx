@@ -153,7 +153,8 @@ export function RegistreDocuments({ communeId }: { communeId: string }) {
                   <button type="button" className={bouton} onClick={() => void agir(() => imprimerDocument(d.id))}>
                     {t('communal.documents.imprimer')}
                   </button>
-                  {commune && d.statut === 'emis' && (
+                  {/* Le texte d'une convention signée ne s'annule pas : la convention se résilie. */}
+                  {commune && d.statut === 'emis' && d.type_document !== 'convention_proprete' && (
                     <button type="button" className={`${bouton} text-red-800`} onClick={() => annuler(d)}>
                       {t('communal.documents.annuler')}
                     </button>

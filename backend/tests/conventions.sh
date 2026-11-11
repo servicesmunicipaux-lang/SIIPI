@@ -14,9 +14,12 @@
 #   - la modification, le retrait, une ligne ajoutée après l'instruction ;
 #   - la signature datée de demain, sans pièce, par la FNCT, d'une autre commune,
 #     sans base légale en vigueur ; l'annulation du document d'une convention ;
-#   - la modification d'une convention signée ; une résiliation hors période.
-# Puis le cycle (brouillon, instruite, reprise, signée, résiliée), le document
-# scellé CV-…, M2-2, la base légale pré-remplie et l'abrogation, et qui lit quoi.
+#   - la modification d'une convention signée ; une résiliation hors période ;
+#   - l'établissement d'une autre commune, ou inexistant : introuvable, jamais
+#     « fermé » ; l'ancien registre en retrait sur une convention réelle.
+# Puis le cycle (brouillon, instruite, reprise, signée, résiliée — même avant son
+# début), le document scellé CV-…, M2-2, la base légale pré-remplie et ses trois
+# chemins d'abrogation, et qui lit quoi. Les dates se comptent depuis le jour.
 #
 #   docker compose exec -T api npm run test:conventions
 # =============================================================================
@@ -77,15 +80,29 @@ releve_base_reelle
 commune_essai "$A" "TEST commune A des conventions"
 commune_essai "$B" "TEST commune B des conventions"
 compte_temporaire admin_commune "$A" "Directeur A"; T_A=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); ID_A=$COMPTE_ID
-compte_temporaire admin_commune "$B" "Directeur B"; T_B=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP")
+compte_temporaire admin_commune "$B" "Directeur B"; T_B=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); ID_B=$COMPTE_ID
 compte_temporaire super_admin_fnct "" "FNCT des conventions"; T_F=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); ID_F=$COMPTE_ID
 compte_temporaire gestionnaire_prestataire "$A" "Prestataire de A"; T_P=$(tok "$COMPTE_EMAIL" "$COMPTE_MDP"); ID_P=$COMPTE_ID
 [ -n "$T_A" ] && [ -n "$T_B" ] && [ -n "$T_F" ] && [ -n "$T_P" ] || { echo "API injoignable sur $API, ou compte temporaire refusé" >&2; exit 1; }
 
+# Les dates se comptent depuis le jour de Tunis : la campagne passe le 1er janvier
+# comme le 31 décembre, sans dépendre de l'année civile (relecture du lot, R5).
 JOUR=$(sql "SELECT app.jour_tunis()")
+HIER=$(sql "SELECT app.jour_tunis() - 1")
 DEMAIN=$(sql "SELECT app.jour_tunis() + 1")
+J2=$(sql "SELECT app.jour_tunis() + 2")
+J5=$(sql "SELECT app.jour_tunis() + 5")
+J10=$(sql "SELECT app.jour_tunis() + 10")
 ANC=$(sql "SELECT extract(year FROM app.jour_tunis())::int")
-SUIV=$((ANC + 1))
+# La convention du café : commencée il y a 30 jours, pour un an.
+DEBUT=$(sql "SELECT app.jour_tunis() - 30")
+VEILLE_DEBUT=$(sql "SELECT app.jour_tunis() - 31")
+FIN=$(sql "SELECT ((app.jour_tunis() - 30) + interval '1 year')::date - 1")
+APRES_FIN=$(sql "SELECT ((app.jour_tunis() - 30) + interval '1 year')::date")
+EXO=$(sql "SELECT extract(year FROM app.jour_tunis() - 30)::int")
+FIN2=$(sql "SELECT ((app.jour_tunis() + 2) + interval '1 year')::date - 1")
+FIN10=$(sql "SELECT ((app.jour_tunis() + 10) + interval '1 year')::date - 1")
+GRILLE_DEBUT="$((ANC - 2))-01-01"
 
 # Deux flux de la liste nationale : un ordinaire, un dangereux ; un troisième pour une seconde ligne.
 $PSQL -c "INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, date_effet, dangereux, provisoire, reference) VALUES
@@ -103,78 +120,91 @@ E_B=$(etab "$B" "$T_B" '{"nom":"TEST Café de B","categorieActivite":"cafe"}')
 for e in "$E_CAFE" "$E_HOTEL" "$E_BOUL" "$E_FERME" "$E_B"; do
   case "$e" in *-*-*-*-*) ;; *) echo "Un établissement de départ n'a pas pu être inscrit" >&2; exit 1 ;; esac
 done
-# La grille de A : approuvée, en vigueur depuis le 1er janvier, un café au forfait et un hôtel à la levée.
+[ "$(sql "SELECT statut FROM commerces WHERE id = '$E_FERME'")" = ferme ] || { echo "L'établissement fermé de A n'a pas pu être fermé" >&2; exit 1; }
+# La grille de A : approuvée, en vigueur depuis deux ans, un café au forfait et un hôtel à la levée.
 appel POST "/grilles-tarifaires?communeId=$A" "$T_A" \
-  "{\"intitule\":\"TEST Grille $ANC\",\"referenceArrete\":\"TEST-ARRETE-$ANC\",\"dateArrete\":\"$ANC-01-01\",\"dateEffet\":\"$ANC-01-01\",\"lignes\":[{\"categorie\":\"cafe\",\"mode\":\"forfait_annuel\",\"tarif\":120},{\"categorie\":\"hotel\",\"mode\":\"reel_levee\",\"tarif\":3.5}]}" >/dev/null
+  "{\"intitule\":\"TEST Grille $ANC\",\"referenceArrete\":\"TEST-ARRETE-$ANC\",\"dateArrete\":\"$GRILLE_DEBUT\",\"dateEffet\":\"$GRILLE_DEBUT\",\"lignes\":[{\"categorie\":\"cafe\",\"mode\":\"forfait_annuel\",\"tarif\":120},{\"categorie\":\"hotel\",\"mode\":\"reel_levee\",\"tarif\":3.5}]}" >/dev/null
 G_A=$(val "d['id']")
 appel POST "/grilles-tarifaires/$G_A/approbation" "$T_A" \
-  "{\"dateApprobation\":\"$ANC-01-01\",\"reference\":\"TEST visa de la tutelle\",\"version\":\"$(sql "SELECT xmin FROM grilles_tarifaires WHERE id = '$G_A'")\"}" >/dev/null
+  "{\"dateApprobation\":\"$GRILLE_DEBUT\",\"reference\":\"TEST visa de la tutelle\",\"version\":\"$(sql "SELECT xmin FROM grilles_tarifaires WHERE id = '$G_A'")\"}" >/dev/null
 [ "$(sql "SELECT date_approbation_tutelle IS NOT NULL FROM grilles_tarifaires WHERE id = '$G_A'")" = t ] || { echo "La grille de A n'a pas pu être approuvée" >&2; exit 1; }
 LIGNE_CARTONS='{"fluxCode":"test_cartons","leveesParSemaine":3,"volumeLitres":240}'
+INCONNU=11111111-1111-4111-8111-111111111111
 
 # -----------------------------------------------------------------------------
 echo
 echo "1. Ce qui est refusé à la rédaction"
 chk "la FNCT ne rédige pas : 403, qui dit que c'est la commune" "403|1" \
-    "$(appel POST "/conventions?communeId=$A" "$T_F" "$(corps "$E_CAFE" "$ANC-01-01" "$ANC-12-31")")|$(erreur_contient 'commune passe ses conventions')"
-chk "le directeur d'une autre commune : introuvable (404)" 404 "$(appel POST "/conventions?communeId=$A" "$T_B" "$(corps "$E_CAFE" "$ANC-01-01" "$ANC-12-31")")"
-chk "… ni pour l'établissement de A rangé dans sa propre commune (404)" 404 "$(appel POST "/conventions?communeId=$B" "$T_B" "$(corps "$E_CAFE" "$ANC-01-01" "$ANC-12-31")")"
-chk "un prestataire : 403" 403 "$(appel POST "/conventions?communeId=$A" "$T_P" "$(corps "$E_CAFE" "$ANC-01-01" "$ANC-12-31")")"
-chk "plus d'un an : 400 (une convention est annuelle)" 400 "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$ANC-01-01" "$SUIV-01-01")")"
-chk "une fin avant le début : 400" 400 "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$ANC-06-01" "$ANC-05-31")")"
+    "$(appel POST "/conventions?communeId=$A" "$T_F" "$(corps "$E_CAFE" "$DEBUT" "$FIN")")|$(erreur_contient 'commune passe ses conventions')"
+chk "le directeur d'une autre commune : introuvable (404)" 404 "$(appel POST "/conventions?communeId=$A" "$T_B" "$(corps "$E_CAFE" "$DEBUT" "$FIN")")"
+chk "… ni pour l'établissement de A rangé dans sa propre commune (404)" 404 "$(appel POST "/conventions?communeId=$B" "$T_B" "$(corps "$E_CAFE" "$DEBUT" "$FIN")")"
+chk "… ni pour l'établissement fermé de A : introuvable, jamais « fermé » (404)" "404|0" \
+    "$(appel POST "/conventions?communeId=$B" "$T_B" "$(corps "$E_FERME" "$DEBUT" "$FIN")")|$(erreur_contient rouvrez)"
+chk "… ni en visant la commune A avec l'établissement fermé de A : introuvable, jamais « fermé » (404)" "404|0" \
+    "$(appel POST "/conventions?communeId=$A" "$T_B" "$(corps "$E_FERME" "$DEBUT" "$FIN")")|$(erreur_contient rouvrez)"
+chk "un établissement qui n'existe pas : introuvable (404)" 404 "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$INCONNU" "$DEBUT" "$FIN")")"
+chk "un prestataire : 403" 403 "$(appel POST "/conventions?communeId=$A" "$T_P" "$(corps "$E_CAFE" "$DEBUT" "$FIN")")"
+chk "plus d'un an : 400 (une convention est annuelle)" 400 "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$DEBUT" "$APRES_FIN")")"
+chk "une fin avant le début : 400" 400 "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$DEBUT" "$VEILLE_DEBUT")")"
 chk "un flux inconnu : 400, qui le nomme" "400|1" \
-    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$ANC-01-01" "$ANC-12-31" '[{"fluxCode":"test_plutonium","leveesParSemaine":1}]')")|$(erreur_contient test_plutonium)"
+    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$DEBUT" "$FIN" '[{"fluxCode":"test_plutonium","leveesParSemaine":1}]')")|$(erreur_contient test_plutonium)"
 chk "un flux dangereux : 400, qui dit qu'il va vers sa filière" "400|1" \
-    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$ANC-01-01" "$ANC-12-31" '[{"fluxCode":"test_huiles","leveesParSemaine":1}]')")|$(erreur_contient filière)"
+    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$DEBUT" "$FIN" '[{"fluxCode":"test_huiles","leveesParSemaine":1}]')")|$(erreur_contient filière)"
 chk "le même flux deux fois : 400" 400 \
-    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$ANC-01-01" "$ANC-12-31" "[$LIGNE_CARTONS,$LIGNE_CARTONS]")")"
+    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$DEBUT" "$FIN" "[$LIGNE_CARTONS,$LIGNE_CARTONS]")")"
 chk "22 levées par semaine : 400" 400 \
-    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$ANC-01-01" "$ANC-12-31" '[{"fluxCode":"test_cartons","leveesParSemaine":22}]')")"
+    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$DEBUT" "$FIN" '[{"fluxCode":"test_cartons","leveesParSemaine":22}]')")"
 chk "un établissement fermé : 409, qui dit de le rouvrir" "409|1" \
-    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_FERME" "$ANC-01-01" "$ANC-12-31")")|$(erreur_contient rouvrez)"
+    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_FERME" "$DEBUT" "$FIN")")|$(erreur_contient rouvrez)"
 chk "une observation qui porte un octet nul : 400, jamais 500" 400 \
-    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$ANC-01-01" "$ANC-12-31" '[]' '"observation":"TEST\u0000nul"')")"
+    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$DEBUT" "$FIN" '[]' '"observation":"TEST\u0000nul"')")"
 chk "l'ancien registre ne s'écrit plus : ni ajout, ni retrait (404)" "404|404" \
-    "$(appel POST "/registres/conventions?communeId=$A" "$T_A" "{\"commerceId\":\"$E_CAFE\",\"type\":\"collecte\",\"dateDebut\":\"$ANC-01-01\"}")|$(appel DELETE "/registres/conventions/00000000-0000-0000-0000-000000000000" "$T_A")"
+    "$(appel POST "/registres/conventions?communeId=$A" "$T_A" "{\"commerceId\":\"$E_CAFE\",\"type\":\"collecte\",\"dateDebut\":\"$DEBUT\"}")|$(appel DELETE "/registres/conventions/00000000-0000-0000-0000-000000000000" "$T_A")"
 chk "la base refuse une ligne nouvelle au registre d'avant G4" REGISTRE_FERME \
-    "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO conventions_commerciales (commune_id, commerce_id, nature, type, date_debut) VALUES ('$A', '$E_CAFE', 'registre', 'collecte', DATE '$ANC-01-01')")"
+    "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO conventions_commerciales (commune_id, commerce_id, nature, type, date_debut) VALUES ('$A', '$E_CAFE', 'registre', 'collecte', DATE '$DEBUT')")"
 chk "… une convention née signée" CONVENTION_NAISSANCE \
-    "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO conventions_commerciales (commune_id, commerce_id, nature, statut, type, exercice, date_debut, date_fin) VALUES ('$A', '$E_CAFE', 'convention', 'signee', 'collecte', $ANC, DATE '$ANC-01-01', DATE '$ANC-12-31')")"
-chk "… et une écriture de la FNCT" "violates row-level security" \
-    "$(en_base super_admin_fnct "$ID_F" "" "INSERT INTO conventions_commerciales (commune_id, commerce_id, nature, statut, type, exercice, date_debut, date_fin) VALUES ('$A', '$E_CAFE', 'convention', 'brouillon', 'collecte', $ANC, DATE '$ANC-01-01', DATE '$ANC-12-31')")"
+    "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO conventions_commerciales (commune_id, commerce_id, nature, statut, type, exercice, date_debut, date_fin) VALUES ('$A', '$E_CAFE', 'convention', 'signee', 'collecte', $EXO, DATE '$DEBUT', DATE '$FIN')")"
+chk "… une convention pour l'établissement d'une autre commune" COMMERCE_AUTRE_COMMUNE \
+    "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO conventions_commerciales (commune_id, commerce_id, nature, statut, type, exercice, date_debut, date_fin) VALUES ('$A', '$E_B', 'convention', 'brouillon', 'collecte', $EXO, DATE '$DEBUT', DATE '$FIN')")"
+chk "… une écriture de la FNCT, avant tout autre contrôle" CONVENTION_HORS_PERIMETRE \
+    "$(en_base super_admin_fnct "$ID_F" "" "INSERT INTO conventions_commerciales (commune_id, commerce_id, nature, statut, type, exercice, date_debut, date_fin) VALUES ('$A', '$E_CAFE', 'convention', 'brouillon', 'collecte', $EXO, DATE '$DEBUT', DATE '$FIN')")"
+chk "… et le directeur de B qui vise A avec un établissement fermé de A : hors périmètre, avant tout autre contrôle" CONVENTION_HORS_PERIMETRE \
+    "$(en_base admin_commune "$ID_B" "$B" "INSERT INTO conventions_commerciales (commune_id, commerce_id, nature, statut, type, exercice, date_debut, date_fin) VALUES ('$A', '$E_FERME', 'convention', 'brouillon', 'collecte', $EXO, DATE '$DEBUT', DATE '$FIN')")"
+chk "une date de début illisible : 400, jamais 500" "400|400" \
+    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "abc" "$FIN")")|$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "" "$FIN")")"
 chk "aucune convention n'a été écrite par ces refus" 0 "$(sql "SELECT count(*) FROM conventions_commerciales WHERE commune_id IN ($ESSAI)")"
 
 # -----------------------------------------------------------------------------
 echo
 echo "2. Le brouillon, puis l'instruction"
-chk "le directeur rédige un brouillon : un café, du 1er janvier au 31 décembre, des cartons trois fois par semaine" "201|brouillon|brouillon|$ANC|1|3|240" \
-    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$ANC-01-01" "$ANC-12-31" "[$LIGNE_CARTONS]")")|$(val "d['statut']")|$(val "d['etat']")|$(val "d['exercice']")|$(val "len(d['lignes'])")|$(val "d['lignes'][0]['levees_par_semaine']")|$(val "f\"{d['lignes'][0]['volume_litres']:g}\"")"
+chk "le directeur rédige un brouillon : un café, pour un an, des cartons trois fois par semaine" "201|brouillon|brouillon|$EXO|1|3|240" \
+    "$(appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$DEBUT" "$FIN" "[$LIGNE_CARTONS]")")|$(val "d['statut']")|$(val "d['etat']")|$(val "d['exercice']")|$(val "len(d['lignes'])")|$(val "d['lignes'][0]['levees_par_semaine']")|$(val "f\"{d['lignes'][0]['volume_litres']:g}\"")"
 CV=$(val "d['id']")
 V_LUE=$(val "d['version']")
 chk "… le brouillon se remplace avec la version lue : deux flux" "200|2" \
-    "$(appel PUT "/conventions/$CV" "$T_A" "{\"version\":\"$V_LUE\",\"dateDebut\":\"$ANC-01-01\",\"dateFin\":\"$ANC-12-31\",\"lignes\":[$LIGNE_CARTONS,{\"fluxCode\":\"test_verre\",\"leveesParSemaine\":1}]}")|$(val "len(d['lignes'])")"
+    "$(appel PUT "/conventions/$CV" "$T_A" "{\"version\":\"$V_LUE\",\"dateDebut\":\"$DEBUT\",\"dateFin\":\"$FIN\",\"lignes\":[$LIGNE_CARTONS,{\"fluxCode\":\"test_verre\",\"leveesParSemaine\":1}]}")|$(val "len(d['lignes'])")"
 chk "… une version dépassée est refusée (409), rien n'est écrit" "409|1|2" \
-    "$(appel PUT "/conventions/$CV" "$T_A" "{\"version\":\"$V_LUE\",\"dateDebut\":\"$ANC-01-01\",\"dateFin\":\"$ANC-12-31\",\"lignes\":[]}")|$(erreur_contient changé)|$(sql "SELECT count(*) FROM lignes_convention WHERE convention_id = '$CV' AND deleted_at IS NULL")"
+    "$(appel PUT "/conventions/$CV" "$T_A" "{\"version\":\"$V_LUE\",\"dateDebut\":\"$DEBUT\",\"dateFin\":\"$FIN\",\"lignes\":[]}")|$(erreur_contient changé)|$(sql "SELECT count(*) FROM lignes_convention WHERE convention_id = '$CV' AND deleted_at IS NULL")"
 chk "… les lignes remplacées restent en base, retirées (rien ne s'efface)" 1 "$(sql "SELECT count(*) FROM lignes_convention WHERE convention_id = '$CV' AND deleted_at IS NOT NULL")"
 chk "instruire avec une version dépassée : 409" 409 "$(appel POST "/conventions/$CV/instruire" "$T_A" "{\"version\":\"$V_LUE\"}")"
 # Les conditions de l'instruction, chacune refusée en mots.
-appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_BOUL" "$ANC-01-01" "$ANC-12-31" "[$LIGNE_CARTONS]")" >/dev/null; CV_BOUL=$(val "d['id']")
+appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_BOUL" "$DEBUT" "$FIN" "[$LIGNE_CARTONS]")" >/dev/null; CV_BOUL=$(val "d['id']")
 chk "sans tarif pour la catégorie (une boulangerie) : 409, qui nomme la catégorie" "409|1" \
     "$(appel POST "/conventions/$CV_BOUL/instruire" "$T_A" "{\"version\":\"$(version "$CV_BOUL")\"}")|$(erreur_contient boulangerie)"
-appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_HOTEL" "$((ANC - 1))-06-01" "$ANC-05-31" "[$LIGNE_CARTONS]")" >/dev/null; CV_AVANT=$(val "d['id']")
+appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_HOTEL" "$((ANC - 3))-06-01" "$((ANC - 2))-05-31" "[$LIGNE_CARTONS]")" >/dev/null; CV_AVANT=$(val "d['id']")
 chk "sans grille approuvée à la date de début : 409, qui dit quoi faire" "409|1" \
     "$(appel POST "/conventions/$CV_AVANT/instruire" "$T_A" "{\"version\":\"$(version "$CV_AVANT")\"}")|$(erreur_contient approuver)"
-appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_HOTEL" "$ANC-01-01" "$ANC-12-31")" >/dev/null; CV_HOTEL=$(val "d['id']")
+appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_HOTEL" "$DEBUT" "$FIN")" >/dev/null; CV_HOTEL=$(val "d['id']")
 chk "sans aucun flux : 409" "409|1" \
     "$(appel POST "/conventions/$CV_HOTEL/instruire" "$T_A" "{\"version\":\"$(version "$CV_HOTEL")\"}")|$(erreur_contient flux)"
 chk "le café s'instruit : la grille en vigueur, son mode et son tarif sont retenus" "200|instruite|forfait_annuel|120|TEST Grille $ANC" \
     "$(appel POST "/conventions/$CV/instruire" "$T_A" "{\"version\":\"$(version "$CV")\"}")|$(val "d['statut']")|$(val "d['mode_tarification']")|$(val "f\"{d['tarif']:g}\"")|$(val "d['grille']")"
 chk "instruite, elle ne se modifie plus (409) ni ne se retire (409)" "409|409" \
-    "$(appel PUT "/conventions/$CV" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateDebut\":\"$ANC-01-01\",\"dateFin\":\"$ANC-12-31\",\"lignes\":[$LIGNE_CARTONS]}")|$(appel DELETE "/conventions/$CV?version=$(version "$CV")" "$T_A")"
+    "$(appel PUT "/conventions/$CV" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateDebut\":\"$DEBUT\",\"dateFin\":\"$FIN\",\"lignes\":[$LIGNE_CARTONS]}")|$(appel DELETE "/conventions/$CV?version=$(version "$CV")" "$T_A")"
 chk "… et la base refuse qu'on lui ajoute une ligne" CONVENTION_FIGEE \
     "$(en_base admin_commune "$ID_A" "$A" "INSERT INTO lignes_convention (convention_id, commune_id, flux_code, levees_par_semaine) VALUES ('$CV', '$A', 'test_verre', 2)")"
 chk "… ou qu'on change sa date" CONVENTION_FIGEE \
-    "$(en_base admin_commune "$ID_A" "$A" "UPDATE conventions_commerciales SET date_fin = DATE '$ANC-11-30' WHERE id = '$CV'")"
+    "$(en_base admin_commune "$ID_A" "$A" "UPDATE conventions_commerciales SET date_fin = DATE '$FIN' - 1 WHERE id = '$CV'")"
 chk "… ou qu'on pose son statut à la main" "permission denied" \
     "$(en_base admin_commune "$ID_A" "$A" "UPDATE conventions_commerciales SET statut = 'signee' WHERE id = '$CV'")"
 chk "reprise en brouillon : la grille et le tarif s'effacent avec l'instruction" "200|brouillon|None|None" \
@@ -202,24 +232,35 @@ chk "le directeur signe : document scellé CV-, numéro 1 de l'exercice, la conv
 DOC=$(val "d['document_id']")
 chk "le document recopie la base légale du jour (la loi n° 96-41 et sa date au JORT, sans le décret-loi n° 4 en attente ni la note de travail de la FNCT), le tarif et les flux" "1|0|1|1|1|0" \
     "$(sql "SELECT (contenu->>'base_legale' LIKE '%96-41%(JORT du 10/06/1996)%')::int FROM documents_emis WHERE id = '$DOC'")|$(sql "SELECT (contenu->>'base_legale' LIKE '%Décret-loi n° 4%')::int FROM documents_emis WHERE id = '$DOC'")|$(sql "SELECT (contenu->>'tarif' LIKE '%120,000 DT par an%')::int FROM documents_emis WHERE id = '$DOC'")|$(sql "SELECT (contenu->>'flux' LIKE '%TEST Cartons%3 levée(s) par semaine%240,0 L%')::int FROM documents_emis WHERE id = '$DOC'")|$(sql "SELECT (contenu->>'etablissement' = 'TEST Café des Arts' AND contenu->>'matricule_fiscal' = '7654321C')::int FROM documents_emis WHERE id = '$DOC'")|$(sql "SELECT (contenu->>'base_legale' LIKE '%vérifier%')::int FROM documents_emis WHERE id = '$DOC'")"
-chk "… ses clés sont celles du gabarit, et aucun montant dû n'y figure" "1|0" \
+# Toutes les cases requises du gabarit sont là, et aucune qu'il ne sait pas imprimer.
+$PSQL -c "SELECT contenu FROM documents_emis WHERE id = '$DOC'" > "$T/contenu.json"
+chk "… ses clés sont celles du gabarit, toutes les requises présentes, et aucun montant dû n'y figure" "1|0" \
     "$(appel GET /documents/gabarits "$T_A" >/dev/null; python3 -c "
-import json,subprocess
+import json
 g=json.load(open('$T/r.json'))
-champs={c['cle'] for x in (g if isinstance(g,list) else g.get('gabarits',[])) if x['type']=='convention_proprete' for c in x['champs']}
-cles=set(json.loads(subprocess.check_output(['sh','-c','''$PSQL -c \"SELECT contenu FROM documents_emis WHERE id = '$DOC'\"''']).decode()).keys())
-print(int(bool(champs) and cles <= champs))")|$(sql "SELECT (contenu::text ILIKE '%montant%')::int FROM documents_emis WHERE id = '$DOC'")"
+gab=[x for x in g if x['type']=='convention_proprete'][0]
+champs={c['cle'] for c in gab['champs']}
+requis={c['cle'] for c in gab['champs'] if c.get('requis')}
+cles=set(json.load(open('$T/contenu.json')).keys())
+print(int(len(requis) >= 12 and requis <= cles <= champs))" 2>/dev/null || echo erreur)|$(sql "SELECT (contenu::text ILIKE '%montant%')::int FROM documents_emis WHERE id = '$DOC'")"
 chk "le document s'imprime (A4 bilingue), avec son numéro" "200|1" \
     "$(curl -s -o "$T/doc.html" -w '%{http_code}' "$API/documents/$DOC/impression" -H "Authorization: Bearer $T_A")|$(grep -c "CV-$ANC-00001" "$T/doc.html" | awk '{print ($1>0)}')"
 chk "signée, elle compte pour M2-2 : 1 établissement sous convention" 1 \
     "$(appel GET "/kpi/5-axes?communeId=$A&annee=$ANC" "$T_A" >/dev/null; val "next(i['detail']['sous_convention'] for i in d['indicateurs'] if i['code']=='M2-2')")"
 chk "signée, elle ne se modifie plus : en base non plus" CONVENTION_FIGEE \
     "$(en_base admin_commune "$ID_A" "$A" "UPDATE conventions_commerciales SET observation = 'TEST réécrite' WHERE id = '$CV'")"
-chk "… et son document ne s'annule pas : on résilie la convention" DOCUMENT_CONVENTION \
-    "$(en_base admin_commune "$ID_A" "$A" "SELECT app.annuler_document('$DOC', 'TEST annulation refusée')")"
+chk "… et son document ne s'annule pas : ni en base, ni par l'API (409, qui dit de résilier)" "DOCUMENT_CONVENTION|409|1|emis" \
+    "$(en_base admin_commune "$ID_A" "$A" "SELECT app.annuler_document('$DOC', 'TEST annulation refusée')")|$(appel POST "/documents/$DOC/annuler" "$T_A" '{"motif":"TEST annulation refusée"}')|$(erreur_contient résiliez)|$(sql "SELECT statut FROM documents_emis WHERE id = '$DOC'")"
 chk "… ni ne se retire (409)" 409 "$(appel DELETE "/conventions/$CV?version=$(version "$CV")" "$T_A")"
+# Le contenu recopié du document signé, complet : seul le geste est en cause.
+CONTENU_DOC=$($PSQL -c "SELECT contenu FROM documents_emis WHERE id = '$DOC'")
+CONTENU_SQL=$(printf '%s' "$CONTENU_DOC" | sed "s/'/''/g")
+chk "le document d'une convention ne s'émet que par sa signature : la route générique le refuse (400), en mots" "400|1|1" \
+    "$(appel POST "/documents?communeId=$A" "$T_A" "{\"type\":\"convention_proprete\",\"contenu\":$CONTENU_DOC}")|$(erreur_contient 'naît de sa signature')|$(sql "SELECT count(*) FROM documents_emis WHERE commune_id = '$A' AND type_document = 'convention_proprete'")"
+chk "… et la base aussi : sans convention, ou pour une convention déjà signée" "DOCUMENT_CONVENTION|DOCUMENT_CONVENTION" \
+    "$(en_base admin_commune "$ID_A" "$A" "SELECT app.emettre_document('$A', 'convention_proprete', '$CONTENU_SQL'::jsonb)")|$(en_base admin_commune "$ID_A" "$A" "SELECT app.emettre_document('$A', 'convention_proprete', '$CONTENU_SQL'::jsonb, 'convention', '$CV')")"
 # Une seconde convention du même café qui recouvre la première ne s'instruit pas.
-appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$ANC-12-30" "$SUIV-12-29" "[$LIGNE_CARTONS]")" >/dev/null; CV2=$(val "d['id']")
+appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_CAFE" "$J2" "$FIN2" "[$LIGNE_CARTONS]")" >/dev/null; CV2=$(val "d['id']")
 chk "une convention du même établissement qui chevauche une convention signée : 409, qui donne ses dates" "409|1" \
     "$(appel POST "/conventions/$CV2/instruire" "$T_A" "{\"version\":\"$(version "$CV2")\"}")|$(erreur_contient résiliez)"
 
@@ -227,28 +268,74 @@ chk "une convention du même établissement qui chevauche une convention signée
 echo
 echo "4. La résiliation"
 chk "une résiliation avant la signature : 400" 400 \
-    "$(appel POST "/conventions/$CV/resilier" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateResiliation\":\"$ANC-01-01\",\"motif\":\"TEST cessation\",\"reference\":\"TEST courrier\"}")"
+    "$(appel POST "/conventions/$CV/resilier" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateResiliation\":\"$HIER\",\"motif\":\"TEST cessation\",\"reference\":\"TEST courrier\"}")"
 chk "… après la fin de la convention : 400" 400 \
-    "$(appel POST "/conventions/$CV/resilier" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateResiliation\":\"$SUIV-01-01\",\"motif\":\"TEST cessation\",\"reference\":\"TEST courrier\"}")"
+    "$(appel POST "/conventions/$CV/resilier" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateResiliation\":\"$APRES_FIN\",\"motif\":\"TEST cessation\",\"reference\":\"TEST courrier\"}")"
 chk "… sans motif : 400" 400 \
-    "$(appel POST "/conventions/$CV/resilier" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateResiliation\":\"$ANC-12-30\",\"motif\":\"x\",\"reference\":\"TEST courrier\"}")"
-chk "résiliée à compter du 30 décembre : elle couvre jusqu'à la veille, son document reste tel quel" "200|resiliee|$ANC-12-29|emis" \
-    "$(appel POST "/conventions/$CV/resilier" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateResiliation\":\"$ANC-12-30\",\"motif\":\"TEST cessation d'activité annoncée\",\"reference\":\"TEST courrier 45\"}")|$(val "d['statut']")|$(sql "SELECT date_fin FROM conventions_comptees WHERE id = '$CV'")|$(sql "SELECT statut FROM documents_emis WHERE id = '$DOC'")"
+    "$(appel POST "/conventions/$CV/resilier" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateResiliation\":\"$J2\",\"motif\":\"x\",\"reference\":\"TEST courrier\"}")"
+chk "résiliée à compter d'après-demain : elle couvre jusqu'à la veille, son document reste tel quel" "200|resiliee|$DEMAIN|emis" \
+    "$(appel POST "/conventions/$CV/resilier" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateResiliation\":\"$J2\",\"motif\":\"TEST cessation d'activité annoncée\",\"reference\":\"TEST courrier 45\"}")|$(val "d['statut']")|$(sql "SELECT date_fin FROM conventions_comptees WHERE id = '$CV'")|$(sql "SELECT statut FROM documents_emis WHERE id = '$DOC'")"
 chk "la convention qui commence le jour de la résiliation ne chevauche plus : elle s'instruit" "200|instruite" \
     "$(appel POST "/conventions/$CV2/instruire" "$T_A" "{\"version\":\"$(version "$CV2")\"}")|$(val "d['statut']")"
 chk "résiliée, elle ne se résilie pas deux fois (409)" 409 \
-    "$(appel POST "/conventions/$CV/resilier" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateResiliation\":\"$ANC-12-30\",\"motif\":\"TEST encore\",\"reference\":\"TEST courrier\"}")"
+    "$(appel POST "/conventions/$CV/resilier" "$T_A" "{\"version\":\"$(version "$CV")\",\"dateResiliation\":\"$J2\",\"motif\":\"TEST encore\",\"reference\":\"TEST courrier\"}")"
+# Une convention signée aujourd'hui pour commencer dans dix jours, puis résiliée avant
+# son début : elle ne couvre aucun jour. Elle est « résiliée », jamais « à venir », et
+# ne compte pas pour M2-2.
+appel POST "/conventions?communeId=$A" "$T_A" "$(corps "$E_HOTEL" "$J10" "$FIN10" "[$LIGNE_CARTONS]")" >/dev/null; CV_RES=$(val "d['id']")
+appel POST "/conventions/$CV_RES/instruire" "$T_A" "{\"version\":\"$(version "$CV_RES")\"}" >/dev/null
+appel POST "/conventions/$CV_RES/signer" "$T_A" "{\"version\":\"$(version "$CV_RES")\",\"dateSignature\":\"$JOUR\",\"referenceSignature\":\"TEST dossier 13\"}" >/dev/null
+chk "une convention signée pour commencer dans dix jours est « à venir »" "signee|a_venir" \
+    "$(appel GET "/conventions/$CV_RES" "$T_A" >/dev/null; val "d['statut']")|$(val "d['etat']")"
+chk "… résiliée avant son début : « résiliée », jamais « à venir », et hors des conventions comptées" "200|resiliee|resiliee|0" \
+    "$(appel POST "/conventions/$CV_RES/resilier" "$T_A" "{\"version\":\"$(version "$CV_RES")\",\"dateResiliation\":\"$J5\",\"motif\":\"TEST projet abandonné\",\"reference\":\"TEST courrier 46\"}")|$(val "d['statut']")|$(val "d['etat']")|$(sql "SELECT count(*) FROM conventions_comptees WHERE id = '$CV_RES'")"
 
 # -----------------------------------------------------------------------------
 echo
 echo "5. Le brouillon retiré, la base légale et qui lit quoi"
 chk "un brouillon se retire avec sa version : il reste en base, retiré" "204|1|0" \
     "$(appel DELETE "/conventions/$CV_BOUL?version=$(version "$CV_BOUL")" "$T_A")|$(sql "SELECT count(*) FROM conventions_commerciales WHERE id = '$CV_BOUL' AND deleted_at IS NOT NULL")|$(appel GET "/conventions?communeId=$A" "$T_A" >/dev/null; val "len([c for c in d if c['id']=='$CV_BOUL'])")"
-chk "la base légale porte les quatre textes connus ; le décret-loi n° 4 attend sa date, la loi organique n° 2018-29 son abrogation" "4|1|1" \
-    "$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'base_legale_assimiles' AND code IN ('loi_1996_41', 'code_fiscalite_locale', 'lo_2018_29', 'dl_2026_4') AND retire_le IS NULL")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE code = 'dl_2026_4' AND date_effet IS NULL")|$(sql "SELECT count(*) FROM elements_listes_nationales lo JOIN elements_listes_nationales dl ON dl.id = lo.abroge_par WHERE lo.code = 'lo_2018_29' AND dl.code = 'dl_2026_4'")"
-chk "la date d'application du décret-loi fixée (transaction annulée) : la loi organique prend fin le même jour, avec sa pièce" "2027-03-01|1" \
-    "$($PSQL -c "BEGIN; UPDATE elements_listes_nationales SET date_effet = DATE '2027-03-01', reference_effet = 'TEST proclamation des résultats' WHERE liste = 'base_legale_assimiles' AND code = 'dl_2026_4'; SELECT 'fin:' || date_fin || ':' || (reference_fin LIKE 'Abrogé par Décret-loi n° 4%')::int FROM elements_listes_nationales WHERE code = 'lo_2018_29'; ROLLBACK;" 2>&1 | grep -oE 'fin:[0-9-]+:[01]' | cut -d: -f2- | tr ':' '|')"
-chk "la FNCT lit les conventions de A, sans geste (403 à l'instruction)" "200|4|403" \
+chk "l'ancien registre ne retire pas une convention réelle : 404, et elle reste entière" "404|t" \
+    "$(appel DELETE "/registres/conventions/$CV" "$T_A")|$(sql "SELECT deleted_at IS NULL FROM conventions_commerciales WHERE id = '$CV'")"
+chk "la base légale porte les quatre textes connus ; le décret-loi n° 4 attend sa date, la loi organique n° 2018-29 le désigne comme son abrogeant" "4|1|1" \
+    "$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'base_legale_assimiles' AND code IN ('loi_1996_41', 'code_fiscalite_locale', 'lo_2018_29', 'dl_2026_4') AND retire_le IS NULL")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE code = 'dl_2026_4' AND date_effet IS NULL AND retire_le IS NULL")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE code = 'lo_2018_29' AND abroge_par_code = 'dl_2026_4' AND retire_le IS NULL")"
+# Les trois chemins de l'abrogation, chacun dans une transaction annulée.
+FIXER_DL="UPDATE elements_listes_nationales SET date_effet = DATE '2027-03-01', reference_effet = 'TEST proclamation des résultats' WHERE liste = 'base_legale_assimiles' AND code = 'dl_2026_4' AND retire_le IS NULL"
+RETIRER_LO="UPDATE elements_listes_nationales SET retire_le = now(), motif_retrait = 'TEST correction du libellé' WHERE liste = 'base_legale_assimiles' AND code = 'lo_2018_29' AND retire_le IS NULL"
+REINSCRIRE_LO="INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, ordre, date_effet, date_publication, provisoire, reference, abroge_par_code)
+               VALUES ('base_legale_assimiles', 'lo_2018_29', 'TEST Loi organique n° 2018-29 corrigée', 'قانون أساسي', 30, DATE '2018-05-09', DATE '2018-05-09', true, 'TEST réinscription', 'dl_2026_4')"
+FIN_LO="SELECT 'fin:' || COALESCE(date_fin::text, 'ouverte') || ':' || COALESCE((reference_fin LIKE 'Abrogé par Décret-loi n° 4%')::int, 0) FROM elements_listes_nationales WHERE code = 'lo_2018_29' AND retire_le IS NULL"
+abrogation() { $PSQL -c "BEGIN; $1; $FIN_LO; ROLLBACK;" 2>&1 | grep -oE 'fin:[0-9a-z-]+:[01]' | cut -d: -f2- | tr ':' '|'; }
+chk "la date d'application du décret-loi fixée : la loi organique prend fin le même jour, avec sa pièce" "2027-03-01|1" "$(abrogation "$FIXER_DL")"
+chk "la loi organique corrigée (retirée, réinscrite), puis le décret-loi daté : la nouvelle ligne prend fin aussi" "2027-03-01|1" \
+    "$(abrogation "$RETIRER_LO; $REINSCRIRE_LO; $FIXER_DL")"
+chk "le décret-loi daté d'abord, puis la loi organique réinscrite : elle naît close" "2027-03-01|1" \
+    "$(abrogation "$FIXER_DL; $RETIRER_LO; $REINSCRIRE_LO")"
+DATER_X="UPDATE elements_listes_nationales SET date_effet = DATE '2020-01-01', reference_effet = 'TEST JORT du texte X' WHERE code = 'test_texte_x' AND retire_le IS NULL"
+INSCRIRE_X="INSERT INTO elements_listes_nationales (liste, code, libelle_fr, libelle_ar, ordre, date_publication, provisoire, reference, abroge_par_code)
+            VALUES ('base_legale_assimiles', 'test_texte_x', 'TEST Texte X', 'نص', 90, DATE '2019-01-01', true, 'TEST texte sans date', 'dl_2026_4')"
+FIN_X="SELECT 'fin:' || COALESCE(date_fin::text, 'ouverte') || ':' || COALESCE((reference_fin LIKE 'Abrogé par Décret-loi n° 4%')::int, 0) FROM elements_listes_nationales WHERE code = 'test_texte_x' AND retire_le IS NULL"
+chk "un texte inscrit sans date, que le décret-loi abroge, puis daté après que le décret-loi a pris date : il prend fin aussi" "2027-03-01|1" \
+    "$($PSQL -c "BEGIN; $FIXER_DL; $INSCRIRE_X; $DATER_X; $FIN_X; ROLLBACK;" 2>&1 | grep -oE 'fin:[0-9a-z-]+:[01]' | cut -d: -f2- | tr ':' '|')"
+abrogation_refusee() { $PSQL -c "BEGIN; $1; ROLLBACK;" 2>&1 | grep -c 'ELEMENT_ABROGATION'; }
+chk "un texte abrogé qui s'appliquerait le jour de son abrogation ou après : refusé, dans les deux ordres (après, puis le jour même)" "1|1|1" \
+    "$(abrogation_refusee "$FIXER_DL; $INSCRIRE_X; UPDATE elements_listes_nationales SET date_effet = DATE '2027-03-01', reference_effet = 'TEST JORT du texte X' WHERE code = 'test_texte_x'")|$(abrogation_refusee "$INSCRIRE_X; UPDATE elements_listes_nationales SET date_effet = DATE '2028-01-01', reference_effet = 'TEST JORT du texte X' WHERE code = 'test_texte_x'; $FIXER_DL")|$(abrogation_refusee "$INSCRIRE_X; UPDATE elements_listes_nationales SET date_effet = DATE '2027-03-01', reference_effet = 'TEST JORT du texte X' WHERE code = 'test_texte_x'; $FIXER_DL")"
+# Par l'API : un abrogeant de test daté, puis un texte qu'il abroge — la réponse dit
+# le texte tel que la base l'a laissé (clos), pas tel qu'il a été inscrit.
+appel POST /listes-assimiles/listes/base_legale_assimiles "$T_F" '{"code":"test_abrogeant_api","libelleFr":"TEST Texte abrogeant","libelleAr":"نص ناسخ","dateEffet":"2001-06-01","datePublication":"2001-06-01","provisoire":true,"reference":"TEST JORT"}' >/dev/null
+chk "par l'API, un texte dont l'abrogeant a déjà pris date naît clos, et la réponse le dit" "201|2001-06-01|1" \
+    "$(appel POST /listes-assimiles/listes/base_legale_assimiles "$T_F" '{"code":"test_abroge_api","libelleFr":"TEST Texte abrogé","libelleAr":"نص ملغى","dateEffet":"2001-01-01","datePublication":"2001-01-01","provisoire":true,"reference":"TEST JORT","abrogeParCode":"test_abrogeant_api"}')|$(val "d['date_fin']")|$(val "int((d['reference_fin'] or '').startswith('Abrogé par TEST Texte abrogeant'))")"
+appel POST /listes-assimiles/listes/base_legale_assimiles "$T_F" '{"code":"test_abroge_tard","libelleFr":"TEST Texte abrogé daté ensuite","libelleAr":"نص ملغى","dateEffet":null,"datePublication":"2000-12-01","provisoire":true,"reference":"TEST JORT","abrogeParCode":"test_abrogeant_api"}' >/dev/null
+X_TARD=$(val "d['id']")
+chk "… daté ensuite après son abrogation : refusé en mots (409) ; daté avant, il prend fin aussitôt, et la réponse le dit" "409|1|200|2001-06-01" \
+    "$(appel POST "/listes-assimiles/elements/$X_TARD/application" "$T_F" '{"dateEffet":"2002-01-01","reference":"TEST JORT pièce"}')|$(erreur_contient 'avant cette date')|$(appel POST "/listes-assimiles/elements/$X_TARD/application" "$T_F" '{"dateEffet":"2001-01-01","reference":"TEST JORT pièce"}')|$(val "d['date_fin']")"
+chk "… inscrit pour s'appliquer le jour même de son abrogation : refusé en mots (409)" "409|1" \
+    "$(appel POST /listes-assimiles/listes/base_legale_assimiles "$T_F" '{"code":"test_abroge_trop","libelleFr":"TEST Texte","libelleAr":"نص","dateEffet":"2001-06-01","datePublication":"2001-01-01","provisoire":true,"reference":"TEST JORT","abrogeParCode":"test_abrogeant_api"}')|$(erreur_contient 'avant cette date')"
+chk "la FNCT inscrit un texte avec son abrogeant : 201, le code rendu" "201|test_decret_abrogeant" \
+    "$(appel POST /listes-assimiles/listes/base_legale_assimiles "$T_F" '{"code":"test_texte_abroge","libelleFr":"TEST Texte abrogé","libelleAr":"نص ملغى","dateEffet":"2001-01-01","datePublication":"2001-01-01","provisoire":true,"reference":"TEST JORT","abrogeParCode":"test_decret_abrogeant"}')|$(val "d['abroge_par_code']")"
+chk "… un abrogeant hors de la base légale, ou qui se désigne lui-même : 400, en mots" "400|1|400|1" \
+    "$(appel POST /listes-assimiles/listes/flux_assimiles "$T_F" '{"code":"test_flux_abroge","libelleFr":"TEST Flux","libelleAr":"نفايات","dateEffet":"2001-01-01","provisoire":true,"dangereux":false,"abrogeParCode":"test_decret_abrogeant"}')|$(erreur_contient 'abrogé par un autre')|$(appel POST /listes-assimiles/listes/base_legale_assimiles "$T_F" '{"code":"test_texte_soi","libelleFr":"TEST Texte","libelleAr":"نص","dateEffet":"2001-01-01","datePublication":"2001-01-01","provisoire":true,"abrogeParCode":"test_texte_soi"}')|$(erreur_contient 'lui-même')"
+chk "la FNCT lit les conventions de A, sans geste (403 à l'instruction)" "200|5|403" \
     "$(appel GET "/conventions?communeId=$A" "$T_F")|$(val "len(d)")|$(appel POST "/conventions/$CV2/reprendre" "$T_F" "{\"version\":\"$(version "$CV2")\"}")"
 chk "le directeur de B ne voit aucune convention de A, ni par la liste ni par son identifiant" "0|404" \
     "$(appel GET "/conventions?communeId=$A" "$T_B" >/dev/null; val "len(d)")|$(appel GET "/conventions/$CV" "$T_B")"

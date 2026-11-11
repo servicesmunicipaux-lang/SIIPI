@@ -9873,7 +9873,7 @@ export interface paths {
             parameters: {
                 query?: {
                     communeId?: string;
-                    type?: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur";
+                    type?: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur" | "convention_proprete";
                     exercice?: number;
                     statut?: "emis" | "annule";
                 };
@@ -10103,7 +10103,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Les gabarits des documents scellés (lot 16.2 ; carte de pré-collecteur, lot I2)
+         * Les gabarits des documents scellés (lot 16.2 ; carte de pré-collecteur, lot I2 ; convention de propreté, lot G4a)
          * @description Pour chaque type : titres FR/AR, référence, champs (clé, libellés, nature, obligatoire, unité), signatures, et statut — « provisoire » jusqu’à la validation par un chef de dépôt (décision du 16/10/2026). Le contenu d’un document émis doit suivre son gabarit.
          */
         get: {
@@ -10123,7 +10123,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             /** @enum {string} */
-                            type: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur";
+                            type: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur" | "convention_proprete";
                             /** @enum {string} */
                             statut: "provisoire" | "valide";
                             fr: string;
@@ -10339,7 +10339,7 @@ export interface paths {
         put?: never;
         /**
          * Annuler un document, avec un motif
-         * @description Le numéro reste au registre et le contenu reste lisible. Un document déjà annulé répond 409. Réservé à l’admin de la commune.
+         * @description Le numéro reste au registre et le contenu reste lisible. Un document déjà annulé répond 409, comme le texte d’une convention signée (elle se résilie). Réservé à l’admin de la commune.
          */
         post: {
             parameters: {
@@ -15376,6 +15376,7 @@ export interface paths {
                         unitesEchelle?: ("chambre" | "lit" | "chaise" | "table" | "etal" | "m2" | "eleve" | "employe")[];
                         dangereux?: boolean;
                         datePublication?: string | null;
+                        abrogeParCode?: string | null;
                     };
                 };
             };
@@ -18029,6 +18030,15 @@ export interface paths {
                 };
                 /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Établissement fermé ou sans catégorie d’activité. */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -33997,7 +34007,7 @@ export interface components {
             id: string;
             commune_id: string;
             /** @enum {string} */
-            type_document: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur";
+            type_document: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur" | "convention_proprete";
             exercice: number;
             /** @description Rang continu dans le registre commune × type × exercice. Jamais réutilisé. */
             numero: number;
@@ -34646,6 +34656,8 @@ export interface components {
             dangereux: boolean | null;
             /** @description Base légale : la date de publication au JORT. */
             date_publication: string | null;
+            /** @description Base légale : le code du texte qui abroge celui-ci ; quand il prend date d’application, celui-ci prend fin le même jour. */
+            abroge_par_code: string | null;
             /** @description Base légale : la pièce qui a fixé après coup la date d’application. */
             reference_effet: string | null;
             created_at: string;

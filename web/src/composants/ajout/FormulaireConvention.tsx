@@ -22,11 +22,16 @@ type LigneSaisie = { fluxCode: string; conteneurId: string; levees: string; volu
 
 const ligneVide = (): LigneSaisie => ({ fluxCode: '', conteneurId: '', levees: '1', volume: '' });
 
-/** La veille du même jour, un an après : la fin la plus tardive d'une convention annuelle. */
+/**
+ * La fin la plus tardive d'une convention annuelle : la veille du même jour, un an
+ * après — comme la base (un 29 février donne le 28 février, puis la veille).
+ */
 export function finMaximale(debut: string): string {
-  const d = new Date(`${debut}T00:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(debut)) return '';
+  const [a, m, j] = debut.split('-').map(Number);
+  const jours = new Date(Date.UTC(a + 1, m, 0)).getUTCDate();
+  const d = new Date(Date.UTC(a + 1, m - 1, Math.min(j, jours)));
   if (Number.isNaN(d.getTime())) return '';
-  d.setUTCFullYear(d.getUTCFullYear() + 1);
   d.setUTCDate(d.getUTCDate() - 1);
   return d.toISOString().slice(0, 10);
 }
@@ -93,6 +98,15 @@ export function FormulaireConvention({
     [etablissements]
   );
   const libelleFlux = (f: ElementListeAssimiles) => (arabe ? f.libelle_ar : f.libelle_fr);
+  // Deux établissements de même raison sociale se départagent : le document scellé
+  // de la convention ne se corrige plus s'il désigne le mauvais.
+  const homonymes = useMemo(() => {
+    const vus = new Map<string, number>();
+    for (const e of choisissables) vus.set(e.nom.trim().toLowerCase(), (vus.get(e.nom.trim().toLowerCase()) ?? 0) + 1);
+    return vus;
+  }, [choisissables]);
+  const departage = (e: Etablissement) =>
+    (homonymes.get(e.nom.trim().toLowerCase()) ?? 0) > 1 ? ` — ${e.matricule_fiscal ?? e.adresse ?? e.id.slice(0, 8)}` : '';
 
   const problemes: string[] = [];
   const cle = (s: string) => `ajout.convention.problemes.${s}`;
@@ -170,7 +184,7 @@ export function FormulaireConvention({
             {c && !choisissables.some((e) => e.id === c.commerce_id) && <option value={c.commerce_id}>{c.etablissement}</option>}
             {choisissables.map((e) => (
               <option key={e.id} value={e.id}>
-                {e.nom} — {(arabe ? e.categorie_activite_ar : e.categorie_activite_fr) ?? e.categorie_activite}
+                {e.nom}{departage(e)} — {(arabe ? e.categorie_activite_ar : e.categorie_activite_fr) ?? e.categorie_activite}
                 {e.statut === 'a_verifier' ? ` (${t('communal.etablissements.statuts.a_verifier')})` : ''}
               </option>
             ))}

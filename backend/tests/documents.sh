@@ -189,8 +189,9 @@ chk "le scellement est bien rétabli après la manipulation" 1 "$(refus "DELETE 
 echo
 echo "5. Les gabarits (décision du 16/10/2026) et l'impression"
 appel GET "/documents/gabarits" "$T_A" >/dev/null
-# Cinq depuis la carte de pré-collecteur (lot I2), qui ne s'émet que par un accord.
-chk "cinq gabarits, tous « provisoires » jusqu'à la validation du chef de dépôt" "5|5" \
+# Six depuis la convention de propreté (lot G4a), qui ne s'émet que par une signature ;
+# cinq depuis la carte de pré-collecteur (lot I2), qui ne s'émet que par un accord.
+chk "six gabarits, tous « provisoires » jusqu'à la validation du chef de dépôt" "6|6" \
     "$(val "len(d)")|$(val "sum(1 for g in d if g['statut'] == 'provisoire')")"
 CODE=$(appel POST "/documents$Q" "$T_A" '{"type":"bon_travail","contenu":{"engin":"TEST 162 001","nature":"TEST vidange"}}')
 chk "un champ obligatoire manque : 400, et la réponse le nomme" "400|True" \
