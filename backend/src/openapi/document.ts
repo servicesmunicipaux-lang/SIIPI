@@ -111,6 +111,12 @@ import {
   statutEtablissementSchema,
 } from '../routes/etablissements.routes.js';
 import {
+  correspondanceActiviteSchema,
+  fichierImportSchema,
+  importEtablissementsSchema,
+} from '../routes/importEtablissements.routes.js';
+import { CLES_CHAMPS } from '../services/importEtablissements.js';
+import {
   demandeCarteSchema,
   pieceCarteSchema,
   accordCarteSchema,
@@ -4866,6 +4872,158 @@ registry.registerPath({
   security: SECURISE,
   request: { params: pEtablissement },
   responses: { 204: { description: 'Identité retirée.' }, ...REPONSES_COMMUNES },
+});
+
+// L'import des établissements (lot G2b, migration 102).
+const SourceImport = z.enum(['import_tcl', 'open_data']);
+const ColonnesImport = z.object({
+  fichier: z.string(),
+  source: SourceImport,
+  feuille: z.string().nullable().openapi({ description: 'La feuille lue, pour un classeur Excel (la première seulement).' }),
+  avertissements: z.array(z.string()),
+  ligneEntetes: z.number().int().openapi({ description: 'La ligne du tableur qui porte les en-têtes (un titre au-dessus est laissé de côté).' }),
+  lignes: z.number().int().openapi({ description: 'Lignes de données (sans l’en-tête).' }),
+  entetes: z.array(z.string()).openapi({ description: 'Les en-têtes du fichier, rendus uniques (« Colonne 3 » pour un en-tête vide).' }),
+  exemples: z.array(z.array(z.string())).openapi({ description: 'Les trois premières lignes, pour reconnaître les colonnes.' }),
+  champs: z.array(z.object({ cle: z.enum(CLES_CHAMPS), fr: z.string(), ar: z.string(), obligatoire: z.boolean() })),
+  correspondance: z.record(z.enum(CLES_CHAMPS), z.string().nullable()),
+  provenance: z.record(z.enum(CLES_CHAMPS), z.enum(['enregistree', 'proposee', 'aucune'])).openapi({
+    description: 'enregistree : le modèle de la commune pour ce type de fichier ; proposee : d’après les en-têtes usuels ; aucune.',
+  }),
+  modeleEnregistre: z.boolean(),
+});
+const ChampCompare = z.enum(['adresse', 'activite', 'categorie_activite', 'position', 'surface_m2']);
+const LigneImportEtablissement = z.object({
+  numero: z.number().int().openapi({ description: 'La ligne du tableur, telle qu’il la numérote (lignes vides comptées).' }),
+  action: z.enum(['creer', 'a_verifier', 'rattacher', 'inchange', 'sans_categorie', 'erreur']),
+  nom: z.string(),
+  activite: z.string().nullable(),
+  categorie_activite: z.string().nullable(),
+  categorie_provenance: z.enum(['correspondance', 'libelle']).nullable(),
+  erreurs: z.array(z.string()),
+  doublon: z
+    .object({
+      nom: z.string(),
+      raison: z.enum(['meme_nom', 'proche']),
+      distance_m: z.number().nullable(),
+      ligne: z.number().int().nullable(),
+      id: z.string().uuid().nullable(),
+    })
+    .nullable()
+    .openapi({ description: 'Pour « à vérifier » : le doublon probable, nommé — jamais fusionné.' }),
+  rattache_a: z.object({ id: z.string().uuid(), nom: z.string(), statut: z.string() }).nullable(),
+  reconnu_par: z.enum(['matricule', 'import_precedent', 'meme_fichier']).nullable().openapi({
+    description: 'Comment la ligne a été reconnue : son matricule, une ligne d’un import précédent (même raison sociale, activité et adresse ou < 5 m), ou ce même fichier.',
+  }),
+  remplis: z.array(ChampCompare).openapi({ description: 'Ce que le rattachement remplit : des cases vides seulement.' }),
+  differences: z.array(z.object({ champ: ChampCompare, inscrit: z.string(), fichier: z.string() })).openapi({
+    description: 'Ce qui diffère de l’inscrit : montré, jamais écrasé.',
+  }),
+  avertissements: z.array(z.string()),
+});
+const ApercuImportEtablissements = z.object({
+  fichier: z.string(),
+  source: SourceImport,
+  feuille: z.string().nullable(),
+  avertissements: z.array(z.string()),
+  resume: z.object({
+    creer: z.number().int(),
+    a_verifier: z.number().int(),
+    rattacher: z.number().int(),
+    inchange: z.number().int(),
+    sans_categorie: z.number().int(),
+    erreur: z.number().int(),
+  }),
+  activitesSansCategorie: z.array(z.object({ activite: z.string(), lignes: z.number().int() })).openapi({
+    description: 'Les activités du fichier sans catégorie : à faire correspondre (PUT /etablissements/correspondances-activites), jamais devinées.',
+  }),
+  lignes: z.array(LigneImportEtablissement),
+  ecrit: z.boolean(),
+  importId: z.string().uuid().optional(),
+  crees: z.number().int().optional(),
+  aVerifier: z.number().int().optional(),
+  rattaches: z.number().int().optional(),
+});
+const ImportEtablissementsJournal = z.object({
+  id: z.string().uuid(),
+  commune_id: z.string(),
+  source: SourceImport,
+  nom_fichier: z.string(),
+  empreinte_fichier: z.string(),
+  licence: z.string().nullable(),
+  producteur: z.string().nullable(),
+  url_source: z.string().nullable(),
+  precision_declaree: z.number().nullable(),
+  correspondance: z.record(z.string(), z.string().nullable()),
+  nb_crees: z.number().int(),
+  nb_a_verifier: z.number().int(),
+  nb_rattaches: z.number().int(),
+  nb_inchanges: z.number().int(),
+  nb_sans_categorie: z.number().int(),
+  nb_erreurs: z.number().int(),
+  saisi_par_nom: z.string().nullable(),
+  created_at: z.string(),
+});
+const CorrespondanceActivite = z.object({
+  id: z.string().uuid(),
+  commune_id: z.string(),
+  activite: z.string(),
+  categorie_activite: z.string(),
+  categorie_activite_fr: z.string().nullable().optional(),
+  categorie_activite_ar: z.string().nullable().optional(),
+  en_vigueur: z.boolean().optional(),
+  updated_at: z.string(),
+});
+
+registry.registerPath({
+  method: 'post', path: '/etablissements/import/colonnes', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Lire les colonnes d’un fichier à importer (liste TCL, open data)',
+  description:
+    'CSV ou Excel (.xlsx, première feuille), tel que la commune le tient. Rend ses en-têtes, trois lignes d’exemple et la correspondance proposée : ' +
+    'le modèle enregistré par la commune pour ce type de fichier, sinon d’après les en-têtes usuels. Rien n’est écrit. Le directeur de la commune ; la FNCT lit (403).',
+  security: SECURISE,
+  request: { query: qCommuneEtablissements, body: { content: { 'application/json': { schema: fichierImportSchema } } } },
+  responses: { 200: json(ColonnesImport, 'Colonnes et correspondance proposée.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/etablissements/import', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Importer une liste d’établissements : l’aperçu, puis l’écriture',
+  description:
+    'Avec la correspondance des colonnes retenue. valider: false rend l’aperçu ligne par ligne sans rien écrire ; valider: true relit le fichier, le rapproche ' +
+    'de nouveau et écrit ses seules lignes valides en une transaction, puis garde la correspondance pour l’import suivant. Même matricule : rattaché (cases vides ' +
+    'remplies, différences montrées, jamais écrasées) ; même raison sociale ou moins de 5 m : créé « à vérifier », le doublon nommé ; une activité sans catégorie ' +
+    'attend sa correspondance. Un jeu open data exige sa licence et son producteur.',
+  security: SECURISE,
+  request: { query: qCommuneEtablissements, body: { content: { 'application/json': { schema: importEtablissementsSchema } } } },
+  responses: {
+    200: json(ApercuImportEtablissements, 'Aperçu (rien n’est écrit).'),
+    201: json(ApercuImportEtablissements, 'Import écrit.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La base a changé pendant l’import : rien n’a été écrit.'),
+  },
+});
+registry.registerPath({
+  method: 'get', path: '/etablissements/imports', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Le journal des imports d’établissements',
+  description: 'Chaque import validé : fichier et empreinte, licence et producteur (open data), correspondance, comptes. Ne se modifie pas.',
+  security: SECURISE,
+  request: { query: qCommuneEtablissements },
+  responses: { 200: json(z.array(ImportEtablissementsJournal), 'Imports, du plus récent au plus ancien.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/etablissements/correspondances-activites', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Les correspondances activité → catégorie de la commune',
+  security: SECURISE,
+  request: { query: qCommuneEtablissements },
+  responses: { 200: json(z.array(CorrespondanceActivite), 'Correspondances, par activité.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'put', path: '/etablissements/correspondances-activites', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Poser ou corriger la catégorie d’une activité du fichier',
+  description: 'Une catégorie en vigueur aujourd’hui (liste nationale). Une par activité et par commune ; se corrige, ne se supprime pas. Le directeur de la commune.',
+  security: SECURISE,
+  request: { query: qCommuneEtablissements, body: { content: { 'application/json': { schema: correspondanceActiviteSchema } } } },
+  responses: { 200: json(CorrespondanceActivite, 'Correspondance enregistrée.'), ...REPONSES_COMMUNES },
 });
 
 const ActeurInformel = registry.register(

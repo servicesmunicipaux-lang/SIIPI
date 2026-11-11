@@ -77,11 +77,22 @@ function separateur(texte: string): string {
 
 /** CSV selon la RFC 4180 : guillemets doublés, retours à la ligne dans un champ. */
 export function lireCsv(texte: string): string[][] {
+  return lireCsvNumerote(texte).map((r) => r.cellules);
+}
+
+/**
+ * Le même CSV, chaque enregistrement avec le numéro de la ligne où il commence
+ * dans le fichier (la première est la 1), lignes vides comptées : le numéro que
+ * le tableur montre, et que l'on peut citer à la commune.
+ */
+export function lireCsvNumerote(texte: string): Array<{ cellules: string[]; ligne: number }> {
   const sep = separateur(texte);
-  const lignes: string[][] = [];
+  const lignes: Array<{ cellules: string[]; ligne: number }> = [];
   let ligne: string[] = [];
   let champ = '';
   let guillemets = false;
+  let physique = 1;
+  let debut = 1;
   for (let i = 0; i < texte.length; i++) {
     const c = texte[i];
     if (guillemets) {
@@ -89,7 +100,11 @@ export function lireCsv(texte: string): string[][] {
         champ += '"';
         i++;
       } else if (c === '"') guillemets = false;
-      else champ += c;
+      else {
+        // Un retour à la ligne dans un champ entre guillemets avance le tableur d'une ligne.
+        if (c === '\n' || (c === '\r' && texte[i + 1] !== '\n')) physique++;
+        champ += c;
+      }
     } else if (c === '"' && champ === '') guillemets = true;
     else if (c === sep) {
       ligne.push(champ);
@@ -97,18 +112,20 @@ export function lireCsv(texte: string): string[][] {
     } else if (c === '\n' || c === '\r') {
       if (c === '\r' && texte[i + 1] === '\n') i++;
       ligne.push(champ);
-      lignes.push(ligne);
+      lignes.push({ cellules: ligne, ligne: debut });
       ligne = [];
       champ = '';
+      physique++;
+      debut = physique;
     } else champ += c;
   }
   if (champ !== '' || ligne.length > 0) {
     ligne.push(champ);
-    lignes.push(ligne);
+    lignes.push({ cellules: ligne, ligne: debut });
   }
   // Les lignes entièrement vides (fin de fichier, lignes de séparation) ne
   // sont pas des données.
-  return lignes.filter((l) => l.some((c) => c.trim() !== ''));
+  return lignes.filter((l) => l.cellules.some((c) => c.trim() !== ''));
 }
 
 const VRAI = new Set(['oui', 'vrai', 'true', '1', 'x', 'نعم']);

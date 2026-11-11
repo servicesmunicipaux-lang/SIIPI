@@ -5,6 +5,76 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.94] — 2026-11-11 — Jalon G, lot G2b : l'import des établissements (liste TCL, open data)
+
+Le lot G2b du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 3.2 ; décisions du 4 novembre, G-4 : la
+liste TCL est la base de départ du recensement, et du 10 novembre 2026). **La commune dépose son fichier tel qu'il
+est** : aucun extrait TCL n'étant disponible, et chaque commune tenant sa liste à sa façon, l'import commence par une
+**correspondance des colonnes** que SIIPI propose, que la commune corrige, et qu'il garde pour la fois suivante.
+
+### Ajouté
+- **L'import, en trois temps, et rien n'est écrit avant le dernier** (`POST /etablissements/import/colonnes`, puis
+  `POST /etablissements/import` avec `valider: false`, puis `valider: true`) :
+  1. **le fichier**, en CSV (séparateur, encodage et BOM déduits, comme les autres imports) ou en **Excel .xlsx**
+     (la première feuille, trouvée par sa relation, comme ses textes partagés ; balises préfixées acceptées ; un
+     lecteur sans bibliothèque de plus, `services/xlsx.ts`, sur le lecteur d'archives de C2.2). L'ancien format .xls
+     est refusé en le disant. **Un titre au-dessus des en-têtes** est reconnu et laissé de côté, et chaque ligne
+     garde **le numéro que le tableur lui donne** (lignes vides comptées) : c'est lui que citent l'aperçu, le motif
+     d'un doublon et `commerces.import_ligne` ;
+  2. **la correspondance des colonnes** : chaque champ de SIIPI (raison sociale et activité, obligatoires ;
+     matricule fiscal, adresse, latitude, longitude, précision, surface) reçoit une colonne du fichier, avec trois
+     valeurs d'exemple. La proposition vient du **modèle que la commune a gardé pour ce type de fichier** (TCL ou
+     open data), sinon des en-têtes usuels (« Dénomination », « M.F. », « Lat »…). Une colonne ne sert qu'un champ.
+     **« Aucune colonne » est un choix gardé** : des colonnes X et Y en Lambert écartées une fois ne reviennent pas ;
+  3. **l'aperçu, ligne par ligne**, recalculé à la validation dans l'état de la base à cet instant, jamais repris
+     de l'écran :
+     - **même matricule fiscal** qu'un établissement inscrit (autrement écrit) → **rattaché** : seules ses cases
+       vides se remplissent (adresse, activité, catégorie, surface, position), et la requête elle-même le tient ;
+       une valeur différente est **montrée, jamais écrasée** ; rien à remplir → « inchangé » ;
+     - **même raison sociale** (sans accent, casse ni ponctuation) **ou moins de 5 m** d'un inscrit ou d'une ligne
+       plus haut dans le fichier → créé **« à vérifier »**, son motif nomme le doublon probable et le fichier :
+       **jamais fusionné**, la commune décide ;
+     - **une ligne déjà importée du même fichier** (même empreinte) → « inchangée » ; **une liste corrigée** (une
+       autre empreinte) retrouve ses lignes sans matricule déjà importées par leur raison sociale, leur activité et
+       leur adresse (ou moins de 5 m) : relancer l'import, après une correction ou après avoir donné leur catégorie
+       aux activités qui n'en avaient pas, ne crée pas de doubles ;
+     - **une activité sans catégorie attend sa correspondance** : elle n'est **jamais devinée** (seul un libellé
+       identique à celui d'une catégorie en vigueur vaut correspondance) ;
+     - une position sans précision n'est pas gardée, sauf si la commune **déclare** la précision des positions du
+       fichier ; un matricule mal formé, une position hors de Tunisie, un matricule répété dans le fichier sont des
+       erreurs, avec leur raison ; une précision ou une surface que la base arrondirait à zéro aussi, à sa ligne ;
+       une activité qui ne dit rien (« - ») est une erreur, pas une activité à faire correspondre.
+  - **La validation relit et rapproche sous verrou** (un verrou par commune, dans la transaction) : deux validations
+    simultanées se suivent, et la seconde ne recrée pas ce que la première a écrit. L'écran n'envoie que les entrées
+    qui ont produit l'aperçu affiché : une correspondance changée après l'aperçu en demande un nouveau.
+- **La correspondance des activités, gardée par commune** (`correspondances_activites`,
+  `GET`/`PUT /etablissements/correspondances-activites`) : l'activité telle que le fichier l'écrit → la catégorie
+  de la liste nationale du jour. Elle se pose depuis l'aperçu même, et l'aperçu se relit ; elle se corrige depuis
+  l'écran « Établissements » (l'ancienne valeur reste au journal d'audit ; une catégorie fermée depuis est signalée),
+  elle ne se supprime pas. Une correspondance posée puis fermée par la FNCT ne laisse pas la place à un libellé
+  identique : l'activité redemande sa catégorie.
+- **Le journal des imports** (`imports_etablissements`, `GET /etablissements/imports`) : fichier et empreinte,
+  correspondance, comptes ; il ne se modifie pas. **Un jeu open data ne s'importe pas sans sa licence ni son
+  producteur** (et, s'il est connu, l'adresse de sa source) : l'API et la base le refusent. Un établissement importé
+  garde son import et sa ligne (`commerces.import_id`, `import_ligne`), jamais réécrits.
+- L'écran « Établissements » gagne le bouton **« Importer une liste »** (le formulaire unique du registre, aussi
+  dans le catalogue « + Ajouter ») et le journal des imports, avec la licence des jeux open data. En français et en
+  arabe.
+- Le directeur importe ; la FNCT lit le journal et les correspondances ; un prestataire ne voit rien.
+
+### Vérifié
+- Campagne `import-etablissements` (69 contrôles), qui commence par ce que l'import refuse ; elle importe une liste
+  TCL aux en-têtes de la commune (séparateur « ; », BOM, accents) et un classeur Excel open data écrit comme un
+  tableur l'écrit (deux feuilles, la première rangée dans « sheet3.xml », textes partagés et en ligne, une ligne
+  vide), un classeur aux balises préfixées, un document qui commence par un titre ; relance le même fichier puis
+  une liste corrigée sans doubles, et prouve que rien n'est écrit par un aperçu ni par un refus.
+- Une relecture adversariale indépendante (base et services, routes et campagne, écran) ; ses constats confirmés ou
+  plausibles sont corrigés avant la livraison.
+- Écran vérifié sur une commune de test : proposition des colonnes, aperçu, correspondance d'une activité depuis
+  l'aperçu, validation, journal ; en arabe (sens RTL, modèle gardé repris) et sur téléphone.
+- Critère complet sur base neuve : 88 campagnes enchaînées, 3994 contrôles réussis, aucun échec ; contrat : 416 routes
+  servies, 416 documentées ; migration 102 rejouée deux fois ; aucun contrôle sous condition sauté.
+
 ## [0.15.93] — 2026-11-10 — M2-2 : la cible d'une période ne compte que les établissements déjà inscrits
 
 Constaté le 10 novembre 2026 en vérifiant la v0.15.92 à l'écran (JC-016). La cible de M2-2 comptait les

@@ -36,6 +36,7 @@ import { FormulairePublication } from './FormulairePublication';
 import { FormulaireRapport } from './FormulaireRapport';
 import { FormulaireRegistre } from './FormulaireRegistre';
 import { FormulaireSortieCarnet } from './FormulaireSortieCarnet';
+import { ImportEtablissements } from './ImportEtablissements';
 import { ImportContacts, ImportParc, ImportPersonnel } from './ImportsCsv';
 
 /** Les rubriques du catalogue, dans l'ordre où le directeur les cherche (SPEC § 2.2). */
@@ -109,6 +110,8 @@ const FORMULAIRES: Record<TypeFormulaire, Omit<EntreeFormulaire, 'type'>> = {
   'import-contacts': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportContacts },
   'import-parc': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportParc },
   'import-personnel': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportPersonnel },
+  // La liste TCL ou un jeu open data, tels qu'ils sont (jalon G, lot G2b) : le directeur importe, la FNCT lit.
+  'import-etablissements': { rubrique: 'imports', roles: COMMUNE, Formulaire: ImportEtablissements },
   'ordre-mission': { rubrique: 'equipe', roles: COMMUNE, Formulaire: document('ordre_mission') },
   'bon-travail': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('bon_travail') },
   'declaration-panne': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('declaration_panne') },

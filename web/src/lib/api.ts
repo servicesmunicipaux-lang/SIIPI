@@ -286,6 +286,15 @@ export type SaisieEtablissement = Corps<'/etablissements', 'post'>;
 export type StatutEtablissement = Etablissement['statut'];
 export type IdentiteEtablissement = Reponse<'/etablissements/{id}/identite', 'get'>;
 export type SaisieIdentiteEtablissement = Corps<'/etablissements/{id}/identite', 'put'>;
+// --- Jalon G, lot G2b : l'import des établissements (liste TCL, open data) ---
+export type ColonnesImportEtablissements = Reponse<'/etablissements/import/colonnes', 'post'>;
+export type FichierImportEtablissements = Corps<'/etablissements/import/colonnes', 'post'>;
+export type SaisieImportEtablissements = Corps<'/etablissements/import', 'post'>;
+export type ApercuImportEtablissements = Reponse<'/etablissements/import', 'post'>;
+export type LigneImportEtablissements = ApercuImportEtablissements['lignes'][number];
+export type ChampImportEtablissements = ColonnesImportEtablissements['champs'][number]['cle'];
+export type ImportEtablissementsJournal = Reponse<'/etablissements/imports', 'get'>[number];
+export type CorrespondanceActivite = Reponse<'/etablissements/correspondances-activites', 'get'>[number];
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
 export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
@@ -1419,6 +1428,25 @@ export const api = {
   enregistrerIdentiteEtablissement: (id: string, saisie: SaisieIdentiteEtablissement) =>
     requete<IdentiteEtablissement>(`/etablissements/${id}/identite`, { method: 'PUT', body: JSON.stringify(saisie) }),
   retirerIdentiteEtablissement: (id: string) => requete<void>(`/etablissements/${id}/identite`, { method: 'DELETE' }),
+  colonnesImportEtablissements: (communeId: string, fichier: FichierImportEtablissements) =>
+    requete<ColonnesImportEtablissements>(`/etablissements/import/colonnes?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(fichier),
+    }),
+  importerEtablissements: (communeId: string, saisie: SaisieImportEtablissements) =>
+    requete<ApercuImportEtablissements>(`/etablissements/import?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  importsEtablissements: (communeId: string) =>
+    requete<ImportEtablissementsJournal[]>(`/etablissements/imports?communeId=${encodeURIComponent(communeId)}`),
+  correspondancesActivites: (communeId: string) =>
+    requete<CorrespondanceActivite[]>(`/etablissements/correspondances-activites?communeId=${encodeURIComponent(communeId)}`),
+  enregistrerCorrespondanceActivite: (communeId: string, saisie: Corps<'/etablissements/correspondances-activites', 'put'>) =>
+    requete<CorrespondanceActivite>(`/etablissements/correspondances-activites?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(saisie),
+    }),
   retirerGrilleTarifaire: (id: string, version: string) =>
     requete<void>(`/grilles-tarifaires/${id}?version=${encodeURIComponent(version)}`, { method: 'DELETE' }),
   // --- Lot 17.2 : la matrice des densités, le tonnage estimé -------------------

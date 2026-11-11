@@ -60,6 +60,9 @@
   "import-personnel": [
     "importerPersonnel"
   ],
+  "import-etablissements": [
+    "importerEtablissements"
+  ],
   "ordre-mission": [
     "emettreDocument"
   ],
