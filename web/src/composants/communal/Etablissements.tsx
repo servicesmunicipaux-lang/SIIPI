@@ -16,13 +16,22 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, ErreurApi, type Etablissement, type IdentiteEtablissement, type ImportEtablissementsJournal, type StatutEtablissement } from '../../lib/api';
+import {
+  api,
+  ErreurApi,
+  type CorrespondanceActivite,
+  type ElementListeAssimiles,
+  type Etablissement,
+  type IdentiteEtablissement,
+  type ImportEtablissementsJournal,
+  type StatutEtablissement,
+} from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useFormats } from '../../lib/formats';
 import { formaterNombre } from '../../i18n';
 import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
-import { FormulaireEtablissement } from '../ajout/FormulaireEtablissement';
+import { aujourdhui as jourTunis, categoriesDuJour, FormulaireEtablissement } from '../ajout/FormulaireEtablissement';
 import { useAjoutEnLigne } from '../ajout/useAjoutEnLigne';
 import { Pastille, type TonPastille } from '../ui/Pastille';
 
@@ -91,7 +100,41 @@ export function Etablissements({ communeId }: { communeId: string }) {
     setMessage(t('communal.etablissements.messages.importe'));
     await charger();
     chargerImports();
+    chargerCorrespondances();
   });
+  // Les correspondances activité → catégorie gardées par la commune : une erreur
+  // posée pendant un import se corrige ici, sans quoi elle vaudrait pour tous les
+  // imports suivants (l'activité n'étant plus « sans catégorie », l'aperçu ne la
+  // redemande jamais).
+  const [correspondances, setCorrespondances] = useState<CorrespondanceActivite[]>([]);
+  const [categoriesJour, setCategoriesJour] = useState<ElementListeAssimiles[]>([]);
+  const [correction, setCorrection] = useState<Record<string, string>>({});
+  const chargerCorrespondances = useCallback(() => {
+    api.correspondancesActivites(communeId).then(setCorrespondances).catch(() => setCorrespondances([]));
+  }, [communeId]);
+  useEffect(() => {
+    chargerCorrespondances();
+    api
+      .listesAssimiles()
+      .then((l) => setCategoriesJour(categoriesDuJour(l.listes.find((x) => x.liste === 'categories_activite_assimiles')?.elements ?? [], jourTunis())))
+      .catch(() => setCategoriesJour([]));
+  }, [chargerCorrespondances]);
+  const corriger = async (c: CorrespondanceActivite) => {
+    const code = correction[c.id];
+    if (!code) return;
+    setEnvoi(true);
+    setErreur(null);
+    try {
+      await api.enregistrerCorrespondanceActivite(communeId, { activite: c.activite, categorieActivite: code });
+      setMessage(t('communal.etablissements.correspondances.corrigee', { activite: c.activite }));
+      setCorrection((x) => ({ ...x, [c.id]: '' }));
+      chargerCorrespondances();
+    } catch (err) {
+      setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
+    } finally {
+      setEnvoi(false);
+    }
+  };
 
   const changerStatut = async () => {
     if (!geste) return;
@@ -289,6 +332,43 @@ export function Etablissements({ communeId }: { communeId: string }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {correspondances.length > 0 && (
+        <details className="rounded-xl border border-ardoise-200 bg-white p-3">
+          <summary className="cursor-pointer text-sm font-medium text-ardoise-900">
+            {t('communal.etablissements.correspondances.titre', { n: nombre(correspondances.length) })}
+          </summary>
+          <p className="mt-2 text-xs text-ardoise-600">{t('communal.etablissements.correspondances.aide')}</p>
+          <ul className="mt-2 divide-y divide-ardoise-100">
+            {correspondances.map((c) => (
+              <li key={c.id} className="flex flex-wrap items-end gap-2 py-2 text-sm">
+                <span className="min-w-40 flex-1 text-ardoise-800">
+                  « {c.activite} » → {(arabe ? c.categorie_activite_ar : c.categorie_activite_fr) ?? c.categorie_activite}
+                  {c.en_vigueur === false && <span className="ms-2 text-xs text-amber-800">{t('communal.etablissements.correspondances.fermee')}</span>}
+                </span>
+                {peutEcrire && (
+                  <>
+                    <select
+                      value={correction[c.id] ?? ''}
+                      onChange={(e) => setCorrection((x) => ({ ...x, [c.id]: e.target.value }))}
+                      className={`${champ} max-w-xs`}
+                      aria-label={t('communal.etablissements.correspondances.nouvelle', { activite: c.activite })}
+                    >
+                      <option value="">{t('ajout.etablissement.choisir')}</option>
+                      {categoriesJour.map((k) => (
+                        <option key={k.id} value={k.code}>{arabe ? k.libelle_ar : k.libelle_fr}</option>
+                      ))}
+                    </select>
+                    <button type="button" className={boutonDiscret} disabled={envoi || !correction[c.id]} onClick={() => void corriger(c)}>
+                      {t('communal.etablissements.correspondances.corriger')}
+                    </button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
 
       {imports.length > 0 && (

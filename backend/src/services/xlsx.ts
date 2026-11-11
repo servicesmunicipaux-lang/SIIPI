@@ -24,6 +24,9 @@ const MAX_COLONNES = 200;
 const lecteur = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@',
+  // Certains générateurs (OpenXML SDK, exports .NET) préfixent chaque balise
+  // (« x:row ») : le préfixe n'a pas de sens ici, on le retire.
+  removeNSPrefix: true,
   parseTagValue: false,
   parseAttributeValue: false,
   trimValues: false,
@@ -67,7 +70,7 @@ export const estXlsx = (octets: Buffer) => estZip(octets);
  * Les rangées de la première feuille, en texte. `feuille` nomme la feuille lue ;
  * `autresFeuilles` dit combien ont été laissées, pour que l'écran le dise.
  */
-export function lireXlsx(octets: Buffer): { rangees: string[][]; feuille: string; autresFeuilles: number } {
+export function lireXlsx(octets: Buffer): { rangees: Array<{ cellules: string[]; ligne: number }>; feuille: string; autresFeuilles: number } {
   let fichiers;
   try {
     fichiers = lireZip(octets);
@@ -82,24 +85,28 @@ export function lireXlsx(octets: Buffer): { rangees: string[][]; feuille: string
   const liste = (feuilles?.sheet as Noeud[] | undefined) ?? [];
   if (liste.length === 0) throw new ErreurXlsx('Le classeur ne contient aucune feuille.');
   const premiere = liste[0];
-  const idRelation = String(premiere['@r:id'] ?? '');
+  // « r:id » devient « id » une fois les préfixes retirés.
+  const idRelation = String(premiere['@id'] ?? premiere['@r:id'] ?? '');
 
   // La feuille se trouve par la relation que le classeur nomme, pas par son
   // numéro : une feuille supprimée puis recréée s'appelle « sheet3.xml ».
   let chemin = 'xl/worksheets/sheet1.xml';
+  let cheminTextes = 'xl/sharedStrings.xml';
   const relations = entree(entrees, 'xl/_rels/workbook.xml.rels');
-  if (relations && idRelation) {
-    const rel = (((lecteur.parse(relations) as Noeud).Relationships as Noeud | undefined)?.Relationship as Noeud[] | undefined)?.find(
-      (r) => r['@Id'] === idRelation
-    );
-    const cible = rel ? String(rel['@Target'] ?? '') : '';
-    if (cible) chemin = cible.startsWith('/') ? cible.slice(1) : `xl/${cible.replace(/^\.\//, '')}`;
+  const versChemin = (cible: string) => (cible.startsWith('/') ? cible.slice(1) : `xl/${cible.replace(/^\.\//, '')}`);
+  if (relations) {
+    const liens = (((lecteur.parse(relations) as Noeud).Relationships as Noeud | undefined)?.Relationship as Noeud[] | undefined) ?? [];
+    const feuilleLiee = idRelation ? liens.find((r) => r['@Id'] === idRelation) : undefined;
+    if (feuilleLiee?.['@Target']) chemin = versChemin(String(feuilleLiee['@Target']));
+    // Les textes partagés se trouvent eux aussi par leur relation, pas par leur nom habituel.
+    const textes = liens.find((r) => String(r['@Type'] ?? '').endsWith('/sharedStrings'));
+    if (textes?.['@Target']) cheminTextes = versChemin(String(textes['@Target']));
   }
   const feuille = entree(entrees, chemin);
   if (!feuille) throw new ErreurXlsx('La première feuille du classeur est introuvable.');
 
   const partagees: string[] = [];
-  const sst = entree(entrees, 'xl/sharedStrings.xml');
+  const sst = entree(entrees, cheminTextes) ?? entree(entrees, 'xl/sharedStrings.xml');
   if (sst) {
     for (const si of (((lecteur.parse(sst) as Noeud).sst as Noeud | undefined)?.si as Noeud[] | undefined) ?? []) partagees.push(chainePartagee(si));
   }
@@ -109,8 +116,11 @@ export function lireXlsx(octets: Buffer): { rangees: string[][]; feuille: string
     | undefined) ?? [];
   if (lignesXml.length > MAX_LIGNES) throw new ErreurXlsx(`La feuille compte ${lignesXml.length} lignes : ${MAX_LIGNES} au plus.`);
 
-  const rangees: string[][] = [];
+  const rangees: Array<{ cellules: string[]; ligne: number }> = [];
+  let numero = 0;
   for (const ligne of lignesXml) {
+    // Le numéro du tableur (« r »), qui compte les lignes vides qu'Excel n'écrit pas.
+    numero = Number(ligne['@r']) > numero ? Number(ligne['@r']) : numero + 1;
     const valeurs: string[] = [];
     let suivante = 0;
     for (const c of (ligne.c as Noeud[] | undefined) ?? []) {
@@ -128,7 +138,7 @@ export function lireXlsx(octets: Buffer): { rangees: string[][]; feuille: string
       while (valeurs.length < i) valeurs.push('');
       valeurs[i] = v;
     }
-    if (valeurs.some((v) => v.trim() !== '')) rangees.push(valeurs);
+    if (valeurs.some((v) => v.trim() !== '')) rangees.push({ cellules: valeurs, ligne: numero });
   }
   return { rangees, feuille: String(premiere['@name'] ?? ''), autresFeuilles: liste.length - 1 };
 }

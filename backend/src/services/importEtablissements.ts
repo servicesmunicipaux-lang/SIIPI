@@ -87,17 +87,27 @@ export function proposerCorrespondance(
   const prises = new Set<string>();
   const parForme = new Map(entetes.map((e) => [formeEntete(e), e]));
 
+  const decides = new Set<ChampImport>();
   for (const champ of CHAMPS_IMPORT) {
+    // « Aucune colonne » est un choix de la commune, gardé comme tel : des colonnes
+    // X et Y en Lambert, écartées une fois, ne reviennent pas en latitude et longitude.
+    if (enregistree && Object.prototype.hasOwnProperty.call(enregistree, champ.cle) && enregistree[champ.cle] === null) {
+      correspondance[champ.cle] = null;
+      provenance[champ.cle] = 'enregistree';
+      decides.add(champ.cle);
+      continue;
+    }
     const garde = enregistree?.[champ.cle];
     const trouve = garde ? parForme.get(formeEntete(garde)) : undefined;
     if (trouve && !prises.has(trouve)) {
       correspondance[champ.cle] = trouve;
       provenance[champ.cle] = 'enregistree';
       prises.add(trouve);
+      decides.add(champ.cle);
     }
   }
   for (const champ of CHAMPS_IMPORT) {
-    if (correspondance[champ.cle]) continue;
+    if (decides.has(champ.cle)) continue;
     const usuels = champ.usuels.map(formeEntete);
     const libre = (e: string) => !prises.has(e);
     const exact = entetes.find((e) => libre(e) && usuels.includes(formeEntete(e)));
@@ -150,11 +160,17 @@ export type Existant = {
   latitude: number | null;
   longitude: number | null;
   surface_m2: number | null;
+  import_id: string | null;
+  source_creation: string;
 };
 export type CategorieDuJour = { code: string; libelle_fr: string; libelle_ar: string };
 export type CorrespondanceActivite = { activite: string; categorie_activite: string };
+/** Une ligne de données du fichier, avec son numéro dans le tableur (en-tête compris, lignes vides comptées). */
+export type RangeeFichier = { cellules: string[]; ligne: number };
 
 export type ActionLigne = 'creer' | 'a_verifier' | 'rattacher' | 'inchange' | 'sans_categorie' | 'erreur';
+/** Les champs qu'un rattachement remplit ou compare : des clés, que l'écran dit dans sa langue. */
+export type ChampCompare = 'adresse' | 'activite' | 'categorie_activite' | 'position' | 'surface_m2';
 
 export type LigneRapprochee = {
   numero: number;
@@ -169,8 +185,10 @@ export type LigneRapprochee = {
   doublon: { nom: string; raison: 'meme_nom' | 'proche'; distance_m: number | null; ligne: number | null; id: string | null } | null;
   /** Pour « rattacher » / « inchangé » : l'établissement inscrit, ce qui se remplit, et ce qui diffère sans être écrasé. */
   rattache_a: { id: string; nom: string; statut: string } | null;
-  remplis: string[];
-  differences: Array<{ champ: string; inscrit: string; fichier: string }>;
+  /** Comment la ligne a été reconnue : par son matricule, ou comme une ligne d'un import précédent. */
+  reconnu_par: 'matricule' | 'import_precedent' | 'meme_fichier' | null;
+  remplis: ChampCompare[];
+  differences: Array<{ champ: ChampCompare; inscrit: string; fichier: string }>;
   /** Ce que l'écriture posera (créer, à vérifier) ou remplira (rattacher). */
   saisie: {
     nom: string;
@@ -184,14 +202,6 @@ export type LigneRapprochee = {
     surface_m2: number | null;
   } | null;
   avertissements: string[];
-};
-
-const LIBELLES_CHAMPS: Record<string, string> = {
-  adresse: 'Adresse',
-  activite: 'Activité',
-  categorie_activite: "Catégorie d'activité",
-  position: 'Position',
-  surface_m2: 'Surface',
 };
 
 /** La distance en mètres entre deux points (sphère de rayon moyen) : assez juste à 5 m près, sans base. */
@@ -212,6 +222,21 @@ function lireNombre(v: string): number | null | 'invalide' {
 }
 
 const contientOctetNul = (t: string) => t.includes('\u0000');
+// Les colonnes gardent la précision au dixième de mètre et la surface au centième
+// de m² : une valeur qui s'y arrondirait à zéro serait refusée par la base, à la
+// validation, sans dire quelle ligne. Elle est refusée ici, à sa ligne.
+const precisionValide = (p: number) => Math.round(p * 10) / 10 > 0 && p <= 1000;
+const surfaceValide = (s: number) => Math.round(s * 100) / 100 > 0 && s <= 10_000_000;
+export const PRECISION_MINIMALE = 0.1;
+
+/** La première ligne qui porte des en-têtes : une liste administrative commence souvent par un titre. */
+export function ligneDesEntetes(rangees: RangeeFichier[]): number {
+  const premieres = rangees.slice(0, 10);
+  const remplies = (r: RangeeFichier) => r.cellules.filter((c) => c.trim() !== '').length;
+  const plus = Math.max(0, ...premieres.map(remplies));
+  const i = premieres.findIndex((r) => remplies(r) >= 2 && remplies(r) * 2 >= plus);
+  return i < 0 ? 0 : i;
+}
 
 /**
  * Rapproche chaque ligne du fichier de ce que la commune a déjà.
@@ -219,8 +244,9 @@ const contientOctetNul = (t: string) => t.includes('\u0000');
  * `precisionFichier` : la précision des positions que la commune déclare pour le fichier, quand il ne la porte pas.
  */
 export function rapprocher(args: {
+  source: SourceImport;
   entetes: string[];
-  rangees: string[][];
+  rangees: RangeeFichier[];
   correspondance: Correspondance;
   existants: Existant[];
   categories: CategorieDuJour[];
@@ -245,25 +271,35 @@ export function rapprocher(args: {
   const parNom = new Map<string, Existant>();
   for (const e of existants) if (!parNom.has(formeNom(e.nom))) parNom.set(formeNom(e.nom), e);
   const positionnes = existants.filter((e) => e.latitude != null && e.longitude != null);
+  // Les établissements venus d'un import précédent de ce type de fichier, par raison sociale :
+  // une liste corrigée puis importée de nouveau les retrouve au lieu d'en créer des doubles.
+  const importesParNom = new Map<string, Existant[]>();
+  for (const e of existants) {
+    if (!e.import_id || e.source_creation !== args.source) continue;
+    const f = formeNom(e.nom);
+    importesParNom.set(f, [...(importesParNom.get(f) ?? []), e]);
+  }
 
   const matriculesDuFichier = new Map<string, number>();
   const nomsDuFichier = new Map<string, { numero: number; nom: string }>();
   const positionsDuFichier: Array<{ numero: number; nom: string; lat: number; lng: number }> = [];
 
-  return rangees.map((r, i) => {
-    const numero = i + 2;
+  return rangees.map(({ cellules: r, ligne: numero }) => {
     const nom = lire(r, 'nom');
     const activite = lire(r, 'activite');
     const base: LigneRapprochee = {
       numero, action: 'erreur', nom, activite: activite || null, categorie_activite: null, categorie_provenance: null,
-      erreurs: [], doublon: null, rattache_a: null, remplis: [], differences: [], saisie: null, avertissements: [],
+      erreurs: [], doublon: null, rattache_a: null, reconnu_par: null, remplis: [], differences: [], saisie: null, avertissements: [],
     };
     const erreurs: string[] = [];
     if (r.some(contientOctetNul)) erreurs.push('La ligne contient un caractère nul : enregistrez le fichier de nouveau depuis le tableur.');
     if (!nom) erreurs.push('« Raison sociale » est vide.');
     else if ([...nom].length > 200) erreurs.push('« Raison sociale » : 200 caractères au plus.');
+    else if (!formeNom(nom)) erreurs.push('« Raison sociale » : des lettres ou des chiffres, au moins.');
     if (!activite) erreurs.push('« Activité » est vide.');
     else if ([...activite].length > 200) erreurs.push('« Activité » : 200 caractères au plus.');
+    // « - » ou « ? » pour une activité inconnue : aucune catégorie ne pourrait lui correspondre.
+    else if (!formeActivite(activite)) erreurs.push(`« Activité » : « ${activite} » ne dit pas l'activité (des lettres ou des chiffres, au moins).`);
     const adresseBrute = lire(r, 'adresse');
     if ([...adresseBrute].length > 300) erreurs.push('« Adresse » : 300 caractères au plus.');
 
@@ -285,33 +321,36 @@ export function rapprocher(args: {
         erreurs.push(`Position (${lat} ; ${lng}) hors de Tunisie : vérifiez l'ordre latitude, longitude.`);
       } else {
         const precision = precisionLue === 'invalide' ? 'invalide' : precisionLue ?? args.precisionFichier;
-        if (precision === 'invalide' || (precision !== null && !(precision > 0 && precision <= 1000))) {
-          erreurs.push('« Précision » : un nombre de mètres, de 1 à 1 000.');
+        if (precision === 'invalide' || (precision !== null && !precisionValide(precision))) {
+          erreurs.push('« Précision » : un nombre de mètres, de 0,1 à 1 000.');
         } else if (precision === null) {
           avertissements.push("Position laissée de côté : le fichier n'en donne pas la précision, et aucune n'a été déclarée pour le fichier.");
         } else position = { lat, lng, precision };
       }
     }
     const surface = lireNombre(lire(r, 'surface_m2'));
-    if (surface === 'invalide' || (surface !== null && !(surface > 0 && surface <= 10_000_000))) {
-      erreurs.push('« Surface » : un nombre de m² positif.');
+    if (surface === 'invalide' || (surface !== null && !surfaceValide(surface))) {
+      erreurs.push('« Surface » : un nombre de m² positif (au centième près).');
     }
     if (erreurs.length > 0) return { ...base, erreurs };
 
     // La catégorie : la correspondance de la commune, ou un libellé identique — jamais devinée.
+    // Une correspondance que la commune a posée et que la FNCT a fermée depuis ne laisse
+    // pas la place au libellé : la commune avait écarté ce choix, elle en refait un.
     const formeAct = formeActivite(activite);
     let categorie: string | null = null;
     let provenanceCategorie: LigneRapprochee['categorie_provenance'] = null;
     const choisie = parActivite.get(formeAct);
-    if (choisie && codesDuJour.has(choisie)) {
-      categorie = choisie;
-      provenanceCategorie = 'correspondance';
+    if (choisie) {
+      if (codesDuJour.has(choisie)) {
+        categorie = choisie;
+        provenanceCategorie = 'correspondance';
+      } else {
+        avertissements.push(`La catégorie « ${choisie} » choisie pour cette activité n'est plus en vigueur : choisissez-en une autre.`);
+      }
     } else if (parLibelle.has(formeAct)) {
       categorie = parLibelle.get(formeAct) as string;
       provenanceCategorie = 'libelle';
-    }
-    if (choisie && !codesDuJour.has(choisie)) {
-      avertissements.push(`La catégorie « ${choisie} » choisie pour cette activité n'est plus en vigueur : choisissez-en une autre.`);
     }
 
     const saisie = {
@@ -327,11 +366,37 @@ export function rapprocher(args: {
     };
     const ligne = { ...base, categorie_activite: categorie, categorie_provenance: provenanceCategorie, saisie, avertissements };
 
+    /** Rattache la ligne à un inscrit : ses cases vides se remplissent, une valeur différente est montrée, jamais écrasée. */
+    const rattacher = (inscrit: Existant, reconnuPar: 'matricule' | 'import_precedent', notes: string[]): LigneRapprochee => {
+      const remplis: ChampCompare[] = [];
+      const differences: LigneRapprochee['differences'] = [];
+      const comparer = (champ: ChampCompare, inscritV: string | number | null, fichierV: string | number | null, egal = (a: string, b: string) => normaliser(a) === normaliser(b)) => {
+        if (fichierV === null || fichierV === '') return;
+        if (inscritV === null || inscritV === '') remplis.push(champ);
+        else if (!egal(String(inscritV), String(fichierV))) differences.push({ champ, inscrit: String(inscritV), fichier: String(fichierV) });
+      };
+      comparer('adresse', inscrit.adresse, saisie.adresse);
+      comparer('activite', inscrit.activite, saisie.activite);
+      comparer('categorie_activite', inscrit.categorie_activite, saisie.categorie_activite);
+      comparer('surface_m2', inscrit.surface_m2, saisie.surface_m2, (a, b) => Number(a) === Number(b));
+      if (position) {
+        if (inscrit.latitude == null) remplis.push('position');
+        else {
+          const d = distanceM({ lat: inscrit.latitude, lng: inscrit.longitude as number }, position);
+          if (d > 5) differences.push({ champ: 'position', inscrit: `${inscrit.latitude} ; ${inscrit.longitude}`, fichier: `${position.lat} ; ${position.lng} (à ${Math.round(d)} m)` });
+        }
+      }
+      if (inscrit.statut === 'ferme') notes.push(`« ${inscrit.nom} » est fermé : le fichier le cite encore ; rouvrez-le depuis l'écran Établissements s'il a repris.`);
+      return { ...ligne, action: remplis.length > 0 ? 'rattacher' : 'inchange', reconnu_par: reconnuPar,
+        rattache_a: { id: inscrit.id, nom: inscrit.nom, statut: inscrit.statut }, remplis, differences, avertissements: notes,
+        saisie: remplis.length > 0 ? saisie : null };
+    };
+
     // Une ligne déjà écrite depuis ce même fichier : rien de plus.
     const dejaId = args.dejaImportees.get(numero);
     if (dejaId) {
       const e = existants.find((x) => x.id === dejaId);
-      return { ...ligne, action: 'inchange' as const, saisie: null,
+      return { ...ligne, action: 'inchange' as const, saisie: null, reconnu_par: 'meme_fichier' as const,
         rattache_a: e ? { id: e.id, nom: e.nom, statut: e.statut } : null,
         avertissements: [...avertissements, 'Ligne déjà importée depuis ce même fichier.'] };
     }
@@ -342,30 +407,24 @@ export function rapprocher(args: {
       if (ligneDeja) return { ...ligne, action: 'erreur' as const, saisie: null, erreurs: [`Matricule fiscal déjà présent ligne ${ligneDeja} du fichier.`] };
       matriculesDuFichier.set(matricule, numero);
       const inscrit = parMatricule.get(matricule);
-      if (inscrit) {
-        const remplis: string[] = [];
-        const differences: LigneRapprochee['differences'] = [];
-        const comparer = (champ: string, inscritV: string | number | null, fichierV: string | number | null, egal = (a: string, b: string) => normaliser(a) === normaliser(b)) => {
-          if (fichierV === null || fichierV === '') return;
-          if (inscritV === null || inscritV === '') remplis.push(LIBELLES_CHAMPS[champ]);
-          else if (!egal(String(inscritV), String(fichierV))) differences.push({ champ: LIBELLES_CHAMPS[champ], inscrit: String(inscritV), fichier: String(fichierV) });
-        };
-        comparer('adresse', inscrit.adresse, saisie.adresse);
-        comparer('activite', inscrit.activite, saisie.activite);
-        comparer('categorie_activite', inscrit.categorie_activite, saisie.categorie_activite);
-        comparer('surface_m2', inscrit.surface_m2, saisie.surface_m2, (a, b) => Number(a) === Number(b));
-        if (position) {
-          if (inscrit.latitude == null) remplis.push(LIBELLES_CHAMPS.position);
-          else {
-            const d = distanceM({ lat: inscrit.latitude, lng: inscrit.longitude as number }, position);
-            if (d > 5) differences.push({ champ: LIBELLES_CHAMPS.position, inscrit: `${inscrit.latitude} ; ${inscrit.longitude}`, fichier: `${position.lat} ; ${position.lng} (à ${Math.round(d)} m)` });
-          }
-        }
-        const notes = [...avertissements];
-        if (inscrit.statut === 'ferme') notes.push(`« ${inscrit.nom} » est fermé : le fichier le cite encore ; rouvrez-le depuis l'écran Établissements s'il a repris.`);
-        return { ...ligne, action: remplis.length > 0 ? ('rattacher' as const) : ('inchange' as const),
-          rattache_a: { id: inscrit.id, nom: inscrit.nom, statut: inscrit.statut }, remplis, differences, avertissements: notes,
-          saisie: remplis.length > 0 ? saisie : null };
+      if (inscrit) return rattacher(inscrit, 'matricule', [...avertissements]);
+    } else {
+      // Sans matricule : la même ligne d'un import précédent de ce type de fichier
+      // (même raison sociale, même activité, et même adresse ou moins de 5 m) est
+      // retrouvée. Une liste corrigée d'une case puis importée de nouveau ne crée
+      // pas des centaines de doubles « à vérifier ».
+      const fAdresse = saisie.adresse ? formeNom(saisie.adresse) : '';
+      const retrouve = (importesParNom.get(formeNom(nom)) ?? []).find(
+        (e) =>
+          formeActivite(e.activite ?? '') === formeAct &&
+          ((fAdresse !== '' && e.adresse != null && formeNom(e.adresse) === fAdresse) ||
+            (position != null && e.latitude != null && distanceM({ lat: e.latitude, lng: e.longitude as number }, position) < 5))
+      );
+      if (retrouve) {
+        return rattacher(retrouve, 'import_precedent', [
+          ...avertissements,
+          "Retrouvé dans un import précédent : même raison sociale, même activité et même adresse (ou moins de 5 m).",
+        ]);
       }
     }
 

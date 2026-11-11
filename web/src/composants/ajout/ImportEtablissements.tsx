@@ -65,6 +65,9 @@ export function ImportEtablissements({ communeId, onFait, onAnnuler }: { commune
   const [colonnes, setColonnes] = useState<ColonnesImportEtablissements | null>(null);
   const [correspondance, setCorrespondance] = useState<Correspondance | null>(null);
   const [apercu, setApercu] = useState<ApercuImportEtablissements | null>(null);
+  // Les entrées qui ont produit l'aperçu affiché : la validation envoie celles-là, et
+  // rien d'autre — une correspondance changée après l'aperçu demande un nouvel aperçu.
+  const [entreesApercu, setEntreesApercu] = useState<string | null>(null);
   const [categories, setCategories] = useState<ElementListeAssimiles[]>([]);
   const [choixActivites, setChoixActivites] = useState<Record<string, string>>({});
   const [occupe, setOccupe] = useState(false);
@@ -88,7 +91,7 @@ export function ImportEtablissements({ communeId, onFait, onAnnuler }: { commune
     if ([...producteur.trim()].length < 2) problemesSource.push(t('ajout.importEtablissements.problemes.producteur'));
     if (urlSource.trim() && !/^https?:\/\/\S+$/.test(urlSource.trim())) problemesSource.push(t('ajout.importEtablissements.problemes.url'));
   }
-  if (nPrecision !== null && !(Number.isFinite(nPrecision) && nPrecision > 0 && nPrecision <= 1000)) {
+  if (nPrecision !== null && !(Number.isFinite(nPrecision) && nPrecision >= 0.1 && nPrecision <= 1000)) {
     problemesSource.push(t('ajout.importEtablissements.problemes.precision'));
   }
 
@@ -131,7 +134,7 @@ export function ImportEtablissements({ communeId, onFait, onAnnuler }: { commune
     }
   };
 
-  const saisie = (valider: boolean) => ({
+  const entrees = () => ({
     source,
     ...fichier!,
     correspondance: correspondance!,
@@ -139,15 +142,19 @@ export function ImportEtablissements({ communeId, onFait, onAnnuler }: { commune
     producteur: source === 'open_data' ? producteur.trim() : null,
     urlSource: source === 'open_data' && urlSource.trim() ? urlSource.trim() : null,
     precisionFichier: nPrecision,
-    valider,
   });
+  const cleEntrees = fichier && correspondance ? JSON.stringify({ ...entrees(), contenu: fichier.contenu.length }) : null;
+  const apercuPerime = apercu !== null && cleEntrees !== entreesApercu;
 
-  const voirApercu = async () => {
+  /** Relit l'aperçu ; `garderErreur` laisse affiché un refus qui l'a demandé (un 409, par exemple). */
+  const voirApercu = async (garderErreur = false) => {
     if (!fichier || !correspondance) return;
     setOccupe(true);
-    setErreur(null);
+    if (!garderErreur) setErreur(null);
     try {
-      setApercu(await api.importerEtablissements(communeId, saisie(false)));
+      const cle = cleEntrees;
+      setApercu(await api.importerEtablissements(communeId, { ...entrees(), valider: false }));
+      setEntreesApercu(cle);
     } catch (err) {
       setErreur(message(err));
     } finally {
@@ -163,7 +170,9 @@ export function ImportEtablissements({ communeId, onFait, onAnnuler }: { commune
     try {
       await api.enregistrerCorrespondanceActivite(communeId, { activite, categorieActivite: code });
       // L'aperçu se relit : la correspondance vaut pour toutes les lignes de cette activité.
-      setApercu(await api.importerEtablissements(communeId, saisie(false)));
+      const cle = cleEntrees;
+      setApercu(await api.importerEtablissements(communeId, { ...entrees(), valider: false }));
+      setEntreesApercu(cle);
     } catch (err) {
       setErreur(message(err));
     } finally {
@@ -172,10 +181,12 @@ export function ImportEtablissements({ communeId, onFait, onAnnuler }: { commune
   };
 
   const valider = async () => {
+    if (apercuPerime) return;
     setOccupe(true);
     setErreur(null);
+    let relire = false;
     try {
-      const r = await api.importerEtablissements(communeId, saisie(true));
+      const r = await api.importerEtablissements(communeId, { ...entrees(), valider: true });
       setBilan(
         t('ajout.importEtablissements.bilan', {
           crees: formaterNombre(r.crees ?? 0, 0),
@@ -189,10 +200,15 @@ export function ImportEtablissements({ communeId, onFait, onAnnuler }: { commune
       await onFait();
     } catch (err) {
       setErreur(message(err));
-      // La base a changé entre l'aperçu et la validation : l'aperçu se relit.
-      if (err instanceof ErreurApi && err.statut === 409) void voirApercu();
+      relire = err instanceof ErreurApi && err.statut === 409;
     } finally {
       setOccupe(false);
+    }
+    // La base a changé entre l'aperçu et la validation : l'aperçu se relit, et le
+    // refus qui le dit reste affiché ; le bouton attend le nouvel aperçu.
+    if (relire) {
+      setApercu(null);
+      await voirApercu(true);
     }
   };
 
@@ -418,15 +434,19 @@ export function ImportEtablissements({ communeId, onFait, onAnnuler }: { commune
                     {l.doublon.ligne != null && ` ${t('ajout.importEtablissements.detail.ligneFichier', { n: l.doublon.ligne })}`}
                   </p>
                 )}
-                {l.rattache_a && (
+                {l.rattache_a && l.reconnu_par !== 'meme_fichier' && (
                   <p className="text-xs text-ardoise-700">
-                    {t('ajout.importEtablissements.detail.rattache', { nom: l.rattache_a.nom })}
-                    {` ${l.remplis.length > 0 ? t('ajout.importEtablissements.detail.remplis', { champs: l.remplis.join(', ') }) : t('ajout.importEtablissements.detail.rienARemplir')}`}
+                    {t(l.reconnu_par === 'import_precedent' ? 'ajout.importEtablissements.detail.retrouve' : 'ajout.importEtablissements.detail.rattache', { nom: l.rattache_a.nom })}
+                    {` ${
+                      l.remplis.length > 0
+                        ? t('ajout.importEtablissements.detail.remplis', { champs: l.remplis.map((c) => t(`ajout.importEtablissements.champs.${c}`)).join(', ') })
+                        : t('ajout.importEtablissements.detail.rienARemplir')
+                    }`}
                   </p>
                 )}
                 {l.differences.map((d) => (
                   <p key={d.champ} className="text-xs text-ardoise-600">
-                    {t('ajout.importEtablissements.detail.difference', { champ: d.champ, inscrit: d.inscrit, fichier: d.fichier })}
+                    {t('ajout.importEtablissements.detail.difference', { champ: t(`ajout.importEtablissements.champs.${d.champ}`), inscrit: d.inscrit, fichier: d.fichier })}
                   </p>
                 ))}
                 {l.avertissements.map((a) => <p key={a} className="text-xs text-ardoise-500">{a}</p>)}
@@ -436,8 +456,16 @@ export function ImportEtablissements({ communeId, onFait, onAnnuler }: { commune
           {lignes.length > LIGNES_AFFICHEES && (
             <p className="text-xs text-ardoise-500">{t('ajout.importEtablissements.tronque', { n: formaterNombre(LIGNES_AFFICHEES, 0), total: formaterNombre(lignes.length, 0) })}</p>
           )}
+          {apercuPerime && (
+            <p role="status" className="rounded-lg bg-amber-50 p-2 text-sm text-amber-900">{t('ajout.importEtablissements.apercuPerime')}</p>
+          )}
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={bouton} disabled={occupe || aEcrire === 0} onClick={() => void valider()}>
+            <button
+              type="button"
+              className={bouton}
+              disabled={occupe || aEcrire === 0 || apercuPerime || problemesSource.length + problemesColonnes.length > 0}
+              onClick={() => void valider()}
+            >
               {t('ajout.importEtablissements.valider', { n: formaterNombre(aEcrire, 0) })}
             </button>
           </div>

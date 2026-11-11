@@ -3270,6 +3270,14 @@
         "titre": "Imports",
         "comptes": "{{crees}} créé(s), {{aVerifier}} à vérifier, {{rattaches}} complété(s), {{attente}} en attente de catégorie, {{erreurs}} erreur(s).",
         "licence": "Licence : {{licence}} — producteur : {{producteur}}."
+      },
+      "correspondances": {
+        "titre": "Correspondances des activités ({{n}})",
+        "aide": "L’activité telle que vos fichiers l’écrivent, et la catégorie retenue. Une correction vaut pour les imports suivants ; ce qui est déjà inscrit ne change pas.",
+        "fermee": "catégorie fermée par la FNCT : à corriger",
+        "nouvelle": "Nouvelle catégorie de « {{activite}} »",
+        "corriger": "Corriger",
+        "corrigee": "Correspondance de « {{activite}} » corrigée : elle vaut pour les prochains imports."
       }
     }
   },
@@ -3673,7 +3681,8 @@
         "rattache": "Même matricule que « {{nom}} » :",
         "remplis": "se remplissent {{champs}} (cases vides seulement).",
         "difference": "{{champ}} diffère — inscrit : « {{inscrit}} », fichier : « {{fichier}} ». Gardé tel quel.",
-        "rienARemplir": "rien à remplir, ses cases sont déjà renseignées."
+        "rienARemplir": "rien à remplir, ses cases sont déjà renseignées.",
+        "retrouve": "Retrouvé dans un import précédent (« {{nom}} ») :"
       },
       "tronque": "{{n}} lignes affichées sur {{total}}, les erreurs et ce qui attend d’abord.",
       "valider": "Importer ({{n}} lignes)",
@@ -3682,10 +3691,18 @@
         "licence": "La licence du jeu de données est obligatoire (2 caractères au moins).",
         "producteur": "Le producteur du jeu de données est obligatoire (2 caractères au moins).",
         "url": "L’adresse de la source commence par http:// ou https://.",
-        "precision": "La précision est un nombre de mètres, de 1 à 1 000.",
+        "precision": "La précision est un nombre de mètres, de 0,1 à 1 000.",
         "obligatoire": "« {{champ}} » : choisissez la colonne du fichier qui la porte.",
         "memeColonne": "La colonne « {{colonne}} » ne peut pas servir à la fois « {{a}} » et « {{b}} ».",
         "position": "Une position se lit avec sa latitude ET sa longitude : choisissez les deux colonnes, ou aucune."
+      },
+      "apercuPerime": "La correspondance ou les informations du fichier ont changé depuis cet aperçu : relisez l’aperçu avant d’importer.",
+      "champs": {
+        "adresse": "l’adresse",
+        "activite": "l’activité",
+        "categorie_activite": "la catégorie d’activité",
+        "position": "la position",
+        "surface_m2": "la surface"
       }
     }
   },

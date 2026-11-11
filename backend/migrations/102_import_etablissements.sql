@@ -64,7 +64,9 @@ CREATE TABLE IF NOT EXISTS imports_etablissements (
 CREATE INDEX IF NOT EXISTS idx_imports_etab_commune ON imports_etablissements (commune_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_imports_etab_empreinte ON imports_etablissements (commune_id, empreinte_fichier);
 
-ALTER TABLE commerces ADD COLUMN IF NOT EXISTS import_id UUID REFERENCES imports_etablissements(id) ON DELETE SET NULL;
+-- Un import ne disparaît qu'avec sa commune, où ses établissements partent aussi :
+-- « SET NULL » heurterait le gel de l'import et la contrainte de sa ligne.
+ALTER TABLE commerces ADD COLUMN IF NOT EXISTS import_id UUID REFERENCES imports_etablissements(id) ON DELETE CASCADE;
 ALTER TABLE commerces ADD COLUMN IF NOT EXISTS import_ligne INTEGER;
 ALTER TABLE commerces DROP CONSTRAINT IF EXISTS commerces_import_ligne;
 ALTER TABLE commerces ADD CONSTRAINT commerces_import_ligne

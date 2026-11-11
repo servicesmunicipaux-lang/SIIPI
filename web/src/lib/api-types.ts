@@ -17361,6 +17361,8 @@ export interface paths {
                             /** @description La feuille lue, pour un classeur Excel (la première seulement). */
                             feuille: string | null;
                             avertissements: string[];
+                            /** @description La ligne du tableur qui porte les en-têtes (un titre au-dessus est laissé de côté). */
+                            ligneEntetes: number;
                             /** @description Lignes de données (sans l’en-tête). */
                             lignes: number;
                             /** @description Les en-têtes du fichier, rendus uniques (« Colonne 3 » pour un en-tête vide). */
@@ -17526,7 +17528,7 @@ export interface paths {
                                 lignes: number;
                             }[];
                             lignes: {
-                                /** @description Ligne du fichier, en-tête compris (la première ligne de données est la 2). */
+                                /** @description La ligne du tableur, telle qu’il la numérote (lignes vides comptées). */
                                 numero: number;
                                 /** @enum {string} */
                                 action: "creer" | "a_verifier" | "rattacher" | "inchange" | "sans_categorie" | "erreur";
@@ -17552,11 +17554,17 @@ export interface paths {
                                     nom: string;
                                     statut: string;
                                 } | null;
+                                /**
+                                 * @description Comment la ligne a été reconnue : son matricule, une ligne d’un import précédent (même raison sociale, activité et adresse ou < 5 m), ou ce même fichier.
+                                 * @enum {string|null}
+                                 */
+                                reconnu_par: "matricule" | "import_precedent" | "meme_fichier" | null;
                                 /** @description Ce que le rattachement remplit : des cases vides seulement. */
-                                remplis: string[];
+                                remplis: ("adresse" | "activite" | "categorie_activite" | "position" | "surface_m2")[];
                                 /** @description Ce qui diffère de l’inscrit : montré, jamais écrasé. */
                                 differences: {
-                                    champ: string;
+                                    /** @enum {string} */
+                                    champ: "adresse" | "activite" | "categorie_activite" | "position" | "surface_m2";
                                     inscrit: string;
                                     fichier: string;
                                 }[];
@@ -17597,7 +17605,7 @@ export interface paths {
                                 lignes: number;
                             }[];
                             lignes: {
-                                /** @description Ligne du fichier, en-tête compris (la première ligne de données est la 2). */
+                                /** @description La ligne du tableur, telle qu’il la numérote (lignes vides comptées). */
                                 numero: number;
                                 /** @enum {string} */
                                 action: "creer" | "a_verifier" | "rattacher" | "inchange" | "sans_categorie" | "erreur";
@@ -17623,11 +17631,17 @@ export interface paths {
                                     nom: string;
                                     statut: string;
                                 } | null;
+                                /**
+                                 * @description Comment la ligne a été reconnue : son matricule, une ligne d’un import précédent (même raison sociale, activité et adresse ou < 5 m), ou ce même fichier.
+                                 * @enum {string|null}
+                                 */
+                                reconnu_par: "matricule" | "import_precedent" | "meme_fichier" | null;
                                 /** @description Ce que le rattachement remplit : des cases vides seulement. */
-                                remplis: string[];
+                                remplis: ("adresse" | "activite" | "categorie_activite" | "position" | "surface_m2")[];
                                 /** @description Ce qui diffère de l’inscrit : montré, jamais écrasé. */
                                 differences: {
-                                    champ: string;
+                                    /** @enum {string} */
+                                    champ: "adresse" | "activite" | "categorie_activite" | "position" | "surface_m2";
                                     inscrit: string;
                                     fichier: string;
                                 }[];

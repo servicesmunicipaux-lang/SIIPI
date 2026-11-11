@@ -4881,6 +4881,7 @@ const ColonnesImport = z.object({
   source: SourceImport,
   feuille: z.string().nullable().openapi({ description: 'La feuille lue, pour un classeur Excel (la première seulement).' }),
   avertissements: z.array(z.string()),
+  ligneEntetes: z.number().int().openapi({ description: 'La ligne du tableur qui porte les en-têtes (un titre au-dessus est laissé de côté).' }),
   lignes: z.number().int().openapi({ description: 'Lignes de données (sans l’en-tête).' }),
   entetes: z.array(z.string()).openapi({ description: 'Les en-têtes du fichier, rendus uniques (« Colonne 3 » pour un en-tête vide).' }),
   exemples: z.array(z.array(z.string())).openapi({ description: 'Les trois premières lignes, pour reconnaître les colonnes.' }),
@@ -4891,8 +4892,9 @@ const ColonnesImport = z.object({
   }),
   modeleEnregistre: z.boolean(),
 });
+const ChampCompare = z.enum(['adresse', 'activite', 'categorie_activite', 'position', 'surface_m2']);
 const LigneImportEtablissement = z.object({
-  numero: z.number().int().openapi({ description: 'Ligne du fichier, en-tête compris (la première ligne de données est la 2).' }),
+  numero: z.number().int().openapi({ description: 'La ligne du tableur, telle qu’il la numérote (lignes vides comptées).' }),
   action: z.enum(['creer', 'a_verifier', 'rattacher', 'inchange', 'sans_categorie', 'erreur']),
   nom: z.string(),
   activite: z.string().nullable(),
@@ -4910,8 +4912,11 @@ const LigneImportEtablissement = z.object({
     .nullable()
     .openapi({ description: 'Pour « à vérifier » : le doublon probable, nommé — jamais fusionné.' }),
   rattache_a: z.object({ id: z.string().uuid(), nom: z.string(), statut: z.string() }).nullable(),
-  remplis: z.array(z.string()).openapi({ description: 'Ce que le rattachement remplit : des cases vides seulement.' }),
-  differences: z.array(z.object({ champ: z.string(), inscrit: z.string(), fichier: z.string() })).openapi({
+  reconnu_par: z.enum(['matricule', 'import_precedent', 'meme_fichier']).nullable().openapi({
+    description: 'Comment la ligne a été reconnue : son matricule, une ligne d’un import précédent (même raison sociale, activité et adresse ou < 5 m), ou ce même fichier.',
+  }),
+  remplis: z.array(ChampCompare).openapi({ description: 'Ce que le rattachement remplit : des cases vides seulement.' }),
+  differences: z.array(z.object({ champ: ChampCompare, inscrit: z.string(), fichier: z.string() })).openapi({
     description: 'Ce qui diffère de l’inscrit : montré, jamais écrasé.',
   }),
   avertissements: z.array(z.string()),

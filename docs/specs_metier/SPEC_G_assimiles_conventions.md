@@ -1,6 +1,6 @@
 # SIIPI — Jalon G : déchets assimilés et conventions de propreté
 
-**FNCT · 4 novembre 2026 · ouvert par Nacer · statut : spécification v1.1 (décisions du 4 novembre intégrées) ; G1 développé en v0.15.90 (migration 098), G2a (établissements) en v0.15.91 (migration 099) ; G2b (import TCL et open data) à G7 restent à coder**
+**FNCT · 4 novembre 2026 · ouvert par Nacer · statut : spécification v1.1 (décisions du 4 novembre intégrées) ; G1 développé en v0.15.90 (migration 098), G2a (établissements) en v0.15.91 (migration 099), G2b (import TCL et open data) en v0.15.94 (migration 102) ; G3 à G7 restent à coder**
 
 Le jalon G fait de la convention de propreté un dossier numérique complet :
 **établissement → convention annuelle → conteneurs et desserte → levées constatées → assiette → export vers le système financier → suivi des manquements.**
@@ -100,7 +100,7 @@ Nom du responsable, téléphone, et `empreinte_cin` (HMAC-SHA256 sous `SIIPI_SEC
 
 ### 3.2 Recensement
 
-**Import TCL** — `POST /commerces/import-tcl`, Excel ou CSV, en deux temps comme les imports du parc et des contacts : un **aperçu** ligne par ligne (à créer, à rattacher, inchangé, à vérifier, erreur avec sa raison), puis la validation des seules lignes valides, en une transaction. Obligatoires : raison sociale et activité ; matricule fiscal s'il est présent. Une activité du fichier qui ne correspond à aucune catégorie est proposée à la correspondance, jamais devinée.
+**Import TCL** (développé en v0.15.94 : `POST /etablissements/import/colonnes` puis `POST /etablissements/import` ; décision du 10/11/2026 : le fichier de la commune est importé **tel qu'il est**, par une correspondance des colonnes proposée, corrigée et gardée par commune et par type de fichier ; un jeu open data porte sa licence et son producteur) — Excel ou CSV, en deux temps comme les imports du parc et des contacts : un **aperçu** ligne par ligne (à créer, à rattacher, inchangé, à vérifier, erreur avec sa raison), puis la validation des seules lignes valides, en une transaction. Obligatoires : raison sociale et activité ; matricule fiscal s'il est présent. Une activité du fichier qui ne correspond à aucune catégorie est proposée à la correspondance, jamais devinée.
 
 **`propositions_commerces`** (nouvelle, sur le modèle de `points_suggeres`) : chaque réponse Kobo de recensement, avec sa clé de soumission (une soumission reçue deux fois ne crée rien), ses champs, sa position et sa précision, sa photo de façade, et le **résultat du rapprochement** :
 

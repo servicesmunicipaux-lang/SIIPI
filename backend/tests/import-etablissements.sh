@@ -163,9 +163,9 @@ chk "un libellé identique à celui d'une catégorie vaut correspondance (« Caf
 chk "la même raison sociale, autrement écrite, plus haut dans le fichier : « à vérifier », le doublon nommé avec sa ligne" "a_verifier|meme_nom|3" \
     "$(action 4)|$(val "next(l['doublon']['raison'] for l in d['lignes'] if l['numero']==4)")|$(val "next(l['doublon']['ligne'] for l in d['lignes'] if l['numero']==4)")"
 chk "même matricule qu'un inscrit (autrement écrit) : rattaché ; l'adresse se remplit, l'activité qui diffère est montrée, pas écrasée" \
-    "rattacher|TEST Boulangerie du Port|Adresse,Activité|0" \
+    "rattacher|TEST Boulangerie du Port|adresse,activite|0" \
     "$(action 5)|$(val "next(l['rattache_a']['nom'] for l in d['lignes'] if l['numero']==5)")|$(val "','.join(next(l['remplis'] for l in d['lignes'] if l['numero']==5))")|$(val "len(next(l['differences'] for l in d['lignes'] if l['numero']==5))")"
-chk "même matricule, et rien à remplir : inchangé ; l'activité différente est montrée" "inchange|Activité|Mécanique|Garage" \
+chk "même matricule, et rien à remplir : inchangé ; l'activité différente est montrée" "inchange|activite|Mécanique|Garage" \
     "$(action 6)|$(val "next(l['differences'][0]['champ'] for l in d['lignes'] if l['numero']==6)")|$(val "next(l['differences'][0]['inscrit'] for l in d['lignes'] if l['numero']==6)")|$(val "next(l['differences'][0]['fichier'] for l in d['lignes'] if l['numero']==6)")"
 chk "à 2 m d'un inscrit, sans précision dans le fichier : la position est laissée de côté, donc pas de rapprochement — et c'est dit" "sans_categorie|1" \
     "$(action 7)|$(val "1 if any('précision' in a for a in next(l['avertissements'] for l in d['lignes'] if l['numero']==7)) else 0")"
@@ -178,6 +178,9 @@ chk "le résumé compte chaque ligne une fois" "11|2|1|1|1|3|3" \
 corps "$T/i_prec.json" "$T/tcl.csv" "liste_tcl_2026.csv" "{\"correspondance\":$CORR,\"precisionFichier\":10}"
 chk "avec une précision déclarée (10 m), la position de l'épicerie compte : plus d'avertissement" "200|creer|0" \
     "$(appel POST "/etablissements/import?communeId=$A" "$T_A" "$T/i_prec.json")|$(action 12)|$(val "len(next(l['avertissements'] for l in d['lignes'] if l['numero']==12))")"
+corps "$T/i_prec_min.json" "$T/tcl.csv" "liste_tcl_2026.csv" "{\"correspondance\":$CORR,\"precisionFichier\":0.04}"
+chk "une précision déclarée que la base arrondirait à zéro (0,04 m) : 400 à l'aperçu, jamais un refus muet à la validation" 400 \
+    "$(appel POST "/etablissements/import?communeId=$A" "$T_A" "$T/i_prec_min.json")"
 
 # -----------------------------------------------------------------------------
 echo
@@ -192,7 +195,7 @@ printf '%s' '{"activite":"Parfumerie","categorieActivite":"superette"}' > "$T/ca
 printf '%s' '{"activite":"HOTELLERIE","categorieActivite":"restaurant"}' > "$T/ca_hotel2.json"
 appel PUT "/etablissements/correspondances-activites?communeId=$A" "$T_A" "$T/ca_parf.json" >/dev/null
 chk "… la même activité autrement écrite corrige la même correspondance (une seule ligne, l'ancienne valeur au journal)" "200|1|restaurant|t" \
-    "$(appel PUT "/etablissements/correspondances-activites?communeId=$A" "$T_A" "$T/ca_hotel2.json")|$(sql "SELECT count(*) FROM correspondances_activites WHERE commune_id = '$A' AND activite_forme = 'hotellerie'")|$(sql "SELECT categorie_activite FROM correspondances_activites WHERE commune_id = '$A' AND activite_forme = 'hotellerie'")|$(sql "SELECT count(*) >= 1 FROM audit_log WHERE table_name = 'correspondances_activites' AND operation = 'UPDATE'")"
+    "$(appel PUT "/etablissements/correspondances-activites?communeId=$A" "$T_A" "$T/ca_hotel2.json")|$(sql "SELECT count(*) FROM correspondances_activites WHERE commune_id = '$A' AND activite_forme = 'hotellerie'")|$(sql "SELECT categorie_activite FROM correspondances_activites WHERE commune_id = '$A' AND activite_forme = 'hotellerie'")|$(sql "SELECT count(*) >= 1 FROM audit_log a JOIN correspondances_activites c ON c.id::text = a.record_id::text WHERE a.table_name = 'correspondances_activites' AND a.operation = 'UPDATE' AND c.commune_id = '$A' AND c.activite_forme = 'hotellerie' AND a.old_data->>'categorie_activite' = 'hotel' AND a.new_data->>'categorie_activite' = 'restaurant'")"
 appel PUT "/etablissements/correspondances-activites?communeId=$A" "$T_A" "$T/ca_hotel.json" >/dev/null
 chk "la FNCT lit les correspondances de A ; le directeur de B n'en voit aucune" "200|2|200|0" \
     "$(appel GET "/etablissements/correspondances-activites?communeId=$A" "$T_F")|$(val "len(d)")|$(appel GET "/etablissements/correspondances-activites?communeId=$A" "$T_B")|$(val "len(d)")"
@@ -237,6 +240,38 @@ chk "validé : seule la quincaillerie s'ajoute" "201|1|9" \
 chk "… et un fichier où rien n'est à écrire est refusé (400), sans import au journal" "400|2" \
     "$(appel POST "/etablissements/import?communeId=$A" "$T_A" "$T/v_tcl.json")|$(sql "SELECT count(*) FROM imports_etablissements WHERE commune_id = '$A'")"
 
+# « Aucune colonne » est un choix gardé : une colonne « Surface » ajoutée au fichier
+# n'est pas reprise d'office, puisque la commune n'en avait retenu aucune.
+{ head -1 "$T/tcl.csv" | sed 's/;Observations$/;Observations;Surface/'; tail -n +2 "$T/tcl.csv" | sed 's/$/;12/'; } > "$T/tcl_surface.csv"
+corps "$T/c_surface.json" "$T/tcl_surface.csv" "liste_tcl_2026_surface.csv"
+chk "un champ que la commune a laissé sans colonne le reste à l'import suivant (« Surface » n'est pas reprise d'office)" "200|None|enregistree" \
+    "$(appel POST "/etablissements/import/colonnes?communeId=$A" "$T_A" "$T/c_surface.json")|$(val "d['correspondance']['surface_m2']")|$(val "d['provenance']['surface_m2']")"
+
+# La même liste, corrigée d'une case (le matricule du kiosque retiré) et complétée
+# d'une ligne : une autre empreinte. Les lignes déjà importées sont retrouvées par
+# leur raison sociale, leur activité et leur adresse, pas recréées « à vérifier ».
+sed 's/^TEST Kiosque;Café;12-AB;/TEST Kiosque;Café;;/' "$T/tcl.csv" > "$T/tcl_corrige.csv"
+printf 'TEST Inconnu;-;;Rue X;;;\n' >> "$T/tcl_corrige.csv"
+corps "$T/i_corrige.json" "$T/tcl_corrige.csv" "liste_tcl_2026_corrigee.csv" "{\"correspondance\":$CORR}"
+reconnu() { val "next(l['reconnu_par'] for l in d['lignes'] if l['numero']==$1)"; }
+chk "la liste corrigée : les lignes importées sans matricule sont retrouvées (inchangées), rien n'est recréé ; le kiosque se crée" \
+    "200|inchange|import_precedent|inchange|inchange|inchange|matricule|creer|1" \
+    "$(appel POST "/etablissements/import?communeId=$A" "$T_A" "$T/i_corrige.json")|$(action 3)|$(reconnu 3)|$(action 4)|$(action 7)|$(action 11)|$(reconnu 2)|$(action 8)|$(val "d['resume']['creer']")"
+chk "… sans adresse ni position, une raison sociale seule ne suffit pas à retrouver : l'épicerie reste un doublon probable" "a_verifier|meme_nom" \
+    "$(action 12)|$(val "next(l['doublon']['raison'] for l in d['lignes'] if l['numero']==12)")"
+chk "… une activité qui ne dit rien (« - ») est une erreur, pas une activité à faire correspondre" "erreur|0" \
+    "$(action 13)|$(val "len([a for a in d['activitesSansCategorie'] if a['activite']=='-'])")"
+
+# Un document administratif commence souvent par un titre, et porte des lignes vides :
+# les en-têtes sont trouvés, et chaque ligne garde le numéro que le tableur lui donne.
+printf 'Liste des redevables TCL — TEST\n\nRaison sociale;Activité;Adresse\nTEST Titre A;Café;Rue 1\n\nTEST Titre B;Café;Rue 2\n' > "$T/titre.csv"
+corps "$T/c_titre.json" "$T/titre.csv" "liste_avec_titre.csv"
+chk "un titre au-dessus des en-têtes : les en-têtes sont lus ligne 3, et c'est dit" "200|3|Raison sociale|2|1" \
+    "$(appel POST "/etablissements/import/colonnes?communeId=$B" "$T_B" "$T/c_titre.json")|$(val "d['ligneEntetes']")|$(val "d['correspondance']['nom']")|$(val "d['lignes']")|$(val "1 if any('ligne 3' in a for a in d['avertissements']) else 0")"
+corps "$T/i_titre.json" "$T/titre.csv" "liste_avec_titre.csv" '{"correspondance":{"nom":"Raison sociale","activite":"Activité","adresse":"Adresse"}}'
+chk "… et les lignes gardent leur numéro du tableur, lignes vides comptées (4 et 6)" "200|4,6" \
+    "$(appel POST "/etablissements/import?communeId=$B" "$T_B" "$T/i_titre.json")|$(val "','.join(str(l['numero']) for l in d['lignes'])")"
+
 # -----------------------------------------------------------------------------
 echo
 echo "7. Un classeur Excel, jeu open data"
@@ -269,6 +304,23 @@ corps "$T/c_xlsx.json" "$T/jeu.xlsx" "etablissements_opendata.xlsx" '{"source":"
 chk "le classeur se lit : la première feuille par sa relation, deux lignes, et l'écran dit qu'une feuille a été laissée" "200|Etablissements|2|nom_etab|lat|1" \
     "$(appel POST "/etablissements/import/colonnes?communeId=$A" "$T_A" "$T/c_xlsx.json")|$(val "d['feuille']")|$(val "d['lignes']")|$(val "d['correspondance']['nom'] or 'aucune'")|$(val "d['correspondance']['latitude']")|$(val "1 if any('première feuille' in a for a in d['avertissements']) else 0")"
 CORR_OD='{"nom":"nom_etab","activite":"type","latitude":"lat","longitude":"lon"}'
+corps "$T/i_od.json" "$T/jeu.xlsx" "etablissements_opendata.xlsx" "{\"source\":\"open_data\",\"correspondance\":$CORR_OD,\"licence\":\"Licence ouverte TEST\",\"producteur\":\"TEST Institut de la statistique\",\"precisionFichier\":20}"
+chk "la ligne vide du classeur est comptée : le restaurant est la ligne 4 du tableur" "200|2,4" \
+    "$(appel POST "/etablissements/import?communeId=$A" "$T_A" "$T/i_od.json")|$(val "','.join(str(l['numero']) for l in d['lignes'])")"
+# Un classeur écrit par un générateur qui préfixe ses balises (« x:row »), ses textes
+# partagés rangés sous un autre nom, trouvés par leur relation.
+python3 - "$T/prefixe.xlsx" <<'PY'
+import sys, zipfile
+ns = 'xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
+with zipfile.ZipFile(sys.argv[1], 'w', zipfile.ZIP_DEFLATED) as z:
+    z.writestr('xl/workbook.xml', f'<?xml version="1.0"?><x:workbook {ns}><x:sheets><x:sheet name="Liste" sheetId="1" r:id="R1"/></x:sheets></x:workbook>')
+    z.writestr('xl/_rels/workbook.xml.rels', '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="R1" Target="/xl/worksheets/feuille.xml" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"/><Relationship Id="R2" Target="textes_partages.xml" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings"/></Relationships>')
+    z.writestr('xl/textes_partages.xml', f'<?xml version="1.0"?><x:sst {ns}><x:si><x:t>nom_etab</x:t></x:si><x:si><x:t>type</x:t></x:si><x:si><x:r><x:t>TEST </x:t></x:r><x:r><x:t>Préfixé</x:t></x:r></x:si></x:sst>')
+    z.writestr('xl/worksheets/feuille.xml', f'<?xml version="1.0"?><x:worksheet {ns}><x:sheetData><x:row r="1"><x:c r="A1" t="s"><x:v>0</x:v></x:c><x:c r="B1" t="s"><x:v>1</x:v></x:c></x:row><x:row r="2"><x:c r="A2" t="s"><x:v>2</x:v></x:c><x:c r="B2" t="inlineStr"><x:is><x:t>Café</x:t></x:is></x:c></x:row></x:sheetData></x:worksheet>')
+PY
+corps "$T/c_prefixe.json" "$T/prefixe.xlsx" "export_prefixe.xlsx" '{"source":"open_data"}'
+chk "un classeur aux balises préfixées, textes partagés sous un autre nom : lu (en-têtes et texte mis en forme)" "200|Liste|nom_etab,type|TEST Préfixé" \
+    "$(appel POST "/etablissements/import/colonnes?communeId=$B" "$T_B" "$T/c_prefixe.json")|$(val "d['feuille']")|$(val "','.join(d['entetes'])")|$(val "d['exemples'][0][0]")"
 corps "$T/v_od.json" "$T/jeu.xlsx" "etablissements_opendata.xlsx" "{\"source\":\"open_data\",\"correspondance\":$CORR_OD,\"licence\":\"Licence ouverte TEST\",\"producteur\":\"TEST Institut de la statistique\",\"urlSource\":\"https://donnees.example.tn/etablissements\",\"precisionFichier\":20,\"valider\":true}"
 chk "validé avec sa licence, son producteur et une précision déclarée : 2 créés, « open data », positionnés" "201|2|2|2" \
     "$(appel POST "/etablissements/import?communeId=$A" "$T_A" "$T/v_od.json")|$(val "d['crees']")|$(sql "SELECT count(*) FROM commerces WHERE commune_id = '$A' AND source_creation = 'open_data' AND geom IS NOT NULL AND precision_m = 20")|$(sql "SELECT count(*) FROM commerces WHERE commune_id = '$A' AND nom IN ('TEST Lycée Ibn Khaldoun', 'TEST Restaurant الواحة') AND categorie_activite IN ('ecole', 'restaurant')")"
@@ -283,6 +335,8 @@ chk "un import validé ne se réécrit pas" "permission denied" \
     "$(en_base admin_commune "$ID_A" "$A" "UPDATE imports_etablissements SET nb_crees = 99 WHERE id = '$IMP1'")"
 chk "… même en administrateur" IMPORT_JOURNALISE \
     "$($PSQL -c "BEGIN; UPDATE imports_etablissements SET nb_crees = 99 WHERE id = '$IMP1'; ROLLBACK;" 2>&1 | grep -oE 'IMPORT_[A-Z_]+' | head -1)"
+chk "un import qui disparaît (avec sa commune) emporte ses établissements, sans heurter leur gel" "ok" \
+    "$($PSQL -c "BEGIN; DELETE FROM imports_etablissements WHERE id = '$IMP1'; ROLLBACK;" 2>&1 | grep -oE 'ERROR|IMPORT_[A-Z_]+' | head -1 | grep . || echo ok)"
 chk "un établissement ne change pas d'import" IMPORT_FIGE \
     "$(en_base admin_commune "$ID_A" "$A" "UPDATE commerces SET import_ligne = 3 WHERE commune_id = '$A' AND nom = 'TEST Hôtel des Oliviers'")"
 chk "un jeu open data sans licence est refusé par la base" imports_etab_licence \
