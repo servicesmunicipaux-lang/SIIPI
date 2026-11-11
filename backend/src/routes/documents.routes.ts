@@ -24,10 +24,12 @@ import { rendreDocument, type DocumentAImprimer } from '../documents/impression.
 
 export const documentsRouter = Router();
 
-const TYPES = ['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur'] as const;
+const TYPES = ['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete'] as const;
 // La carte de pré-collecteur ne s'émet pas ici : elle naît d'un accord
 // (POST /cartes-precollecteur/demandes/{id}/accord, app.accorder_carte), qui
-// vérifie les pièces, les secteurs et la règle de validité du jour.
+// vérifie les pièces, les secteurs et la règle de validité du jour. La convention
+// de propreté non plus : elle naît de sa signature (POST /conventions/{id}/signer,
+// app.signer_convention).
 const TYPES_EMISSIBLES = ['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne'] as const;
 
 const filtresSchema = z.object({

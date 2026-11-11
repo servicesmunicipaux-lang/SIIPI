@@ -83,22 +83,12 @@ export function Registres({ communeId }: { communeId: string }) {
         />
       )}
       {vue === 'conventions' && (
-        <div className="space-y-6">
-          {/* Les établissements s'inscrivent et se ferment dans leur écran (jalon G) ; les
-              conventions les choisissent ici, jusqu'au lot G4. */}
+        // Les établissements (G2a) et les conventions (G4a) vivent dans leurs écrans du
+        // pôle Pilotage : leur cycle (fermeture, instruction, signature) ne tient pas
+        // dans un registre simple.
+        <div className="space-y-2">
           <p className="rounded-lg bg-ardoise-50 p-3 text-sm text-ardoise-700">{t('registres.etablissementsAilleurs')}</p>
-          <RegistreSimple
-            communeId={communeId}
-            nom="conventions"
-            colonnes={[
-              { cle: 'commerce' },
-              { cle: 'type', type: 'choix', prefixe: 'conventions.options.type' },
-              { cle: 'date_debut', type: 'date' },
-              { cle: 'date_fin', type: 'date' },
-              { cle: 'tonnage_estime', type: 'nombre' },
-              { cle: 'active', type: 'ouiNon' },
-            ]}
-          />
+          <p className="rounded-lg bg-ardoise-50 p-3 text-sm text-ardoise-700">{t('registres.conventionsAilleurs')}</p>
         </div>
       )}
     </div>

@@ -25,6 +25,7 @@ import { FormulaireBoitierGps } from './FormulaireBoitierGps';
 import { FormulaireCaracterisation } from './FormulaireCaracterisation';
 import { FormulaireCircuit } from './FormulaireCircuit';
 import { FormulaireContact } from './FormulaireContact';
+import { FormulaireConvention } from './FormulaireConvention';
 import { FormulaireDocument, type TypeDocumentEmis } from './FormulaireDocument';
 import { FormulaireEngin } from './FormulaireEngin';
 import { FormulaireEtablissement } from './FormulaireEtablissement';
@@ -106,7 +107,8 @@ const FORMULAIRES: Record<TypeFormulaire, Omit<EntreeFormulaire, 'type'>> = {
   contact: { rubrique: 'partenaires', roles: COMMUNE_ET_FNCT, Formulaire: FormulaireContact },
   // Un établissement (jalon G, lot G2a) : la commune l'inscrit, la FNCT le lit.
   commerce: { rubrique: 'partenaires', roles: COMMUNE, Formulaire: FormulaireEtablissement },
-  convention: { rubrique: 'partenaires', roles: COMMUNE_ET_FNCT, Formulaire: registre('conventions') },
+  // Une convention de propreté (jalon G, lot G4a) : la commune la rédige, la FNCT la lit.
+  convention: { rubrique: 'partenaires', roles: COMMUNE, Formulaire: FormulaireConvention },
   'import-contacts': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportContacts },
   'import-parc': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportParc },
   'import-personnel': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportPersonnel },

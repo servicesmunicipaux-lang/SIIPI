@@ -160,10 +160,12 @@ echo
 echo "2. Les listes des assimilés : ce que fait la FNCT"
 EN_VIGUEUR="len([e for l in d['listes'] if l['liste']=='categories_activite_assimiles' for e in l['elements'] if e['etat']=='en_vigueur'])"
 N0=$(appel GET /listes-assimiles "$T_F" >/dev/null; val "$EN_VIGUEUR")
-# Un flux ou un texte légal posé par la migration n'aurait pas d'auteur : il
-# n'y en a aucun, seule la FNCT les inscrit.
-chk "les catégories de départ sont là, ouvertes, provisoires, chacune avec ses unités ; aucun flux ni texte légal n'est inventé" "9|9|0" \
-    "$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'categories_activite_assimiles' AND retire_le IS NULL AND date_fin IS NULL AND code IN ('cafe','restaurant','hotel','superette','boulangerie','marche','bureau','ecole','atelier')")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'categories_activite_assimiles' AND retire_le IS NULL AND date_fin IS NULL AND code IN ('cafe','restaurant','hotel','superette','boulangerie','marche','bureau','ecole','atelier') AND provisoire AND cardinality(unites_echelle) > 0")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste IN ('flux_assimiles', 'base_legale_assimiles') AND saisi_par IS NULL")"
+# Un flux posé par la migration n'aurait pas d'auteur : il n'y en a aucun, seule la
+# FNCT les inscrit. La base légale, elle, porte les quatre textes connus (décision
+# du 11 novembre 2026, migration 103), provisoires, sans auteur : la loi existe
+# sans attendre la FNCT.
+chk "les catégories de départ sont là, ouvertes, provisoires, chacune avec ses unités ; aucun flux n'est inventé ; la base légale porte les textes connus" "9|9|0|4" \
+    "$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'categories_activite_assimiles' AND retire_le IS NULL AND date_fin IS NULL AND code IN ('cafe','restaurant','hotel','superette','boulangerie','marche','bureau','ecole','atelier')")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'categories_activite_assimiles' AND retire_le IS NULL AND date_fin IS NULL AND code IN ('cafe','restaurant','hotel','superette','boulangerie','marche','bureau','ecole','atelier') AND provisoire AND cardinality(unites_echelle) > 0")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'flux_assimiles' AND saisi_par IS NULL")|$(sql "SELECT count(*) FROM elements_listes_nationales WHERE liste = 'base_legale_assimiles' AND saisi_par IS NULL AND provisoire AND retire_le IS NULL AND code IN ('loi_1996_41', 'code_fiscalite_locale', 'lo_2018_29', 'dl_2026_4')")"
 chk "la FNCT ajoute une catégorie (kiosque, au m²)" "201|m2" \
     "$(element categories_activite_assimiles "$T_F" '{"code":"test_kiosque","libelleFr":"TEST Kiosque","libelleAr":"كشك","dateEffet":"2000-01-01","unitesEchelle":["m2"]}')|$(val "','.join(d['unites_echelle'])")"
 chk "… une catégorie qui ne s'appliquera qu'en 2030" 201 \

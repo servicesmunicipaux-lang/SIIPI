@@ -58,10 +58,13 @@ B=test_kpi_sources_b
 ESSAI="'$COMMUNE','$B'"
 . "$(dirname "$0")/outils/comptes_temporaires.sh"
 . "$(dirname "$0")/outils/base_reelle.sh"
+. "$(dirname "$0")/outils/tables_nationales.sh"
+. "$(dirname "$0")/outils/convention_signee.sh"
 
 # Ses deux communes de test et tout ce qu'elles portent, ses directeurs — rien
 # d'autre. Un -c par ordre, dans l'ordre des clés étrangères.
 nettoyer() {
+  effacer_conventions_essai "$ESSAI"
   $PSQL -c "DELETE FROM declarations_indicateurs WHERE commune_id IN ($ESSAI);" \
         -c "DELETE FROM actions_planifiees WHERE commune_id IN ($ESSAI);" \
         -c "DELETE FROM poi WHERE commune_id IN ($ESSAI);" \
@@ -81,7 +84,10 @@ nettoyer() {
   $PSQL -c "DELETE FROM communes WHERE id IN ($ESSAI);" >/dev/null 2>&1
 }
 nettoyer
-trap 'nettoyer; rm -rf "$T"' EXIT
+# Une convention signée suppose un flux de la liste nationale (lot G4a) : la table
+# est gardée, et rendue ligne entière en partant.
+garder_tables_nationales elements_listes_nationales
+trap 'rendre_tables_nationales; nettoyer; rm -rf "$T" "$TABLES_NATIONALES_DIR"' EXIT
 releve_base_reelle
 $PSQL -c "INSERT INTO communes (id, name, name_ar, gouvernorat, population) VALUES
             ('$COMMUNE', 'TEST commune des sources KPI', 'TEST', 'TEST', 5000),
@@ -195,9 +201,13 @@ MOIS=$(sql "SELECT date_trunc('month', app.jour_tunis())::date")
 etat_an() { req GET "/kpi/5-axes?communeId=$COMMUNE&annee=$1" >/dev/null; val "(lambda i: f\"{i['statut']}|{i['source']}|{i['valeur']}|{None if i['taux_atteinte'] is None else round(i['taux_atteinte'],3)}\")(next(i for i in d['indicateurs'] if i['code']=='$2'))"; }
 chk "deux établissements s'inscrivent (une boulangerie, un lycée)" "201|201"     "$(req POST "/etablissements?communeId=$COMMUNE" '{"nom":"TEST-SRC Boulangerie","categorieActivite":"boulangerie"}'; C1=$(val "d['id']"); echo "$C1" > "$T/c1")|$(req POST "/etablissements?communeId=$COMMUNE" '{"nom":"TEST-SRC Lycée","categorie":"institution","categorieActivite":"ecole"}')"
 C1=$(cat "$T/c1")
-# Une convention datée de $AN à la fin de l'année en cours : elle couvre l'année
-# d'avant l'inscription, qu'elle ne doit pas rendre mesurée.
-chk "une convention couvre $AN à $ANC" 201     "$(req POST /registres/conventions "{\"commerceId\":\"$C1\",\"type\":\"collecte\",\"dateDebut\":\"$AN-01-01\",\"dateFin\":\"$ANC-12-31\",\"tonnageEstime\":1.5,\"observation\":\"TEST-SRC\"}")"
+# Deux conventions signées (lot G4a : une convention est annuelle) : l'une couvre
+# $AN, l'année d'avant l'inscription, qu'elle ne doit pas rendre mesurée ; l'autre
+# l'année en cours.
+CV_AN=$(convention_signee "$COMMUNE" "$T_DIR" "$C1" "$AN-01-01" "$AN-12-31")
+CV_ANC=$(convention_signee "$COMMUNE" "$T_DIR" "$C1" "$ANC-01-01" "$ANC-12-31")
+chk "deux conventions signées couvrent $AN et $ANC" "signee|signee" \
+    "$(sql "SELECT statut FROM conventions_commerciales WHERE id = '${CV_AN:-00000000-0000-0000-0000-000000000000}'")|$(sql "SELECT statut FROM conventions_commerciales WHERE id = '${CV_ANC:-00000000-0000-0000-0000-000000000000}'")"
 NCOM=$(sql "SELECT count(*) FROM commerces WHERE commune_id='$COMMUNE' AND deleted_at IS NULL AND actif")
 chk "conventions : 1 commerce conventionné sur $NCOM en $ANC, mesuré" "renseigne|mesure|1|$(python3 -c "print(round(1/$NCOM,3))")" "$(etat_an "$ANC" M2-2)"
 chk "en $AN, avant toute inscription, M2-2 est « non renseigné », pas « 0 mesuré », même sous convention"     "non_renseigne|None|None|None" "$(etat M2-2)"

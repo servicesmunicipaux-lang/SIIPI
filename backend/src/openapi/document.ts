@@ -117,6 +117,18 @@ import {
 } from '../routes/importEtablissements.routes.js';
 import { CLES_CHAMPS } from '../services/importEtablissements.js';
 import {
+  conventionSchema,
+  ETATS_CONVENTION,
+  MODES_TARIFICATION,
+  modificationConventionSchema,
+  qConventions,
+  resiliationConventionSchema,
+  signatureConventionSchema,
+  STATUTS_CONVENTION,
+  TYPES_CONVENTION,
+  versionConventionSchema,
+} from '../routes/conventions.routes.js';
+import {
   demandeCarteSchema,
   pieceCarteSchema,
   accordCarteSchema,
@@ -189,7 +201,6 @@ import {
   finDePosteSchema,
   dotationSchema,
   incidentSchema as incidentTravailSchema,
-  conventionSchema,
   TYPES_POI,
 } from '../routes/sourcesKpi.routes.js';
 import {
@@ -2555,7 +2566,6 @@ for (const [chemin, nom, schema, resume] of [
   ['fins-de-poste', 'Fin de poste', finDePosteSchema, 'La check-list de fin de poste — « benne bâchée avant transit », obligatoire (M1-9)'],
   ['epi', 'Dotation', dotationSchema, 'La dotation en équipements de protection individuelle (M1-6)'],
   ['incidents', 'Incident', incidentTravailSchema, 'Le journal des incidents du travail (axe 5) — un journal vide ne dit pas « zéro accident »'],
-  ['conventions', 'Convention', conventionSchema, 'Les conventions de propreté des commerces (M2-2)'],
 ] as const) {
   registry.registerPath({
     method: 'get', path: `/registres/${chemin}`, tags: [TAG_SOURCES], summary: resume, security: SECURISE,
@@ -2571,6 +2581,15 @@ for (const [chemin, nom, schema, resume] of [
     request: { params: pId }, responses: { 204: { description: 'Retiré.' }, ...REPONSES_COMMUNES },
   });
 }
+registry.registerPath({
+  method: 'get', path: '/registres/conventions', tags: [TAG_SOURCES],
+  summary: 'Les conventions, en lecture : le registre d’avant le jalon G et les conventions de propreté (M2-2)',
+  description:
+    'En lecture seule depuis le jalon G (lot G4) : une convention s’inscrit, s’instruit, se signe et se résilie par /conventions. ' +
+    '« active » dit si elle compte aujourd’hui (une convention signée, sur sa période effective).',
+  security: SECURISE,
+  request: { query: qCommuneSeule }, responses: { 200: json(z.array(Ligne), 'Conventions.'), ...REPONSES_COMMUNES },
+});
 registry.registerPath({
   method: 'get', path: '/registres/commerces', tags: [TAG_SOURCES],
   summary: 'Les établissements, en lecture : la liste où le formulaire des conventions choisit (M2-2)',
@@ -5024,6 +5043,137 @@ registry.registerPath({
   security: SECURISE,
   request: { query: qCommuneEtablissements, body: { content: { 'application/json': { schema: correspondanceActiviteSchema } } } },
   responses: { 200: json(CorrespondanceActivite, 'Correspondance enregistrée.'), ...REPONSES_COMMUNES },
+});
+
+// Les conventions de propreté (lot G4a, migration 103).
+const TAG_CONVENTIONS = 'Conventions de propreté';
+const LigneConvention = z.object({
+  id: z.string().uuid(),
+  flux_code: z.string(),
+  flux_fr: z.string().nullable(),
+  flux_ar: z.string().nullable(),
+  conteneur_id: z.string().nullable(),
+  conteneur: z.string().nullable(),
+  levees_par_semaine: z.number().int(),
+  volume_litres: z.number().nullable().openapi({ description: 'Volume estimé par levée, en litres : une estimation, jamais une mesure.' }),
+  ordre: z.number().int(),
+});
+const ConventionResume = z.object({
+  id: z.string().uuid(),
+  version: z.string().openapi({ description: 'La version lue (xmin) : exigée par la modification, le retrait et chaque geste.' }),
+  commune_id: z.string(),
+  commerce_id: z.string().uuid(),
+  etablissement: z.string(),
+  statut_etablissement: z.string(),
+  categorie_activite: z.string().nullable(),
+  matricule_fiscal: z.string().nullable(),
+  nature: z.enum(['registre', 'convention']).openapi({ description: 'registre : une ligne d’avant le jalon G, en lecture seule.' }),
+  statut: z.enum(STATUTS_CONVENTION).nullable(),
+  type: z.enum(TYPES_CONVENTION),
+  exercice: z.number().int().nullable(),
+  date_debut: z.string(),
+  date_fin: z.string().nullable(),
+  etat: z.enum(ETATS_CONVENTION).openapi({
+    description: 'Calculé d’après les dates (à Tunis), jamais écrit : à venir, active jusqu’à la fin effective (la veille d’une résiliation), expirée ou résiliée.',
+  }),
+  grille_id: z.string().uuid().nullable(),
+  grille: z.string().nullable(),
+  reference_arrete: z.string().nullable(),
+  mode_tarification: z.enum(MODES_TARIFICATION).nullable(),
+  tarif: z.number().nullable().openapi({ description: 'Le tarif de la ligne de grille (DT par an, par mois, par levée ou par tonne selon le mode). Aucun montant dû n’est calculé (lot G6).' }),
+  date_signature: z.string().nullable(),
+  reference_signature: z.string().nullable(),
+  document_id: z.string().uuid().nullable(),
+  numero_document: z.string().nullable().openapi({ description: 'Le numéro du document scellé (CV-…).' }),
+  date_resiliation: z.string().nullable().openapi({ description: 'Premier jour sans convention.' }),
+  motif_resiliation: z.string().nullable(),
+  reference_resiliation: z.string().nullable(),
+  observation: z.string().nullable(),
+  instruite_le: z.string().nullable(),
+  signee_le: z.string().nullable(),
+  resiliee_le: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+const Convention = registry.register('Convention', ConventionResume.extend({ lignes: z.array(LigneConvention) }));
+const pConvention = z.object({ id: z.string().uuid() });
+const qCommuneConventions = z.object({ communeId: z.string().optional() });
+const REFUS_GESTE = { 409: json(Erreur, 'Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots).') };
+
+registry.registerPath({
+  method: 'get', path: '/conventions', tags: [TAG_CONVENTIONS],
+  summary: 'Les conventions de propreté d’une commune',
+  description: 'Avec leur état calculé (brouillon, instruite, à venir, active, expirée, résiliée ; registre pour une ligne d’avant le jalon G). Le directeur et la FNCT.',
+  security: SECURISE,
+  request: { query: qCommuneConventions.merge(qConventions) },
+  responses: { 200: json(z.array(ConventionResume), 'Conventions, des plus récentes aux plus anciennes.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/conventions/{id}', tags: [TAG_CONVENTIONS],
+  summary: 'Une convention, ses lignes et sa version', security: SECURISE,
+  request: { params: pConvention },
+  responses: { 200: json(Convention, 'Convention.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/conventions', tags: [TAG_CONVENTIONS],
+  summary: 'Rédiger une convention (brouillon)',
+  description:
+    'Un établissement de la commune, non fermé, avec sa catégorie d’activité ; une durée d’au plus un an ; les flux de la liste nationale du jour, jamais un flux dangereux. ' +
+    'Le directeur de la commune ; la FNCT lit (403).',
+  security: SECURISE,
+  request: { query: qCommuneConventions, body: { content: { 'application/json': { schema: conventionSchema } } } },
+  responses: { ...REPONSES_COMMUNES, 201: json(Convention, 'Brouillon enregistré.') },
+});
+registry.registerPath({
+  method: 'put', path: '/conventions/{id}', tags: [TAG_CONVENTIONS],
+  summary: 'Remplacer un brouillon (et ses lignes)',
+  description: 'Un brouillon seulement, avec la version lue ; une convention instruite se reprend d’abord en brouillon, une convention signée ne se modifie plus.',
+  security: SECURISE,
+  request: { params: pConvention, body: { content: { 'application/json': { schema: modificationConventionSchema } } } },
+  responses: { ...REPONSES_COMMUNES, 200: json(Convention, 'Brouillon remplacé.'), ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'delete', path: '/conventions/{id}', tags: [TAG_CONVENTIONS],
+  summary: 'Retirer un brouillon',
+  description: 'Un brouillon seulement (retrait logique), avec la version lue ; une convention signée se résilie.',
+  security: SECURISE,
+  request: { params: pConvention, query: versionConventionSchema },
+  responses: { 204: { description: 'Brouillon retiré.' }, ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/conventions/{id}/instruire', tags: [TAG_CONVENTIONS],
+  summary: 'Instruire une convention',
+  description:
+    'Brouillon → instruite, sous verrou : grille approuvée en vigueur à la date de début et son tarif pour la catégorie, au moins un flux en vigueur et aucun dangereux, ' +
+    'établissement non fermé, aucune convention signée qui chevauche. Chaque refus dit ce qui manque.',
+  security: SECURISE,
+  request: { params: pConvention, body: { content: { 'application/json': { schema: versionConventionSchema } } } },
+  responses: { 200: json(Convention, 'Convention instruite.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/conventions/{id}/reprendre', tags: [TAG_CONVENTIONS],
+  summary: 'Reprendre une convention instruite en brouillon',
+  security: SECURISE,
+  request: { params: pConvention, body: { content: { 'application/json': { schema: versionConventionSchema } } } },
+  responses: { 200: json(Convention, 'Convention reprise en brouillon.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/conventions/{id}/signer', tags: [TAG_CONVENTIONS],
+  summary: 'Signer une convention : le document scellé est émis',
+  description:
+    'Instruite → signée : tout se vérifie de nouveau, une base légale doit être en vigueur le jour de la signature (date passée, pièce citée). ' +
+    'Émet le document scellé convention_proprete (CV-…), qui recopie la base légale du jour, la grille, le tarif et les flux. Aucun montant dû.',
+  security: SECURISE,
+  request: { params: pConvention, body: { content: { 'application/json': { schema: signatureConventionSchema } } } },
+  responses: { 200: json(Convention, 'Convention signée.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/conventions/{id}/resilier', tags: [TAG_CONVENTIONS],
+  summary: 'Résilier une convention signée',
+  description: 'La date d’effet (premier jour sans convention) entre la signature et la fin, un motif, une pièce. Le document scellé reste tel quel.',
+  security: SECURISE,
+  request: { params: pConvention, body: { content: { 'application/json': { schema: resiliationConventionSchema } } } },
+  responses: { 200: json(Convention, 'Convention résiliée.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
 });
 
 const ActeurInformel = registry.register(

@@ -1099,7 +1099,8 @@
       "documents": "Documents",
       "gps": "Intégration GPS",
       "grillesTarifaires": "Grilles tarifaires",
-      "etablissements": "Établissements"
+      "etablissements": "Établissements",
+      "conventions": "Conventions"
     },
     "etats": {
       "fait": "Fait",
@@ -3279,6 +3280,72 @@
         "corriger": "Corriger",
         "corrigee": "Correspondance de « {{activite}} » corrigée : elle vaut pour les prochains imports."
       }
+    },
+    "conventions": {
+      "titre": "Conventions de propreté",
+      "chapeau": "Rédigées, instruites, signées, résiliées : chaque convention lie un établissement à la grille tarifaire approuvée. Signée, elle devient un document scellé ; « active » et « expirée » se lisent d’après ses dates.",
+      "nouvelle": "Nouvelle convention",
+      "lectureSeule": "La FNCT lit les conventions de la commune ; elle n’en rédige, n’en instruit ni n’en signe aucune.",
+      "filtre": "Statut",
+      "filtres": {
+        "tous": "Toutes",
+        "brouillon": "Brouillons",
+        "instruite": "Instruites",
+        "signee": "Signées",
+        "resiliee": "Résiliées"
+      },
+      "aucune": "Aucune convention pour l’instant.",
+      "aucuneFiltre": "Aucune convention dans ce statut.",
+      "periode": "Du {{debut}} au {{fin}}",
+      "etats": {
+        "brouillon": "Brouillon",
+        "instruite": "Instruite",
+        "a_venir": "Signée, à venir",
+        "active": "Active",
+        "expiree": "Expirée",
+        "resiliee": "Résiliée",
+        "registre": "Registre antérieur"
+      },
+      "modes": {
+        "forfait_annuel": "Forfait annuel : {{tarif}} DT par an",
+        "forfait_mensuel": "Forfait mensuel : {{tarif}} DT par mois",
+        "reel_levee": "Au réel : {{tarif}} DT par levée constatée",
+        "reel_poids": "Au réel : {{tarif}} DT par tonne pesée"
+      },
+      "signeeLe": "Signée le {{date}} ({{reference}}).",
+      "resilieeLe": "Résiliée à compter du {{date}} : {{motif}}",
+      "etablissementAVerifier": "L’établissement est « à vérifier » (son identité, pas la convention) : elle reste comptée.",
+      "detail": "Détail",
+      "masquer": "Masquer",
+      "imprimer": "Imprimer",
+      "modifier": "Modifier",
+      "instruire": "Instruire",
+      "retirer": "Retirer le brouillon",
+      "signer": "Enregistrer la signature",
+      "reprendre": "Reprendre en brouillon",
+      "resilier": "Résilier",
+      "aideSignature": "La signature émet le document scellé (numéro CV-…) : il recopie la base légale en vigueur ce jour-là, la grille, le tarif et les déchets couverts. Elle ne se défait pas : une convention signée se résilie.",
+      "aideResiliation": "La résiliation prend effet à la date donnée (premier jour sans convention), entre la signature et la fin. Le document signé reste tel quel.",
+      "dateSignature": "Date de la signature",
+      "dateResiliation": "À compter du",
+      "reference": "Pièce (référence)",
+      "motif": "Motif",
+      "confirmerSignature": "Signer et émettre le document",
+      "confirmerResiliation": "Confirmer la résiliation",
+      "lignes": "Déchets couverts",
+      "aucuneLigne": "Aucun flux : la convention ne peut pas être instruite sans.",
+      "frequence": "{{n}} levée(s) par semaine",
+      "volume": "{{v}} L par levée",
+      "conteneur": "conteneur {{code}}",
+      "messages": {
+        "redigee": "Brouillon enregistré : instruisez-le quand il est complet.",
+        "modifiee": "Brouillon de la convention de « {{etablissement}} » modifié.",
+        "instruite": "Convention de « {{etablissement}} » instruite : la grille et le tarif sont retenus.",
+        "reprise": "Convention de « {{etablissement}} » reprise en brouillon.",
+        "signee": "Convention de « {{etablissement}} » signée : le document scellé est émis.",
+        "resiliee": "Convention de « {{etablissement}} » résiliée.",
+        "retiree": "Brouillon de « {{etablissement}} » retiré (il reste lisible au journal)."
+      }
     }
   },
   "ajout": {
@@ -3703,6 +3770,45 @@
         "categorie_activite": "la catégorie d’activité",
         "position": "la position",
         "surface_m2": "la surface"
+      }
+    },
+    "convention": {
+      "titre": "Rédiger une convention de propreté",
+      "titreModification": "Modifier le brouillon de la convention",
+      "aide": "Un établissement de la commune, pour un an au plus, et les déchets qu’elle couvre. Le tarif vient de la grille approuvée, à l’instruction ; aucun montant n’est calculé ici.",
+      "etablissement": "Établissement",
+      "aucunEtablissement": "Aucun établissement à conventionner : un établissement fermé, ou sans catégorie d’activité, ne se propose pas.",
+      "type": "Objet",
+      "types": {
+        "collecte": "Collecte",
+        "nettoyage": "Nettoyage",
+        "tri": "Tri",
+        "autre": "Autre"
+      },
+      "dateDebut": "Du",
+      "dateFin": "Au",
+      "flux": "Déchets couverts",
+      "fluxLigne": "Flux (liste nationale)",
+      "dangereux": "dangereux : va vers sa filière",
+      "levees": "Levées par semaine",
+      "volume": "Volume par levée (L)",
+      "conteneur": "Conteneur",
+      "aucunConteneur": "— aucun —",
+      "retirerLigne": "Retirer",
+      "ajouterLigne": "Ajouter un flux",
+      "fluxAide": "Un flux dangereux n’entre jamais dans une convention de propreté. Au moins un flux est nécessaire pour instruire la convention.",
+      "aucunFlux": "La liste nationale des flux de déchets assimilés est vide : la FNCT la tient dans les paramètres nationaux.",
+      "observation": "Observation",
+      "listesIndisponibles": "Les établissements ou la liste nationale des flux n’ont pas pu être lus. Rien n’est perdu : réessayez.",
+      "problemes": {
+        "etablissement": "Choisissez l’établissement.",
+        "dates": "Donnez la date de début et la date de fin.",
+        "ordre": "La fin précède le début.",
+        "annuelle": "Une convention est annuelle : elle finit au plus tard le {{fin}}.",
+        "flux": "Chaque ligne porte un flux de la liste nationale (ou retirez-la).",
+        "fluxDouble": "Un flux ne figure qu’une fois.",
+        "levees": "De 1 à 21 levées par semaine, en nombre entier.",
+        "volume": "Le volume par levée est un nombre de litres positif (au plus 100 000)."
       }
     }
   },
@@ -4471,7 +4577,8 @@
       "terminer": "Terminer",
       "termine": "Nettoyage terminé."
     },
-    "etablissementsAilleurs": "Les établissements s’inscrivent, se modifient et se ferment dans l’écran « Établissements » (pôle Pilotage). Les conventions ci-dessous les choisissent dans cette liste."
+    "etablissementsAilleurs": "Les établissements s’inscrivent, se modifient et se ferment dans l’écran « Établissements » (pôle Pilotage). Les conventions ci-dessous les choisissent dans cette liste.",
+    "conventionsAilleurs": "Les conventions de propreté se rédigent, s’instruisent, se signent et se résilient dans l’écran « Conventions » du pôle Pilotage."
   },
   "gouvernorats": {
     "Tunis": "Tunis",

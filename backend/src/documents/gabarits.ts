@@ -14,7 +14,7 @@
 
 import { z } from 'zod';
 
-export type TypeDocument = 'ordre_mission' | 'bon_carburant' | 'bon_travail' | 'declaration_panne' | 'carte_precollecteur';
+export type TypeDocument = 'ordre_mission' | 'bon_carburant' | 'bon_travail' | 'declaration_panne' | 'carte_precollecteur' | 'convention_proprete';
 
 type NatureChamp = 'texte' | 'texte_long' | 'date' | 'nombre' | 'oui_non';
 
@@ -147,6 +147,41 @@ export const GABARITS: Record<TypeDocument, Gabarit> = {
     ],
     signatures: [
       { fr: 'Le titulaire', ar: 'صاحب البطاقة' },
+      { fr: 'Le Président de la commune', ar: 'رئيس البلدية' },
+    ],
+  },
+  // La convention de propreté (jalon G, lot G4) : émise par app.signer_convention
+  // (migration 103) seulement, jamais par le formulaire générique — les clés
+  // ci-dessous sont celles qu'écrit la fonction. Aucun montant dû n'y figure : le
+  // tarif de la grille et l'arrêté, et la base légale du jour de la signature.
+  convention_proprete: {
+    type: 'convention_proprete',
+    statut: 'provisoire',
+    fr: 'CONVENTION DE PROPRETÉ',
+    ar: 'اتفاقية نظافة',
+    reference: {
+      fr: 'Collecte des déchets assimilés aux déchets ménagers d’un établissement',
+      ar: 'رفع النفايات المشابهة للنفايات المنزلية لمؤسسة',
+    },
+    champs: [
+      { cle: 'etablissement', fr: 'Établissement', ar: 'المؤسسة', nature: 'texte', requis: true },
+      { cle: 'matricule_fiscal', fr: 'Matricule fiscal', ar: 'المعرّف الجبائي', nature: 'texte' },
+      { cle: 'categorie', fr: 'Catégorie d’activité', ar: 'صنف النشاط', nature: 'texte', requis: true },
+      { cle: 'adresse', fr: 'Adresse', ar: 'العنوان', nature: 'texte' },
+      { cle: 'type', fr: 'Objet', ar: 'الموضوع', nature: 'texte', requis: true },
+      { cle: 'exercice', fr: 'Exercice', ar: 'السنة المالية', nature: 'texte', requis: true },
+      { cle: 'date_debut', fr: 'Du', ar: 'من', nature: 'date', requis: true },
+      { cle: 'date_fin', fr: 'Au', ar: 'إلى', nature: 'date', requis: true },
+      { cle: 'grille', fr: 'Grille tarifaire appliquée', ar: 'التعريفة المطبّقة', nature: 'texte_long', requis: true },
+      { cle: 'tarif', fr: 'Tarif', ar: 'التعريفة', nature: 'texte_long', requis: true },
+      { cle: 'flux', fr: 'Déchets couverts', ar: 'النفايات المشمولة', nature: 'texte_long', requis: true },
+      { cle: 'base_legale', fr: 'Base légale', ar: 'السند القانوني', nature: 'texte_long', requis: true },
+      { cle: 'date_signature', fr: 'Signée le', ar: 'تاريخ الإمضاء', nature: 'date', requis: true },
+      { cle: 'reference_signature', fr: 'Référence', ar: 'المرجع', nature: 'texte', requis: true },
+      OBSERVATIONS,
+    ],
+    signatures: [
+      { fr: 'Pour l’établissement', ar: 'عن المؤسسة' },
       { fr: 'Le Président de la commune', ar: 'رئيس البلدية' },
     ],
   },

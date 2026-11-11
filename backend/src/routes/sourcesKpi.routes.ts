@@ -410,8 +410,8 @@ registresRouter.delete(
 
 // En lecture seule depuis le jalon G (lot G2a, migration 099) : un établissement
 // s'inscrit, se modifie et se ferme par /etablissements, et ne se supprime
-// jamais. Cette liste reste celle où le formulaire des conventions choisit un
-// établissement, jusqu'au lot G4.
+// jamais. Les conventions, elles, vivent sous /conventions depuis le lot G4 :
+// le registre ci-dessous ne s'écrit plus, il se lit.
 registresRouter.get(
   '/commerces',
   requireAuth,
@@ -422,27 +422,15 @@ registresRouter.get(
       await query(
         `SELECT c.id, c.commune_id, c.nom, c.categorie, c.activite, c.categorie_activite, c.adresse, c.statut, c.actif,
                 c.created_at, c.updated_at, EXISTS (
-                  SELECT 1 FROM conventions_commerciales cv
+                  SELECT 1 FROM conventions_comptees cv
                    WHERE cv.commerce_id = c.id AND cv.deleted_at IS NULL
-                     AND cv.date_debut <= (now() AT TIME ZONE 'Africa/Tunis')::date
-                     AND (cv.date_fin IS NULL OR cv.date_fin >= (now() AT TIME ZONE 'Africa/Tunis')::date)) AS sous_convention
+                     AND cv.date_debut <= app.jour_tunis() AND (cv.date_fin IS NULL OR cv.date_fin >= app.jour_tunis())) AS sous_convention
            FROM commerces c WHERE c.commune_id = $1 AND c.deleted_at IS NULL ORDER BY c.nom`,
         [communeId]
       )
     );
   })
 );
-
-export const conventionSchema = z
-  .object({
-    commerceId: z.string().uuid(),
-    type: z.enum(['collecte', 'nettoyage', 'tri', 'autre']),
-    dateDebut: dateIso,
-    dateFin: dateIso.nullable().optional(),
-    tonnageEstime: z.number().min(0).max(100_000).nullable().optional(),
-    observation: z.string().trim().max(1000).nullable().optional(),
-  })
-  .refine((d) => !d.dateFin || d.dateFin >= d.dateDebut, { message: 'La fin précède le début.', path: ['dateFin'] });
 
 registresRouter.get(
   '/conventions',
@@ -453,9 +441,9 @@ registresRouter.get(
     res.json(
       await query(
         `SELECT cv.id, cv.commerce_id, c.nom AS commerce, c.categorie, cv.type, cv.date_debut, cv.date_fin,
-                cv.tonnage_estime::float, cv.observation,
-                (cv.date_debut <= (now() AT TIME ZONE 'Africa/Tunis')::date
-                  AND (cv.date_fin IS NULL OR cv.date_fin >= (now() AT TIME ZONE 'Africa/Tunis')::date)) AS active
+                cv.tonnage_estime::float, cv.observation, cv.nature, cv.statut,
+                EXISTS (SELECT 1 FROM conventions_comptees k WHERE k.id = cv.id
+                         AND k.date_debut <= app.jour_tunis() AND (k.date_fin IS NULL OR k.date_fin >= app.jour_tunis())) AS active
            FROM conventions_commerciales cv JOIN commerces c ON c.id = cv.commerce_id
           WHERE cv.commune_id = $1 AND cv.deleted_at IS NULL
           ORDER BY cv.date_debut DESC`,
@@ -465,29 +453,3 @@ registresRouter.get(
   })
 );
 
-registresRouter.post(
-  '/conventions',
-  requireAuth,
-  requireRole(...ROLES),
-  asyncHandler(async (req, res) => {
-    const d = conventionSchema.parse(req.body);
-    const communeId = await communeDe('commerces', d.commerceId, 'Commerce');
-    res.status(201).json(
-      await queryOne(
-        `INSERT INTO conventions_commerciales (commune_id, commerce_id, type, date_debut, date_fin, tonnage_estime, observation, saisi_par)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-        [communeId, d.commerceId, d.type, d.dateDebut, d.dateFin ?? null, d.tonnageEstime ?? null, d.observation || null, req.user!.sub]
-      )
-    );
-  })
-);
-
-registresRouter.delete(
-  '/conventions/:id',
-  requireAuth,
-  requireRole(...ROLES),
-  asyncHandler(async (req, res) => {
-    await retirer('conventions_commerciales', req.params.id, 'Convention');
-    res.status(204).end();
-  })
-);
