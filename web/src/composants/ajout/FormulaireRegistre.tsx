@@ -54,13 +54,6 @@ export const CHAMPS_REGISTRES: Record<NomRegistreSaisi, ChampRegistre[]> = {
     { cle: 'joursArret', type: 'nombre' },
     { cle: 'description', type: 'texte' },
   ],
-  conventions: [
-    { cle: 'commerceId', type: 'commerce', requis: true },
-    { cle: 'type', type: 'choix', requis: true, options: ['collecte', 'nettoyage', 'tri', 'autre'] },
-    { cle: 'dateDebut', type: 'date', requis: true },
-    { cle: 'dateFin', type: 'date' },
-    { cle: 'tonnageEstime', type: 'nombre' },
-  ],
 };
 
 const champ = 'min-h-10 w-full rounded-lg border border-ardoise-300 bg-white px-2 text-sm';

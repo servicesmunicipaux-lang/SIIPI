@@ -155,7 +155,7 @@ const SELECT_ETABLISSEMENTS = `
          ST_Y(c.geom)::float AS latitude, ST_X(c.geom)::float AS longitude, c.precision_m::float AS precision_m,
          c.unite_echelle, c.valeur_echelle::float AS valeur_echelle, c.surface_m2::float AS surface_m2,
          c.produit_dangereux, c.statut, c.ferme_le, c.motif_statut, c.source_creation, c.created_at, c.updated_at,
-         EXISTS (SELECT 1 FROM conventions_commerciales cv
+         EXISTS (SELECT 1 FROM conventions_comptees cv
                   WHERE cv.commerce_id = c.id AND cv.deleted_at IS NULL
                     AND cv.date_debut <= app.jour_tunis() AND (cv.date_fin IS NULL OR cv.date_fin >= app.jour_tunis())) AS sous_convention
     FROM commerces c

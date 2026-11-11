@@ -171,7 +171,8 @@ export type SaisieLieu = Corps<'/poi', 'post'>;
 export type LieuPublic = Reponse<'/citoyen/lieux', 'get'>[number];
 export type NomRegistre = 'carburant' | 'fins-de-poste' | 'epi' | 'incidents' | 'commerces' | 'conventions';
 /** Les registres qui se saisissent ici : les établissements ont leurs routes (/etablissements, jalon G). */
-export type NomRegistreSaisi = Exclude<NomRegistre, 'commerces'>;
+// Les établissements (G2a) et les conventions (G4a) ne s'écrivent plus par le registre générique.
+export type NomRegistreSaisi = Exclude<NomRegistre, 'commerces' | 'conventions'>;
 export type LigneGouvernorat = Reponse<'/observatoire/gouvernorats', 'get'>[number];
 // Refonte, lot 4 : le déploiement mois par mois, la répartition d'un indicateur, la carte.
 export type LigneActivite = Reponse<'/observatoire/activite', 'get'>[number];
@@ -295,6 +296,13 @@ export type LigneImportEtablissements = ApercuImportEtablissements['lignes'][num
 export type ChampImportEtablissements = ColonnesImportEtablissements['champs'][number]['cle'];
 export type ImportEtablissementsJournal = Reponse<'/etablissements/imports', 'get'>[number];
 export type CorrespondanceActivite = Reponse<'/etablissements/correspondances-activites', 'get'>[number];
+// --- Jalon G, lot G4a : les conventions de propreté ---
+export type Convention = Reponse<'/conventions/{id}', 'get'>;
+export type ConventionResume = Reponse<'/conventions', 'get'>[number];
+export type EtatConvention = ConventionResume['etat'];
+export type SaisieConvention = Corps<'/conventions', 'post'>;
+export type ModificationConvention = Corps<'/conventions/{id}', 'put'>;
+export type LigneConventionSaisie = SaisieConvention['lignes'] extends (infer L)[] | undefined ? L : never;
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
 export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
@@ -1428,6 +1436,26 @@ export const api = {
   enregistrerIdentiteEtablissement: (id: string, saisie: SaisieIdentiteEtablissement) =>
     requete<IdentiteEtablissement>(`/etablissements/${id}/identite`, { method: 'PUT', body: JSON.stringify(saisie) }),
   retirerIdentiteEtablissement: (id: string) => requete<void>(`/etablissements/${id}/identite`, { method: 'DELETE' }),
+  conventions: (communeId: string, statut?: string) => {
+    const p = new URLSearchParams({ communeId });
+    if (statut) p.set('statut', statut);
+    return requete<ConventionResume[]>(`/conventions?${p.toString()}`);
+  },
+  convention: (id: string) => requete<Convention>(`/conventions/${id}`),
+  creerConvention: (communeId: string, saisie: SaisieConvention) =>
+    requete<Convention>(`/conventions?communeId=${encodeURIComponent(communeId)}`, { method: 'POST', body: JSON.stringify(saisie) }),
+  modifierConvention: (id: string, saisie: ModificationConvention) =>
+    requete<Convention>(`/conventions/${id}`, { method: 'PUT', body: JSON.stringify(saisie) }),
+  retirerConvention: (id: string, version: string) =>
+    requete<void>(`/conventions/${id}?version=${encodeURIComponent(version)}`, { method: 'DELETE' }),
+  instruireConvention: (id: string, version: string) =>
+    requete<Convention>(`/conventions/${id}/instruire`, { method: 'POST', body: JSON.stringify({ version }) }),
+  reprendreConvention: (id: string, version: string) =>
+    requete<Convention>(`/conventions/${id}/reprendre`, { method: 'POST', body: JSON.stringify({ version }) }),
+  signerConvention: (id: string, saisie: Corps<'/conventions/{id}/signer', 'post'>) =>
+    requete<Convention>(`/conventions/${id}/signer`, { method: 'POST', body: JSON.stringify(saisie) }),
+  resilierConvention: (id: string, saisie: Corps<'/conventions/{id}/resilier', 'post'>) =>
+    requete<Convention>(`/conventions/${id}/resilier`, { method: 'POST', body: JSON.stringify(saisie) }),
   colonnesImportEtablissements: (communeId: string, fichier: FichierImportEtablissements) =>
     requete<ColonnesImportEtablissements>(`/etablissements/import/colonnes?communeId=${encodeURIComponent(communeId)}`, {
       method: 'POST',

@@ -24,10 +24,12 @@ import { rendreDocument, type DocumentAImprimer } from '../documents/impression.
 
 export const documentsRouter = Router();
 
-const TYPES = ['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur'] as const;
+const TYPES = ['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete'] as const;
 // La carte de pré-collecteur ne s'émet pas ici : elle naît d'un accord
 // (POST /cartes-precollecteur/demandes/{id}/accord, app.accorder_carte), qui
-// vérifie les pièces, les secteurs et la règle de validité du jour.
+// vérifie les pièces, les secteurs et la règle de validité du jour. La convention
+// de propreté non plus : elle naît de sa signature (POST /conventions/{id}/signer,
+// app.signer_convention).
 const TYPES_EMISSIBLES = ['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne'] as const;
 
 const filtresSchema = z.object({
@@ -178,6 +180,16 @@ documentsRouter.post(
   requireAuth,
   requireRole('admin_commune'),
   asyncHandler(async (req, res) => {
+    // Deux documents ne s'émettent jamais ici : ils naissent d'un geste qui les
+    // vérifie (la carte d'un accord, la convention de sa signature). Le dire en
+    // mots plutôt que par le refus générique d'un type inconnu.
+    const typeDemande = (req.body as { type?: unknown } | undefined)?.type;
+    if (typeDemande === 'convention_proprete') {
+      throw new ApiError(400, 'Le document d’une convention naît de sa signature : signez la convention depuis l’écran Conventions.');
+    }
+    if (typeDemande === 'carte_precollecteur') {
+      throw new ApiError(400, 'La carte de pré-collecteur naît de l’accord d’une demande : accordez-la depuis l’écran Acteurs informels.');
+    }
     const d = emissionSchema.parse(req.body);
     const communeId = communeDemandee(req);
     if (!communeId) throw new ApiError(400, 'Commune requise (paramètre communeId).');
@@ -225,12 +237,17 @@ documentsRouter.post(
   requireRole('admin_commune'),
   asyncHandler(async (req, res) => {
     const { motif } = annulationSchema.parse(req.body);
-    const doc = await queryOne<{ statut: string; numero_affiche: string }>(
-      'SELECT statut, numero_affiche FROM documents_emis WHERE id = $1',
+    const doc = await queryOne<{ statut: string; numero_affiche: string; type_document: string }>(
+      'SELECT statut, numero_affiche, type_document FROM documents_emis WHERE id = $1',
       [req.params.id]
     );
     if (!doc) throw new ApiError(404, 'Document introuvable.');
     if (doc.statut === 'annule') throw new ApiError(409, `Le document ${doc.numero_affiche} est déjà annulé.`);
+    // Le texte d'une convention signée ne s'annule pas (la base le refuse aussi) :
+    // la convention se résilie, et son document reste tel qu'il a été signé.
+    if (doc.type_document === 'convention_proprete') {
+      throw new ApiError(409, `Le texte d'une convention signée ne s'annule pas : résiliez la convention ${doc.numero_affiche} depuis l'écran Conventions.`);
+    }
     res.json(await queryOne('SELECT * FROM app.annuler_document($1, $2)', [req.params.id, motif]));
   })
 );
