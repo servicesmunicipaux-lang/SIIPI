@@ -9873,7 +9873,7 @@ export interface paths {
             parameters: {
                 query?: {
                     communeId?: string;
-                    type?: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur" | "convention_proprete";
+                    type?: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur" | "convention_proprete" | "avenant_convention";
                     exercice?: number;
                     statut?: "emis" | "annule";
                 };
@@ -10123,7 +10123,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             /** @enum {string} */
-                            type: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur" | "convention_proprete";
+                            type: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur" | "convention_proprete" | "avenant_convention";
                             /** @enum {string} */
                             statut: "provisoire" | "valide";
                             fr: string;
@@ -17913,6 +17913,26 @@ export interface paths {
                             resiliee_le: string | null;
                             created_at: string;
                             updated_at: string;
+                            /**
+                             * Format: uuid
+                             * @description Renouvellement : la convention renouvelée (lot G4b).
+                             */
+                            convention_precedente_id: string | null;
+                            /** @description Le numéro (CV-…) de la convention renouvelée. */
+                            numero_precedente: string | null;
+                            /** @description Renouvellement : la convention renouvelée a été résiliée depuis (constaté, jamais corrigé). Vide pour une convention qui n’en renouvelle aucune. */
+                            precedente_resiliee: boolean | null;
+                            /**
+                             * Format: uuid
+                             * @description Le renouvellement de cette convention, s’il est rédigé (un seul).
+                             */
+                            renouvellement_id: string | null;
+                            /** @enum {string|null} */
+                            statut_renouvellement: "brouillon" | "instruite" | "signee" | "resiliee" | null;
+                            /** @description Signée, non résiliée, sans renouvellement, et qui finit dans moins de 60 jours (à Tunis). Un signal de la liste, jamais une notification. */
+                            a_renouveler: boolean | null;
+                            /** @description Le nombre d’avenants signés. */
+                            avenants_signes: number;
                         }[];
                     };
                 };
@@ -18604,6 +18624,714 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["Convention"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conventions/{id}/renouveler": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renouveler une convention signée (lot G4b)
+         * @description Une convention signée, non résiliée, sans renouvellement → un brouillon qui commence le lendemain de sa fin, pour un an, avec les termes en vigueur à cette fin. Il s’instruit avec la grille en vigueur à son début ; son document citera la convention renouvelée. Un flux qui n’est plus en vigueur, ou devenu dangereux, n’est pas repris, un conteneur retiré ne suit pas sa ligne : « non_reprises » les nomme. Une seule par convention.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Renouvellement rédigé (brouillon). */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Convention"] & {
+                            /** @description Ce que le renouvellement ne reprend pas des termes en vigueur à la fin de la convention, avec le motif. */
+                            non_reprises: {
+                                flux_code: string;
+                                flux_fr: string | null;
+                                flux_ar: string | null;
+                                /**
+                                 * @description flux : la ligne n’est pas reprise (flux plus en vigueur, ou dangereux) ; conteneur : la ligne l’est, sans son conteneur, retiré depuis.
+                                 * @enum {string}
+                                 */
+                                motif: "flux" | "conteneur";
+                            }[];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conventions/{id}/avenants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rédiger un avenant (brouillon) d’une convention signée (lot G4b)
+         * @description Il ne change que les déchets couverts, dont il donne la liste complète (flux de la liste nationale du jour, jamais dangereux), et l’observation, à compter de sa date d’effet, dans la période de la convention, qui doit être en cours et sans renouvellement en préparation. Ni l’établissement, ni les dates, ni la grille, ni le tarif : une fin anticipée est une résiliation, un tarif nouveau vient au renouvellement.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        dateEffet: string;
+                        observation?: string | null;
+                        /** @default [] */
+                        lignes?: {
+                            fluxCode: string;
+                            conteneurId?: string | null;
+                            leveesParSemaine: number;
+                            volumeLitres?: number | null;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Avenant rédigé (brouillon). */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvenantConvention"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conventions/avenants/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Un avenant, ses lignes et sa version */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Avenant. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvenantConvention"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Remplacer un brouillon d’avenant (et ses lignes)
+         * @description Un brouillon seulement, avec la version lue ; un avenant instruit se reprend d’abord en brouillon, un avenant signé ne se modifie plus.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        dateEffet: string;
+                        observation?: string | null;
+                        /** @default [] */
+                        lignes?: {
+                            fluxCode: string;
+                            conteneurId?: string | null;
+                            leveesParSemaine: number;
+                            volumeLitres?: number | null;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Brouillon d’avenant remplacé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvenantConvention"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Retirer un brouillon d’avenant
+         * @description Un brouillon seulement (retrait logique), avec la version lue ; un avenant signé se corrige par un nouvel avenant.
+         */
+        delete: {
+            parameters: {
+                query: {
+                    version: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Brouillon d’avenant retiré. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conventions/avenants/{id}/instruire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Instruire un avenant
+         * @description Brouillon → instruit, sous verrou : la convention est signée et non résiliée, l’établissement n’est pas fermé, la date d’effet est dans la période et après le dernier avenant signé, au moins un flux en vigueur et aucun dangereux. Chaque refus dit ce qui manque.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Avenant instruit. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvenantConvention"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conventions/avenants/{id}/reprendre": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reprendre un avenant instruit en brouillon */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Avenant repris en brouillon. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvenantConvention"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/conventions/avenants/{id}/signer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Signer un avenant : le document scellé est émis
+         * @description Instruit → signé : tout se vérifie de nouveau, une base légale doit être en vigueur le jour de la signature (date passée, après celle de la convention, pièce citée). Attribue le numéro de l’avenant (sans trou) et émet le document scellé avenant_convention (AV-…), qui cite la convention et donne la liste complète des déchets couverts. Il ne s’annule pas : un nouvel avenant le corrige.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        dateSignature: string;
+                        referenceSignature: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Avenant signé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AvenantConvention"];
                     };
                 };
                 /** @description Requête invalide — le détail indique les champs en cause. */
@@ -34007,7 +34735,7 @@ export interface components {
             id: string;
             commune_id: string;
             /** @enum {string} */
-            type_document: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur" | "convention_proprete";
+            type_document: "ordre_mission" | "bon_carburant" | "bon_travail" | "declaration_panne" | "carte_precollecteur" | "convention_proprete" | "avenant_convention";
             exercice: number;
             /** @description Rang continu dans le registre commune × type × exercice. Jamais réutilisé. */
             numero: number;
@@ -34763,6 +35491,46 @@ export interface components {
             created_at: string;
             updated_at: string;
         };
+        AvenantConvention: {
+            /** Format: uuid */
+            id: string;
+            /** @description La version lue (xmin) : exigée par la modification, le retrait et chaque geste. */
+            version: string;
+            /** Format: uuid */
+            convention_id: string;
+            commune_id: string;
+            /** @description Le rang de l’avenant dans sa convention (1, 2, 3…), attribué à la signature. */
+            numero: number | null;
+            /** @enum {string} */
+            statut: "brouillon" | "instruit" | "signe";
+            /** @description Le premier jour où les termes de l’avenant s’appliquent. */
+            date_effet: string;
+            observation: string | null;
+            instruit_le: string | null;
+            date_signature: string | null;
+            reference_signature: string | null;
+            /** Format: uuid */
+            document_id: string | null;
+            /** @description Le numéro du document scellé (AV-…). */
+            numero_document: string | null;
+            signe_le: string | null;
+            created_at: string;
+            updated_at: string;
+            /** @description La liste complète des déchets couverts à compter de la date d’effet. */
+            lignes: {
+                /** Format: uuid */
+                id: string;
+                flux_code: string;
+                flux_fr: string | null;
+                flux_ar: string | null;
+                conteneur_id: string | null;
+                conteneur: string | null;
+                levees_par_semaine: number;
+                /** @description Volume estimé par levée, en litres : une estimation, jamais une mesure. */
+                volume_litres: number | null;
+                ordre: number;
+            }[];
+        };
         Convention: {
             /** Format: uuid */
             id: string;
@@ -34816,6 +35584,27 @@ export interface components {
             resiliee_le: string | null;
             created_at: string;
             updated_at: string;
+            /**
+             * Format: uuid
+             * @description Renouvellement : la convention renouvelée (lot G4b).
+             */
+            convention_precedente_id: string | null;
+            /** @description Le numéro (CV-…) de la convention renouvelée. */
+            numero_precedente: string | null;
+            /** @description Renouvellement : la convention renouvelée a été résiliée depuis (constaté, jamais corrigé). Vide pour une convention qui n’en renouvelle aucune. */
+            precedente_resiliee: boolean | null;
+            /**
+             * Format: uuid
+             * @description Le renouvellement de cette convention, s’il est rédigé (un seul).
+             */
+            renouvellement_id: string | null;
+            /** @enum {string|null} */
+            statut_renouvellement: "brouillon" | "instruite" | "signee" | "resiliee" | null;
+            /** @description Signée, non résiliée, sans renouvellement, et qui finit dans moins de 60 jours (à Tunis). Un signal de la liste, jamais une notification. */
+            a_renouveler: boolean | null;
+            /** @description Le nombre d’avenants signés. */
+            avenants_signes: number;
+            /** @description Les termes d’origine de la convention. */
             lignes: {
                 /** Format: uuid */
                 id: string;
@@ -34829,6 +35618,24 @@ export interface components {
                 volume_litres: number | null;
                 ordre: number;
             }[];
+            /** @description Les déchets couverts aujourd’hui (à Tunis) : ceux du dernier avenant signé qui a pris effet, sinon ceux d’origine (app.termes_convention). */
+            termes_en_vigueur: {
+                flux_code: string;
+                flux_fr: string | null;
+                flux_ar: string | null;
+                conteneur_id: string | null;
+                conteneur: string | null;
+                levees_par_semaine: number;
+                /** @description Volume estimé par levée, en litres : une estimation, jamais une mesure. */
+                volume_litres: number | null;
+                ordre: number;
+                /**
+                 * Format: uuid
+                 * @description L’avenant dont vient la ligne ; vide pour les termes d’origine.
+                 */
+                avenant_id: string | null;
+            }[];
+            avenants: components["schemas"]["AvenantConvention"][];
         };
         ActeurInformel: {
             /** Format: uuid */

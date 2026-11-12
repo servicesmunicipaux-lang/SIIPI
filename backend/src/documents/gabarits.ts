@@ -14,7 +14,14 @@
 
 import { z } from 'zod';
 
-export type TypeDocument = 'ordre_mission' | 'bon_carburant' | 'bon_travail' | 'declaration_panne' | 'carte_precollecteur' | 'convention_proprete';
+export type TypeDocument =
+  | 'ordre_mission'
+  | 'bon_carburant'
+  | 'bon_travail'
+  | 'declaration_panne'
+  | 'carte_precollecteur'
+  | 'convention_proprete'
+  | 'avenant_convention';
 
 type NatureChamp = 'texte' | 'texte_long' | 'date' | 'nombre' | 'oui_non';
 
@@ -170,6 +177,8 @@ export const GABARITS: Record<TypeDocument, Gabarit> = {
       { cle: 'adresse', fr: 'Adresse', ar: 'العنوان', nature: 'texte' },
       { cle: 'type', fr: 'Objet', ar: 'الموضوع', nature: 'texte', requis: true },
       { cle: 'exercice', fr: 'Exercice', ar: 'السنة المالية', nature: 'texte', requis: true },
+      // Un renouvellement cite la convention qu'il renouvelle (lot G4b).
+      { cle: 'renouvellement_de', fr: 'Renouvellement', ar: 'تجديد', nature: 'texte' },
       { cle: 'date_debut', fr: 'Du', ar: 'من', nature: 'date', requis: true },
       { cle: 'date_fin', fr: 'Au', ar: 'إلى', nature: 'date', requis: true },
       { cle: 'grille', fr: 'Grille tarifaire appliquée', ar: 'التعريفة المطبّقة', nature: 'texte_long', requis: true },
@@ -177,6 +186,37 @@ export const GABARITS: Record<TypeDocument, Gabarit> = {
       { cle: 'flux', fr: 'Déchets couverts', ar: 'النفايات المشمولة', nature: 'texte_long', requis: true },
       { cle: 'base_legale', fr: 'Base légale', ar: 'السند القانوني', nature: 'texte_long', requis: true },
       { cle: 'date_signature', fr: 'Signée le', ar: 'تاريخ الإمضاء', nature: 'date', requis: true },
+      { cle: 'reference_signature', fr: 'Référence', ar: 'المرجع', nature: 'texte', requis: true },
+      OBSERVATIONS,
+    ],
+    signatures: [
+      { fr: 'Pour l’établissement', ar: 'عن المؤسسة' },
+      { fr: 'Le Président de la commune', ar: 'رئيس البلدية' },
+    ],
+  },
+  // L'avenant à une convention (jalon G, lot G4b) : émis par app.signer_avenant
+  // seulement. Il ne change que les déchets couverts, dont il donne la liste
+  // complète à compter de sa date d'effet ; ni tarif, ni montant.
+  avenant_convention: {
+    type: 'avenant_convention',
+    statut: 'provisoire',
+    fr: 'AVENANT À LA CONVENTION DE PROPRETÉ',
+    ar: 'ملحق لاتفاقية النظافة',
+    reference: {
+      fr: 'Modification des déchets couverts par une convention de propreté signée',
+      ar: 'تعديل النفايات المشمولة باتفاقية نظافة ممضاة',
+    },
+    champs: [
+      { cle: 'convention', fr: 'Convention', ar: 'الاتفاقية', nature: 'texte', requis: true },
+      { cle: 'avenant', fr: 'Avenant n°', ar: 'الملحق عدد', nature: 'texte', requis: true },
+      { cle: 'etablissement', fr: 'Établissement', ar: 'المؤسسة', nature: 'texte', requis: true },
+      { cle: 'matricule_fiscal', fr: 'Matricule fiscal', ar: 'المعرّف الجبائي', nature: 'texte' },
+      { cle: 'adresse', fr: 'Adresse', ar: 'العنوان', nature: 'texte' },
+      { cle: 'date_effet', fr: 'À compter du', ar: 'بداية من', nature: 'date', requis: true },
+      { cle: 'date_fin', fr: 'Jusqu’au', ar: 'إلى غاية', nature: 'date', requis: true },
+      { cle: 'flux', fr: 'Déchets couverts', ar: 'النفايات المشمولة', nature: 'texte_long', requis: true },
+      { cle: 'base_legale', fr: 'Base légale', ar: 'السند القانوني', nature: 'texte_long', requis: true },
+      { cle: 'date_signature', fr: 'Signé le', ar: 'تاريخ الإمضاء', nature: 'date', requis: true },
       { cle: 'reference_signature', fr: 'Référence', ar: 'المرجع', nature: 'texte', requis: true },
       OBSERVATIONS,
     ],

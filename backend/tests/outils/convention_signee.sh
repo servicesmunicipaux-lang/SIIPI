@@ -62,13 +62,14 @@ convention_signee() { # commune jeton_directeur commerce debut fin
   echo "$id"
 }
 
-# Les conventions et leurs documents scellés des communes de test, le déclencheur
+# Les avenants, les conventions et leurs documents scellés des communes de test, le déclencheur
 # qui protège les documents levé le temps d'une transaction, puis leurs grilles :
 # une grille approuvée garde son auteur, et un compte temporaire ne s'effacerait
 # pas tant qu'elle le cite.
 effacer_conventions_essai() { # liste SQL d'identifiants, chacun « test… »
   case "$1" in *"'test"*) ;; *) echo "effacer_conventions_essai : liste sans commune de test ($1)." >&2; return 1 ;; esac
   $PSQL -c "BEGIN;
+            DELETE FROM avenants_convention WHERE commune_id IN ($1);
             DELETE FROM conventions_commerciales WHERE commune_id IN ($1);
             ALTER TABLE documents_emis DISABLE TRIGGER trg_proteger_document;
             DELETE FROM documents_emis WHERE commune_id IN ($1);

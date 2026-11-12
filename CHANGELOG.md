@@ -5,6 +5,84 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.96] — 2026-11-12 — Jalon G, lot G4b : les avenants et le renouvellement des conventions
+
+Le lot G4b du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 3.4 ; décision du 11 novembre 2026 :
+les neuf propositions de G4b). Une convention signée ne se modifie plus : un changement des déchets couverts est un
+**avenant**, une fin anticipée une résiliation (G4a), l'année suivante un **renouvellement**.
+
+### Ajouté
+- **L'avenant** (migration 104, table `avenants_convention`) : une pièce rattachée à une convention **signée, non
+  résiliée** — pas une nouvelle convention. La convention garde son numéro CV ; ses avenants sont **numérotés 1, 2,
+  3… à leur signature, sans trou** (un brouillon retiré n'en consomme aucun). Un avenant **ne change que les
+  déchets couverts** (flux, conteneur, levées, volume), dont il donne **la liste complète**, et l'observation ; ni
+  l'établissement, ni les dates, ni la grille, ni le tarif. Même cycle que la convention — brouillon, instruit,
+  signé —, chaque geste par une fonction de la base, **sous verrou de la convention puis de l'avenant, avec la
+  version lue** ; l'instruction exige une date d'effet dans la période et **après le dernier avenant signé**, au
+  moins un flux en vigueur, aucun dangereux, un établissement non fermé. Ses lignes vivent dans `lignes_convention`
+  (`avenant_id`).
+- **Le document scellé `avenant_convention`** (préfixe **AV**, A4 bilingue, « modèle provisoire ») : il cite la
+  convention (CV-…), son numéro d'avenant, sa date d'effet, la liste complète des déchets couverts et la base légale
+  du jour ; **aucun tarif, aucun montant**. Il **ne s'annule pas** — en base, par l'API, et l'écran n'offre pas le
+  geste : un nouvel avenant le corrige. Il ne naît que de sa signature (la route générique d'émission et la base le
+  refusent).
+- **Les termes en vigueur à une date** (`app.termes_convention`) : ceux du dernier avenant signé qui a pris effet ce
+  jour-là, sinon ceux d'origine — et **rien hors de la période effective** d'une convention signée (avant son début,
+  après sa fin, à compter de sa résiliation, ni pour un brouillon). Une seule définition, pour l'écran, le
+  renouvellement et, plus tard, l'assiette (G6).
+  **M2-2 ne change pas** : un établissement reste sous une seule convention, quel que soit le nombre de ses avenants.
+- **Le renouvellement** (`app.renouveler_convention`, `POST /conventions/{id}/renouveler`) : une **convention
+  nouvelle**, brouillon, reliée à la précédente (`convention_precedente_id`), qui **commence le lendemain de sa fin**,
+  pour un an (son début ne se change pas), et **reprend les termes en vigueur à cette fin**. Un flux qui n'est plus en
+  vigueur, ou devenu dangereux, **n'est pas repris** ; un **conteneur retiré** depuis ne suit pas sa ligne ; **la
+  réponse nomme l'un et l'autre, avec leur motif** (`non_reprises`) — rien n'est remplacé en silence. Elle s'instruit **avec la grille en vigueur à son début** (un tarif nouveau, le cas échéant) ; son document
+  CV porte « Renouvellement de CV-… ». **Un seul renouvellement par convention** ; la précédente doit être signée et
+  non résiliée, à la rédaction comme à l'instruction et à la signature. Une reprise après une interruption est une
+  convention nouvelle.
+- **« À renouveler »** : une convention signée, sans renouvellement, qui finit dans moins de 60 jours (à Tunis) —
+  une pastille et un filtre de l'écran, jamais une notification ni un avis (les alertes viennent au lot G7).
+- Routes `POST /conventions/{id}/avenants`, `GET|PUT|DELETE /conventions/avenants/{id}`,
+  `POST /conventions/avenants/{id}/instruire|reprendre|signer`, `POST /conventions/{id}/renouveler`, documentées
+  dans le contrat ; le détail d'une convention rend ses termes d'origine, ses **termes en vigueur aujourd'hui** et
+  ses avenants ; la liste, le lien de renouvellement dans les deux sens et « à renouveler ». Le directeur écrit ; la
+  FNCT lit sans geste (403) ; un prestataire ne voit rien.
+- L'écran « Conventions » : « Rédiger un avenant » (le formulaire part des derniers termes signés), le cycle de
+  chaque avenant et son impression, « Renouveler » (mis en avant quand la convention est à renouveler), le filtre
+  « À renouveler », le brouillon de renouvellement à début verrouillé. Le formulaire d'avenant vit avec celui de la
+  convention (`ajout/FormulaireConvention.tsx`), avec le même éditeur de lignes. En français et en arabe.
+
+- **Relecture adversariale du lot (13 défauts confirmés sur 22 constats), corrigée avant la livraison :**
+  - les « déchets couverts aujourd'hui » ne s'affichent plus pour une convention résiliée, expirée ou à venir ;
+  - un **conteneur retiré** n'entre dans aucune ligne nouvelle, une ligne qui le vise ne s'instruit ni ne se signe
+    (`CONTENEUR_RETIRE`, qui le nomme) — il aurait été imprimé dans un document scellé ;
+  - un avenant ne s'écrit ni sur une convention **expirée**, ni pendant qu'un **renouvellement est en préparation**
+    (il laisserait le renouvellement avec des termes périmés) ; un renouvellement déjà signé ne bloque rien ;
+  - la convention renouvelée se lit **sous verrou** à l'instruction et à la signature du renouvellement ; résiliée
+    après coup, le renouvellement le **constate** (`precedente_resiliee`), sans être touché ;
+  - l'écran : la signature d'un avenant reprend la version relue après un refus, le formulaire d'un brouillon
+    d'avenant s'ouvre sur sa version du jour, il ne se perd plus quand on referme le détail, un avenant retiré
+    ailleurs se dit comme tel, et un flux plus en vigueur se signale avant l'envoi.
+
+### Modifié
+- Le numéro d'un document (CV-…, AV-…) s'affiche sur sa propre ligne dans l'écran Conventions : collé à une date,
+  il se mêlait à ses chiffres en arabe.
+
+### Vérifié
+- Campagne `avenants` (73 contrôles), qui commence par ce que la plateforme refuse ; communes de
+  test, comptes temporaires, table nationale des listes rendue ligne entière ; dates comptées depuis le jour. Elle
+  éprouve le cycle de l'avenant, le numéro sans trou, le document AV (clés du gabarit, aucun tarif, ni annulation ni
+  émission directe), les termes à une date, l'ordre des avenants, M2-2 inchangé, le renouvellement (termes repris,
+  flux fermé et conteneur retiré nommés, grille nouvelle et son tarif, document qui cite la convention renouvelée,
+  convention résiliée entre-temps ou après coup), les termes hors période, l'avenant refusé sur une convention
+  expirée ou en cours de renouvellement, « à renouveler » avec et sans renouvellement, et qui lit quoi. `documents`
+  compte sept gabarits.
+- Écran vérifié sur une commune de test du banc : instruction et signature d'un avenant, formulaire d'avenant,
+  renouvellement ; en arabe (RTL) et sur téléphone, sans débordement — avant la relecture ; ses retouches d'écran
+  sont vérifiées par le typage et le lint.
+- Critère complet sur base neuve (migrations 000 → 104, la 104 rejouée une seconde fois, chargement dans l'ordre de
+  référence) : contrat **431/431** routes, **90/90** campagnes, **4 151** contrôles réussis, aucun échec ;
+  `audit-blocs` : les 9 blocs sous condition ont tous tourné. Lint backend et web sans erreur.
+
 ## [0.15.95] — 2026-11-11 — Jalon G, lot G4a : les conventions de propreté
 
 Le lot G4a du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 1, § 3.4, § 8 ; décisions du 4 novembre

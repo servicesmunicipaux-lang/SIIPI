@@ -50,7 +50,9 @@
   ],
   "convention": [
     "creerConvention",
-    "modifierConvention"
+    "modifierConvention",
+    "creerAvenant",
+    "modifierAvenant"
   ],
   "import-contacts": [
     "importerContacts"

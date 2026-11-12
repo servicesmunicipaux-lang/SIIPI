@@ -3296,7 +3296,8 @@
         "brouillon": "Brouillons",
         "instruite": "Instruites",
         "signee": "Signées",
-        "resiliee": "Résiliées"
+        "resiliee": "Résiliées",
+        "a_renouveler": "À renouveler (fin dans moins de 60 jours)"
       },
       "aucune": "Aucune convention pour l’instant.",
       "aucuneFiltre": "Aucune convention dans ce statut.",
@@ -3348,9 +3349,46 @@
         "reprise": "Convention de « {{etablissement}} » reprise en brouillon.",
         "signee": "Convention de « {{etablissement}} » signée : le document scellé est émis.",
         "resiliee": "Convention de « {{etablissement}} » résiliée.",
-        "retiree": "Brouillon de « {{etablissement}} » retiré (il reste lisible au journal)."
+        "retiree": "Brouillon de « {{etablissement}} » retiré (il reste lisible au journal).",
+        "renouvelee": "Renouvellement de la convention de « {{etablissement}} » rédigé : un brouillon, à instruire avec la grille en vigueur à son début.",
+        "avenantRedige": "Brouillon d’avenant enregistré pour « {{etablissement}} » : instruisez-le quand il est complet.",
+        "avenantModifie": "Brouillon d’avenant de « {{etablissement}} » modifié.",
+        "avenantInstruit": "Avenant de « {{etablissement}} » instruit.",
+        "avenantRepris": "Avenant de « {{etablissement}} » repris en brouillon.",
+        "avenantSigne": "Avenant de « {{etablissement}} » signé : le document scellé est émis.",
+        "avenantRetire": "Brouillon d’avenant de « {{etablissement}} » retiré (il reste lisible au journal)."
       },
-      "introuvable": "La convention de « {{etablissement}} » est introuvable : elle a été retirée entre-temps. La liste est à jour."
+      "introuvable": "La convention de « {{etablissement}} » est introuvable : elle a été retirée entre-temps. La liste est à jour.",
+      "aRenouveler": "À renouveler",
+      "renouvellementDe": "Renouvellement de",
+      "renouveleePar": "Renouvellement rédigé ({{statut}}).",
+      "statutsRenouvellement": {
+        "brouillon": "brouillon",
+        "instruite": "instruit",
+        "signee": "signé",
+        "resiliee": "résilié"
+      },
+      "avenantsSignes_one": "{{count}} avenant signé.",
+      "avenantsSignes_other": "{{count}} avenants signés.",
+      "avenant": "Rédiger un avenant",
+      "renouveler": "Renouveler",
+      "aideSignatureAvenant": "L’avenant s’applique à compter du {{date}}. Sa signature émet le document scellé AV-…, qui cite la convention et donne la liste complète des déchets couverts ; il ne s’annule pas, un nouvel avenant le corrige.",
+      "termesEnVigueur": "Déchets couverts aujourd’hui",
+      "termesOrigine": "Termes d’origine",
+      "avenants": "Avenants",
+      "avenantNumero": "Avenant n° {{n}}",
+      "avenantSansNumero": "Avenant (numéroté à la signature)",
+      "avenantEffet": "à compter du {{date}}",
+      "statutsAvenant": {
+        "brouillon": "Brouillon",
+        "instruit": "Instruit",
+        "signe": "Signé"
+      },
+      "nonReprises": "Non repris, car plus en vigueur ou dangereux : {{flux}}.",
+      "avenantIntrouvable": "Cet avenant est introuvable : il a été retiré entre-temps. Le détail est à jour.",
+      "avenantPlusBrouillon": "Cet avenant n’est plus un brouillon : il a été instruit ou retiré entre-temps. Le détail est à jour.",
+      "sansConteneur": "{{flux}} (repris sans son conteneur, retiré)",
+      "precedenteResiliee": "La convention renouvelée a été résiliée depuis : vérifiez que ce renouvellement a toujours lieu d’être."
     }
   },
   "ajout": {
@@ -3813,7 +3851,24 @@
         "flux": "Chaque ligne porte un flux de la liste nationale (ou retirez-la).",
         "fluxDouble": "Un flux ne figure qu’une fois.",
         "levees": "De 1 à 21 levées par semaine, en nombre entier.",
-        "volume": "Le volume par levée est un nombre de litres positif (au plus 100 000)."
+        "volume": "Le volume par levée est un nombre de litres positif (au plus 100 000).",
+        "fluxPlusEnVigueur": "Une ligne vise un flux qui n’est plus en vigueur, ou devenu dangereux : remplacez-le ou retirez la ligne."
+      },
+      "plusEnVigueur": "plus en vigueur, à remplacer",
+      "renouvellementDe": "Renouvellement de la convention {{numero}} : elle commence le lendemain de la fin de celle-ci, pour un an, et s’instruit avec la grille en vigueur à son début.",
+      "debutRenouvellement": "Le début d’un renouvellement est fixé : le lendemain de la fin de la convention renouvelée."
+    },
+    "avenant": {
+      "titre": "Avenant à la convention de « {{etablissement}} »",
+      "titreModification": "Brouillon d’avenant — « {{etablissement}} »",
+      "aide": "Un avenant à la convention {{numero}} ne change que les déchets couverts : donnez-en la liste complète, à compter de sa date d’effet. Ni l’établissement, ni les dates, ni le tarif ne changent : une fin anticipée est une résiliation, un tarif nouveau vient au renouvellement.",
+      "dateEffet": "À compter du",
+      "fluxAide": "La liste proposée est celle des derniers termes signés : ajoutez, retirez ou changez des lignes ; ce qui reste est ce que la convention couvrira.",
+      "problemes": {
+        "date": "Donnez la date d’effet de l’avenant.",
+        "periode": "L’avenant prend effet dans la période de la convention (du {{debut}} au {{fin}}).",
+        "ordre": "Le dernier avenant signé prend effet le {{date}} : celui-ci prend effet après lui.",
+        "lignes": "Un avenant couvre au moins un flux."
       }
     }
   },
