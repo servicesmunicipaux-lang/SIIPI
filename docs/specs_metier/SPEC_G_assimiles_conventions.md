@@ -1,6 +1,6 @@
 # SIIPI — Jalon G : déchets assimilés et conventions de propreté
 
-**FNCT · 4 novembre 2026 · ouvert par Nacer · statut : spécification v1.1 (décisions du 4 novembre intégrées) ; G1 développé en v0.15.90 (migration 098), G2a (établissements) en v0.15.91 (migration 099), G2b (import TCL et open data) en v0.15.94 (migration 102), G4a (conventions) en v0.15.95 (migration 103) ; G3, G4b et G5 à G7 restent à coder**
+**FNCT · 4 novembre 2026 · ouvert par Nacer · statut : spécification v1.1 (décisions du 4 novembre intégrées) ; G1 développé en v0.15.90 (migration 098), G2a (établissements) en v0.15.91 (migration 099), G2b (import TCL et open data) en v0.15.94 (migration 102), G4a (conventions) en v0.15.95 (migration 103), G4b (avenants et renouvellement) en v0.15.96 (migration 104) ; G3 et G5 à G7 restent à coder**
 
 Le jalon G fait de la convention de propreté un dossier numérique complet :
 **établissement → convention annuelle → conteneurs et desserte → levées constatées → assiette → export vers le système financier → suivi des manquements.**
@@ -42,6 +42,7 @@ La règle de SIIPI (v0.15.83) s'applique ici : **toute règle légale est un par
 - **Une convention fige sa base légale à son émission** : le texte de la convention est un document scellé (`documents_emis`, contenu figé), qui recopie les références en vigueur ce jour-là. Une convention signée sous l'ancien texte ne se rattache jamais rétroactivement au nouveau.
 - Les références restent à vérifier article par article avant d'entrer en base (article 25 de la loi n° 96-41, article du Code de la fiscalité locale sur la redevance des déchets d'établissements). SIIPI n'invente aucune référence.
 - **Décision du 11 novembre 2026 :** la loi existe sans attendre la FNCT. La migration 103 pré-remplit les quatre textes connus (loi n° 96-41, Code de la fiscalité locale, loi organique n° 2018-29, décret-loi n° 4 de 2026 sans date d'application), provisoires ; la fin de la loi organique suit la date d'application du décret-loi (`abroge_par_code` : le lien suit le code du texte, il survit à une correction). La signature d'une convention n'est refusée que si aucun texte n'est en vigueur ce jour-là.
+- **Décision du 11 novembre 2026 (G4b) :** les neuf propositions sont acceptées. Un avenant est une pièce rattachée à la convention signée (numéroté à la signature, sans trou), qui ne change que les déchets couverts et l'observation, à compter de sa date d'effet ; son document scellé `avenant_convention` (AV-…) ne s'annule pas. Le renouvellement est une convention nouvelle reliée à la précédente (signée, non résiliée ; une seule), du lendemain de sa fin, avec les termes en vigueur à cette fin et la grille de son début. « À renouveler » : fin dans moins de 60 jours, une pastille de l'écran, jamais une alerte (G7).
 
 ## 2. Le modèle conceptuel
 

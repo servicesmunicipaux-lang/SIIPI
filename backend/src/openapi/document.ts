@@ -117,8 +117,11 @@ import {
 } from '../routes/importEtablissements.routes.js';
 import { CLES_CHAMPS } from '../services/importEtablissements.js';
 import {
+  avenantSchema,
   conventionSchema,
   ETATS_CONVENTION,
+  modificationAvenantSchema,
+  STATUTS_AVENANT,
   MODES_TARIFICATION,
   modificationConventionSchema,
   qConventions,
@@ -2829,7 +2832,7 @@ const DocumentEmis = registry.register(
   z.object({
     id: z.string().uuid(),
     commune_id: z.string(),
-    type_document: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete']),
+    type_document: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete', 'avenant_convention']),
     exercice: z.number().int(),
     numero: z.number().int().openapi({ description: 'Rang continu dans le registre commune × type × exercice. Jamais réutilisé.' }),
     numero_affiche: z.string().openapi({ example: 'BC-2026-00042' }),
@@ -2861,7 +2864,7 @@ registry.registerPath({
   request: {
     query: z.object({
       communeId: paramCommuneId.optional(),
-      type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete']).optional(),
+      type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete', 'avenant_convention']).optional(),
       exercice: z.number().int().optional(),
       statut: z.enum(['emis', 'annule']).optional(),
     }),
@@ -2895,7 +2898,7 @@ registry.registerPath({
     200: json(
       z.array(
         z.object({
-          type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete']),
+          type: z.enum(['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete', 'avenant_convention']),
           statut: z.enum(['provisoire', 'valide']),
           fr: z.string(),
           ar: z.string(),
@@ -5097,8 +5100,56 @@ const ConventionResume = z.object({
   resiliee_le: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+  convention_precedente_id: z.string().uuid().nullable().openapi({ description: 'Renouvellement : la convention renouvelée (lot G4b).' }),
+  numero_precedente: z.string().nullable().openapi({ description: 'Le numéro (CV-…) de la convention renouvelée.' }),
+  precedente_resiliee: z.boolean().nullable().openapi({
+    description: 'Renouvellement : la convention renouvelée a été résiliée depuis (constaté, jamais corrigé). Vide pour une convention qui n’en renouvelle aucune.',
+  }),
+  renouvellement_id: z.string().uuid().nullable().openapi({ description: 'Le renouvellement de cette convention, s’il est rédigé (un seul).' }),
+  statut_renouvellement: z.enum(STATUTS_CONVENTION).nullable(),
+  a_renouveler: z.boolean().nullable().openapi({
+    description: 'Signée, non résiliée, sans renouvellement, et qui finit dans moins de 60 jours (à Tunis). Un signal de la liste, jamais une notification.',
+  }),
+  avenants_signes: z.number().int().openapi({ description: 'Le nombre d’avenants signés.' }),
 });
-const Convention = registry.register('Convention', ConventionResume.extend({ lignes: z.array(LigneConvention) }));
+const STATUT_AVENANT = z.enum(STATUTS_AVENANT);
+const Avenant = registry.register(
+  'AvenantConvention',
+  z.object({
+    id: z.string().uuid(),
+    version: z.string().openapi({ description: 'La version lue (xmin) : exigée par la modification, le retrait et chaque geste.' }),
+    convention_id: z.string().uuid(),
+    commune_id: z.string(),
+    numero: z.number().int().nullable().openapi({ description: 'Le rang de l’avenant dans sa convention (1, 2, 3…), attribué à la signature.' }),
+    statut: STATUT_AVENANT,
+    date_effet: z.string().openapi({ description: 'Le premier jour où les termes de l’avenant s’appliquent.' }),
+    observation: z.string().nullable(),
+    instruit_le: z.string().nullable(),
+    date_signature: z.string().nullable(),
+    reference_signature: z.string().nullable(),
+    document_id: z.string().uuid().nullable(),
+    numero_document: z.string().nullable().openapi({ description: 'Le numéro du document scellé (AV-…).' }),
+    signe_le: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    lignes: z.array(LigneConvention).openapi({ description: 'La liste complète des déchets couverts à compter de la date d’effet.' }),
+  })
+);
+const TermeConvention = LigneConvention.omit({ id: true }).extend({
+  avenant_id: z.string().uuid().nullable().openapi({ description: 'L’avenant dont vient la ligne ; vide pour les termes d’origine.' }),
+});
+const Convention = registry.register(
+  'Convention',
+  ConventionResume.extend({
+    lignes: z.array(LigneConvention).openapi({ description: 'Les termes d’origine de la convention.' }),
+    termes_en_vigueur: z.array(TermeConvention).openapi({
+      description: 'Les déchets couverts aujourd’hui (à Tunis) : ceux du dernier avenant signé qui a pris effet, sinon ceux d’origine (app.termes_convention).',
+    }),
+    avenants: z.array(Avenant),
+  })
+);
+const pAvenant = z.object({ id: z.string().uuid() });
+const TAG_AVENANTS = TAG_CONVENTIONS;
 const pConvention = z.object({ id: z.string().uuid() });
 const qCommuneConventions = z.object({ communeId: z.string().optional() });
 const REFUS_GESTE = { 409: json(Erreur, 'Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots).') };
@@ -5177,6 +5228,98 @@ registry.registerPath({
   security: SECURISE,
   request: { params: pConvention, body: { content: { 'application/json': { schema: resiliationConventionSchema } } } },
   responses: { 200: json(Convention, 'Convention résiliée.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/conventions/{id}/renouveler', tags: [TAG_CONVENTIONS],
+  summary: 'Renouveler une convention signée (lot G4b)',
+  description:
+    'Une convention signée, non résiliée, sans renouvellement → un brouillon qui commence le lendemain de sa fin, pour un an, avec les termes en vigueur à cette fin. ' +
+    'Il s’instruit avec la grille en vigueur à son début ; son document citera la convention renouvelée. Un flux qui n’est plus en vigueur, ou devenu dangereux, ' +
+    'n’est pas repris, un conteneur retiré ne suit pas sa ligne : « non_reprises » les nomme. Une seule par convention.',
+  security: SECURISE,
+  request: { params: pConvention, body: { content: { 'application/json': { schema: versionConventionSchema } } } },
+  responses: {
+    201: json(
+      Convention.extend({
+        non_reprises: z
+          .array(
+            z.object({
+              flux_code: z.string(),
+              flux_fr: z.string().nullable(),
+              flux_ar: z.string().nullable(),
+              motif: z.enum(['flux', 'conteneur']).openapi({
+                description: 'flux : la ligne n’est pas reprise (flux plus en vigueur, ou dangereux) ; conteneur : la ligne l’est, sans son conteneur, retiré depuis.',
+              }),
+            })
+          )
+          .openapi({ description: 'Ce que le renouvellement ne reprend pas des termes en vigueur à la fin de la convention, avec le motif.' }),
+      }),
+      'Renouvellement rédigé (brouillon).'
+    ),
+    ...REPONSES_COMMUNES,
+    ...REFUS_GESTE,
+  },
+});
+registry.registerPath({
+  method: 'post', path: '/conventions/{id}/avenants', tags: [TAG_AVENANTS],
+  summary: 'Rédiger un avenant (brouillon) d’une convention signée (lot G4b)',
+  description:
+    'Il ne change que les déchets couverts, dont il donne la liste complète (flux de la liste nationale du jour, jamais dangereux), et l’observation, à compter de sa date d’effet, ' +
+    'dans la période de la convention, qui doit être en cours et sans renouvellement en préparation. Ni l’établissement, ni les dates, ni la grille, ni le tarif : ' +
+    'une fin anticipée est une résiliation, un tarif nouveau vient au renouvellement.',
+  security: SECURISE,
+  request: { params: pConvention, body: { content: { 'application/json': { schema: avenantSchema } } } },
+  responses: { 201: json(Avenant, 'Avenant rédigé (brouillon).'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'get', path: '/conventions/avenants/{id}', tags: [TAG_AVENANTS],
+  summary: 'Un avenant, ses lignes et sa version', security: SECURISE,
+  request: { params: pAvenant },
+  responses: { 200: json(Avenant, 'Avenant.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'put', path: '/conventions/avenants/{id}', tags: [TAG_AVENANTS],
+  summary: 'Remplacer un brouillon d’avenant (et ses lignes)',
+  description: 'Un brouillon seulement, avec la version lue ; un avenant instruit se reprend d’abord en brouillon, un avenant signé ne se modifie plus.',
+  security: SECURISE,
+  request: { params: pAvenant, body: { content: { 'application/json': { schema: modificationAvenantSchema } } } },
+  responses: { 200: json(Avenant, 'Brouillon d’avenant remplacé.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'delete', path: '/conventions/avenants/{id}', tags: [TAG_AVENANTS],
+  summary: 'Retirer un brouillon d’avenant',
+  description: 'Un brouillon seulement (retrait logique), avec la version lue ; un avenant signé se corrige par un nouvel avenant.',
+  security: SECURISE,
+  request: { params: pAvenant, query: versionConventionSchema },
+  responses: { 204: { description: 'Brouillon d’avenant retiré.' }, ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/conventions/avenants/{id}/instruire', tags: [TAG_AVENANTS],
+  summary: 'Instruire un avenant',
+  description:
+    'Brouillon → instruit, sous verrou : la convention est signée et non résiliée, l’établissement n’est pas fermé, la date d’effet est dans la période et après le dernier avenant signé, ' +
+    'au moins un flux en vigueur et aucun dangereux. Chaque refus dit ce qui manque.',
+  security: SECURISE,
+  request: { params: pAvenant, body: { content: { 'application/json': { schema: versionConventionSchema } } } },
+  responses: { 200: json(Avenant, 'Avenant instruit.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/conventions/avenants/{id}/reprendre', tags: [TAG_AVENANTS],
+  summary: 'Reprendre un avenant instruit en brouillon',
+  security: SECURISE,
+  request: { params: pAvenant, body: { content: { 'application/json': { schema: versionConventionSchema } } } },
+  responses: { 200: json(Avenant, 'Avenant repris en brouillon.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/conventions/avenants/{id}/signer', tags: [TAG_AVENANTS],
+  summary: 'Signer un avenant : le document scellé est émis',
+  description:
+    'Instruit → signé : tout se vérifie de nouveau, une base légale doit être en vigueur le jour de la signature (date passée, après celle de la convention, pièce citée). ' +
+    'Attribue le numéro de l’avenant (sans trou) et émet le document scellé avenant_convention (AV-…), qui cite la convention et donne la liste complète des déchets couverts. ' +
+    'Il ne s’annule pas : un nouvel avenant le corrige.',
+  security: SECURISE,
+  request: { params: pAvenant, body: { content: { 'application/json': { schema: signatureConventionSchema } } } },
+  responses: { 200: json(Avenant, 'Avenant signé.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
 });
 
 const ActeurInformel = registry.register(

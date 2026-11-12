@@ -24,7 +24,15 @@ import { rendreDocument, type DocumentAImprimer } from '../documents/impression.
 
 export const documentsRouter = Router();
 
-const TYPES = ['ordre_mission', 'bon_carburant', 'bon_travail', 'declaration_panne', 'carte_precollecteur', 'convention_proprete'] as const;
+const TYPES = [
+  'ordre_mission',
+  'bon_carburant',
+  'bon_travail',
+  'declaration_panne',
+  'carte_precollecteur',
+  'convention_proprete',
+  'avenant_convention',
+] as const;
 // La carte de pré-collecteur ne s'émet pas ici : elle naît d'un accord
 // (POST /cartes-precollecteur/demandes/{id}/accord, app.accorder_carte), qui
 // vérifie les pièces, les secteurs et la règle de validité du jour. La convention
@@ -187,6 +195,9 @@ documentsRouter.post(
     if (typeDemande === 'convention_proprete') {
       throw new ApiError(400, 'Le document d’une convention naît de sa signature : signez la convention depuis l’écran Conventions.');
     }
+    if (typeDemande === 'avenant_convention') {
+      throw new ApiError(400, 'Le document d’un avenant naît de sa signature : signez l’avenant depuis l’écran Conventions.');
+    }
     if (typeDemande === 'carte_precollecteur') {
       throw new ApiError(400, 'La carte de pré-collecteur naît de l’accord d’une demande : accordez-la depuis l’écran Acteurs informels.');
     }
@@ -247,6 +258,10 @@ documentsRouter.post(
     // la convention se résilie, et son document reste tel qu'il a été signé.
     if (doc.type_document === 'convention_proprete') {
       throw new ApiError(409, `Le texte d'une convention signée ne s'annule pas : résiliez la convention ${doc.numero_affiche} depuis l'écran Conventions.`);
+    }
+    // Un avenant signé non plus : un nouvel avenant le corrige.
+    if (doc.type_document === 'avenant_convention') {
+      throw new ApiError(409, `Le texte d'un avenant signé ne s'annule pas : un nouvel avenant le corrige (${doc.numero_affiche}).`);
     }
     res.json(await queryOne('SELECT * FROM app.annuler_document($1, $2)', [req.params.id, motif]));
   })

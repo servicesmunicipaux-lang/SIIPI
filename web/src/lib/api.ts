@@ -303,6 +303,11 @@ export type EtatConvention = ConventionResume['etat'];
 export type SaisieConvention = Corps<'/conventions', 'post'>;
 export type ModificationConvention = Corps<'/conventions/{id}', 'put'>;
 export type LigneConventionSaisie = SaisieConvention['lignes'] extends (infer L)[] | undefined ? L : never;
+// --- Jalon G, lot G4b : les avenants et le renouvellement ---
+export type AvenantConvention = Reponse<'/conventions/avenants/{id}', 'get'>;
+export type SaisieAvenant = Corps<'/conventions/{id}/avenants', 'post'>;
+export type ModificationAvenant = Corps<'/conventions/avenants/{id}', 'put'>;
+export type Renouvellement = ReponseCreee<'/conventions/{id}/renouveler', 'post'>;
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
 export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
@@ -1456,6 +1461,21 @@ export const api = {
     requete<Convention>(`/conventions/${id}/signer`, { method: 'POST', body: JSON.stringify(saisie) }),
   resilierConvention: (id: string, saisie: Corps<'/conventions/{id}/resilier', 'post'>) =>
     requete<Convention>(`/conventions/${id}/resilier`, { method: 'POST', body: JSON.stringify(saisie) }),
+  renouvelerConvention: (id: string, version: string) =>
+    requete<Renouvellement>(`/conventions/${id}/renouveler`, { method: 'POST', body: JSON.stringify({ version }) }),
+  avenant: (id: string) => requete<AvenantConvention>(`/conventions/avenants/${id}`),
+  creerAvenant: (conventionId: string, saisie: SaisieAvenant) =>
+    requete<AvenantConvention>(`/conventions/${conventionId}/avenants`, { method: 'POST', body: JSON.stringify(saisie) }),
+  modifierAvenant: (id: string, saisie: ModificationAvenant) =>
+    requete<AvenantConvention>(`/conventions/avenants/${id}`, { method: 'PUT', body: JSON.stringify(saisie) }),
+  retirerAvenant: (id: string, version: string) =>
+    requete<void>(`/conventions/avenants/${id}?version=${encodeURIComponent(version)}`, { method: 'DELETE' }),
+  instruireAvenant: (id: string, version: string) =>
+    requete<AvenantConvention>(`/conventions/avenants/${id}/instruire`, { method: 'POST', body: JSON.stringify({ version }) }),
+  reprendreAvenant: (id: string, version: string) =>
+    requete<AvenantConvention>(`/conventions/avenants/${id}/reprendre`, { method: 'POST', body: JSON.stringify({ version }) }),
+  signerAvenant: (id: string, saisie: Corps<'/conventions/avenants/{id}/signer', 'post'>) =>
+    requete<AvenantConvention>(`/conventions/avenants/${id}/signer`, { method: 'POST', body: JSON.stringify(saisie) }),
   colonnesImportEtablissements: (communeId: string, fichier: FichierImportEtablissements) =>
     requete<ColonnesImportEtablissements>(`/etablissements/import/colonnes?communeId=${encodeURIComponent(communeId)}`, {
       method: 'POST',
