@@ -308,6 +308,25 @@ export type AvenantConvention = Reponse<'/conventions/avenants/{id}', 'get'>;
 export type SaisieAvenant = Corps<'/conventions/{id}/avenants', 'post'>;
 export type ModificationAvenant = Corps<'/conventions/avenants/{id}', 'put'>;
 export type Renouvellement = ReponseCreee<'/conventions/{id}/renouveler', 'post'>;
+// --- Jalon G, lot G5a : les dessertes et les levées ---
+export type Desserte = Reponse<'/dessertes', 'get'>[number];
+export type EtatDesserte = Desserte['etat'];
+export type SaisieDesserte = Corps<'/dessertes', 'post'>;
+export type ClotureDesserte = Corps<'/dessertes/{id}', 'put'>;
+export type FeuilleLevees = Reponse<'/levees/feuille', 'get'>;
+export type LigneFeuilleLevees = FeuilleLevees['lignes'][number];
+export type LotLevees = Corps<'/levees', 'post'>;
+export type LeveesEnregistrees = ReponseCreee<'/levees', 'post'>;
+export type Levee = Reponse<'/levees', 'get'>[number];
+export type StatutLevee = Levee['statut'];
+export type SourceLevee = Levee['source'];
+export type ColonnesImportLevees = Reponse<'/levees/import/colonnes', 'post'>;
+export type FichierImportLevees = Corps<'/levees/import/colonnes', 'post'>;
+export type SaisieImportLevees = Corps<'/levees/import', 'post'>;
+export type ApercuImportLevees = Reponse<'/levees/import', 'post'>;
+export type LigneImportLevees = ApercuImportLevees['lignes'][number];
+export type ChampImportLevees = ColonnesImportLevees['champs'][number]['cle'];
+export type ImportLeveesJournal = Reponse<'/levees/imports', 'get'>[number];
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
 export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
@@ -1488,6 +1507,48 @@ export const api = {
     }),
   importsEtablissements: (communeId: string) =>
     requete<ImportEtablissementsJournal[]>(`/etablissements/imports?communeId=${encodeURIComponent(communeId)}`),
+  // --- Jalon G, lot G5a : les dessertes (écriture : le directeur) ----------------
+  dessertes: (communeId: string, filtres: { etat?: 'actives' | 'toutes'; commerceId?: string; circuitId?: string } = {}) => {
+    const p = new URLSearchParams({ communeId });
+    for (const [k, v] of Object.entries(filtres)) if (v) p.set(k, v);
+    return requete<Desserte[]>(`/dessertes?${p.toString()}`);
+  },
+  creerDesserte: (communeId: string, saisie: SaisieDesserte) =>
+    requete<Desserte>(`/dessertes?communeId=${encodeURIComponent(communeId)}`, { method: 'POST', body: JSON.stringify(saisie) }),
+  cloturerDesserte: (id: string, corps: ClotureDesserte) =>
+    requete<Desserte>(`/dessertes/${id}`, { method: 'PUT', body: JSON.stringify(corps) }),
+  retirerDesserte: (id: string, version: string) =>
+    requete<void>(`/dessertes/${id}?version=${encodeURIComponent(version)}`, { method: 'DELETE' }),
+  // --- Lot G5a : les levées (la feuille du jour : commune et prestataire du circuit) ---
+  feuilleLevees: (circuitId: string, date: string) =>
+    requete<FeuilleLevees>(`/levees/feuille?${new URLSearchParams({ circuitId, date }).toString()}`),
+  enregistrerLevees: (lot: LotLevees) => requete<LeveesEnregistrees>('/levees', { method: 'POST', body: JSON.stringify(lot) }),
+  leveesCommune: (
+    communeId: string,
+    filtres: { depuis?: string; jusqua?: string; statut?: StatutLevee; circuitId?: string; commerceId?: string } = {}
+  ) => {
+    const p = new URLSearchParams({ communeId });
+    for (const [k, v] of Object.entries(filtres)) if (v) p.set(k, v);
+    return requete<Levee[]>(`/levees?${p.toString()}`);
+  },
+  validerLevees: (ids: string[]) =>
+    requete<Reponse<'/levees/valider', 'post'>>('/levees/valider', { method: 'POST', body: JSON.stringify({ ids }) }),
+  ecarterLevees: (ids: string[], motif: string) =>
+    requete<Reponse<'/levees/ecarter', 'post'>>('/levees/ecarter', { method: 'POST', body: JSON.stringify({ ids, motif }) }),
+  annulerLevee: (id: string, motif: string) =>
+    requete<Levee>(`/levees/${id}/annuler`, { method: 'POST', body: JSON.stringify({ motif }) }),
+  colonnesImportLevees: (communeId: string, fichier: FichierImportLevees) =>
+    requete<ColonnesImportLevees>(`/levees/import/colonnes?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(fichier),
+    }),
+  importerLevees: (communeId: string, saisie: SaisieImportLevees) =>
+    requete<ApercuImportLevees>(`/levees/import?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  importsLevees: (communeId: string) =>
+    requete<ImportLeveesJournal[]>(`/levees/imports?communeId=${encodeURIComponent(communeId)}`),
   correspondancesActivites: (communeId: string) =>
     requete<CorrespondanceActivite[]>(`/etablissements/correspondances-activites?communeId=${encodeURIComponent(communeId)}`),
   enregistrerCorrespondanceActivite: (communeId: string, saisie: Corps<'/etablissements/correspondances-activites', 'put'>) =>

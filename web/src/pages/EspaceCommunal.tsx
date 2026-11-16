@@ -51,9 +51,10 @@ import { EcranWapla } from '../composants/wapla/EcranWapla';
 import { GrillesTarifaires } from '../composants/communal/GrillesTarifaires';
 import { Etablissements } from '../composants/communal/Etablissements';
 import { Conventions } from '../composants/communal/Conventions';
+import { Levees } from '../composants/communal/Levees';
 import type { EcranAjout } from '../composants/ajout/registre';
 
-type Onglet = 'accueil' | 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'coutCollecte' | 'grillesTarifaires' | 'etablissements' | 'conventions' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'gps' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
+type Onglet = 'accueil' | 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'coutCollecte' | 'grillesTarifaires' | 'etablissements' | 'conventions' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'gps' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'levees' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -76,6 +77,8 @@ const ENTREES: EntreeNavigation<Onglet>[] = [
   { cle: 'circuits',      pole: 'terrain' },
   { cle: 'points',        pole: 'terrain' },
   { cle: 'pesees',        pole: 'terrain' },
+  // Les levées des établissements sous convention (jalon G, lot G5a) : elles se cochent le soir de la tournée, comme une pesée.
+  { cle: 'levees',        pole: 'terrain' },
   { cle: 'acteursInformels', pole: 'terrain' },
   { cle: 'preuve',        pole: 'terrain' },
 
@@ -355,6 +358,7 @@ export function EspaceCommunal({
         {onglet === 'documents' && <RegistreDocuments communeId={communeId} />}
         {onglet === 'personnel' && <Personnel communeId={communeId} />}
         {onglet === 'pesees' && <Pesees communeId={communeId} />}
+        {onglet === 'levees' && <Levees communeId={communeId} />}
         {onglet === 'communication' && <Communication communeId={communeId} />}
         {onglet === 'rapports' && <RapportsEtudes communeId={communeId} />}
         {onglet === 'references' && <MesReferences communeId={communeId} fnct={estFnct} />}

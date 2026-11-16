@@ -23,6 +23,15 @@
 //     catégorie en vigueur vaut correspondance).
 
 import { normaliser } from './import.js';
+import {
+  entetesUniques,
+  formeEntete,
+  ligneDesEntetes,
+  problemesCorrespondanceDe,
+  proposerCorrespondanceDe,
+  type ProvenanceCorrespondance,
+  type RangeeFichier,
+} from './tableur.js';
 import { MATRICULE_VALIDE, normaliserMatricule } from '../routes/etablissements.routes.js';
 
 export const SOURCES_IMPORT = ['import_tcl', 'open_data'] as const;
@@ -47,10 +56,8 @@ export type ChampImport = (typeof CHAMPS_IMPORT)[number]['cle'];
 export const CLES_CHAMPS = CHAMPS_IMPORT.map((c) => c.cle) as [ChampImport, ...ChampImport[]];
 
 export type Correspondance = Partial<Record<ChampImport, string | null>>;
-export type ProvenanceCorrespondance = 'enregistree' | 'proposee' | 'aucune';
-
-/** Ramène un en-tête à une forme comparable : sans accent ni casse, la ponctuation devenue espace. */
-export const formeEntete = (e: string) => normaliser(e).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+// Lus et rapprochés comme tout fichier de la commune (services/tableur.ts).
+export { entetesUniques, formeEntete, ligneDesEntetes, type ProvenanceCorrespondance, type RangeeFichier };
 
 /**
  * La raison sociale comparée pour le doublon : sans accent, sans casse, sans
@@ -62,85 +69,17 @@ export const formeNom = (n: string) => normaliser(n).replace(/[^\p{L}\p{N}]+/gu,
 /** L'activité du fichier, telle que la correspondance la retient. */
 export const formeActivite = (a: string) => normaliser(a).replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
-/** Rend les en-têtes uniques et nommés : une colonne sans en-tête devient « Colonne 3 », un doublon « Nom (2) ». */
-export function entetesUniques(brut: string[]): string[] {
-  const vus = new Map<string, number>();
-  return brut.map((e, i) => {
-    const base = e.replace(/^﻿/, '').trim() || `Colonne ${i + 1}`;
-    const n = (vus.get(base) ?? 0) + 1;
-    vus.set(base, n);
-    return n === 1 ? base : `${base} (${n})`;
-  });
-}
-
-/**
- * La correspondance proposée : le modèle enregistré quand ses en-têtes sont dans
- * le fichier, sinon l'en-tête usuel le plus net (identique d'abord, puis qui
- * commence par le mot usuel). Une même colonne ne sert jamais deux champs.
- */
+/** La correspondance proposée pour les champs d'un établissement (voir services/tableur.ts). */
 export function proposerCorrespondance(
   entetes: string[],
   enregistree: Correspondance | null
 ): { correspondance: Record<ChampImport, string | null>; provenance: Record<ChampImport, ProvenanceCorrespondance> } {
-  const correspondance = {} as Record<ChampImport, string | null>;
-  const provenance = {} as Record<ChampImport, ProvenanceCorrespondance>;
-  const prises = new Set<string>();
-  const parForme = new Map(entetes.map((e) => [formeEntete(e), e]));
-
-  const decides = new Set<ChampImport>();
-  for (const champ of CHAMPS_IMPORT) {
-    // « Aucune colonne » est un choix de la commune, gardé comme tel : des colonnes
-    // X et Y en Lambert, écartées une fois, ne reviennent pas en latitude et longitude.
-    if (enregistree && Object.prototype.hasOwnProperty.call(enregistree, champ.cle) && enregistree[champ.cle] === null) {
-      correspondance[champ.cle] = null;
-      provenance[champ.cle] = 'enregistree';
-      decides.add(champ.cle);
-      continue;
-    }
-    const garde = enregistree?.[champ.cle];
-    const trouve = garde ? parForme.get(formeEntete(garde)) : undefined;
-    if (trouve && !prises.has(trouve)) {
-      correspondance[champ.cle] = trouve;
-      provenance[champ.cle] = 'enregistree';
-      prises.add(trouve);
-      decides.add(champ.cle);
-    }
-  }
-  for (const champ of CHAMPS_IMPORT) {
-    if (decides.has(champ.cle)) continue;
-    const usuels = champ.usuels.map(formeEntete);
-    const libre = (e: string) => !prises.has(e);
-    const exact = entetes.find((e) => libre(e) && usuels.includes(formeEntete(e)));
-    // Un en-tête qui COMMENCE par le mot usuel (« Adresse de l'établissement ») vaut
-    // proposition ; les mots courts (« x », « y », « mf ») ne valent qu'à
-    // l'identique : ils commencent trop d'autres en-têtes.
-    const prefixe = exact
-      ? undefined
-      : entetes.find((e) => libre(e) && usuels.some((u) => u.length >= 3 && formeEntete(e).startsWith(`${u} `)));
-    const choisi = exact ?? prefixe ?? null;
-    correspondance[champ.cle] = choisi;
-    provenance[champ.cle] = choisi ? 'proposee' : 'aucune';
-    if (choisi) prises.add(choisi);
-  }
-  return { correspondance, provenance };
+  return proposerCorrespondanceDe<ChampImport>(CHAMPS_IMPORT, entetes, enregistree);
 }
 
 /** Ce qui rend une correspondance inutilisable, en mots ; vide si elle convient. */
 export function problemesCorrespondance(entetes: string[], c: Correspondance): string[] {
-  const problemes: string[] = [];
-  const presents = new Set(entetes);
-  const vus = new Map<string, string>();
-  for (const champ of CHAMPS_IMPORT) {
-    const e = c[champ.cle];
-    if (!e) {
-      if (champ.obligatoire) problemes.push(`« ${champ.fr} » : choisissez la colonne du fichier qui la porte.`);
-      continue;
-    }
-    if (!presents.has(e)) problemes.push(`« ${champ.fr} » : la colonne « ${e} » n'est pas dans ce fichier.`);
-    const deja = vus.get(e);
-    if (deja) problemes.push(`La colonne « ${e} » ne peut pas servir à la fois « ${deja} » et « ${champ.fr} ».`);
-    vus.set(e, champ.fr);
-  }
+  const problemes = problemesCorrespondanceDe<ChampImport>(CHAMPS_IMPORT, entetes, c);
   if (Boolean(c.latitude) !== Boolean(c.longitude)) problemes.push('Une position se lit avec sa latitude ET sa longitude : choisissez les deux colonnes, ou aucune.');
   return problemes;
 }
@@ -166,7 +105,6 @@ export type Existant = {
 export type CategorieDuJour = { code: string; libelle_fr: string; libelle_ar: string };
 export type CorrespondanceActivite = { activite: string; categorie_activite: string };
 /** Une ligne de données du fichier, avec son numéro dans le tableur (en-tête compris, lignes vides comptées). */
-export type RangeeFichier = { cellules: string[]; ligne: number };
 
 export type ActionLigne = 'creer' | 'a_verifier' | 'rattacher' | 'inchange' | 'sans_categorie' | 'erreur';
 /** Les champs qu'un rattachement remplit ou compare : des clés, que l'écran dit dans sa langue. */
@@ -228,15 +166,6 @@ const contientOctetNul = (t: string) => t.includes('\u0000');
 const precisionValide = (p: number) => Math.round(p * 10) / 10 > 0 && p <= 1000;
 const surfaceValide = (s: number) => Math.round(s * 100) / 100 > 0 && s <= 10_000_000;
 export const PRECISION_MINIMALE = 0.1;
-
-/** La première ligne qui porte des en-têtes : une liste administrative commence souvent par un titre. */
-export function ligneDesEntetes(rangees: RangeeFichier[]): number {
-  const premieres = rangees.slice(0, 10);
-  const remplies = (r: RangeeFichier) => r.cellules.filter((c) => c.trim() !== '').length;
-  const plus = Math.max(0, ...premieres.map(remplies));
-  const i = premieres.findIndex((r) => remplies(r) >= 2 && remplies(r) * 2 >= plus);
-  return i < 0 ? 0 : i;
-}
 
 /**
  * Rapproche chaque ligne du fichier de ce que la commune a déjà.

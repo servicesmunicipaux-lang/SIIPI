@@ -9,11 +9,13 @@ import { useTranslation } from 'react-i18next';
 import { MaTournee } from '../composants/prestataire/MaTournee';
 import { Incidents } from '../composants/prestataire/Incidents';
 import { MonDossier } from '../composants/prestataire/MonDossier';
+import { MesLevees } from '../composants/prestataire/MesLevees';
 
-type Onglet = 'tournee' | 'incidents' | 'dossier';
+type Onglet = 'tournee' | 'levees' | 'incidents' | 'dossier';
 
 const ONGLETS: Array<{ cle: Onglet; icone: string }> = [
   { cle: 'tournee', icone: '🚛' },
+  { cle: 'levees', icone: '🗑️' },
   { cle: 'incidents', icone: '⚠️' },
   { cle: 'dossier', icone: '📋' },
 ];
@@ -25,6 +27,7 @@ export function EspacePrestataire() {
   return (
     <div className="mx-auto max-w-2xl px-4 pt-4 pb-24">
       {onglet === 'tournee' && <MaTournee />}
+      {onglet === 'levees' && <MesLevees />}
       {onglet === 'incidents' && <Incidents />}
       {onglet === 'dossier' && <MonDossier />}
 
@@ -32,7 +35,7 @@ export function EspacePrestataire() {
         className="fixed inset-x-0 bottom-0 z-[500] border-t border-ardoise-200 bg-white/95 backdrop-blur"
         aria-label={t('prestataire.navigation')}
       >
-        <div className="mx-auto grid max-w-2xl grid-cols-3">
+        <div className="mx-auto grid max-w-2xl grid-cols-4">
           {ONGLETS.map(({ cle, icone }) => (
             <button
               key={cle}

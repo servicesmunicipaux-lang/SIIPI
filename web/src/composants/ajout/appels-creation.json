@@ -81,5 +81,11 @@
   "grille-tarifaire": [
     "creerGrilleTarifaire",
     "modifierGrilleTarifaire"
+  ],
+  "desserte": [
+    "creerDesserte"
+  ],
+  "import-levees": [
+    "importerLevees"
   ]
 }

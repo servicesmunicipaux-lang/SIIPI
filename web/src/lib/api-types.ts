@@ -19387,6 +19387,1153 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/dessertes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les dessertes des établissements de la commune (lot G5a)
+         * @description Un établissement → un point d’arrêt d’un circuit, du … au … ; une seule à la fois. « actives » (défaut) : en cours, à venir ou à clôturer ; « toutes » : avec les terminées. Commune et FNCT.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    commerceId?: string;
+                    circuitId?: string;
+                    etat?: "actives" | "toutes";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les dessertes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Desserte"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Poser une desserte
+         * @description Le point est un arrêt vivant d’un circuit de la commune (pas un repère de tournée ni un point noir) ; la desserte commence dans la période du circuit, l’établissement n’est pas fermé, et aucune autre desserte de l’établissement ne la chevauche (une desserte arrêtée par le retrait de son point se clôt d’abord). Le directeur seul.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        commerceId: string;
+                        /** Format: uuid */
+                        pointId: string;
+                        dateDebut: string;
+                        dateFin?: string | null;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Desserte posée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Desserte"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Chevauchement, ou établissement fermé (dit en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/dessertes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Clôturer une desserte (ou la commenter)
+         * @description La date de fin, jamais avant une levée déjà rattachée ; l’observation. La version lue est exigée. Le directeur seul.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        dateFin: string | null;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Desserte à jour. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Desserte"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Version changée, levée après la fin, ou chevauchement. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Retirer une desserte posée à tort
+         * @description Seulement si aucune levée ne s’y rattache ; sinon elle se clôt. La version lue est exigée. Le directeur seul.
+         */
+        delete: {
+            parameters: {
+                query: {
+                    version: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Desserte retirée. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Des levées s’y rattachent, ou la version a changé. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/levees/feuille": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * La feuille du jour d’un circuit
+         * @description Les établissements desservis ce jour-là par le circuit, leur point, et pour chaque flux des termes en vigueur : conteneur, levées par semaine, levées déjà proposées ou validées. Commune et FNCT ; le prestataire du circuit n’y voit ni convention, ni établissement sans convention ou fermé.
+         */
+        get: {
+            parameters: {
+                query: {
+                    circuitId: string;
+                    date?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La feuille. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FeuilleLevees"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/levees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Le registre des levées de la commune
+         * @description Par défaut les trente derniers jours ; les propositions d’abord. Chaque levée dit ce qu’elle a perdu depuis (« à revoir »). Commune et FNCT ; le prestataire n’y a pas accès.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    depuis?: string;
+                    jusqua?: string;
+                    statut?: "proposee" | "validee" | "ecartee" | "annulee";
+                    circuitId?: string;
+                    commerceId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les levées. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Levee"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Enregistrer un lot de la feuille (commune) ou le proposer (prestataire)
+         * @description La commune saisit : ses levées sont validées d’emblée. Le prestataire du circuit propose : la commune valide ou écarte. Le lot s’écrit en entier ou pas du tout ; une clé déjà reçue avec le même contenu est rendue « déjà reçue » (un envoi rejoué ne crée rien). La FNCT n’écrit pas.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        circuitId: string;
+                        date: string;
+                        voyage: number;
+                        heure?: string | null;
+                        levees: {
+                            /** Format: uuid */
+                            commerceId: string;
+                            fluxCode: string;
+                            cle: string;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Levées enregistrées ou proposées. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            levees: {
+                                n: number;
+                                /** Format: uuid */
+                                id: string;
+                                /** Format: uuid */
+                                commerce_id: string;
+                                flux_code: string;
+                                date_levee: string;
+                                voyage: number;
+                                /** @enum {string} */
+                                statut: "proposee" | "validee" | "ecartee" | "annulee";
+                                /** @description La clé d’envoi était déjà reçue avec le même contenu : rien n’a été créé. */
+                                deja_recue: boolean;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Une règle de la levée n’est pas tenue (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/levees/valider": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Valider des propositions
+         * @description Chaque proposition est examinée de nouveau pour son jour, avec ce que la base sait aujourd’hui ; une seule qui ne tient plus et rien n’est validé. Le directeur seul.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        ids: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Propositions validées. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            validees: number;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/levees/ecarter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Écarter des propositions, avec un motif
+         * @description Une proposition écartée reste en base, avec son motif. Le directeur seul.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        ids: string[];
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Propositions écartées. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            ecartees: number;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/levees/{id}/annuler": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Annuler une levée validée, avec un motif
+         * @description Une levée ne s’efface jamais : elle s’annule, et reste lisible. Le directeur seul.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Levée annulée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Levee"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/levees/import/colonnes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Les colonnes d’un export Kobo et la correspondance proposée
+         * @description CSV ou Excel, tel que Kobo le donne. La correspondance gardée par la commune d’abord, sinon les en-têtes usuels. Rien n’est écrit. Le directeur seul.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomFichier: string;
+                        contenu: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Colonnes et correspondance proposée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ColonnesImportLevees"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/levees/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer un export Kobo : l’aperçu, puis les propositions
+         * @description L’établissement se reconnaît à son matricule fiscal ou à son identifiant SIIPI, jamais à son nom ; une date et heure sans fuseau, une date JJ/MM que le fichier ne prouve pas, sont refusées. Chaque ligne est examinée par la base (desserte, convention, termes, voyage, doublon). Avec « valider », le fichier est relu et examiné de nouveau sous verrou, et ses lignes valables deviennent des propositions. Le directeur seul.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomFichier: string;
+                        contenu: string;
+                        correspondance: {
+                            date?: string | null;
+                            heure?: string | null;
+                            etablissement?: string | null;
+                            flux?: string | null;
+                            voyage?: string | null;
+                            circuit?: string | null;
+                            cle?: string | null;
+                            repetition?: string | null;
+                        };
+                        /** @default false */
+                        valider?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Aperçu (rien n’est écrit). */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuImportLevees"];
+                    };
+                };
+                /** @description Propositions écrites. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuImportLevees"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description La base a changé entre l’aperçu et la validation : relancez l’aperçu. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/levees/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Le journal des imports Kobo de levées */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les imports validés, du plus récent au plus ancien. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            nom_fichier: string;
+                            empreinte_fichier: string;
+                            correspondance: {
+                                [key: string]: string | null;
+                            };
+                            nb_proposees: number;
+                            nb_deja_recues: number;
+                            nb_erreurs: number;
+                            created_at: string;
+                            saisi_par_nom: string | null;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/acteurs-informels": {
         parameters: {
             query?: never;
@@ -35636,6 +36783,208 @@ export interface components {
                 avenant_id: string | null;
             }[];
             avenants: components["schemas"]["AvenantConvention"][];
+        };
+        Desserte: {
+            /** Format: uuid */
+            id: string;
+            /** @description La version lue (xmin) : exigée par la clôture et le retrait. */
+            version: string;
+            commune_id: string;
+            /** Format: uuid */
+            commerce_id: string;
+            etablissement: string;
+            statut_etablissement: string;
+            matricule_fiscal: string | null;
+            /** Format: uuid */
+            circuit_id: string;
+            circuit: string | null;
+            circuit_code: string | null;
+            /** Format: uuid */
+            point_id: string;
+            point: string | null;
+            point_ordre: number | null;
+            point_voyage: number | null;
+            date_debut: string;
+            /** @description Le dernier jour desservi, tel que la commune l’a posé (vide : sans fin prévue). */
+            date_fin: string | null;
+            /** @description Au plus tôt le début du circuit. */
+            debut_effectif: string | null;
+            /** @description La plus proche de la date de fin, de la fin du circuit et du jour du retrait du point ou du circuit (ce jour compris) — calculée, jamais écrite. */
+            fin_effective: string | null;
+            /** @enum {string|null} */
+            raison_fin: "date" | "circuit_echu" | "circuit_retire" | "point_retire" | null;
+            /**
+             * @description Calculé à Tunis : à venir, en cours, terminée, ou à clôturer (arrêtée par le retrait de son point ou de son circuit, ou la fin du circuit, avant la date qu’elle porte : la commune la clôt).
+             * @enum {string}
+             */
+            etat: "en_cours" | "a_venir" | "a_cloturer" | "terminee";
+            observation: string | null;
+            /** @description Les levées proposées ou validées qui s’y rattachent. */
+            levees: number;
+            created_at: string;
+            updated_at: string;
+        };
+        FeuilleLevees: {
+            circuit: {
+                /** Format: uuid */
+                id: string;
+                nom: string;
+                code: string | null;
+                commune_id: string;
+                voyages_par_jour: number;
+                jours_passage: number[];
+                date_debut: string;
+                date_fin: string | null;
+                actif: boolean;
+                date: string;
+                /** @description Le jour est un des jours de passage du circuit (un passage exceptionnel reste possible). */
+                passe_ce_jour: boolean;
+            };
+            lignes: {
+                /** Format: uuid */
+                desserte_id: string;
+                /** Format: uuid */
+                commerce_id: string;
+                etablissement: string;
+                adresse: string | null;
+                /** @description Fermé ce jour-là : aucune levée ne s’y propose (le prestataire ne voit pas la ligne). */
+                ferme: boolean;
+                /** Format: uuid */
+                point_id: string;
+                point_nom: string | null;
+                point_voyage: number;
+                point_ordre: number;
+                point_retire: boolean;
+                /**
+                 * Format: uuid
+                 * @description Vide pour le prestataire : il ne voit jamais la convention.
+                 */
+                convention_id: string | null;
+                /**
+                 * @description convention : signée et en vigueur ce jour ; registre : la ligne d’avant le jalon G, sans termes (aucune levée ne s’y rattache) ; aucune. Le prestataire ne voit que « convention ».
+                 * @enum {string}
+                 */
+                etat_convention: "convention" | "registre" | "aucune";
+                flux_code: string | null;
+                flux_fr: string | null;
+                flux_ar: string | null;
+                conteneur_id: string | null;
+                conteneur_code: string | null;
+                levees_par_semaine: number | null;
+                volume_litres: number | null;
+                /** @description Les levées proposées ou validées ce jour pour ce flux, par voyage. */
+                levees: {
+                    /** Format: uuid */
+                    id: string;
+                    voyage: number;
+                    /** @enum {string} */
+                    statut: "proposee" | "validee" | "ecartee" | "annulee";
+                    /** @enum {string} */
+                    source: "portail" | "prestataire" | "kobo";
+                    heure: string | null;
+                }[];
+            }[];
+        };
+        Levee: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string;
+            /** Format: uuid */
+            convention_id: string;
+            numero_convention: string | null;
+            /** Format: uuid */
+            commerce_id: string;
+            etablissement: string;
+            matricule_fiscal: string | null;
+            /** Format: uuid */
+            desserte_id: string;
+            /** Format: uuid */
+            circuit_id: string;
+            circuit: string | null;
+            /** Format: uuid */
+            point_id: string;
+            point: string | null;
+            flux_code: string;
+            flux_fr: string | null;
+            flux_ar: string | null;
+            conteneur_id: string | null;
+            conteneur: string | null;
+            date_levee: string;
+            heure_levee: string | null;
+            voyage: number;
+            /** @enum {string} */
+            source: "portail" | "prestataire" | "kobo";
+            /** @enum {string} */
+            statut: "proposee" | "validee" | "ecartee" | "annulee";
+            valide_le: string | null;
+            ecartee_le: string | null;
+            motif_ecart: string | null;
+            annulee_le: string | null;
+            motif_annulation: string | null;
+            observation: string | null;
+            /** Format: uuid */
+            import_id: string | null;
+            import_ligne: number | null;
+            created_at: string;
+            /** @description Ce que la levée a perdu depuis (l’examen de son jour rejoué aujourd’hui : établissement fermé, desserte écourtée, avenant, résiliation…) — constaté, jamais corrigé. */
+            a_revoir: string | null;
+            a_revoir_message: string | null;
+            /** @description Le nombre de levées qui répondent aux filtres, même au-delà des 2 000 rendues : une liste tronquée ne passe jamais pour complète. */
+            total: number;
+        };
+        ColonnesImportLevees: {
+            fichier: string;
+            feuille: string | null;
+            avertissements: string[];
+            ligneEntetes: number;
+            lignes: number;
+            entetes: string[];
+            exemples: string[][];
+            champs: {
+                /** @enum {string} */
+                cle: "date" | "heure" | "etablissement" | "flux" | "voyage" | "circuit" | "cle" | "repetition";
+                fr: string;
+                ar: string;
+                obligatoire: boolean;
+            }[];
+            correspondance: {
+                [key: string]: string | null;
+            };
+            provenance: {
+                [key: string]: "enregistree" | "proposee" | "aucune";
+            };
+            modeleEnregistre: boolean;
+        };
+        ApercuImportLevees: {
+            fichier: string;
+            feuille: string | null;
+            avertissements: string[];
+            resume: {
+                proposer: number;
+                deja_recue: number;
+                erreur: number;
+            };
+            lignes: {
+                /** @description Le numéro de la ligne dans le tableur. */
+                numero: number;
+                /** @enum {string} */
+                action: "proposer" | "deja_recue" | "erreur";
+                erreurs: string[];
+                etablissement: string;
+                /** Format: uuid */
+                commerce_id: string | null;
+                date: string;
+                heure: string | null;
+                flux_code: string | null;
+                voyage: number | null;
+                /** Format: uuid */
+                circuit_id: string | null;
+                statut: string | null;
+            }[];
+            ecrit: boolean;
+            /** Format: uuid */
+            importId?: string;
+            proposees?: number;
         };
         ActeurInformel: {
             /** Format: uuid */

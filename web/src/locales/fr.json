@@ -1104,7 +1104,8 @@
       "gps": "Intégration GPS",
       "grillesTarifaires": "Grilles tarifaires",
       "etablissements": "Établissements",
-      "conventions": "Conventions"
+      "conventions": "Conventions",
+      "levees": "Levées"
     },
     "etats": {
       "fait": "Fait",
@@ -3389,6 +3390,92 @@
       "avenantPlusBrouillon": "Cet avenant n’est plus un brouillon : il a été instruit ou retiré entre-temps. Le détail est à jour.",
       "sansConteneur": "{{flux}} (repris sans son conteneur, retiré)",
       "precedenteResiliee": "La convention renouvelée a été résiliée depuis : vérifiez que ce renouvellement a toujours lieu d’être."
+    },
+    "levees": {
+      "titre": "Levées des établissements",
+      "chapeau": "Ce qui a été levé chez chaque établissement sous convention, par circuit, jour et voyage. La commune saisit (validé d’emblée), le prestataire du circuit propose, l’export Kobo s’importe en propositions ; la commune valide ou écarte.",
+      "lectureSeule": "La FNCT lit les levées et les dessertes de la commune ; elle n’en saisit, n’en valide et n’en écarte aucune.",
+      "importer": "Importer un export Kobo",
+      "parties": {
+        "libelle": "Parties de l’écran Levées",
+        "feuille": "Feuille du jour",
+        "aValider": "À valider",
+        "registre": "Registre",
+        "dessertes": "Dessertes"
+      },
+      "circuit": "Circuit",
+      "date": "Jour",
+      "aucunCircuit": "Aucun circuit actif dans la commune.",
+      "jourFutur": "Une levée se saisit au plus tard le jour même : choisissez une date passée ou aujourd’hui.",
+      "aRevoir": "À revoir",
+      "motifEcart": "Écartée : {{motif}}",
+      "motifAnnulation": "Annulée : {{motif}}",
+      "aValiderAide": "Les propositions du prestataire et de l’import Kobo. Chacune est examinée de nouveau à la validation : une seule qui ne tient plus, et rien n’est validé — le refus la nomme.",
+      "propositions_one": "proposition en attente",
+      "propositions_other": "propositions en attente",
+      "aucuneProposition": "Aucune proposition en attente.",
+      "toutChoisir": "Tout choisir",
+      "choisir": "Choisir la levée de « {{etablissement}} »",
+      "valider": "Valider la sélection ({{n}})",
+      "ecarter": "Écarter la sélection ({{n}})",
+      "motifEcartLibelle": "Motif de l’écart",
+      "confirmerEcart": "Écarter",
+      "motifMin": "Le motif : {{n}} caractères au moins.",
+      "statut": "Statut",
+      "tous": "Tous",
+      "depuis": "Du",
+      "jusqua": "Au",
+      "periodeInvalide": "La période est à revoir : le premier jour ne suit pas le dernier.",
+      "aucuneLevee": "Aucune levée sur cette période.",
+      "tronque": "{{n}} levées affichées sur {{total}} : resserrez la période pour voir le reste.",
+      "annuler": "Annuler la levée",
+      "motifAnnulationLibelle": "Motif de l’annulation",
+      "confirmerAnnulation": "Confirmer l’annulation",
+      "annulationAide": "Une levée validée ne s’efface pas : elle reste au registre, annulée, avec son motif.",
+      "journalImports_one": "{{count}} import Kobo",
+      "journalImports_other": "{{count}} imports Kobo",
+      "bilanImport": "{{proposees}} proposée(s), {{dejaRecues}} déjà reçue(s), {{erreurs}} erreur(s)",
+      "nouvelleDesserte": "Nouvelle desserte",
+      "dessertesAide": "Quel établissement est servi par quel arrêt, du … au …. Une desserte arrêtée par le retrait de son point ou de son circuit, ou par la fin du circuit, est « à clôturer » : la commune la clôt, puis ouvre la suivante.",
+      "desserteIntrouvable": "La desserte de « {{etablissement}} » est introuvable : elle a peut-être été retirée entre-temps. La liste est à jour.",
+      "filtreDessertes": "Afficher",
+      "dessertesActives": "En cours, à venir, à clôturer",
+      "dessertesToutes": "Toutes, terminées comprises",
+      "aucuneDesserte": "Aucune desserte pour l’instant.",
+      "periode": "Du {{debut}} au {{fin}}",
+      "sansFin": "sans fin prévue",
+      "periodeSansFin": "Du {{debut}}, sans fin prévue",
+      "etats": {
+        "en_cours": "En cours",
+        "a_venir": "À venir",
+        "a_cloturer": "À clôturer",
+        "terminee": "Terminée"
+      },
+      "raisons": {
+        "date": "Dernier jour desservi : {{date}}.",
+        "circuit_echu": "Arrêtée le {{date}} : le circuit a pris fin.",
+        "circuit_retire": "Arrêtée le {{date}} : le circuit a été retiré.",
+        "point_retire": "Arrêtée le {{date}} : le point d’arrêt a été retiré."
+      },
+      "leveesRattachees_one": "{{n}} levée s’y rattache.",
+      "leveesRattachees_other": "{{n}} levées s’y rattachent.",
+      "cloturerAu": "Clôturer au {{date}}",
+      "cloturer": "Clôturer",
+      "retirer": "Retirer (posée à tort)",
+      "clotureAide": "Le dernier jour où l’établissement est servi par cet arrêt. Une levée déjà saisie après ce jour empêche la clôture.",
+      "dernierJour": "Dernier jour desservi",
+      "confirmerCloture": "Clôturer la desserte",
+      "messages": {
+        "importe": "Import enregistré : ses levées attendent dans « À valider ».",
+        "validees_one": "{{n}} levée validée.",
+        "validees_other": "{{n}} levées validées.",
+        "ecartees_one": "{{n}} proposition écartée.",
+        "ecartees_other": "{{n}} propositions écartées.",
+        "annulee": "La levée de « {{etablissement}} » est annulée.",
+        "desserteCreee": "Desserte enregistrée.",
+        "desserteClose": "La desserte de « {{etablissement}} » est clôturée.",
+        "desserteRetiree": "La desserte de « {{etablissement}} » est retirée."
+      }
     }
   },
   "ajout": {
@@ -3492,7 +3579,10 @@
       "declaration-panne": "Une déclaration de panne",
       "boitier-gps": "Un boîtier GPS",
       "grille-tarifaire": "Grille tarifaire",
-      "import-etablissements": "La liste TCL ou un jeu open data (CSV, Excel)"
+      "import-etablissements": "La liste TCL ou un jeu open data (CSV, Excel)",
+      "desserte": "Une desserte d’établissement",
+      "import-levees": "Des levées (export Kobo, CSV ou Excel)",
+      "levee": "Une levée"
     },
     "precisions": {
       "circuit": "Avec son fichier GPX, KML ou GeoJSON",
@@ -3500,7 +3590,9 @@
       "ordre-mission": "numéroté, imprimable",
       "bon-travail": "maintenance d’un engin, numéroté",
       "declaration-panne": "panne d’un engin, numérotée",
-      "grille-tarifaire": "Tarifs des conventions de propreté, par arrêté"
+      "grille-tarifaire": "Tarifs des conventions de propreté, par arrêté",
+      "desserte": "Établissement → point d’arrêt d’un circuit",
+      "levee": "Sur la feuille du jour d’un circuit"
     },
     "position": {
       "aide": "Cliquez sur la carte pour poser la position.",
@@ -3870,6 +3962,61 @@
         "ordre": "Le dernier avenant signé prend effet le {{date}} : celui-ci prend effet après lui.",
         "lignes": "Un avenant couvre au moins un flux."
       }
+    },
+    "desserte": {
+      "titre": "Nouvelle desserte",
+      "aide": "Un établissement est servi par un point d’arrêt d’un circuit, à partir d’une date. Une seule desserte à la fois par établissement : pour changer d’arrêt, clôturez la desserte en cours, puis ouvrez la suivante le lendemain.",
+      "etablissement": "Établissement",
+      "aucunEtablissement": "Aucun établissement ouvert : inscrivez-le d’abord (écran « Établissements »).",
+      "circuit": "Circuit",
+      "aucunCircuit": "Aucun circuit actif dans la commune.",
+      "point": "Point d’arrêt",
+      "circuitDabord": "Choisissez d’abord le circuit",
+      "pointLibelle": "Voyage {{voyage}}, rang {{ordre}} — {{nom}}",
+      "sansNom": "arrêt sans nom",
+      "aucunPoint": "Ce circuit n’a aucun arrêt où desservir un établissement.",
+      "pointsIndisponibles": "Les arrêts de ce circuit n’ont pas pu être lus : choisissez-le de nouveau.",
+      "dateDebut": "Premier jour desservi",
+      "dateFin": "Dernier jour desservi (facultatif)",
+      "dateFinAide": "Vide : sans fin prévue. La desserte s’arrête de toute façon au retrait de son point ou à la fin du circuit.",
+      "observation": "Observation",
+      "listesIndisponibles": "Les établissements ou les circuits n’ont pas pu être lus.",
+      "problemes": {
+        "etablissement": "Choisissez l’établissement.",
+        "point": "Choisissez le circuit, puis le point d’arrêt.",
+        "debut": "Le premier jour desservi est attendu.",
+        "fin": "Le dernier jour desservi ne précède pas le premier."
+      }
+    },
+    "importLevees": {
+      "titre": "Importer des levées (export Kobo)",
+      "aide": "L’export d’un formulaire Kobo, en CSV ou en Excel (.xlsx), tel quel : vous dites quelle colonne porte quelle information, et SIIPI garde votre choix pour la fois suivante. Chaque ligne valable devient une proposition, que la commune valide ensuite. Rien n’est écrit avant la dernière étape.",
+      "aideCles": "La clé de la soumission : de préférence meta/rootUuid (elle ne change pas quand la soumission est modifiée dans Kobo) ; un rang de répétition déclaré par le formulaire quand une soumission porte plusieurs levées — jamais « _index », la position de la ligne dans l’export, qui change d’un export à l’autre. L’établissement se reconnaît à son matricule fiscal ou à son identifiant SIIPI, jamais à son nom.",
+      "etapes": {
+        "fichier": "1. Le fichier",
+        "colonnes": "2. Les colonnes — {{fichier}}, {{lignes}} ligne(s)",
+        "apercu": "3. L’aperçu"
+      },
+      "choisir": "Choisir l’export (CSV ou Excel)",
+      "autreFichier": "{{fichier}} — choisir un autre fichier",
+      "feuille": "Feuille lue : « {{feuille}} ».",
+      "modeleEnregistre": "Les correspondances gardées par la commune sont reprises. Corrigez-les si le formulaire Kobo a changé.",
+      "modeleNouveau": "Premier import : SIIPI propose une colonne pour chaque champ d’après les en-têtes. Vérifiez avec les exemples et corrigez au besoin ; votre choix sera gardé.",
+      "actions": {
+        "proposer": "À proposer",
+        "deja_recue": "Déjà reçue",
+        "erreur": "Erreur"
+      },
+      "tronque": "{{n}} lignes affichées sur {{total}}, les erreurs d’abord.",
+      "apercuPerime": "La correspondance a changé depuis cet aperçu : relisez l’aperçu avant d’importer.",
+      "valider_one": "Proposer {{n}} levée",
+      "valider_other": "Proposer {{n}} levées",
+      "bilan_one": "{{n}} levée proposée : elle attend la validation de la commune (« À valider »).",
+      "bilan_other": "{{n}} levées proposées : elles attendent la validation de la commune (« À valider »).",
+      "problemes": {
+        "obligatoire": "« {{champ}} » : choisissez la colonne du fichier qui le porte.",
+        "memeColonne": "La colonne « {{colonne}} » ne peut pas servir à la fois à « {{a}} » et à « {{b}} »."
+      }
     }
   },
   "prestataire": {
@@ -3877,7 +4024,8 @@
     "onglets": {
       "tournee": "Ma tournée",
       "incidents": "Incidents",
-      "dossier": "Mon dossier"
+      "dossier": "Mon dossier",
+      "levees": "Levées"
     },
     "statuts": {
       "effectue": "Effectué",
@@ -3944,6 +4092,13 @@
       "couverture": "Passages contrôlés",
       "reclamations": "Réclamations traitées",
       "delai": "Délai moyen"
+    },
+    "levees": {
+      "titre": "Mes levées",
+      "chapeau": "Cochez, pour chaque établissement de votre circuit, les flux levés à ce voyage. Vos levées sont proposées à la commune, qui les valide.",
+      "aucunCircuit": "Aucun circuit ne vous est confié pour l’instant. C’est la commune qui vous les attribue.",
+      "circuit": "Circuit",
+      "date": "Jour"
     }
   },
   "motDePasse": {
@@ -4929,6 +5084,48 @@
       "address": "Adresse",
       "responsible_officer": "Responsable de la propreté (nom ou fonction)",
       "responsible_phone": "Téléphone du responsable"
+    }
+  },
+  "levees": {
+    "statuts": {
+      "proposee": "Proposée",
+      "validee": "Validée",
+      "ecartee": "Écartée",
+      "annulee": "Annulée"
+    },
+    "sources": {
+      "portail": "Saisie de la commune",
+      "prestataire": "Proposée par le prestataire",
+      "kobo": "Import Kobo"
+    },
+    "feuille": {
+      "sens": {
+        "commune": "Vos levées cochées sont enregistrées validées, au nom de la commune.",
+        "prestataire": "Vos levées sont proposées à la commune, qui les valide.",
+        "lecture": "Lecture seule : la commune et le prestataire du circuit cochent les levées ; la FNCT les lit."
+      },
+      "sansPassage": "Jour sans passage prévu sur ce circuit (un passage exceptionnel reste possible).",
+      "voyage": "Voyage",
+      "voyageN": "Voyage {{n}}",
+      "heure": "Heure de la levée (facultative)",
+      "heureInvalide": "Heure attendue au format HH:MM.",
+      "enregistrees_one": "{{n}} levée enregistrée.",
+      "enregistrees_other": "{{n}} levées enregistrées.",
+      "proposees_one": "{{n}} levée proposée à la commune.",
+      "proposees_other": "{{n}} levées proposées à la commune.",
+      "dejaRecues_one": "{{n}} était déjà reçue : rien n’a été créé deux fois.",
+      "dejaRecues_other": "{{n}} étaient déjà reçues : rien n’a été créé deux fois.",
+      "vide": "Aucun établissement desservi par ce circuit ce jour-là. Les dessertes se posent dans la partie « Dessertes ».",
+      "videPrestataire": "Aucun établissement sous convention à lever sur ce circuit ce jour-là.",
+      "point": "Arrêt « {{nom}} » — voyage {{voyage}}, rang {{ordre}}",
+      "ferme": "Fermé ce jour-là",
+      "pointRetire": "Point retiré",
+      "registre": "Convention du registre, sans termes : à reprendre en convention de propreté.",
+      "aucuneConvention": "Sans convention en vigueur : aucune levée.",
+      "parSemaine": "{{n}} par semaine",
+      "autreVoyage": "Voyage {{n}} : {{statut}}",
+      "enregistrer": "Enregistrer ({{n}})",
+      "proposer": "Proposer ({{n}})"
     }
   }
 }
