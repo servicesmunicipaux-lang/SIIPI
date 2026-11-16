@@ -131,6 +131,20 @@ import {
   TYPES_CONVENTION,
   versionConventionSchema,
 } from '../routes/conventions.routes.js';
+import { desserteSchema, ETATS_DESSERTE, modificationDesserteSchema, qDessertes } from '../routes/dessertes.routes.js';
+import {
+  annulationLeveeSchema,
+  ecartLeveesSchema,
+  fichierLeveesSchema,
+  importLeveesSchema,
+  lotLeveesSchema,
+  qFeuille,
+  qLevees,
+  SOURCES_LEVEE,
+  STATUTS_LEVEE,
+  validationLeveesSchema,
+} from '../routes/levees.routes.js';
+import { CLES_CHAMPS_LEVEES } from '../services/importLevees.js';
 import {
   demandeCarteSchema,
   pieceCarteSchema,
@@ -5320,6 +5334,339 @@ registry.registerPath({
   security: SECURISE,
   request: { params: pAvenant, body: { content: { 'application/json': { schema: signatureConventionSchema } } } },
   responses: { 200: json(Avenant, 'Avenant signé.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+
+// ---------------------------------------------------------------------------
+// Jalon G, lot G5a : les dessertes et les levées des établissements
+// ---------------------------------------------------------------------------
+const TAG_LEVEES = 'Dessertes et levées';
+const Desserte = registry.register(
+  'Desserte',
+  z.object({
+    id: z.string().uuid(),
+    version: z.string().openapi({ description: 'La version lue (xmin) : exigée par la clôture et le retrait.' }),
+    commune_id: z.string(),
+    commerce_id: z.string().uuid(),
+    etablissement: z.string(),
+    statut_etablissement: z.string(),
+    matricule_fiscal: z.string().nullable(),
+    circuit_id: z.string().uuid(),
+    circuit: z.string().nullable(),
+    circuit_code: z.string().nullable(),
+    point_id: z.string().uuid(),
+    point: z.string().nullable(),
+    point_ordre: z.number().int().nullable(),
+    point_voyage: z.number().int().nullable(),
+    date_debut: z.string(),
+    date_fin: z.string().nullable().openapi({ description: 'Le dernier jour desservi, tel que la commune l’a posé (vide : sans fin prévue).' }),
+    debut_effectif: z.string().nullable().openapi({ description: 'Au plus tôt le début du circuit.' }),
+    fin_effective: z.string().nullable().openapi({
+      description: 'La plus proche de la date de fin, de la fin du circuit et du jour du retrait du point ou du circuit (ce jour compris) — calculée, jamais écrite.',
+    }),
+    raison_fin: z.enum(['date', 'circuit_echu', 'circuit_retire', 'point_retire']).nullable(),
+    etat: z.enum(ETATS_DESSERTE).openapi({
+      description:
+        'Calculé à Tunis : à venir, en cours, terminée, ou à clôturer (arrêtée par le retrait de son point ou de son circuit, ou la fin du circuit, avant la date qu’elle porte : la commune la clôt).',
+    }),
+    observation: z.string().nullable(),
+    levees: z.number().int().openapi({ description: 'Les levées proposées ou validées qui s’y rattachent.' }),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+);
+const pDesserte = z.object({ id: z.string().uuid() });
+
+registry.registerPath({
+  method: 'get', path: '/dessertes', tags: [TAG_LEVEES],
+  summary: 'Les dessertes des établissements de la commune (lot G5a)',
+  description:
+    'Un établissement → un point d’arrêt d’un circuit, du … au … ; une seule à la fois. « actives » (défaut) : en cours, à venir ou à clôturer ; « toutes » : avec les terminées. Commune et FNCT.',
+  security: SECURISE,
+  request: { query: qDessertes },
+  responses: { 200: json(z.array(Desserte), 'Les dessertes.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/dessertes', tags: [TAG_LEVEES],
+  summary: 'Poser une desserte',
+  description:
+    'Le point est un arrêt vivant d’un circuit de la commune (pas un repère de tournée ni un point noir) ; la desserte commence dans la période du circuit, l’établissement n’est pas fermé, ' +
+    'et aucune autre desserte de l’établissement ne la chevauche (une desserte arrêtée par le retrait de son point se clôt d’abord). Le directeur seul.',
+  security: SECURISE,
+  request: { query: z.object({ communeId: z.string().optional() }), body: { content: { 'application/json': { schema: desserteSchema } } } },
+  responses: { 201: json(Desserte, 'Desserte posée.'), ...REPONSES_COMMUNES, 409: json(Erreur, 'Chevauchement, ou établissement fermé (dit en mots).') },
+});
+registry.registerPath({
+  method: 'put', path: '/dessertes/{id}', tags: [TAG_LEVEES],
+  summary: 'Clôturer une desserte (ou la commenter)',
+  description: 'La date de fin, jamais avant une levée déjà rattachée ; l’observation. La version lue est exigée. Le directeur seul.',
+  security: SECURISE,
+  request: { params: pDesserte, body: { content: { 'application/json': { schema: modificationDesserteSchema } } } },
+  responses: { 200: json(Desserte, 'Desserte à jour.'), ...REPONSES_COMMUNES, 409: json(Erreur, 'Version changée, levée après la fin, ou chevauchement.') },
+});
+registry.registerPath({
+  method: 'delete', path: '/dessertes/{id}', tags: [TAG_LEVEES],
+  summary: 'Retirer une desserte posée à tort',
+  description: 'Seulement si aucune levée ne s’y rattache ; sinon elle se clôt. La version lue est exigée. Le directeur seul.',
+  security: SECURISE,
+  request: { params: pDesserte, query: z.object({ version: z.string() }) },
+  responses: { 204: { description: 'Desserte retirée.' }, ...REPONSES_COMMUNES, 409: json(Erreur, 'Des levées s’y rattachent, ou la version a changé.') },
+});
+
+const LeveeDuJour = z.object({
+  id: z.string().uuid(),
+  voyage: z.number().int(),
+  statut: z.enum(STATUTS_LEVEE),
+  source: z.enum(SOURCES_LEVEE),
+  heure: z.string().nullable(),
+});
+const LigneFeuille = z.object({
+  desserte_id: z.string().uuid(),
+  commerce_id: z.string().uuid(),
+  etablissement: z.string(),
+  adresse: z.string().nullable(),
+  ferme: z.boolean().openapi({ description: 'Fermé ce jour-là : aucune levée ne s’y propose (le prestataire ne voit pas la ligne).' }),
+  point_id: z.string().uuid(),
+  point_nom: z.string().nullable(),
+  point_voyage: z.number().int(),
+  point_ordre: z.number().int(),
+  point_retire: z.boolean(),
+  convention_id: z.string().uuid().nullable().openapi({ description: 'Vide pour le prestataire : il ne voit jamais la convention.' }),
+  etat_convention: z.enum(['convention', 'registre', 'aucune']).openapi({
+    description:
+      'convention : signée et en vigueur ce jour ; registre : la ligne d’avant le jalon G, sans termes (aucune levée ne s’y rattache) ; aucune. Le prestataire ne voit que « convention ».',
+  }),
+  flux_code: z.string().nullable(),
+  flux_fr: z.string().nullable(),
+  flux_ar: z.string().nullable(),
+  conteneur_id: z.string().nullable(),
+  conteneur_code: z.string().nullable(),
+  levees_par_semaine: z.number().int().nullable(),
+  volume_litres: z.number().nullable(),
+  levees: z.array(LeveeDuJour).openapi({ description: 'Les levées proposées ou validées ce jour pour ce flux, par voyage.' }),
+});
+const FeuilleLevees = registry.register(
+  'FeuilleLevees',
+  z.object({
+    circuit: z.object({
+      id: z.string().uuid(),
+      nom: z.string(),
+      code: z.string().nullable(),
+      commune_id: z.string(),
+      voyages_par_jour: z.number().int(),
+      jours_passage: z.array(z.number().int()),
+      date_debut: z.string(),
+      date_fin: z.string().nullable(),
+      actif: z.boolean(),
+      date: z.string(),
+      passe_ce_jour: z.boolean().openapi({ description: 'Le jour est un des jours de passage du circuit (un passage exceptionnel reste possible).' }),
+    }),
+    lignes: z.array(LigneFeuille),
+  })
+);
+const Levee = registry.register(
+  'Levee',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string(),
+    convention_id: z.string().uuid(),
+    numero_convention: z.string().nullable(),
+    commerce_id: z.string().uuid(),
+    etablissement: z.string(),
+    matricule_fiscal: z.string().nullable(),
+    desserte_id: z.string().uuid(),
+    circuit_id: z.string().uuid(),
+    circuit: z.string().nullable(),
+    point_id: z.string().uuid(),
+    point: z.string().nullable(),
+    flux_code: z.string(),
+    flux_fr: z.string().nullable(),
+    flux_ar: z.string().nullable(),
+    conteneur_id: z.string().nullable(),
+    conteneur: z.string().nullable(),
+    date_levee: z.string(),
+    heure_levee: z.string().nullable(),
+    voyage: z.number().int(),
+    source: z.enum(SOURCES_LEVEE),
+    statut: z.enum(STATUTS_LEVEE),
+    valide_le: z.string().nullable(),
+    ecartee_le: z.string().nullable(),
+    motif_ecart: z.string().nullable(),
+    annulee_le: z.string().nullable(),
+    motif_annulation: z.string().nullable(),
+    observation: z.string().nullable(),
+    import_id: z.string().uuid().nullable(),
+    import_ligne: z.number().int().nullable(),
+    created_at: z.string(),
+    a_revoir: z.string().nullable().openapi({
+      description:
+        'Ce que la levée a perdu depuis (l’examen de son jour rejoué aujourd’hui : établissement fermé, desserte écourtée, avenant, résiliation…) — constaté, jamais corrigé.',
+    }),
+    a_revoir_message: z.string().nullable(),
+    total: z.number().int().openapi({ description: 'Le nombre de levées qui répondent aux filtres, même au-delà des 2 000 rendues : une liste tronquée ne passe jamais pour complète.' }),
+  })
+);
+const LeveeEcrite = z.object({
+  n: z.number().int(),
+  id: z.string().uuid(),
+  commerce_id: z.string().uuid(),
+  flux_code: z.string(),
+  date_levee: z.string(),
+  voyage: z.number().int(),
+  statut: z.enum(STATUTS_LEVEE),
+  deja_recue: z.boolean().openapi({ description: 'La clé d’envoi était déjà reçue avec le même contenu : rien n’a été créé.' }),
+});
+
+registry.registerPath({
+  method: 'get', path: '/levees/feuille', tags: [TAG_LEVEES],
+  summary: 'La feuille du jour d’un circuit',
+  description:
+    'Les établissements desservis ce jour-là par le circuit, leur point, et pour chaque flux des termes en vigueur : conteneur, levées par semaine, levées déjà proposées ou validées. ' +
+    'Commune et FNCT ; le prestataire du circuit n’y voit ni convention, ni établissement sans convention ou fermé.',
+  security: SECURISE,
+  request: { query: qFeuille },
+  responses: { 200: json(FeuilleLevees, 'La feuille.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'get', path: '/levees', tags: [TAG_LEVEES],
+  summary: 'Le registre des levées de la commune',
+  description:
+    'Par défaut les trente derniers jours ; les propositions d’abord. Chaque levée dit ce qu’elle a perdu depuis (« à revoir »). Commune et FNCT ; le prestataire n’y a pas accès.',
+  security: SECURISE,
+  request: { query: qLevees },
+  responses: { 200: json(z.array(Levee), 'Les levées.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/levees', tags: [TAG_LEVEES],
+  summary: 'Enregistrer un lot de la feuille (commune) ou le proposer (prestataire)',
+  description:
+    'La commune saisit : ses levées sont validées d’emblée. Le prestataire du circuit propose : la commune valide ou écarte. Le lot s’écrit en entier ou pas du tout ; ' +
+    'une clé déjà reçue avec le même contenu est rendue « déjà reçue » (un envoi rejoué ne crée rien). La FNCT n’écrit pas.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: lotLeveesSchema } } } },
+  responses: {
+    201: json(z.object({ levees: z.array(LeveeEcrite) }), 'Levées enregistrées ou proposées.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'Une règle de la levée n’est pas tenue (dite en mots).'),
+  },
+});
+registry.registerPath({
+  method: 'post', path: '/levees/valider', tags: [TAG_LEVEES],
+  summary: 'Valider des propositions',
+  description:
+    'Chaque proposition est examinée de nouveau pour son jour, avec ce que la base sait aujourd’hui ; une seule qui ne tient plus et rien n’est validé. Le directeur seul.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: validationLeveesSchema } } } },
+  responses: { 200: json(z.object({ validees: z.number().int() }), 'Propositions validées.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/levees/ecarter', tags: [TAG_LEVEES],
+  summary: 'Écarter des propositions, avec un motif',
+  description: 'Une proposition écartée reste en base, avec son motif. Le directeur seul.',
+  security: SECURISE,
+  request: { body: { content: { 'application/json': { schema: ecartLeveesSchema } } } },
+  responses: { 200: json(z.object({ ecartees: z.number().int() }), 'Propositions écartées.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/levees/{id}/annuler', tags: [TAG_LEVEES],
+  summary: 'Annuler une levée validée, avec un motif',
+  description: 'Une levée ne s’efface jamais : elle s’annule, et reste lisible. Le directeur seul.',
+  security: SECURISE,
+  request: { params: z.object({ id: z.string().uuid() }), body: { content: { 'application/json': { schema: annulationLeveeSchema } } } },
+  responses: { 200: json(Levee, 'Levée annulée.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+
+const ChampImportLevee = z.object({ cle: z.enum(CLES_CHAMPS_LEVEES), fr: z.string(), ar: z.string(), obligatoire: z.boolean() });
+const ColonnesImportLevees = registry.register(
+  'ColonnesImportLevees',
+  z.object({
+    fichier: z.string(),
+    feuille: z.string().nullable(),
+    avertissements: z.array(z.string()),
+    ligneEntetes: z.number().int(),
+    lignes: z.number().int(),
+    entetes: z.array(z.string()),
+    exemples: z.array(z.array(z.string())),
+    champs: z.array(ChampImportLevee),
+    correspondance: z.record(z.string().nullable()),
+    provenance: z.record(z.enum(['enregistree', 'proposee', 'aucune'])),
+    modeleEnregistre: z.boolean(),
+  })
+);
+const LigneImportLevee = z.object({
+  numero: z.number().int().openapi({ description: 'Le numéro de la ligne dans le tableur.' }),
+  action: z.enum(['proposer', 'deja_recue', 'erreur']),
+  erreurs: z.array(z.string()),
+  etablissement: z.string(),
+  commerce_id: z.string().uuid().nullable(),
+  date: z.string(),
+  heure: z.string().nullable(),
+  flux_code: z.string().nullable(),
+  voyage: z.number().int().nullable(),
+  circuit_id: z.string().uuid().nullable(),
+  statut: z.string().nullable(),
+});
+const ApercuImportLevees = registry.register(
+  'ApercuImportLevees',
+  z.object({
+    fichier: z.string(),
+    feuille: z.string().nullable(),
+    avertissements: z.array(z.string()),
+    resume: z.object({ proposer: z.number().int(), deja_recue: z.number().int(), erreur: z.number().int() }),
+    lignes: z.array(LigneImportLevee),
+    ecrit: z.boolean(),
+    importId: z.string().uuid().optional(),
+    proposees: z.number().int().optional(),
+  })
+);
+const qCommuneLevees = z.object({ communeId: z.string().optional() });
+registry.registerPath({
+  method: 'post', path: '/levees/import/colonnes', tags: [TAG_LEVEES],
+  summary: 'Les colonnes d’un export Kobo et la correspondance proposée',
+  description:
+    'CSV ou Excel, tel que Kobo le donne. La correspondance gardée par la commune d’abord, sinon les en-têtes usuels. Rien n’est écrit. Le directeur seul.',
+  security: SECURISE,
+  request: { query: qCommuneLevees, body: { content: { 'application/json': { schema: fichierLeveesSchema } } } },
+  responses: { 200: json(ColonnesImportLevees, 'Colonnes et correspondance proposée.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/levees/import', tags: [TAG_LEVEES],
+  summary: 'Importer un export Kobo : l’aperçu, puis les propositions',
+  description:
+    'L’établissement se reconnaît à son matricule fiscal ou à son identifiant SIIPI, jamais à son nom ; une date et heure sans fuseau, une date JJ/MM que le fichier ne prouve pas, sont refusées. ' +
+    'Chaque ligne est examinée par la base (desserte, convention, termes, voyage, doublon). Avec « valider », le fichier est relu et examiné de nouveau sous verrou, et ses lignes valables deviennent des propositions. Le directeur seul.',
+  security: SECURISE,
+  request: { query: qCommuneLevees, body: { content: { 'application/json': { schema: importLeveesSchema } } } },
+  responses: {
+    200: json(ApercuImportLevees, 'Aperçu (rien n’est écrit).'),
+    201: json(ApercuImportLevees, 'Propositions écrites.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La base a changé entre l’aperçu et la validation : relancez l’aperçu.'),
+  },
+});
+registry.registerPath({
+  method: 'get', path: '/levees/imports', tags: [TAG_LEVEES],
+  summary: 'Le journal des imports Kobo de levées',
+  security: SECURISE,
+  request: { query: qCommuneLevees },
+  responses: {
+    200: json(
+      z.array(
+        z.object({
+          id: z.string().uuid(),
+          nom_fichier: z.string(),
+          empreinte_fichier: z.string(),
+          correspondance: z.record(z.string().nullable()),
+          nb_proposees: z.number().int(),
+          nb_deja_recues: z.number().int(),
+          nb_erreurs: z.number().int(),
+          created_at: z.string(),
+          saisi_par_nom: z.string().nullable(),
+        })
+      ),
+      'Les imports validés, du plus récent au plus ancien.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
 });
 
 const ActeurInformel = registry.register(

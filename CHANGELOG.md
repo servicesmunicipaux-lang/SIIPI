@@ -5,6 +5,114 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.97] — 2026-11-16 — Jalon G, lot G5a : les dessertes et les levées des établissements
+
+Le lot G5a du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 3.5 ; décision du 12 novembre 2026 :
+les onze propositions de G5, découpé en G5a — dessertes et levées — et G5b — campagnes de pesée et densités). Une
+convention dit combien de levées par semaine ; G5a enregistre **celles qui ont eu lieu**.
+
+### Ajouté
+- **La desserte** (migration 105, table `dessertes_commerces`) : un établissement relié à un **point d'arrêt d'un
+  circuit**, du … au … ; **une seule à la fois** par établissement. « Desservi » **se calcule** : la desserte qui
+  couvre le jour. Sa **période effective** (`app.fin_desserte`, une seule définition) commence au plus tôt avec le
+  circuit et finit à la plus proche de sa date de fin, de la fin du circuit et du **jour du retrait du point ou du
+  circuit** (ce jour compris) — calculée, jamais réécrite. Une desserte qu'un point retiré (réimport du circuit) ou un
+  circuit échu ont arrêtée est **« à clôturer »** : la commune la clôt, puis ouvre la suivante le lendemain. Le point
+  est un arrêt vivant (ni repère de tournée, ni point noir) ; la desserte commence dans la période du circuit ; un
+  établissement fermé n'en reçoit pas. Elle **se clôt**, jamais avant une levée déjà rattachée, et ne se retire que si
+  elle n'a servi à aucune levée. Un établissement sans circuit n'a pas de desserte (forfait ou apport volontaire).
+- **La levée** (table `levees`) : la levée constatée d'un établissement desservi, rattachée à sa convention. **Toute
+  levée naît par `app.enregistrer_levees`** :
+  - la **commune** saisit au portail, circuit par circuit et jour par jour (la feuille du jour, cases à cocher) — sa
+    saisie est **validée d'emblée** ;
+  - le **prestataire** du circuit **propose** depuis sa feuille ;
+  - un **export Kobo** s'importe en **propositions** ;
+  - la commune **valide** une proposition, ou l'**écarte avec un motif** (elle reste en base) ; une levée validée ne
+    s'efface jamais : elle **s'annule avec un motif**.
+- **Ce qu'une levée doit être tient en une fonction**, `app._examiner_levee`, utilisée à l'écriture, à la validation,
+  à l'aperçu de l'import et au constat : établissement de la commune, jour passé, établissement ouvert ce jour-là,
+  desserte du jour, circuit de cette desserte, voyage que le circuit fait, **convention signée en vigueur ce jour-là**
+  (celle du registre d'avant le jalon G le dit : elle n'a pas de termes), flux de **ses termes en vigueur ce jour-là**,
+  aucune autre levée. **La convention, le conteneur, la desserte et le point se déduisent** ; le flux manquant n'est
+  pris que s'il est le seul, le voyage manquant que sur un circuit d'un seul voyage — **jamais deviné**.
+- **Une même levée ne se compte qu'une fois** : par établissement, flux, jour et voyage (pas par convention : une
+  résiliation antidatée suivie d'une convention nouvelle ne rouvre pas la case). Un **envoi rejoué** avec la même clé
+  et le même contenu est rendu « déjà reçu » (rien n'est créé) ; une clé réutilisée pour une autre levée est refusée ;
+  un lot s'écrit en entier ou pas du tout ; les écritures d'une commune passent sous un même verrou.
+- **Constater, ne pas corriger** : une levée qu'un avenant, une résiliation, un établissement fermé après coup, un
+  circuit écourté ou un point retiré laissent hors de ses règles est **« à revoir »** (`app.levee_a_revoir` : l'examen
+  de son jour rejoué avec ce que la base sait aujourd'hui, avec son message) — jamais effacée ni corrigée.
+- **La feuille du jour** (`app.feuille_levees`, `GET /levees/feuille`) : les établissements desservis ce jour-là par
+  le circuit, leur point, et pour chaque flux des termes en vigueur, le conteneur, les levées par semaine et les levées
+  déjà proposées ou validées. La commune y voit aussi les établissements sans convention (« registre » ou « aucune »)
+  et les fermés.
+- **Le prestataire** ne lit jamais la table des levées : il voit **sa feuille**, sans identifiant de convention ni
+  tarif, ni établissement sans convention ou fermé, et y propose. **Ce qui n'est pas sur sa feuille lui est
+  introuvable** (404), jamais « sans convention » : une levée qu'il propose ne lui apprend rien d'une convention. Pas
+  de levée avant le début de son contrat ; un contrat échu ne donne plus rien. La FNCT lit, n'écrit rien.
+- **L'import d'un export Kobo** (`POST /levees/import/colonnes`, `POST /levees/import`, `GET /levees/imports` ;
+  tables `imports_levees`, figée, et `modeles_import_levees`) : CSV ou Excel tel que Kobo le donne, **correspondance
+  des colonnes proposée, corrigée et gardée par commune** ; aperçu ligne par ligne (à proposer, déjà reçue, erreur avec
+  sa raison), puis la validation **relit et ré-examine le fichier sous verrou**. Sans rien deviner :
+  - l'établissement se reconnaît à son **matricule fiscal** ou à son **identifiant SIIPI**, **jamais à son nom** ;
+  - une **date et heure sans fuseau** est refusée (l'heure de soumission de Kobo est en temps universel) ; une date et
+    heure avec fuseau est ramenée au **jour et à l'heure de Tunis** ;
+  - une date JJ/MM/AAAA n'est lue que si la colonne le **prouve** (un jour au-delà de 12) ;
+  - un numéro de série Excel n'est une date que dans un classeur, selon le **calendrier qu'il déclare (1900 ou
+    1904)** ;
+  - un nom de circuit qui en désigne deux est refusé ;
+  - la clé d'envoi est celle de la soumission (de préférence `meta/rootUuid`), complétée par l'**index de
+    répétition** et le flux : une soumission peut porter plusieurs levées ; une soumission déjà reçue avec un autre
+    contenu (modifiée dans Kobo) est signalée, jamais proposée une seconde fois.
+- Routes `/dessertes` (liste, pose, clôture avec la version lue, retrait) et `/levees` (feuille, registre avec « à
+  revoir », lot, valider, écarter, annuler, import), documentées dans le contrat.
+- L'écran « Levées » du pôle Terrain (feuille du jour, à valider, registre, dessertes, import Kobo et son journal) ;
+  l'onglet « Levées » du portail du prestataire (sa feuille, ses propositions) ; les formulaires `desserte` et
+  `import-levees` du registre « + Ajouter ». En français et en arabe.
+
+- **Deux relectures adversariales**, l'une de la conception avant le code, l'autre du backend livré (23 défauts
+  confirmés sur 30 constats), corrigées avant la livraison :
+  - le prestataire ne lit jamais la table des levées, et ce qui n'est pas sur sa feuille lui est introuvable : sinon,
+    en sondant un établissement, il aurait appris qu'une convention existe et ce qu'elle couvre ;
+  - l'unicité porte sur l'établissement, pas sur la convention (une levée ne se compte qu'une fois) ;
+  - les faits d'une levée (conventions puis dessertes de l'établissement) sont **verrouillés avant son examen** : une
+    clôture, un retrait ou une résiliation concurrents passent avant ou après, jamais entre les deux — une levée ne
+    s'accroche plus à une desserte close ;
+  - un avenant rétroactif qui change le conteneur d'un flux rend la levée « à revoir », et sa proposition ne se valide
+    plus telle quelle (convention, desserte, circuit, point et conteneur sont comparés) ;
+  - la clé Kobo ne porte plus le flux ni la position de la ligne dans l'export (« _index », qui change d'un export à
+    l'autre) : une soumission corrigée dans Kobo est signalée, jamais proposée une seconde fois, et une proposition
+    écartée ne revient pas ; la clé proposée est `meta/rootUuid` quand le fichier la porte, et l'aperçu signale une
+    autre clé retenue ;
+  - une heure à fuseau qui change de jour à Tunis est refusée ; un libellé qui désigne deux flux exige le code ; une
+    fraction de jour Excel proche de minuit ne repasse plus à 00:00 ; une clé trop longue est dite à sa ligne, jamais
+    un 500 ;
+  - le registre dit son total quand il est tronqué, « jusqu'à » seul compte trente jours avant cette date, une période
+    à l'envers est refusée ; le volume de la feuille sort en nombre, comme le contrat l'annonce ;
+  - les campagnes éprouvent en plus : l'envoi rejoué du prestataire, sa source usurpée, son absence de lecture en base
+    pendant son contrat, la validation refusée après un circuit écourté ou un avenant, l'audit compté exactement.
+
+### Modifié
+- La lecture d'un fichier de la commune (CSV ou Excel, en-têtes, empreinte) et la correspondance des colonnes vivent
+  dans `services/tableur.ts`, partagées par l'import des établissements et celui des levées ; le lecteur de classeurs
+  dit désormais le calendrier du classeur (`calendrier1904`). L'import des établissements ne change pas.
+
+### Vérifié
+- Campagnes `levees` (85 contrôles) et `import-levees` (39 contrôles), qui commencent par ce que la plateforme refuse ;
+  communes de test, comptes temporaires, table nationale des listes rendue ligne entière, dates comptées depuis le
+  jour. `levees` éprouve les refus des dessertes et des levées, ce que le prestataire ne peut ni lire ni écrire (et ce
+  qui lui est introuvable), la feuille du jour pour chaque rôle, la saisie validée d'emblée, l'envoi rejoué, les
+  propositions validées et écartées, l'annulation, le point retiré, la clôture, et le constat « à revoir » après un
+  circuit écourté, un avenant rétroactif et une résiliation. `import-levees` éprouve la correspondance proposée et
+  gardée, chaque refus de ligne, les propositions écrites et leur journal figé, le fichier rejoué, la soumission
+  modifiée, la clé `meta/rootUuid`, les fuseaux, les dates JJ/MM, les classeurs en calendrier 1900 et 1904.
+- Écran vérifié sur une commune de test du banc : feuille du jour, saisie, validation d'une proposition, dessertes
+  (dont « à clôturer ») ; en arabe (RTL) et sur téléphone, sans débordement ; l'onglet du prestataire. Deux retouches
+  en sont venues (une période sans fin dite en mots, le code d'un conteneur gardé sur une ligne).
+- Critère complet sur base neuve (migrations 000 → 105, la 105 rejouée une seconde fois, chargement dans l'ordre de
+  référence) : contrat **444/444**, **92/92** campagnes, **4 275** contrôles réussis, aucun échec ; `audit-blocs` : les
+  9 blocs sous condition ont tous tourné ; lint du backend et du web sans erreur.
+
 ## [0.15.96] — 2026-11-12 — Jalon G, lot G4b : les avenants et le renouvellement des conventions
 
 Le lot G4b du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 3.4 ; décision du 11 novembre 2026 :

@@ -26,6 +26,7 @@ import { FormulaireCaracterisation } from './FormulaireCaracterisation';
 import { FormulaireCircuit } from './FormulaireCircuit';
 import { FormulaireContact } from './FormulaireContact';
 import { FormulaireConvention } from './FormulaireConvention';
+import { FormulaireDesserte } from './FormulaireDesserte';
 import { FormulaireDocument, type TypeDocumentEmis } from './FormulaireDocument';
 import { FormulaireEngin } from './FormulaireEngin';
 import { FormulaireEtablissement } from './FormulaireEtablissement';
@@ -38,6 +39,7 @@ import { FormulaireRapport } from './FormulaireRapport';
 import { FormulaireRegistre } from './FormulaireRegistre';
 import { FormulaireSortieCarnet } from './FormulaireSortieCarnet';
 import { ImportEtablissements } from './ImportEtablissements';
+import { ImportLevees } from './ImportLevees';
 import { ImportContacts, ImportParc, ImportPersonnel } from './ImportsCsv';
 
 /** Les rubriques du catalogue, dans l'ordre où le directeur les cherche (SPEC § 2.2). */
@@ -48,8 +50,8 @@ export type Rubrique = (typeof RUBRIQUES)[number];
 export type TypeFormulaire = keyof typeof appels;
 
 /** Les écrans du portail communal vers lesquels une entrée peut conduire. */
-export type EcranAjout = 'pesees' | 'points' | 'registres' | 'decoupage' | 'comptes' | 'circuits';
-export type TypeEcran = 'pesee' | 'action-planifiee' | 'campagne-nettoyage' | 'secteur' | 'prestataire' | 'import-geographique';
+export type EcranAjout = 'pesees' | 'points' | 'registres' | 'decoupage' | 'comptes' | 'circuits' | 'levees';
+export type TypeEcran = 'pesee' | 'action-planifiee' | 'campagne-nettoyage' | 'secteur' | 'prestataire' | 'import-geographique' | 'levee';
 
 export type TypeAjout = TypeFormulaire | TypeEcran;
 
@@ -109,11 +111,15 @@ const FORMULAIRES: Record<TypeFormulaire, Omit<EntreeFormulaire, 'type'>> = {
   commerce: { rubrique: 'partenaires', roles: COMMUNE, Formulaire: FormulaireEtablissement },
   // Une convention de propreté (jalon G, lot G4a) : la commune la rédige, la FNCT la lit.
   convention: { rubrique: 'partenaires', roles: COMMUNE, Formulaire: FormulaireConvention },
+  // Une desserte (jalon G, lot G5a) : l'établissement rattaché à un point d'arrêt d'un circuit ; la FNCT la lit.
+  desserte: { rubrique: 'partenaires', roles: COMMUNE, Formulaire: FormulaireDesserte },
   'import-contacts': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportContacts },
   'import-parc': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportParc },
   'import-personnel': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, Formulaire: ImportPersonnel },
   // La liste TCL ou un jeu open data, tels qu'ils sont (jalon G, lot G2b) : le directeur importe, la FNCT lit.
   'import-etablissements': { rubrique: 'imports', roles: COMMUNE, Formulaire: ImportEtablissements },
+  // L'export Kobo des levées (lot G5a) : ses lignes deviennent des propositions que la commune valide.
+  'import-levees': { rubrique: 'imports', roles: COMMUNE, Formulaire: ImportLevees },
   'ordre-mission': { rubrique: 'equipe', roles: COMMUNE, Formulaire: document('ordre_mission') },
   'bon-travail': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('bon_travail') },
   'declaration-panne': { rubrique: 'moyens', roles: COMMUNE, Formulaire: document('declaration_panne') },
@@ -128,6 +134,8 @@ const ECRANS: Record<TypeEcran, Omit<EntreeEcran, 'type'>> = {
   'campagne-nettoyage': { rubrique: 'actions', roles: COMMUNE_ET_FNCT, ecran: 'registres' },
   'action-planifiee': { rubrique: 'actions', roles: COMMUNE_ET_FNCT, ecran: 'points' },
   pesee: { rubrique: 'registres', roles: COMMUNE_ET_FNCT, ecran: 'pesees' },
+  // Une levée se coche sur la feuille du jour d'un circuit : un formulaire isolé n'aurait ni le jour, ni le voyage.
+  levee: { rubrique: 'registres', roles: COMMUNE, ecran: 'levees' },
   prestataire: { rubrique: 'partenaires', roles: COMMUNE_ET_FNCT, ecran: 'comptes' },
   'import-geographique': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, ecran: 'circuits' },
 };

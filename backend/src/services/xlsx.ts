@@ -5,9 +5,10 @@
 // ON NE LIT QUE CE QU'UNE LISTE PORTE : la première feuille, ses cellules en
 // texte, en nombre ou en booléen. Une formule rend sa dernière valeur calculée,
 // telle qu'Excel l'a enregistrée ; SIIPI ne recalcule rien. Une date reste le
-// nombre qu'Excel garde (aucune colonne de l'import n'est une date) ; deviner
-// qu'un nombre est une date d'après son format d'affichage serait une conversion
-// silencieuse.
+// nombre qu'Excel garde ; deviner qu'un nombre est une date d'après son format
+// d'affichage serait une conversion silencieuse. Seul l'import qui DÉCLARE une
+// colonne de dates (les levées Kobo, G5a) convertit ce numéro, explicitement, et
+// il lui faut savoir depuis quand le classeur compte ses jours : `calendrier1904`.
 //
 // UN CLASSEUR SE MÉFIE DE LUI-MÊME, comme toute archive : `zip.ts` plafonne le
 // nombre d'entrées et la taille décompressée, et l'on plafonne ici les lignes et
@@ -70,7 +71,12 @@ export const estXlsx = (octets: Buffer) => estZip(octets);
  * Les rangées de la première feuille, en texte. `feuille` nomme la feuille lue ;
  * `autresFeuilles` dit combien ont été laissées, pour que l'écran le dise.
  */
-export function lireXlsx(octets: Buffer): { rangees: Array<{ cellules: string[]; ligne: number }>; feuille: string; autresFeuilles: number } {
+export function lireXlsx(octets: Buffer): {
+  rangees: Array<{ cellules: string[]; ligne: number }>;
+  feuille: string;
+  autresFeuilles: number;
+  calendrier1904: boolean;
+} {
   let fichiers;
   try {
     fichiers = lireZip(octets);
@@ -81,7 +87,11 @@ export function lireXlsx(octets: Buffer): { rangees: Array<{ cellules: string[];
 
   const classeur = entree(entrees, 'xl/workbook.xml');
   if (!classeur) throw new ErreurXlsx("Ce fichier n'est pas un classeur Excel (.xlsx) : enregistrez-le au format Excel ou en CSV.");
-  const feuilles = ((lecteur.parse(classeur) as Noeud).workbook as Noeud | undefined)?.sheets as Noeud | undefined;
+  const racine = (lecteur.parse(classeur) as Noeud).workbook as Noeud | undefined;
+  const feuilles = racine?.sheets as Noeud | undefined;
+  // Excel ancien pour Mac compte depuis 1904 : le même numéro y tombe quatre ans et un jour plus tard.
+  const date1904 = String(((racine?.workbookPr as Noeud | undefined) ?? {})['@date1904'] ?? '').toLowerCase();
+  const calendrier1904 = date1904 === '1' || date1904 === 'true';
   const liste = (feuilles?.sheet as Noeud[] | undefined) ?? [];
   if (liste.length === 0) throw new ErreurXlsx('Le classeur ne contient aucune feuille.');
   const premiere = liste[0];
@@ -140,5 +150,5 @@ export function lireXlsx(octets: Buffer): { rangees: Array<{ cellules: string[];
     }
     if (valeurs.some((v) => v.trim() !== '')) rangees.push({ cellules: valeurs, ligne: numero });
   }
-  return { rangees, feuille: String(premiere['@name'] ?? ''), autresFeuilles: liste.length - 1 };
+  return { rangees, feuille: String(premiere['@name'] ?? ''), autresFeuilles: liste.length - 1, calendrier1904 };
 }

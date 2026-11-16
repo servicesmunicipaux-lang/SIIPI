@@ -17,20 +17,16 @@
 //
 // Le directeur de la commune importe ; la FNCT lit le journal et les correspondances.
 
-import { createHash } from 'node:crypto';
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { z } from 'zod';
 import type { PoolClient } from 'pg';
 import { query, queryOne, withTransaction } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
-import { decoder, LIGNES_MAX, lireCsvNumerote } from '../services/import.js';
-import { ErreurXlsx, estXlsx, lireXlsx } from '../services/xlsx.js';
+import { lireTableur } from '../services/tableur.js';
 import {
   CHAMPS_IMPORT,
   CLES_CHAMPS,
-  entetesUniques,
-  ligneDesEntetes,
   PRECISION_MINIMALE,
   formeActivite,
   motifDoublon,
@@ -43,7 +39,6 @@ import {
   type CorrespondanceActivite,
   type Existant,
   type LigneRapprochee,
-  type RangeeFichier,
 } from '../services/importEtablissements.js';
 import { communeRequise } from '../perimetre.js';
 
@@ -121,55 +116,9 @@ export const correspondanceActiviteSchema = z
 // ---------------------------------------------------------------------------
 // Lecture du fichier
 // ---------------------------------------------------------------------------
-type Fichier = {
-  entetes: string[];
-  rangees: RangeeFichier[];
-  avertissements: string[];
-  feuille: string | null;
-  empreinte: string;
-  ligneEntetes: number;
-};
-
-function lireFichier(contenu: string): Fichier {
-  const octets = Buffer.from(contenu, 'base64');
-  if (octets.length === 0) throw new ApiError(400, 'Le fichier est vide.');
-  const empreinte = createHash('sha256').update(octets).digest('hex');
-  const avertissements: string[] = [];
-  let rangees: RangeeFichier[];
-  let feuille: string | null = null;
-  // L'ancien format binaire d'Excel (.xls) : SIIPI ne le lit pas, et le dit.
-  if (octets.length >= 8 && octets.readUInt32BE(0) === 0xd0cf11e0) {
-    throw new ApiError(400, 'Ancien format Excel (.xls) : ouvrez le fichier dans le tableur et enregistrez-le en .xlsx ou en CSV.');
-  }
-  if (estXlsx(octets)) {
-    try {
-      const lu = lireXlsx(octets);
-      rangees = lu.rangees;
-      feuille = lu.feuille;
-      if (lu.autresFeuilles > 0) {
-        avertissements.push(`Seule la première feuille (« ${lu.feuille} ») est lue ; le classeur en compte ${lu.autresFeuilles + 1}.`);
-      }
-    } catch (err) {
-      throw new ApiError(400, err instanceof ErreurXlsx ? err.message : 'Classeur illisible.');
-    }
-  } else {
-    rangees = lireCsvNumerote(decoder(octets, avertissements));
-  }
-  if (rangees.length === 0) throw new ApiError(400, 'Le fichier ne contient aucune ligne.');
-  // Une liste administrative commence souvent par un titre : les en-têtes sont la
-  // première ligne qui en a l'allure, et ce qui la précède est dit, pas importé.
-  const i = ligneDesEntetes(rangees);
-  if (i > 0) {
-    avertissements.push(
-      `Les en-têtes sont lus ligne ${rangees[i].ligne} ; ${i === 1 ? 'la ligne qui la précède est laissée de côté' : `les ${i} lignes qui la précèdent sont laissées de côté`} (titre du document).`
-    );
-  }
-  const entetes = entetesUniques(rangees[i].cellules);
-  const donnees = rangees.slice(i + 1);
-  if (donnees.length === 0) throw new ApiError(400, 'Le fichier ne porte que sa ligne d’en-têtes : aucune ligne à importer.');
-  if (donnees.length > LIGNES_MAX) throw new ApiError(400, `${donnees.length} lignes : ${LIGNES_MAX} au plus par import. Découpez le fichier.`);
-  return { entetes, rangees: donnees, avertissements, feuille, empreinte, ligneEntetes: rangees[i].ligne };
-}
+// La lecture (CSV ou Excel, en-têtes, empreinte) est celle de tout fichier de la
+// commune : services/tableur.ts.
+const lireFichier = lireTableur;
 
 // ---------------------------------------------------------------------------
 // Ce que la base sait déjà — lu hors transaction pour l'aperçu, dans la
