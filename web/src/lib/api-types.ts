@@ -20534,6 +20534,1673 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/campagnes-pesee": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les campagnes de pesée de la commune (lot G5b) */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les campagnes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CampagnePesee"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Une campagne en brouillon
+         * @description D’établissements ou de ménages ; 61 jours au plus ; aucun lien avec un circuit ni un engin. Le directeur seul.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        objet: "etablissements" | "menages";
+                        intitule: string;
+                        protocole?: string | null;
+                        dateDebut: string;
+                        dateFin: string;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Campagne créée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CampagnePeseeDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campagnes-pesee/pesees/{id}/annuler": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Annuler une pesée, avec son motif
+         * @description Tant que la campagne est ouverte ; une pesée ne se réécrit ni ne s’efface. Le directeur seul.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Pesée annulée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            campagne_id: string;
+                            statut: string;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campagnes-pesee/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Une campagne, ses résultats et ses écartés
+         * @description Les résultats et les mesures n’existent qu’une fois la campagne close, figés. La FNCT lit ; jamais un ménage.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description La campagne. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CampagnePeseeDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        /**
+         * Modifier un brouillon, ou la fin prévue d’une campagne ouverte
+         * @description La version lue est exigée. Ouverte, une campagne ne change plus que sa fin prévue (jamais avant une pesée) et son observation.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        intitule?: string;
+                        protocole?: string | null;
+                        dateDebut?: string;
+                        dateFin?: string;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Campagne à jour. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CampagnePeseeDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Retirer une campagne en brouillon */
+        delete: {
+            parameters: {
+                query: {
+                    version: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Campagne retirée. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campagnes-pesee/{id}/ouvrir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ouvrir une campagne */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Campagne ouverte. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CampagnePeseeDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campagnes-pesee/{id}/clore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clore une campagne : le calcul est fait et figé
+         * @description Par catégorie : kg/jour par unité d’échelle (par unité), poids d’une levée (par volume de contenant), kg/m³ ; 1er quartile, médiane, 3e quartile ; seuil national du jour figé. Ménages : la première pesée de chacun n’est jamais comptée, une tranche de moins de 5 ménages est masquée. Chaque écarté l’est avec sa raison.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Campagne close. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CampagnePeseeDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campagnes-pesee/{id}/pesees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les pesées d’une campagne
+         * @description Celles d’un ménage ne se lisent que par le directeur.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les pesées. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            /** Format: uuid */
+                            commerce_id: string | null;
+                            etablissement: string | null;
+                            /** Format: uuid */
+                            menage_id: string | null;
+                            menage: string | null;
+                            date_pesee: string;
+                            jour_campagne: number;
+                            poids_kg: number;
+                            duree_jours: number;
+                            contenant: string | null;
+                            volume_litres: number | null;
+                            remplissage_pct: number | null;
+                            categorie_activite: string | null;
+                            unite_echelle: string | null;
+                            valeur_echelle: number | null;
+                            /** @enum {string} */
+                            source: "portail" | "kobo";
+                            /** @enum {string} */
+                            statut: "valide" | "annulee";
+                            motif_annulation: string | null;
+                            /** Format: uuid */
+                            import_id: string | null;
+                            import_ligne: number | null;
+                            created_at: string;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Enregistrer un lot de pesées (saisie au portail)
+         * @description Campagne ouverte, jour passé dans sa période, établissement de la commune (ouvert, avec sa catégorie) ou ménage de l’échantillon. Les pesées d’un même jour couvrent la même durée. Le lot s’écrit en entier ou pas du tout ; une clé déjà reçue avec le même contenu est rendue « déjà reçue ».
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        pesees: {
+                            /** Format: uuid */
+                            commerceId?: string;
+                            /** Format: uuid */
+                            menageId?: string;
+                            date: string;
+                            poidsKg: number;
+                            dureeJours: number;
+                            contenant?: string | null;
+                            volumeLitres?: number | null;
+                            remplissagePct?: number | null;
+                            cle: string;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Pesées enregistrées. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            pesees: {
+                                n: number;
+                                /** Format: uuid */
+                                id: string;
+                                deja_recue: boolean;
+                            }[];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Une règle de la pesée n’est pas tenue (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campagnes-pesee/{id}/menages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** L’échantillon de ménages (le directeur seul) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les ménages. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            code: string;
+                            habitants: number;
+                            /** @enum {string} */
+                            tranche_revenu: "bas" | "moyen" | "eleve";
+                            pesees: number;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Ajouter un ménage à l’échantillon
+         * @description Le nombre d’habitants et la tranche de revenu ; la base pose le code (M-001…). Ni nom, ni adresse, ni secteur.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        habitants: number;
+                        /** @enum {string} */
+                        trancheRevenu: "bas" | "moyen" | "eleve";
+                    };
+                };
+            };
+            responses: {
+                /** @description Ménage ajouté. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            code: string;
+                            habitants: number;
+                            /** @enum {string} */
+                            tranche_revenu: "bas" | "moyen" | "eleve";
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campagnes-pesee/{id}/adopter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Adopter la densité (kg/m³) qu’une campagne close propose pour une catégorie
+         * @description Seulement au seuil atteint ; le 1er et le 3e quartile en sont les bornes, la date d’effet est le jour de la clôture.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        categorie: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Densité adoptée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DensiteAssimiles"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campagnes-pesee/{id}/import/colonnes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Les colonnes d’un export Kobo de pesées et la correspondance proposée */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomFichier: string;
+                        contenu: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Colonnes et correspondance proposée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            fichier: string;
+                            feuille: string | null;
+                            avertissements: string[];
+                            ligneEntetes: number;
+                            lignes: number;
+                            entetes: string[];
+                            exemples: string[][];
+                            champs: {
+                                /** @enum {string} */
+                                cle: "date" | "etablissement" | "poids" | "duree_jours" | "duree_heures" | "contenant" | "volume" | "remplissage" | "cle" | "repetition";
+                                fr: string;
+                                ar: string;
+                                obligatoire: boolean;
+                            }[];
+                            correspondance: {
+                                [key: string]: string | null;
+                            };
+                            provenance: {
+                                [key: string]: "enregistree" | "proposee" | "aucune";
+                            };
+                            modeleEnregistre: boolean;
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campagnes-pesee/{id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer un export Kobo de pesées : l’aperçu, puis l’écriture
+         * @description Campagne d’établissements ouverte. L’établissement se reconnaît à son matricule fiscal ou à son identifiant SIIPI, jamais à son nom ; la durée se lit en jours OU en heures ; un nombre porte au plus un séparateur décimal. Avec « valider », le fichier est relu et examiné de nouveau.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        nomFichier: string;
+                        contenu: string;
+                        correspondance: {
+                            date?: string | null;
+                            etablissement?: string | null;
+                            poids?: string | null;
+                            duree_jours?: string | null;
+                            duree_heures?: string | null;
+                            contenant?: string | null;
+                            volume?: string | null;
+                            remplissage?: string | null;
+                            cle?: string | null;
+                            repetition?: string | null;
+                        };
+                        /** @default false */
+                        valider?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Aperçu (rien n’est écrit). */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuImportPesees"];
+                    };
+                };
+                /** @description Pesées écrites. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApercuImportPesees"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description La campagne n’accepte pas d’import, ou la base a changé : relancez l’aperçu. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/campagnes-pesee/{id}/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Le journal des imports de pesées d’une campagne */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les imports. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uuid */
+                            id: string;
+                            nom_fichier: string;
+                            empreinte_fichier: string;
+                            correspondance: {
+                                [key: string]: string | null;
+                            };
+                            nb_enregistrees: number;
+                            nb_deja_recues: number;
+                            nb_erreurs: number;
+                            created_at: string;
+                            saisi_par_nom: string | null;
+                        }[];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/densites-assimiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les densités des assimilés (kg/m³) : de la commune et du pays
+         * @description Sans commune, la FNCT lit celles du pays. Une densité ne se réécrit pas ; retirée, elle reste lisible.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les densités. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DensiteAssimiles"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Saisir une densité (TADAEEM ou défaut), avec sa pièce
+         * @description Une densité de la commune par son directeur, une densité du pays par la FNCT. Une densité de campagne s’adopte depuis la campagne.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        portee: "commune" | "nationale";
+                        categorie: string;
+                        densiteMin: number;
+                        densiteMax: number;
+                        mediane?: number | null;
+                        /** @enum {string} */
+                        source: "tadaeem" | "defaut";
+                        reference: string;
+                        dateEffet: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Densité saisie. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DensiteAssimiles"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/densites-assimiles/{id}/retirer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retirer une densité, avec son motif */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Densité retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DensiteAssimiles"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/acteurs-informels": {
         parameters: {
             query?: never;
@@ -36783,6 +38450,27 @@ export interface components {
                 avenant_id: string | null;
             }[];
             avenants: components["schemas"]["AvenantConvention"][];
+            /** @description Le tonnage estimé des levées validées du mois en cours et du précédent (lot G5b) : volume des termes × densité de la catégorie, en fourchette, tous flux confondus. Vide (null) dès qu’une levée manque de volume ou de densité ; jamais additionné à une pesée, jamais dans une assiette. */
+            tonnage_estime: {
+                mois: string;
+                debut: string;
+                fin: string;
+                levees: number;
+                sans_volume: number;
+                sans_densite: number;
+                kg_min: number | null;
+                kg_max: number | null;
+                densites: {
+                    /** Format: uuid */
+                    id: string;
+                    source: string;
+                    /** @enum {string} */
+                    portee: "commune" | "nationale";
+                    densite_min: number;
+                    densite_max: number;
+                    date_effet: string;
+                }[];
+            }[];
         };
         Desserte: {
             /** Format: uuid */
@@ -36985,6 +38673,115 @@ export interface components {
             /** Format: uuid */
             importId?: string;
             proposees?: number;
+        };
+        CampagnePesee: {
+            /** Format: uuid */
+            id: string;
+            version: string;
+            commune_id: string;
+            /** @enum {string} */
+            objet: "etablissements" | "menages";
+            intitule: string;
+            protocole: string | null;
+            date_debut: string;
+            date_fin: string;
+            /** @enum {string} */
+            statut: "brouillon" | "ouverte" | "close";
+            ouverte_le: string | null;
+            close_le: string | null;
+            seuil_applique: number | null;
+            observation: string | null;
+            created_at: string;
+            updated_at: string;
+            pesees: number;
+            etablissements: number;
+            menages: number;
+        };
+        CampagnePeseeDetail: components["schemas"]["CampagnePesee"] & {
+            resultats: {
+                /** @description La catégorie d’activité, ou la tranche de revenu (ménages). */
+                groupe: string;
+                /** @description L’unité d’échelle (kg/jour/unité) ou le volume du contenant en litres (poids d’une levée) ; vide sinon. */
+                sous_groupe: string;
+                /** @enum {string} */
+                indicateur: "kg_jour_unite" | "kg_levee" | "kg_m3" | "kg_hab_jour";
+                n: number;
+                q1: number | null;
+                mediane: number | null;
+                q3: number | null;
+                /** @description n ≥ le seuil national figé à la clôture ; vide pour les ménages. */
+                seuil_atteint: boolean | null;
+                /** @description Une tranche de moins de 5 ménages : aucun quartile rendu. */
+                masque: boolean;
+                /** @description La commune a adopté la densité de cette catégorie (kg/m³). */
+                adoptee: boolean;
+            }[];
+            ecartes: {
+                groupe: string;
+                indicateur: string;
+                raison: string;
+                nombre: number;
+            }[];
+            /** @description La valeur de chaque établissement (jamais d’un ménage), ou la raison de son écart. */
+            mesures: {
+                /** Format: uuid */
+                commerce_id: string;
+                etablissement: string;
+                groupe: string;
+                sous_groupe: string;
+                indicateur: string;
+                valeur: number | null;
+                raison_ecart: string | null;
+            }[];
+        };
+        DensiteAssimiles: {
+            /** Format: uuid */
+            id: string;
+            commune_id: string | null;
+            /** @enum {string} */
+            portee: "commune" | "nationale";
+            categorie_activite: string;
+            categorie_fr: string | null;
+            categorie_ar: string | null;
+            densite_min: number;
+            densite_max: number;
+            mediane: number | null;
+            /** @enum {string} */
+            source: "campagne" | "tadaeem" | "defaut";
+            /** Format: uuid */
+            campagne_id: string | null;
+            campagne: string | null;
+            reference: string | null;
+            date_effet: string;
+            created_at: string;
+            retire_le: string | null;
+            motif_retrait: string | null;
+        };
+        ApercuImportPesees: {
+            fichier: string;
+            feuille: string | null;
+            avertissements: string[];
+            resume: {
+                enregistrer: number;
+                deja_recue: number;
+                erreur: number;
+            };
+            lignes: {
+                numero: number;
+                /** @enum {string} */
+                action: "enregistrer" | "deja_recue" | "erreur";
+                erreurs: string[];
+                etablissement: string;
+                /** Format: uuid */
+                commerce_id: string | null;
+                date: string | null;
+                poids_kg: number | null;
+                duree_jours: number | null;
+            }[];
+            ecrit: boolean;
+            /** Format: uuid */
+            importId?: string;
+            enregistrees?: number;
         };
         ActeurInformel: {
             /** Format: uuid */

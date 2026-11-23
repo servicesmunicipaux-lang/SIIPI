@@ -1105,7 +1105,8 @@
       "grillesTarifaires": "Grilles tarifaires",
       "etablissements": "Établissements",
       "conventions": "Conventions",
-      "levees": "Levées"
+      "levees": "Levées",
+      "campagnesPesee": "Campagnes de pesée"
     },
     "etats": {
       "fait": "Fait",
@@ -3389,7 +3390,25 @@
       "avenantIntrouvable": "Cet avenant est introuvable : il a été retiré entre-temps. Le détail est à jour.",
       "avenantPlusBrouillon": "Cet avenant n’est plus un brouillon : il a été instruit ou retiré entre-temps. Le détail est à jour.",
       "sansConteneur": "{{flux}} (repris sans son conteneur, retiré)",
-      "precedenteResiliee": "La convention renouvelée a été résiliée depuis : vérifiez que ce renouvellement a toujours lieu d’être."
+      "precedenteResiliee": "La convention renouvelée a été résiliée depuis : vérifiez que ce renouvellement a toujours lieu d’être.",
+      "tonnage": {
+        "titre": "Tonnage estimé des levées validées",
+        "periode": "Du {{debut}} au {{fin}}",
+        "fourchette": "Tonnage estimé : {{min}} à {{max}} ({{levees}}, {{origine}}, tous flux confondus)",
+        "levees_one": "{{n}} levée",
+        "levees_other": "{{n}} levées",
+        "densiteCommune": "densité de la commune",
+        "densitePays": "densité du pays",
+        "densiteMixte": "densités de la commune et du pays",
+        "estime": "Estimé",
+        "aucuneLevee": "Aucune levée validée.",
+        "nonRenseigne": "Non renseigné",
+        "sansVolume_one": "{{n}} levée sans volume dans les termes",
+        "sansVolume_other": "{{n}} levées sans volume dans les termes",
+        "sansDensite_one": "{{n}} levée sans densité pour la catégorie",
+        "sansDensite_other": "{{n}} levées sans densité pour la catégorie",
+        "jamaisFacture": "Jamais facturé : l’assiette se calcule sur les levées. Jamais additionné à une pesée."
+      }
     },
     "levees": {
       "titre": "Levées des établissements",
@@ -3476,6 +3495,204 @@
         "desserteClose": "La desserte de « {{etablissement}} » est clôturée.",
         "desserteRetiree": "La desserte de « {{etablissement}} » est retirée."
       }
+    },
+    "campagnesPesee": {
+      "titre": "Campagnes de pesée",
+      "chapeau": "Peser, pendant quelques semaines, ce que produisent les établissements assimilés ou un échantillon de ménages. On pèse chez l’établissement ou au ménage, jamais à la benne : aucune campagne n’est liée à un circuit ni à un engin. Close, une campagne est figée et ses résultats sont calculés une fois pour toutes.",
+      "lectureSeule": "La FNCT lit les campagnes de la commune et leurs résultats ; elle n’en mène aucune et ne lit jamais un ménage.",
+      "parties": {
+        "libelle": "Parties de l’écran Campagnes de pesée",
+        "campagnes": "Campagnes",
+        "densites": "Densités"
+      },
+      "campagnesAide": "Brouillon, ouverte, close : un brouillon se prépare et se modifie ; ouverte, la campagne reçoit ses pesées ; close, elle donne ses résultats par catégorie ou par tranche de revenu.",
+      "nouvelle": "Nouvelle campagne",
+      "aucune": "Aucune campagne de pesée pour l’instant.",
+      "compteurPesees_one": "{{n}} pesée",
+      "compteurPesees_other": "{{n}} pesées",
+      "compteurEtablissements_one": "{{n}} établissement",
+      "compteurEtablissements_other": "{{n}} établissements",
+      "compteurMenages_one": "{{n}} ménage",
+      "compteurMenages_other": "{{n}} ménages",
+      "detail": "Voir le détail",
+      "masquer": "Masquer le détail",
+      "protocole": "Protocole",
+      "ouverteLe": "Ouverte le {{date}}",
+      "closeLe": "Close le {{date}}",
+      "seuilApplique": "Seuil d’échantillon appliqué : {{n}}",
+      "ouvrir": "Ouvrir la campagne",
+      "modifier": "Modifier",
+      "retirer": "Retirer le brouillon",
+      "clore": "Clore la campagne",
+      "modifierFin": "Changer la fin prévue",
+      "importer": "Importer un export Kobo",
+      "brouillonAide": "Un brouillon ne reçoit aucune pesée : ouvrez la campagne le jour où l’on commence à peser.",
+      "cloreAide": "La clôture calcule les résultats et les fige : ensuite, aucune pesée ne s’ajoute, ne s’annule ni ne s’importe.",
+      "confirmerClore": "Clore et calculer",
+      "retirerAide": "Le brouillon sort de la liste ; il reste conservé en base, retiré, comme toute donnée de SIIPI.",
+      "confirmerRetrait": "Retirer",
+      "introuvable": "La campagne « {{intitule}} » est introuvable : elle a peut-être été retirée entre-temps. La liste est à jour.",
+      "menagesFnct": "Les ménages de l’échantillon et leurs pesées ne se lisent qu’à la commune. La FNCT lit les résultats par tranche de revenu, une fois la campagne close.",
+      "motifMin": "Le motif : {{n}} caractères au moins.",
+      "journalImports_one": "{{n}} import Kobo",
+      "journalImports_other": "{{n}} imports Kobo",
+      "bilanImport": "{{enregistrees}} enregistrée(s), {{dejaRecues}} déjà reçue(s), {{erreurs}} erreur(s)",
+      "messages": {
+        "creee": "Campagne enregistrée en brouillon.",
+        "modifiee": "Campagne modifiée.",
+        "ouverte": "Campagne ouverte : elle reçoit ses pesées.",
+        "close": "Campagne close : ses résultats sont calculés et figés.",
+        "retiree": "Le brouillon « {{intitule}} » est retiré.",
+        "importe": "Import enregistré : ses pesées sont au registre de la campagne.",
+        "adoptee": "La densité de « {{categorie}} » est adoptée par la commune."
+      },
+      "resultats": {
+        "titre": "Résultats",
+        "aide": "Par catégorie d’activité : le premier quartile, la médiane et le troisième quartile des valeurs des établissements. Un résultat ne propose une valeur que si au moins {{n}} établissements ont été mesurés (seuil national figé à la clôture).",
+        "aideMenages": "Par tranche de revenu : le premier quartile, la médiane et le troisième quartile, en kg par habitant et par jour. Le premier jour pesé de chaque ménage porte ce qui s’était accumulé avant la campagne et ne compte pas.",
+        "aucun": "Aucun résultat : aucune pesée n’a pu être retenue.",
+        "indicateur": "Indicateur",
+        "n": "Mesurés",
+        "fourchette": "Fourchette (Q1 – Q3)",
+        "mediane": "Médiane",
+        "etat": "État",
+        "masque": "Masqué : moins de 5 ménages",
+        "masqueAide": "Une tranche de moins de 5 ménages ne rend aucun quartile : ses valeurs désigneraient presque des foyers.",
+        "seuilAtteint": "Seuil atteint",
+        "sousSeuil": "Sous le seuil : la campagne ne propose rien",
+        "sousSeuilAide": "Moins de {{n}} établissements mesurés : les quartiles se lisent, en gris, mais la campagne ne propose aucune valeur pour cet indicateur.",
+        "adoptee": "Adoptée par la commune",
+        "adopter": "Adopter cette densité",
+        "ecartesEtablissements_one": "« {{indicateur}} » : {{n}} établissement écarté — {{raison}}.",
+        "ecartesEtablissements_other": "« {{indicateur}} » : {{n}} établissements écartés — {{raison}}.",
+        "ecartesMenages_one": "« {{indicateur}} » : {{n}} ménage écarté — {{raison}}.",
+        "ecartesMenages_other": "« {{indicateur}} » : {{n}} ménages écartés — {{raison}}.",
+        "mesures_one": "La mesure de chaque établissement ({{n}})",
+        "mesures_other": "Les mesures de chaque établissement ({{n}})",
+        "etablissement": "Établissement",
+        "valeur": "Valeur",
+        "ecarte": "Écarté : {{raison}}"
+      },
+      "menages": {
+        "titre": "Échantillon de ménages",
+        "aide": "Un ménage n’est qu’un code posé par SIIPI (M-001…), un nombre d’habitants et une tranche de revenu : ni nom, ni adresse, ni secteur. Un ménage ne se modifie pas.",
+        "habitants": "Nombre d’habitants",
+        "habitantsBornes": "Un nombre entier, de 1 à 30.",
+        "tranche": "Tranche de revenu",
+        "ajouter": "Ajouter le ménage",
+        "ajoute": "Ménage {{code}} ajouté à l’échantillon.",
+        "aucun": "Aucun ménage dans l’échantillon pour l’instant.",
+        "indisponibles": "L’échantillon n’a pas pu être lu.",
+        "ligne": "{{habitants}} · {{tranche}} · {{pesees}}",
+        "nbHabitants_one": "{{n}} habitant",
+        "nbHabitants_other": "{{n}} habitants"
+      },
+      "pesees": {
+        "titre": "Pesées",
+        "aide": "Chaque pesée vise un établissement ouvert le jour de la pesée, avec sa catégorie : elle fige la catégorie, l’unité et la valeur d’échelle du jour. Les pesées d’un même jour d’un établissement s’additionnent et couvrent la même durée.",
+        "aideMenages": "Chaque pesée vise un ménage de l’échantillon : son poids et la durée qu’elle couvre, rien d’autre. Le premier jour pesé de chaque ménage porte ce qui s’était accumulé et n’est pas compté.",
+        "valides_one": "pesée valide",
+        "valides_other": "pesées valides",
+        "brouillon": "Les pesées se saisissent une fois la campagne ouverte.",
+        "pasCommencee": "La campagne commence le {{date}} : une pesée se saisit à partir de ce jour.",
+        "etablissement": "Établissement",
+        "menage": "Ménage",
+        "aucunMenage": "Ajoutez d’abord un ménage à l’échantillon.",
+        "etablissementsIndisponibles": "Les établissements n’ont pas pu être lus.",
+        "sansCategorie_one": "{{n}} établissement ouvert sans catégorie d’activité n’apparaît pas : complétez-le dans « Établissements ».",
+        "sansCategorie_other": "{{n}} établissements ouverts sans catégorie d’activité n’apparaissent pas : complétez-les dans « Établissements ».",
+        "sansUnite": "Cet établissement n’a pas d’unité d’échelle : il sera écarté du kg par jour et par unité, pas des autres indicateurs.",
+        "date": "Jour de la pesée",
+        "poids": "Poids (kg)",
+        "duree": "Durée couverte",
+        "uniteDuree": "Unité de la durée",
+        "jours": "jours",
+        "heures": "heures",
+        "dureeAide": "Le temps depuis le dernier vidage. En heures (2 décimales au plus), elle est convertie en jours à 6 décimales, comme à l’import Kobo.",
+        "contenant": "Contenant (facultatif)",
+        "volume": "Volume du contenant (L)",
+        "remplissage": "Remplissage (%)",
+        "contenantAide": "Le volume sert au poids d’une levée ; le volume et le remplissage, à la densité (kg/m³). Sans eux, la pesée ne compte que pour le kg par jour.",
+        "ajouterAuLot": "Ajouter au lot",
+        "lot_one": "{{n}} pesée à envoyer",
+        "lot_other": "{{n}} pesées à envoyer",
+        "retirerDuLot": "Retirer",
+        "retirerDuLotDe": "Retirer du lot la pesée de « {{cible}} »",
+        "envoyer_one": "Enregistrer {{n}} pesée",
+        "envoyer_other": "Enregistrer {{n}} pesées",
+        "enregistrees_one": "{{n}} pesée enregistrée.",
+        "enregistrees_other": "{{n}} pesées enregistrées.",
+        "dejaRecues_one": "{{n}} était déjà reçue.",
+        "dejaRecues_other": "{{n}} étaient déjà reçues.",
+        "aucune": "Aucune pesée pour l’instant.",
+        "jourN": "jour {{n}}",
+        "poidsDuree": "{{poids}} kg sur {{duree}}",
+        "volumeL": "{{v}} L",
+        "ligneImport": "Ligne {{n}} de l’export Kobo",
+        "annuleePastille": "Annulée",
+        "motifAnnulation": "Annulée : {{motif}}",
+        "annuler": "Annuler la pesée",
+        "motifAnnulationLibelle": "Motif de l’annulation",
+        "confirmerAnnulation": "Confirmer l’annulation",
+        "annulationAide": "Une pesée ne s’efface pas : elle reste au registre, annulée, avec son motif.",
+        "annulee": "La pesée de « {{cible}} » est annulée.",
+        "tronque": "{{n}} pesées affichées sur {{total}}.",
+        "problemes": {
+          "etablissement": "Choisissez l’établissement pesé.",
+          "menage": "Choisissez le ménage pesé.",
+          "date": "Le jour de la pesée est entre le {{debut}} et le {{fin}}.",
+          "poids": "Le poids : plus de 0 et 5 000 kg au plus, 3 décimales au plus.",
+          "duree": "La durée couverte : plus de 0 et 31 jours au plus ; 6 décimales au plus en jours, 2 en heures.",
+          "dureeDuJour": "Une pesée du {{date}} de cette cible couvre déjà {{duree}} : les pesées d’un même jour couvrent la même durée.",
+          "volume": "Le volume du contenant : plus de 0 et 30 000 L au plus, 1 décimale au plus.",
+          "remplissage": "Le remplissage : plus de 0 et 100 % au plus, 1 décimale au plus.",
+          "densite": "Ce poids, ce volume et ce remplissage donnent {{densite}} kg/m³, au-delà de {{max}} kg/m³ : le remplissage est un pourcentage (50 pour un bac à moitié plein, pas 0,5).",
+          "ferme": "« {{nom}} » est fermé depuis le {{date}} : seule une pesée d’avant ce jour se reçoit."
+        },
+        "fermeLe": "fermé le {{date}}",
+        "reprendreDuree": "Reprendre cette durée ({{duree}})",
+        "lotOrphelin_one": "{{n}} pesée du lot n’a pas été enregistrée, et ne peut plus l’être : la campagne n’est plus ouverte.",
+        "lotOrphelin_other": "{{n}} pesées du lot n’ont pas été enregistrées, et ne peuvent plus l’être : la campagne n’est plus ouverte.",
+        "viderLot": "Abandonner ces pesées"
+      },
+      "densites": {
+        "aide": "La densité (kg/m³) d’une catégorie d’activité sert à estimer le tonnage des levées d’une convention. Elle vient d’une campagne close de la commune (adoptée), d’une source écrite, ou du pays. Une densité ne se réécrit pas : elle se retire, avec son motif, et reste visible.",
+        "nouvelle": "Saisir une densité",
+        "aucune": "Aucune densité pour l’instant, ni de la commune ni du pays.",
+        "fourchette": "De {{min}} à {{max}} kg/m³",
+        "mediane": "médiane {{v}} kg/m³",
+        "campagne": "campagne « {{intitule}} »",
+        "retireeLe": "Retirée le {{date}} : {{motif}}",
+        "retirer": "Retirer",
+        "motifRetrait": "Motif du retrait",
+        "confirmerRetrait": "Confirmer le retrait",
+        "retraitAide": "Retirée, la densité reste lisible ; une estimation ne s’en sert plus.",
+        "messages": {
+          "saisie": "Densité enregistrée.",
+          "retiree": "Densité retirée."
+        },
+        "etats": {
+          "en_vigueur": "En vigueur",
+          "a_venir": "À venir",
+          "remplacee": "Remplacée",
+          "retiree": "Retirée"
+        },
+        "textes": {
+          "en_vigueur": "En vigueur depuis le {{date}} : c’est elle qui sert aujourd’hui aux estimations.",
+          "a_venir": "À partir du {{date}} : pas encore en vigueur.",
+          "remplacee": "Date d’effet : {{date}}. Remplacée.",
+          "remplaceeCommune": "Date d’effet : {{date}}. Non retenue : la densité de la commune, en vigueur depuis le {{depuis}}, prévaut.",
+          "remplaceePlusRecente": "Date d’effet : {{date}}. Remplacée le {{depuis}} par une densité plus récente.",
+          "retiree": "Date d’effet : {{date}}."
+        }
+      },
+      "regleMenages": "Aucun seuil d’échantillon : une tranche de moins de 5 ménages est masquée",
+      "closeEntreTemps": "Cette campagne a été close entre-temps : elle est figée, et ses résultats sont calculés.",
+      "lotEnAttente_one": "{{n}} pesée en attente d’envoi",
+      "lotEnAttente_other": "{{n}} pesées en attente d’envoi",
+      "cloreLotEnAttente_one": "{{n}} pesée du lot n’est pas enregistrée : la clôture ne la compterait pas. Enregistrez-la, ou retirez-la du lot, avant de clore.",
+      "cloreLotEnAttente_other": "{{n}} pesées du lot ne sont pas enregistrées : la clôture ne les compterait pas. Enregistrez-les, ou retirez-les du lot, avant de clore.",
+      "envoiEnCours": "Envoi des pesées en cours : la carte reste ouverte et la partie reste affichée jusqu’à sa réponse."
     }
   },
   "ajout": {
@@ -3582,7 +3799,11 @@
       "import-etablissements": "La liste TCL ou un jeu open data (CSV, Excel)",
       "desserte": "Une desserte d’établissement",
       "import-levees": "Des levées (export Kobo, CSV ou Excel)",
-      "levee": "Une levée"
+      "levee": "Une levée",
+      "campagne-pesee": "Une campagne de pesée",
+      "densite-assimiles": "Une densité des assimilés",
+      "import-pesees": "Des pesées de campagne (export Kobo, CSV ou Excel)",
+      "pesee-campagne": "Une pesée de campagne"
     },
     "precisions": {
       "circuit": "Avec son fichier GPX, KML ou GeoJSON",
@@ -3592,7 +3813,10 @@
       "declaration-panne": "panne d’un engin, numérotée",
       "grille-tarifaire": "Tarifs des conventions de propreté, par arrêté",
       "desserte": "Établissement → point d’arrêt d’un circuit",
-      "levee": "Sur la feuille du jour d’un circuit"
+      "levee": "Sur la feuille du jour d’un circuit",
+      "campagne-pesee": "Établissements assimilés ou échantillon de ménages",
+      "densite-assimiles": "kg/m³ d’une catégorie, d’après le guide TADAEEM ou par défaut",
+      "pesee-campagne": "Dans une campagne ouverte"
     },
     "position": {
       "aide": "Cliquez sur la carte pour poser la position.",
@@ -4016,6 +4240,85 @@
       "problemes": {
         "obligatoire": "« {{champ}} » : choisissez la colonne du fichier qui le porte.",
         "memeColonne": "La colonne « {{colonne}} » ne peut pas servir à la fois à « {{a}} » et à « {{b}} »."
+      }
+    },
+    "campagnePesee": {
+      "titre": "Nouvelle campagne de pesée",
+      "titreModifier": "Modifier le brouillon",
+      "titreFin": "Changer la fin prévue",
+      "aide": "Une campagne dure {{n}} jours au plus. Elle naît en brouillon ; on l’ouvre le jour où l’on commence à peser.",
+      "aideOuverte": "Ouverte, une campagne ne change plus que sa fin prévue — jamais avant une pesée déjà enregistrée — et son observation.",
+      "objet": "Ce que la campagne pèse",
+      "objetsAide": {
+        "etablissements": "Les déchets assimilés des établissements : kg par jour et par unité d’échelle, poids d’une levée, densité.",
+        "menages": "Un échantillon de ménages, par tranche de revenu : kg par habitant et par jour."
+      },
+      "intitule": "Intitulé",
+      "dateDebut": "Premier jour",
+      "dateFin": "Dernier jour",
+      "dateFinPrevue": "Dernier jour prévu",
+      "duree_one": "{{count}} jour",
+      "duree_other": "{{count}} jours",
+      "protocole": "Protocole (facultatif)",
+      "protocoleAide": "Comment on pèse : balance, heure, contenants, consignes données aux équipes.",
+      "problemes": {
+        "intitule": "L’intitulé : 3 caractères au moins.",
+        "debut": "Le premier jour est attendu.",
+        "fin": "Le dernier jour est attendu.",
+        "ordre": "Le dernier jour ne précède pas le premier.",
+        "duree": "Une campagne dure {{n}} jours au plus."
+      },
+      "conflit": "La campagne a été relue : annulez, puis rouvrez « Modifier » ou « Changer la fin prévue » pour repartir de la version à jour (la saisie en cours ne sera pas gardée)."
+    },
+    "densite": {
+      "titre": "Nouvelle densité de la commune",
+      "aide": "Une fourchette en kg/m³ pour une catégorie d’activité, avec la pièce qui la fonde. Une densité de campagne ne se saisit pas : elle s’adopte depuis la campagne close. Le guide TADAEEM donne des t/m³ : 0,2 t/m³ = 200 kg/m³.",
+      "categorie": "Catégorie d’activité",
+      "aucuneCategorie": "Aucune catégorie d’activité n’est en vigueur aujourd’hui dans la liste nationale.",
+      "min": "Densité minimale (kg/m³)",
+      "max": "Densité maximale (kg/m³)",
+      "mediane": "Médiane (kg/m³, facultative)",
+      "source": "Source",
+      "reference": "Pièce de référence",
+      "referenceAide": "Le document qui fonde la valeur : page du guide, note, étude.",
+      "dateEffet": "En vigueur à partir du",
+      "listeIndisponible": "La liste des catégories d’activité n’a pas pu être lue.",
+      "problemes": {
+        "categorie": "Choisissez la catégorie d’activité.",
+        "bornes": "Les deux densités : plus de 0 et {{max}} kg/m³ au plus.",
+        "ordre": "La densité minimale ne dépasse pas la maximale.",
+        "mediane": "La médiane est entre la densité minimale et la maximale.",
+        "reference": "La pièce de référence : 5 caractères au moins.",
+        "date": "La date d’effet est attendue."
+      },
+      "tonnesProbables": "Moins de {{seuil}} kg/m³ : avez-vous saisi des t/m³ ? Le guide TADAEEM et la matrice nationale donnent leurs densités en t/m³ : 0,2 t/m³ = 200 kg/m³. Vérifiez la pièce avant d’enregistrer."
+    },
+    "importPesees": {
+      "titre": "Importer des pesées (export Kobo)",
+      "aide": "L’export d’un formulaire Kobo, en CSV ou en Excel (.xlsx), tel quel, dans une campagne d’établissements ouverte. Vous dites quelle colonne porte quelle information ; SIIPI garde votre choix pour la fois suivante. Rien n’est écrit avant la dernière étape ; les lignes valables sont alors enregistrées.",
+      "aideDuree": "La durée couverte se lit soit en jours, soit en heures : choisissez une seule des deux colonnes.",
+      "aideEtablissement": "L’établissement se reconnaît à son matricule fiscal ou à son identifiant SIIPI, jamais à son nom.",
+      "aideNombres": "Un nombre porte au plus un séparateur décimal (12,5 ou 12.5) ; « 1.250,5 » est refusé, car ambigu.",
+      "aideCles": "La clé de la soumission : de préférence meta/rootUuid, qui ne change pas quand la soumission est modifiée dans Kobo.",
+      "etapes": {
+        "campagne": "0. La campagne"
+      },
+      "campagne": "Campagne d’établissements ouverte",
+      "aucuneOuverte": "Aucune campagne d’établissements n’est ouverte : ouvrez-en une dans « Campagnes de pesée ».",
+      "campagnesIndisponibles": "Les campagnes de pesée n’ont pas pu être lues.",
+      "actions": {
+        "enregistrer": "À enregistrer",
+        "deja_recue": "Déjà reçue",
+        "erreur": "Erreur"
+      },
+      "poidsDuree": "{{poids}} kg sur {{duree}}",
+      "valider_one": "Enregistrer {{n}} pesée",
+      "valider_other": "Enregistrer {{n}} pesées",
+      "bilan_one": "{{n}} pesée enregistrée dans la campagne.",
+      "bilan_other": "{{n}} pesées enregistrées dans la campagne.",
+      "problemes": {
+        "dureeDeux": "La durée couverte se lit en jours OU en heures : choisissez une seule des deux colonnes.",
+        "dureeAucune": "« Durée couverte » : choisissez la colonne qui la porte, en jours ou en heures."
       }
     }
   },
@@ -5126,6 +5429,67 @@
       "autreVoyage": "Voyage {{n}} : {{statut}}",
       "enregistrer": "Enregistrer ({{n}})",
       "proposer": "Proposer ({{n}})"
+    }
+  },
+  "campagnesPesee": {
+    "periode": "Du {{debut}} au {{fin}}",
+    "objets": {
+      "etablissements": "Établissements",
+      "menages": "Ménages"
+    },
+    "statuts": {
+      "brouillon": "Brouillon",
+      "ouverte": "Ouverte",
+      "close": "Close"
+    },
+    "tranches": {
+      "bas": "Revenu bas",
+      "moyen": "Revenu moyen",
+      "eleve": "Revenu élevé"
+    },
+    "sources": {
+      "campagne": "Campagne de pesée",
+      "tadaeem": "Guide TADAEEM",
+      "defaut": "Valeur par défaut"
+    },
+    "sourcesPesee": {
+      "portail": "Portail",
+      "kobo": "Kobo"
+    },
+    "portees": {
+      "commune": "Commune",
+      "nationale": "Pays"
+    },
+    "indicateurs": {
+      "kg_jour_unite": "kg par jour et par {{unite}}",
+      "kg_levee": "Poids d’une levée, contenant de {{volume}} L",
+      "kg_levee_sans_volume": "Poids d’une levée",
+      "kg_m3": "Densité (kg/m³)",
+      "kg_hab_jour": "kg par habitant et par jour",
+      "kg_jour_unite_sans_unite": "kg par jour et par unité d’échelle"
+    },
+    "unites": {
+      "chambre": "chambre",
+      "lit": "lit",
+      "chaise": "chaise",
+      "table": "table",
+      "etal": "étal",
+      "m2": "m²",
+      "eleve": "élève",
+      "employe": "employé"
+    },
+    "raisons": {
+      "sans_unite": "sans unité ou sans valeur d’échelle",
+      "echelle_modifiee": "unité ou valeur d’échelle changée pendant la campagne",
+      "categorie_modifiee": "catégorie d’activité changée pendant la campagne",
+      "sans_volume": "aucune pesée avec le volume du contenant",
+      "sans_volume_ou_remplissage": "volume du contenant ou remplissage manquant",
+      "une_seule_pesee": "un seul jour pesé : le premier porte ce qui s’était accumulé et ne compte pas",
+      "aucune_pesee": "aucune pesée valide (jamais pesé, ou pesées annulées)"
+    },
+    "duree": {
+      "jours": "{{n}} j",
+      "joursHeures": "{{n}} j ({{h}} h)"
     }
   }
 }

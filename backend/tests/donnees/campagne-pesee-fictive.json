@@ -1,0 +1,1452 @@
+{
+ "etablissements": [
+  {
+   "cle": "cafe01",
+   "nom": "TEST Café pesé 01",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 14,
+   "matricule": "7654301A"
+  },
+  {
+   "cle": "cafe02",
+   "nom": "TEST Café pesé 02",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 18,
+   "matricule": "7654302A"
+  },
+  {
+   "cle": "cafe03",
+   "nom": "TEST Café pesé 03",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 22,
+   "matricule": "7654303A"
+  },
+  {
+   "cle": "cafe04",
+   "nom": "TEST Café pesé 04",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 26,
+   "matricule": "7654304A"
+  },
+  {
+   "cle": "cafe05",
+   "nom": "TEST Café pesé 05",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 30,
+   "matricule": "7654305A"
+  },
+  {
+   "cle": "cafe06",
+   "nom": "TEST Café pesé 06",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 34,
+   "matricule": "7654306A"
+  },
+  {
+   "cle": "cafe07",
+   "nom": "TEST Café pesé 07",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 38,
+   "matricule": "7654307A"
+  },
+  {
+   "cle": "cafe08",
+   "nom": "TEST Café pesé 08",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 42,
+   "matricule": "7654308A"
+  },
+  {
+   "cle": "cafe09",
+   "nom": "TEST Café pesé 09",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 46,
+   "matricule": "7654309A"
+  },
+  {
+   "cle": "cafe10",
+   "nom": "TEST Café pesé 10",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 50,
+   "matricule": "7654310A"
+  },
+  {
+   "cle": "cafe11",
+   "nom": "TEST Café pesé 11",
+   "categorie": "cafe",
+   "unite": null,
+   "valeur": null,
+   "matricule": "7654311A"
+  },
+  {
+   "cle": "cafe12",
+   "nom": "TEST Café pesé 12",
+   "categorie": "cafe",
+   "unite": "chaise",
+   "valeur": 58,
+   "matricule": "7654312A"
+  },
+  {
+   "cle": "resto1",
+   "nom": "TEST Restaurant pesé 1",
+   "categorie": "restaurant",
+   "unite": "table",
+   "valeur": 8,
+   "matricule": "7654401B"
+  },
+  {
+   "cle": "resto2",
+   "nom": "TEST Restaurant pesé 2",
+   "categorie": "restaurant",
+   "unite": "table",
+   "valeur": 11,
+   "matricule": "7654402B"
+  },
+  {
+   "cle": "resto3",
+   "nom": "TEST Restaurant pesé 3",
+   "categorie": "restaurant",
+   "unite": "table",
+   "valeur": 14,
+   "matricule": "7654403B"
+  },
+  {
+   "cle": "hotel1",
+   "nom": "TEST Hôtel pesé 1",
+   "categorie": "hotel",
+   "unite": "chambre",
+   "valeur": 24,
+   "matricule": "7654501C"
+  },
+  {
+   "cle": "hotel2",
+   "nom": "TEST Hôtel pesé 2",
+   "categorie": "hotel",
+   "unite": "lit",
+   "valeur": 80,
+   "matricule": "7654502C"
+  },
+  {
+   "cle": "superette1",
+   "nom": "TEST Supérette pesée 1",
+   "categorie": "superette",
+   "unite": "m2",
+   "valeur": 120,
+   "matricule": "7654601D"
+  },
+  {
+   "cle": "superette2",
+   "nom": "TEST Supérette pesée 2",
+   "categorie": "superette",
+   "unite": "m2",
+   "valeur": 140,
+   "matricule": "7654602D"
+  },
+  {
+   "cle": "superette3",
+   "nom": "TEST Supérette pesée 3",
+   "categorie": "superette",
+   "unite": "m2",
+   "valeur": 160,
+   "matricule": "7654603D"
+  },
+  {
+   "cle": "superette4",
+   "nom": "TEST Supérette pesée 4",
+   "categorie": "superette",
+   "unite": "m2",
+   "valeur": 160,
+   "matricule": "7654604D"
+  },
+  {
+   "cle": "superette5",
+   "nom": "TEST Supérette pesée 5",
+   "categorie": "superette",
+   "unite": "m2",
+   "valeur": 140,
+   "matricule": "7654605D"
+  },
+  {
+   "cle": "superette6",
+   "nom": "TEST Supérette pesée 6",
+   "categorie": "superette",
+   "unite": "m2",
+   "valeur": 150,
+   "matricule": "7654606D",
+   "lot": true
+  },
+  {
+   "cle": "atelier1",
+   "nom": "TEST Atelier reclassé",
+   "categorie": "atelier",
+   "unite": "m2",
+   "valeur": 80,
+   "matricule": "7654701E"
+  }
+ ],
+ "pesees": [
+  {
+   "jour": 2,
+   "poids": 7.7,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 45,
+   "etab": "cafe01"
+  },
+  {
+   "jour": 3,
+   "poids": 7.4,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 54,
+   "etab": "cafe01"
+  },
+  {
+   "jour": 5,
+   "poids": 14.1,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe01"
+  },
+  {
+   "jour": 2,
+   "poids": 4.3,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 30,
+   "etab": "cafe01"
+  },
+  {
+   "jour": 2,
+   "poids": 9.4,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 50,
+   "etab": "cafe02"
+  },
+  {
+   "jour": 3,
+   "poids": 9.3,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 58,
+   "etab": "cafe02"
+  },
+  {
+   "jour": 5,
+   "poids": 17.2,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe02"
+  },
+  {
+   "jour": 2,
+   "poids": 11.1,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 55,
+   "etab": "cafe03"
+  },
+  {
+   "jour": 3,
+   "poids": 11.2,
+   "duree": 1,
+   "volume": null,
+   "remplissage": 62,
+   "etab": "cafe03"
+  },
+  {
+   "jour": 5,
+   "poids": 20.3,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe03"
+  },
+  {
+   "jour": 2,
+   "poids": 12.8,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 60,
+   "etab": "cafe04"
+  },
+  {
+   "jour": 3,
+   "poids": 13.1,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 66,
+   "etab": "cafe04"
+  },
+  {
+   "jour": 5,
+   "poids": 23.4,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe04"
+  },
+  {
+   "jour": 2,
+   "poids": 14.5,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 65,
+   "etab": "cafe05"
+  },
+  {
+   "jour": 3,
+   "poids": 15.0,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 50,
+   "etab": "cafe05"
+  },
+  {
+   "jour": 5,
+   "poids": 26.5,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe05"
+  },
+  {
+   "jour": 2,
+   "poids": 16.2,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 70,
+   "etab": "cafe06"
+  },
+  {
+   "jour": 3,
+   "poids": 16.9,
+   "duree": 1,
+   "volume": null,
+   "remplissage": 54,
+   "etab": "cafe06"
+  },
+  {
+   "jour": 5,
+   "poids": 29.6,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe06"
+  },
+  {
+   "jour": 2,
+   "poids": 17.9,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 40,
+   "etab": "cafe07"
+  },
+  {
+   "jour": 3,
+   "poids": 18.8,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 58,
+   "etab": "cafe07"
+  },
+  {
+   "jour": 5,
+   "poids": 32.7,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe07"
+  },
+  {
+   "jour": 2,
+   "poids": 19.6,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 45,
+   "etab": "cafe08"
+  },
+  {
+   "jour": 3,
+   "poids": 20.7,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 62,
+   "etab": "cafe08"
+  },
+  {
+   "jour": 5,
+   "poids": 35.8,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe08"
+  },
+  {
+   "jour": 2,
+   "poids": 21.3,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 50,
+   "etab": "cafe09"
+  },
+  {
+   "jour": 3,
+   "poids": 22.6,
+   "duree": 1,
+   "volume": null,
+   "remplissage": 66,
+   "etab": "cafe09"
+  },
+  {
+   "jour": 5,
+   "poids": 38.9,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe09"
+  },
+  {
+   "jour": 2,
+   "poids": 23.0,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 55,
+   "etab": "cafe10"
+  },
+  {
+   "jour": 3,
+   "poids": 24.5,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 50,
+   "etab": "cafe10"
+  },
+  {
+   "jour": 5,
+   "poids": 42.0,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe10"
+  },
+  {
+   "jour": 2,
+   "poids": 24.7,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 60,
+   "etab": "cafe11"
+  },
+  {
+   "jour": 3,
+   "poids": 26.4,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 54,
+   "etab": "cafe11"
+  },
+  {
+   "jour": 5,
+   "poids": 45.1,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "cafe11"
+  },
+  {
+   "jour": 2,
+   "poids": 26.4,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 65,
+   "etab": "cafe12"
+  },
+  {
+   "jour": 3,
+   "poids": 28.3,
+   "duree": 1,
+   "volume": null,
+   "remplissage": 58,
+   "etab": "cafe12"
+  },
+  {
+   "jour": 5,
+   "poids": 48.2,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "valeur": 70,
+   "etab": "cafe12"
+  },
+  {
+   "jour": 2,
+   "poids": 18.5,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 70,
+   "etab": "resto1"
+  },
+  {
+   "jour": 4,
+   "poids": 9.7,
+   "duree": 0.5,
+   "volume": 240,
+   "remplissage": 40,
+   "etab": "resto1"
+  },
+  {
+   "jour": 2,
+   "poids": 23.0,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 80,
+   "etab": "resto2"
+  },
+  {
+   "jour": 4,
+   "poids": 11.9,
+   "duree": 0.5,
+   "volume": 240,
+   "remplissage": 45,
+   "etab": "resto2"
+  },
+  {
+   "jour": 2,
+   "poids": 27.5,
+   "duree": 1,
+   "volume": 240,
+   "remplissage": 90,
+   "etab": "resto3"
+  },
+  {
+   "jour": 4,
+   "poids": 14.1,
+   "duree": 0.5,
+   "volume": 240,
+   "remplissage": 50,
+   "etab": "resto3"
+  },
+  {
+   "jour": 2,
+   "poids": 41.6,
+   "duree": 1,
+   "volume": 660,
+   "remplissage": 70,
+   "etab": "hotel1"
+  },
+  {
+   "jour": 3,
+   "poids": 63.2,
+   "duree": 1,
+   "volume": 660,
+   "remplissage": 85,
+   "etab": "hotel2"
+  },
+  {
+   "jour": 2,
+   "poids": 4.1,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 65,
+   "etab": "superette1"
+  },
+  {
+   "jour": 6,
+   "poids": 7.6,
+   "duree": 2,
+   "volume": 240,
+   "remplissage": 50,
+   "etab": "superette1"
+  },
+  {
+   "jour": 2,
+   "poids": 5.0,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 70,
+   "etab": "superette2"
+  },
+  {
+   "jour": 6,
+   "poids": 8.7,
+   "duree": 2,
+   "volume": 240,
+   "remplissage": 55,
+   "etab": "superette2"
+  },
+  {
+   "jour": 2,
+   "poids": 5.9,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 75,
+   "etab": "superette3"
+  },
+  {
+   "jour": 6,
+   "poids": 9.8,
+   "duree": 2,
+   "volume": 240,
+   "remplissage": 60,
+   "etab": "superette3"
+  },
+  {
+   "jour": 2,
+   "poids": 4.1,
+   "duree": 1,
+   "volume": null,
+   "remplissage": null,
+   "etab": "superette4"
+  },
+  {
+   "jour": 6,
+   "poids": 7.3,
+   "duree": 2,
+   "volume": null,
+   "remplissage": null,
+   "etab": "superette4"
+  },
+  {
+   "jour": 3,
+   "poids": 5.2,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": null,
+   "etab": "superette5"
+  },
+  {
+   "jour": 7,
+   "poids": 4.4,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": null,
+   "etab": "superette5"
+  },
+  {
+   "jour": 2,
+   "poids": 4.4,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 70,
+   "valeur": 165,
+   "etab": "superette6"
+  },
+  {
+   "jour": 4,
+   "poids": 3.9,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 65,
+   "valeur": 165,
+   "etab": "superette6"
+  },
+  {
+   "jour": 3,
+   "poids": 2.6,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 50,
+   "categorie": "bureau",
+   "etab": "atelier1"
+  },
+  {
+   "jour": 5,
+   "poids": 3.1,
+   "duree": 1,
+   "volume": 120,
+   "remplissage": 55,
+   "categorie": "boulangerie",
+   "etab": "atelier1"
+  }
+ ],
+ "menages": [
+  {
+   "rang": 1,
+   "habitants": 3,
+   "tranche": "bas",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 28.63,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 2.06,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 2.19,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 2.32,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 2.45,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 2.58,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 2.71,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 2.84,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 2,
+   "habitants": 4,
+   "tranche": "bas",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 38.26,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 2.92,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 3.18,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 3.44,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 3.7,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 3.96,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 4.22,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 4.48,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 3,
+   "habitants": 5,
+   "tranche": "bas",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 47.89,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 3.78,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 4.17,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 4.56,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 4.95,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 5.34,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 5.73,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 6.12,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 4,
+   "habitants": 6,
+   "tranche": "bas",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 57.52,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 4.64,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 5.16,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 5.68,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 6.2,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 6.72,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 7.24,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 7.76,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 5,
+   "habitants": 2,
+   "tranche": "bas",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 19.65,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 2.5,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 3.15,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 3.8,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 4.45,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 5.1,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 5.75,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 6.4,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 6,
+   "habitants": 3,
+   "tranche": "bas",
+   "pesees": [
+    {
+     "jour": 3,
+     "poids": 30.84,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 4.92,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 5.7,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 6.48,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 7.26,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 8.04,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 7,
+   "habitants": 4,
+   "tranche": "moyen",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 38.91,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 4.22,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 5.13,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 6.04,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 6.95,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 7.86,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 8.77,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 9.68,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 8,
+   "habitants": 5,
+   "tranche": "moyen",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 48.54,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 5.08,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 6.12,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 7.16,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 8.2,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 9.24,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 10.28,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 11.32,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 9,
+   "habitants": 6,
+   "tranche": "moyen",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 58.17,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 5.94,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 7.11,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 8.28,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 9.45,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 10.62,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 11.79,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 12.96,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 10,
+   "habitants": 2,
+   "tranche": "moyen",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 20.3,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 3.8,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 5.1,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 6.4,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 7.7,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 9.0,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 10.3,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 11.6,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 11,
+   "habitants": 3,
+   "tranche": "moyen",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 29.93,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 4.66,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 6.09,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 7.52,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 8.95,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 10.38,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 11.81,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 13.24,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 12,
+   "habitants": 4,
+   "tranche": "eleve",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 39.56,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 5.52,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 7.08,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 8.64,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 10.2,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 11.76,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 13.32,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 14.88,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 13,
+   "habitants": 5,
+   "tranche": "eleve",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 49.19,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 6.38,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 8.07,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 9.76,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 11.45,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 13.14,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 14.83,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 16.52,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 14,
+   "habitants": 6,
+   "tranche": "eleve",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 58.82,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 7.24,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 9.06,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 10.88,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 12.7,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 14.52,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 16.34,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 18.16,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 15,
+   "habitants": 2,
+   "tranche": "eleve",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 20.95,
+     "duree": 1
+    },
+    {
+     "jour": 2,
+     "poids": 5.1,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 7.05,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 9.0,
+     "duree": 1
+    },
+    {
+     "jour": 5,
+     "poids": 10.95,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 12.9,
+     "duree": 1
+    },
+    {
+     "jour": 7,
+     "poids": 14.85,
+     "duree": 1
+    },
+    {
+     "jour": 8,
+     "poids": 16.8,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 16,
+   "habitants": 4,
+   "tranche": "eleve",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 40.08,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 17,
+   "habitants": 3,
+   "tranche": "moyen",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 20.0,
+     "duree": 1
+    },
+    {
+     "jour": 1,
+     "poids": 7.5,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 2.1,
+     "duree": 1
+    },
+    {
+     "jour": 4,
+     "poids": 1.4,
+     "duree": 1
+    },
+    {
+     "jour": 6,
+     "poids": 1.9,
+     "duree": 1
+    }
+   ]
+  },
+  {
+   "rang": 18,
+   "habitants": 5,
+   "tranche": "moyen",
+   "pesees": [
+    {
+     "jour": 1,
+     "poids": 31.0,
+     "duree": 1
+    },
+    {
+     "jour": 3,
+     "poids": 5.8,
+     "duree": 2
+    },
+    {
+     "jour": 5,
+     "poids": 6.3,
+     "duree": 2
+    },
+    {
+     "jour": 7,
+     "poids": 5.1,
+     "duree": 2
+    }
+   ]
+  },
+  {
+   "rang": 19,
+   "habitants": 4,
+   "tranche": "bas",
+   "pesees": []
+  }
+ ],
+ "seuil": 10,
+ "masque_menages": 5
+}

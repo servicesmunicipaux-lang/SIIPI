@@ -146,6 +146,25 @@ import {
 } from '../routes/levees.routes.js';
 import { CLES_CHAMPS_LEVEES } from '../services/importLevees.js';
 import {
+  adoptionSchema,
+  annulationPeseeSchema,
+  campagneSchema,
+  densiteSchema,
+  fichierPeseesSchema,
+  importPeseesSchema,
+  lotPeseesSchema,
+  menageSchema,
+  modificationCampagneSchema,
+  OBJETS_CAMPAGNE,
+  qCampagnes,
+  retraitDensiteAssimilesSchema,
+  SOURCES_DENSITE,
+  STATUTS_CAMPAGNE,
+  TRANCHES_REVENU,
+  versionCampagneSchema,
+} from '../routes/campagnesPesee.routes.js';
+import { CLES_CHAMPS_PESEES } from '../services/importPesees.js';
+import {
   demandeCarteSchema,
   pieceCarteSchema,
   accordCarteSchema,
@@ -5160,6 +5179,34 @@ const Convention = registry.register(
       description: 'Les déchets couverts aujourd’hui (à Tunis) : ceux du dernier avenant signé qui a pris effet, sinon ceux d’origine (app.termes_convention).',
     }),
     avenants: z.array(Avenant),
+    tonnage_estime: z
+      .array(
+        z.object({
+          mois: z.string(),
+          debut: z.string(),
+          fin: z.string(),
+          levees: z.number().int(),
+          sans_volume: z.number().int(),
+          sans_densite: z.number().int(),
+          kg_min: z.number().nullable(),
+          kg_max: z.number().nullable(),
+          densites: z.array(
+            z.object({
+              id: z.string().uuid(),
+              source: z.string(),
+              portee: z.enum(['commune', 'nationale']),
+              densite_min: z.number(),
+              densite_max: z.number(),
+              date_effet: z.string(),
+            })
+          ),
+        })
+      )
+      .openapi({
+        description:
+          'Le tonnage estimé des levées validées du mois en cours et du précédent (lot G5b) : volume des termes × densité de la catégorie, en fourchette, tous flux confondus. ' +
+          'Vide (null) dès qu’une levée manque de volume ou de densité ; jamais additionné à une pesée, jamais dans une assiette.',
+      }),
   })
 );
 const pAvenant = z.object({ id: z.string().uuid() });
@@ -5667,6 +5714,342 @@ registry.registerPath({
     ),
     ...REPONSES_COMMUNES,
   },
+});
+
+// ---------------------------------------------------------------------------
+// Jalon G, lot G5b : les campagnes de pesée et les densités des assimilés
+// ---------------------------------------------------------------------------
+const TAG_PESEES = 'Campagnes de pesée et densités';
+const ResultatCampagne = z.object({
+  groupe: z.string().openapi({ description: 'La catégorie d’activité, ou la tranche de revenu (ménages).' }),
+  sous_groupe: z.string().openapi({ description: 'L’unité d’échelle (kg/jour/unité) ou le volume du contenant en litres (poids d’une levée) ; vide sinon.' }),
+  indicateur: z.enum(['kg_jour_unite', 'kg_levee', 'kg_m3', 'kg_hab_jour']),
+  n: z.number().int(),
+  q1: z.number().nullable(),
+  mediane: z.number().nullable(),
+  q3: z.number().nullable(),
+  seuil_atteint: z.boolean().nullable().openapi({ description: 'n ≥ le seuil national figé à la clôture ; vide pour les ménages.' }),
+  masque: z.boolean().openapi({ description: 'Une tranche de moins de 5 ménages : aucun quartile rendu.' }),
+  adoptee: z.boolean().openapi({ description: 'La commune a adopté la densité de cette catégorie (kg/m³).' }),
+});
+const CampagnePesee = registry.register(
+  'CampagnePesee',
+  z.object({
+    id: z.string().uuid(),
+    version: z.string(),
+    commune_id: z.string(),
+    objet: z.enum(OBJETS_CAMPAGNE),
+    intitule: z.string(),
+    protocole: z.string().nullable(),
+    date_debut: z.string(),
+    date_fin: z.string(),
+    statut: z.enum(STATUTS_CAMPAGNE),
+    ouverte_le: z.string().nullable(),
+    close_le: z.string().nullable(),
+    seuil_applique: z.number().int().nullable(),
+    observation: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    pesees: z.number().int(),
+    etablissements: z.number().int(),
+    menages: z.number().int(),
+  })
+);
+const CampagnePeseeDetail = registry.register(
+  'CampagnePeseeDetail',
+  CampagnePesee.extend({
+    resultats: z.array(ResultatCampagne),
+    ecartes: z.array(z.object({ groupe: z.string(), indicateur: z.string(), raison: z.string(), nombre: z.number().int() })),
+    mesures: z
+      .array(
+        z.object({
+          commerce_id: z.string().uuid(),
+          etablissement: z.string(),
+          groupe: z.string(),
+          sous_groupe: z.string(),
+          indicateur: z.string(),
+          valeur: z.number().nullable(),
+          raison_ecart: z.string().nullable(),
+        })
+      )
+      .openapi({ description: 'La valeur de chaque établissement (jamais d’un ménage), ou la raison de son écart.' }),
+  })
+);
+const PeseeCampagne = z.object({
+  id: z.string().uuid(),
+  commerce_id: z.string().uuid().nullable(),
+  etablissement: z.string().nullable(),
+  menage_id: z.string().uuid().nullable(),
+  menage: z.string().nullable(),
+  date_pesee: z.string(),
+  jour_campagne: z.number().int(),
+  poids_kg: z.number(),
+  duree_jours: z.number(),
+  contenant: z.string().nullable(),
+  volume_litres: z.number().nullable(),
+  remplissage_pct: z.number().nullable(),
+  categorie_activite: z.string().nullable(),
+  unite_echelle: z.string().nullable(),
+  valeur_echelle: z.number().nullable(),
+  source: z.enum(['portail', 'kobo']),
+  statut: z.enum(['valide', 'annulee']),
+  motif_annulation: z.string().nullable(),
+  import_id: z.string().uuid().nullable(),
+  import_ligne: z.number().int().nullable(),
+  created_at: z.string(),
+});
+const DensiteAssimiles = registry.register(
+  'DensiteAssimiles',
+  z.object({
+    id: z.string().uuid(),
+    commune_id: z.string().nullable(),
+    portee: z.enum(['commune', 'nationale']),
+    categorie_activite: z.string(),
+    categorie_fr: z.string().nullable(),
+    categorie_ar: z.string().nullable(),
+    densite_min: z.number(),
+    densite_max: z.number(),
+    mediane: z.number().nullable(),
+    source: z.enum(SOURCES_DENSITE),
+    campagne_id: z.string().uuid().nullable(),
+    campagne: z.string().nullable(),
+    reference: z.string().nullable(),
+    date_effet: z.string(),
+    created_at: z.string(),
+    retire_le: z.string().nullable(),
+    motif_retrait: z.string().nullable(),
+  })
+);
+const pCampagne = z.object({ id: z.string().uuid() });
+const qCommunePesees = z.object({ communeId: z.string().optional() });
+
+registry.registerPath({
+  method: 'get', path: '/campagnes-pesee', tags: [TAG_PESEES],
+  summary: 'Les campagnes de pesée de la commune (lot G5b)',
+  security: SECURISE,
+  request: { query: qCampagnes },
+  responses: { 200: json(z.array(CampagnePesee), 'Les campagnes.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/campagnes-pesee', tags: [TAG_PESEES],
+  summary: 'Une campagne en brouillon',
+  description: 'D’établissements ou de ménages ; 61 jours au plus ; aucun lien avec un circuit ni un engin. Le directeur seul.',
+  security: SECURISE,
+  request: { query: qCommunePesees, body: { content: { 'application/json': { schema: campagneSchema } } } },
+  responses: { 201: json(CampagnePeseeDetail, 'Campagne créée.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/campagnes-pesee/pesees/{id}/annuler', tags: [TAG_PESEES],
+  summary: 'Annuler une pesée, avec son motif',
+  description: 'Tant que la campagne est ouverte ; une pesée ne se réécrit ni ne s’efface. Le directeur seul.',
+  security: SECURISE,
+  request: { params: pCampagne, body: { content: { 'application/json': { schema: annulationPeseeSchema } } } },
+  responses: { 200: json(z.object({ id: z.string().uuid(), campagne_id: z.string().uuid(), statut: z.string() }), 'Pesée annulée.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'get', path: '/campagnes-pesee/{id}', tags: [TAG_PESEES],
+  summary: 'Une campagne, ses résultats et ses écartés',
+  description: 'Les résultats et les mesures n’existent qu’une fois la campagne close, figés. La FNCT lit ; jamais un ménage.',
+  security: SECURISE,
+  request: { params: pCampagne },
+  responses: { 200: json(CampagnePeseeDetail, 'La campagne.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'put', path: '/campagnes-pesee/{id}', tags: [TAG_PESEES],
+  summary: 'Modifier un brouillon, ou la fin prévue d’une campagne ouverte',
+  description: 'La version lue est exigée. Ouverte, une campagne ne change plus que sa fin prévue (jamais avant une pesée) et son observation.',
+  security: SECURISE,
+  request: { params: pCampagne, body: { content: { 'application/json': { schema: modificationCampagneSchema } } } },
+  responses: { 200: json(CampagnePeseeDetail, 'Campagne à jour.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'delete', path: '/campagnes-pesee/{id}', tags: [TAG_PESEES],
+  summary: 'Retirer une campagne en brouillon',
+  security: SECURISE,
+  request: { params: pCampagne, query: z.object({ version: z.string() }) },
+  responses: { 204: { description: 'Campagne retirée.' }, ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/campagnes-pesee/{id}/ouvrir', tags: [TAG_PESEES],
+  summary: 'Ouvrir une campagne',
+  security: SECURISE,
+  request: { params: pCampagne, body: { content: { 'application/json': { schema: versionCampagneSchema } } } },
+  responses: { 200: json(CampagnePeseeDetail, 'Campagne ouverte.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/campagnes-pesee/{id}/clore', tags: [TAG_PESEES],
+  summary: 'Clore une campagne : le calcul est fait et figé',
+  description:
+    'Par catégorie : kg/jour par unité d’échelle (par unité), poids d’une levée (par volume de contenant), kg/m³ ; 1er quartile, médiane, 3e quartile ; seuil national du jour figé. ' +
+    'Ménages : la première pesée de chacun n’est jamais comptée, une tranche de moins de 5 ménages est masquée. Chaque écarté l’est avec sa raison.',
+  security: SECURISE,
+  request: { params: pCampagne, body: { content: { 'application/json': { schema: versionCampagneSchema } } } },
+  responses: { 200: json(CampagnePeseeDetail, 'Campagne close.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'get', path: '/campagnes-pesee/{id}/pesees', tags: [TAG_PESEES],
+  summary: 'Les pesées d’une campagne',
+  description: 'Celles d’un ménage ne se lisent que par le directeur.',
+  security: SECURISE,
+  request: { params: pCampagne },
+  responses: { 200: json(z.array(PeseeCampagne), 'Les pesées.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/campagnes-pesee/{id}/pesees', tags: [TAG_PESEES],
+  summary: 'Enregistrer un lot de pesées (saisie au portail)',
+  description:
+    'Campagne ouverte, jour passé dans sa période, établissement de la commune (ouvert, avec sa catégorie) ou ménage de l’échantillon. Les pesées d’un même jour couvrent la même durée. ' +
+    'Le lot s’écrit en entier ou pas du tout ; une clé déjà reçue avec le même contenu est rendue « déjà reçue ».',
+  security: SECURISE,
+  request: { params: pCampagne, body: { content: { 'application/json': { schema: lotPeseesSchema } } } },
+  responses: {
+    201: json(z.object({ pesees: z.array(z.object({ n: z.number().int(), id: z.string().uuid(), deja_recue: z.boolean() })) }), 'Pesées enregistrées.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'Une règle de la pesée n’est pas tenue (dite en mots).'),
+  },
+});
+registry.registerPath({
+  method: 'get', path: '/campagnes-pesee/{id}/menages', tags: [TAG_PESEES],
+  summary: 'L’échantillon de ménages (le directeur seul)',
+  security: SECURISE,
+  request: { params: pCampagne },
+  responses: {
+    200: json(z.array(z.object({ id: z.string().uuid(), code: z.string(), habitants: z.number().int(), tranche_revenu: z.enum(TRANCHES_REVENU), pesees: z.number().int() })), 'Les ménages.'),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'post', path: '/campagnes-pesee/{id}/menages', tags: [TAG_PESEES],
+  summary: 'Ajouter un ménage à l’échantillon',
+  description: 'Le nombre d’habitants et la tranche de revenu ; la base pose le code (M-001…). Ni nom, ni adresse, ni secteur.',
+  security: SECURISE,
+  request: { params: pCampagne, body: { content: { 'application/json': { schema: menageSchema } } } },
+  responses: {
+    201: json(z.object({ id: z.string().uuid(), code: z.string(), habitants: z.number().int(), tranche_revenu: z.enum(TRANCHES_REVENU) }), 'Ménage ajouté.'),
+    ...REPONSES_COMMUNES,
+    ...REFUS_GESTE,
+  },
+});
+registry.registerPath({
+  method: 'post', path: '/campagnes-pesee/{id}/adopter', tags: [TAG_PESEES],
+  summary: 'Adopter la densité (kg/m³) qu’une campagne close propose pour une catégorie',
+  description: 'Seulement au seuil atteint ; le 1er et le 3e quartile en sont les bornes, la date d’effet est le jour de la clôture.',
+  security: SECURISE,
+  request: { params: pCampagne, body: { content: { 'application/json': { schema: adoptionSchema } } } },
+  responses: { 201: json(DensiteAssimiles, 'Densité adoptée.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+const ChampImportPesee = z.object({ cle: z.enum(CLES_CHAMPS_PESEES), fr: z.string(), ar: z.string(), obligatoire: z.boolean() });
+registry.registerPath({
+  method: 'post', path: '/campagnes-pesee/{id}/import/colonnes', tags: [TAG_PESEES],
+  summary: 'Les colonnes d’un export Kobo de pesées et la correspondance proposée',
+  security: SECURISE,
+  request: { params: pCampagne, body: { content: { 'application/json': { schema: fichierPeseesSchema } } } },
+  responses: {
+    200: json(
+      z.object({
+        fichier: z.string(),
+        feuille: z.string().nullable(),
+        avertissements: z.array(z.string()),
+        ligneEntetes: z.number().int(),
+        lignes: z.number().int(),
+        entetes: z.array(z.string()),
+        exemples: z.array(z.array(z.string())),
+        champs: z.array(ChampImportPesee),
+        correspondance: z.record(z.string().nullable()),
+        provenance: z.record(z.enum(['enregistree', 'proposee', 'aucune'])),
+        modeleEnregistre: z.boolean(),
+      }),
+      'Colonnes et correspondance proposée.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+const ApercuImportPesees = registry.register(
+  'ApercuImportPesees',
+  z.object({
+    fichier: z.string(),
+    feuille: z.string().nullable(),
+    avertissements: z.array(z.string()),
+    resume: z.object({ enregistrer: z.number().int(), deja_recue: z.number().int(), erreur: z.number().int() }),
+    lignes: z.array(
+      z.object({
+        numero: z.number().int(),
+        action: z.enum(['enregistrer', 'deja_recue', 'erreur']),
+        erreurs: z.array(z.string()),
+        etablissement: z.string(),
+        commerce_id: z.string().uuid().nullable(),
+        date: z.string().nullable(),
+        poids_kg: z.number().nullable(),
+        duree_jours: z.number().nullable(),
+      })
+    ),
+    ecrit: z.boolean(),
+    importId: z.string().uuid().optional(),
+    enregistrees: z.number().int().optional(),
+  })
+);
+registry.registerPath({
+  method: 'post', path: '/campagnes-pesee/{id}/import', tags: [TAG_PESEES],
+  summary: 'Importer un export Kobo de pesées : l’aperçu, puis l’écriture',
+  description:
+    'Campagne d’établissements ouverte. L’établissement se reconnaît à son matricule fiscal ou à son identifiant SIIPI, jamais à son nom ; la durée se lit en jours OU en heures ; ' +
+    'un nombre porte au plus un séparateur décimal. Avec « valider », le fichier est relu et examiné de nouveau.',
+  security: SECURISE,
+  request: { params: pCampagne, body: { content: { 'application/json': { schema: importPeseesSchema } } } },
+  responses: {
+    200: json(ApercuImportPesees, 'Aperçu (rien n’est écrit).'),
+    201: json(ApercuImportPesees, 'Pesées écrites.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La campagne n’accepte pas d’import, ou la base a changé : relancez l’aperçu.'),
+  },
+});
+registry.registerPath({
+  method: 'get', path: '/campagnes-pesee/{id}/imports', tags: [TAG_PESEES],
+  summary: 'Le journal des imports de pesées d’une campagne',
+  security: SECURISE,
+  request: { params: pCampagne },
+  responses: {
+    200: json(
+      z.array(
+        z.object({
+          id: z.string().uuid(),
+          nom_fichier: z.string(),
+          empreinte_fichier: z.string(),
+          correspondance: z.record(z.string().nullable()),
+          nb_enregistrees: z.number().int(),
+          nb_deja_recues: z.number().int(),
+          nb_erreurs: z.number().int(),
+          created_at: z.string(),
+          saisi_par_nom: z.string().nullable(),
+        })
+      ),
+      'Les imports.'
+    ),
+    ...REPONSES_COMMUNES,
+  },
+});
+registry.registerPath({
+  method: 'get', path: '/densites-assimiles', tags: [TAG_PESEES],
+  summary: 'Les densités des assimilés (kg/m³) : de la commune et du pays',
+  description: 'Sans commune, la FNCT lit celles du pays. Une densité ne se réécrit pas ; retirée, elle reste lisible.',
+  security: SECURISE,
+  request: { query: qCommunePesees },
+  responses: { 200: json(z.array(DensiteAssimiles), 'Les densités.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/densites-assimiles', tags: [TAG_PESEES],
+  summary: 'Saisir une densité (TADAEEM ou défaut), avec sa pièce',
+  description: 'Une densité de la commune par son directeur, une densité du pays par la FNCT. Une densité de campagne s’adopte depuis la campagne.',
+  security: SECURISE,
+  request: { query: qCommunePesees, body: { content: { 'application/json': { schema: densiteSchema } } } },
+  responses: { 201: json(DensiteAssimiles, 'Densité saisie.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+registry.registerPath({
+  method: 'post', path: '/densites-assimiles/{id}/retirer', tags: [TAG_PESEES],
+  summary: 'Retirer une densité, avec son motif',
+  security: SECURISE,
+  request: { params: pCampagne, body: { content: { 'application/json': { schema: retraitDensiteAssimilesSchema } } } },
+  responses: { 200: json(DensiteAssimiles, 'Densité retirée.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
 });
 
 const ActeurInformel = registry.register(

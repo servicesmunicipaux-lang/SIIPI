@@ -32,6 +32,7 @@ import {
   type Convention,
   type ConventionResume,
   type EtatConvention,
+  type TonnageEstimeConvention,
 } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useFormats } from '../../lib/formats';
@@ -517,6 +518,7 @@ export function Conventions({ communeId }: { communeId: string }) {
                         {listeLignes(ouverte.lignes, 'origine')}
                       </div>
                       {ouverte.observation && <p className="text-ardoise-600">{ouverte.observation}</p>}
+                      {ouverte.tonnage_estime.length > 0 && <TonnageEstime mois={ouverte.tonnage_estime} />}
 
                       {ouverte.avenants.length > 0 && (
                         <div className="space-y-2">
@@ -584,6 +586,60 @@ export function Conventions({ communeId }: { communeId: string }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Le tonnage estimé des levées validées (lot G5b)
+// ---------------------------------------------------------------------------
+// UNE ESTIMATION, DITE TELLE, ET JAMAIS UN ZÉRO. Le volume des termes multiplié par
+// la densité de la catégorie, en fourchette, tous flux confondus — et seulement si
+// rien ne manque : une seule levée sans volume ou sans densité, et le mois est « non
+// renseigné », avec ce qui manque. Ce tonnage n'entre dans aucune assiette et ne
+// s'ajoute à aucune pesée : l'écran le dit, pour qu'on ne le lise pas comme facturé.
+function TonnageEstime({ mois }: { mois: TonnageEstimeConvention[] }) {
+  const { t } = useTranslation();
+  const f = useFormats();
+  // La provenance des densités employées : la commune, le pays, ou les deux.
+  const origine = (m: TonnageEstimeConvention) => {
+    const portees = new Set(m.densites.map((d) => d.portee));
+    if (portees.size > 1) return t('communal.conventions.tonnage.densiteMixte');
+    return portees.has('nationale') ? t('communal.conventions.tonnage.densitePays') : t('communal.conventions.tonnage.densiteCommune');
+  };
+  return (
+    <div className="space-y-1">
+      <p className="font-medium text-ardoise-800">{t('communal.conventions.tonnage.titre')}</p>
+      <ul className="space-y-1 text-ardoise-700">
+        {mois.map((m) => (
+          <li key={m.mois} className="space-y-0.5">
+            <span className="text-xs text-ardoise-500">{t('communal.conventions.tonnage.periode', { debut: f.date(m.debut), fin: f.date(m.fin) })}</span>
+            {m.kg_min != null && m.kg_max != null ? (
+              <span className="flex flex-wrap items-center gap-2">
+                <span>
+                  {t('communal.conventions.tonnage.fourchette', {
+                    // L'unité de masse de l'utilisateur, comme tout tonnage du portail : l'API rend des kg.
+                    min: f.masse(m.kg_min / 1000, 3),
+                    max: f.masse(m.kg_max / 1000, 3),
+                    levees: t('communal.conventions.tonnage.levees', { count: m.levees, n: formaterNombre(m.levees, 0) }),
+                    origine: origine(m),
+                  })}
+                </span>
+                <Pastille ton="neutre">{t('communal.conventions.tonnage.estime')}</Pastille>
+              </span>
+            ) : m.levees === 0 ? (
+              <span className="block text-ardoise-600">{t('communal.conventions.tonnage.aucuneLevee')}</span>
+            ) : (
+              <span className="block text-ardoise-600">
+                {t('communal.conventions.tonnage.nonRenseigne')}
+                {m.sans_volume > 0 && ` — ${t('communal.conventions.tonnage.sansVolume', { count: m.sans_volume, n: formaterNombre(m.sans_volume, 0) })}`}
+                {m.sans_densite > 0 && ` — ${t('communal.conventions.tonnage.sansDensite', { count: m.sans_densite, n: formaterNombre(m.sans_densite, 0) })}`}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-ardoise-500">{t('communal.conventions.tonnage.jamaisFacture')}</p>
     </div>
   );
 }

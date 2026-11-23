@@ -17,7 +17,8 @@ import { ApiError } from '../middleware/errorHandler.js';
 import { decoder, LIGNES_MAX, lireCsvNumerote, normaliser } from './import.js';
 import { ErreurXlsx, estXlsx, lireXlsx } from './xlsx.js';
 
-export type RangeeFichier = { cellules: string[]; ligne: number };
+// `numeriques` : les cellules typées « nombre » d'un classeur .xlsx (absent pour un CSV).
+export type RangeeFichier = { cellules: string[]; ligne: number; numeriques?: boolean[] };
 
 export type FichierTableur = {
   entetes: string[];

@@ -1,6 +1,6 @@
 # SIIPI — Jalon G : déchets assimilés et conventions de propreté
 
-**FNCT · 4 novembre 2026 · ouvert par Nacer · statut : spécification v1.1 (décisions du 4 novembre intégrées) ; G1 développé en v0.15.90 (migration 098), G2a (établissements) en v0.15.91 (migration 099), G2b (import TCL et open data) en v0.15.94 (migration 102), G4a (conventions) en v0.15.95 (migration 103), G4b (avenants et renouvellement) en v0.15.96 (migration 104), G5a (dessertes et levées) en v0.15.97 (migration 105) ; G3, G5b, G6 et G7 restent à coder**
+**FNCT · 4 novembre 2026 · ouvert par Nacer · statut : spécification v1.1 (décisions du 4 novembre intégrées) ; G1 développé en v0.15.90 (migration 098), G2a (établissements) en v0.15.91 (migration 099), G2b (import TCL et open data) en v0.15.94 (migration 102), G4a (conventions) en v0.15.95 (migration 103), G4b (avenants et renouvellement) en v0.15.96 (migration 104), G5a (dessertes et levées) en v0.15.97 (migration 105), G5b (campagnes de pesée et densités) en v0.15.98 (migration 106) ; G3, G6 et G7 restent à coder**
 
 Le jalon G fait de la convention de propreté un dossier numérique complet :
 **établissement → convention annuelle → conteneurs et desserte → levées constatées → assiette → export vers le système financier → suivi des manquements.**

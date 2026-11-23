@@ -5,6 +5,84 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.98] — 2026-11-23 — Jalon G, lot G5b : les campagnes de pesée et les densités des assimilés
+
+Le lot G5b du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 3.5 ; décisions G5 n° 7 à 11 du 12 novembre
+2026). G5a enregistre les levées qui ont eu lieu ; G5b dit **combien elles pèsent** : une campagne de pesée mesure les
+établissements (ou les ménages), et la commune en adopte la densité. **G5 est fait.**
+
+### Ajouté
+- **La campagne de pesée** (migration 106, table `campagnes_pesee`, `GET/POST /campagnes-pesee`, écran *Campagnes de
+  pesée* du pôle Terrain) : **générique**, d'établissements ou de ménages, brouillon → ouverte → close, 61 jours au
+  plus, **sans lien avec un circuit ni un engin**. Chaque geste (ouvrir, clore, modifier, retirer) se fait **sous
+  verrou, avec la version lue** ; ouverte, elle ne change que sa fin et son observation, et sa fin ne passe jamais avant
+  sa dernière pesée ; seul un brouillon se retire.
+- **La pesée** (`pesees_campagne`) : un établissement **ou** un ménage, le poids, la durée de production couverte, le
+  contenant, son volume et le remplissage observé ; le jour de campagne se calcule. Elle **fige la catégorie, l'unité et
+  la valeur d'échelle** de l'établissement le jour de sa saisie ; **un instantané des établissements est pris à
+  l'ouverture** (`instantanes_campagne`), et la clôture compare l'un à l'autre : un changement en cours de campagne se
+  voit **quel que soit l'ordre des saisies**, un export Kobo importé après coup compris. **Les pesées d'un même jour
+  s'additionnent** (deux bacs, un jour), avec une seule durée pour ce jour — le couple (cible, jour) est verrouillé, deux
+  saisies concurrentes ne passent pas l'une à côté de l'autre. **Une pesée au-delà de 2 000 kg/m³ est refusée** (un
+  remplissage saisi en fraction, 0,5 pour 50 %). Toute pesée naît par `app.enregistrer_pesees`, en lot entier ou pas du
+  tout ; une clé rejouée n'est « déjà reçue » que si **tout son contenu** est égal (poids, durée, volume, remplissage,
+  contenant) ; une pesée ne se réécrit pas, elle **s'annule avec un motif** tant que la campagne est ouverte.
+- **Le calcul est celui de la base, à la clôture, figé** (`app.calculer_campagne`, `resultats_campagne`,
+  `mesures_campagne`) : **kg/jour/unité d'échelle** par catégorie et unité, **poids d'une levée** par volume de
+  contenant, **kg/m³** (somme des poids / somme des volumes de déchets), puis 1er quartile, médiane et 3e quartile
+  (`percentile_cont`). Le **seuil d'échantillon** est un **paramètre national daté**, `seuil_echantillon_pesee` (10
+  établissements), **figé sur la campagne** à sa clôture. **Chaque écarté l'est avec sa raison** (sans unité, échelle ou
+  catégorie changée, sans volume, sans remplissage, un seul jour pesé, jamais pesé). Rien n'est saisi.
+- **Les ménages** (`menages_echantillon`) : **un code posé par la base** (M-001…), le nombre d'habitants, la tranche de
+  revenu — **ni nom, ni adresse, ni secteur, ni texte libre** ; leurs pesées ne portent que le poids et la durée, et
+  leur clé d'envoi est un identifiant de machine. **La première journée pesée de chacun n'est jamais comptée** (elle
+  porte ce qui s'était accumulé) ; **une tranche de moins de 5 ménages est masquée**. **La FNCT ne lit jamais un
+  ménage** — ni sa ligne, ni ses pesées, ni sa valeur — mais ses **effectifs, comptés par la base**
+  (`app.effectifs_campagne`, `app.ecartes_campagne`) : jamais un « 0 » posé par la RLS là où la donnée existe.
+- **Les densités des assimilés** (`densites_assimiles`, `GET/POST /densites-assimiles`) : en kg/m³, **à part de la
+  grille**, de la commune (son directeur) ou du pays (la FNCT), datées, sourcées ; **une densité ne se réécrit pas**,
+  elle **se retire avec un motif**. **La commune adopte celle de sa campagne** (`app.adopter_densite` : kg/m³ au seuil
+  atteint, Q1 et Q3 pour bornes, datée du jour de la clôture). **SIIPI n'en pose aucune.**
+- **Le tonnage estimé d'une convention** (`app.tonnage_estime_convention`, dans le détail d'une convention, le mois en
+  cours et le précédent) : les levées validées × volume des termes × densité de la catégorie (celle de la commune, sinon
+  celle du pays, en vigueur le jour de la levée), **en fourchette, tous flux confondus** ; il **n'existe que si rien ne
+  manque** (une levée sans volume ou sans densité, et c'est dit) ; **jamais facturé, jamais additionné à une pesée**.
+- **L'import Kobo des pesées** (`POST /campagnes-pesee/{id}/import/colonnes`, `…/import`, `GET …/imports` ; tables
+  `imports_pesees`, figée, et `modeles_import_pesees`) : CSV ou Excel, correspondance des colonnes proposée et gardée
+  par commune, aperçu puis validation ré-examinée sous verrou. L'établissement se reconnaît au **matricule ou à
+  l'identifiant, jamais au nom** ; la durée se lit **en jours OU en heures** ; un nombre ambigu (« 1.250 ») est refusé,
+  sauf dans une cellule numérique d'un classeur ; jamais plus de décimales que la base n'en garde ; la clé d'une
+  soumission se lit sans son préfixe « uuid: » ; **la colonne de clé ne change pas en cours de campagne** ; une même
+  pesée sous une autre clé est un **doublon probable, montré, jamais fusionné**. Les ménages ne s'importent pas.
+
+### Sécurité et cloisonnement
+- Toutes les tables de G5b portent `commune_id`, RLS `ENABLE` et `FORCE`. Le directeur écrit ; la FNCT lit (jamais un
+  ménage) ; un prestataire ne voit rien. Les densités nationales se lisent par tout compte authentifié (le tonnage
+  estimé s'y replie). L'application n'écrit les pesées, les résultats, les instantanés et les densités adoptées que par
+  les fonctions de la base.
+
+### Revue
+- Conception relue avant le code. Backend relu ensuite par quatre lecteurs (calcul, données, routes, campagne), chaque
+  constat contre-vérifié : 31 constats, 24 confirmés (certains relevés par deux lecteurs), tous corrigés, 7 écartés.
+  Parmi eux : un import Kobo qui comptait deux fois une pesée réimportée sous une autre colonne de clé ; une valeur
+  d'échelle lue au jour de la saisie, qu'un import tardif rendait aveugle à un changement ; une soumission corrigée
+  (durée, volume, remplissage) « déjà reçue » ; « 0 ménage, 0 pesée » lu par la FNCT ; deux saisies concurrentes du
+  même jour avec deux durées. La campagne `campagnes-pesee` est passée de 49 à 89 contrôles.
+- Front relu par trois lecteurs (règles, données, flux), chaque constat contre-vérifié : 22 constats, tous confirmés
+  (une quinzaine de défauts distincts), tous corrigés — dont une durée en heures qui faisait refuser tout le lot, un lot
+  non envoyé perdu après une annulation ou un import, une clôture possible avec des pesées non envoyées, une version
+  lue au moment d'enregistrer plutôt qu'à l'ouverture du formulaire. Une contre-vérification des corrections en a
+  relevé 4 mineurs de plus, corrigés.
+
+### Vérification
+- Campagne `campagnes-pesee` (89 contrôles), témoin indépendant `tests/pesees_attendus.py` sur le jeu fictif
+  `tests/donnees/campagne-pesee-fictive.json` (24 établissements, 59 pesées d'établissements, 19 ménages).
+- Critère sur une base neuve (000 → 106, la 106 rejouée une seconde fois, chargement dans l'ordre de référence) :
+  contrat 463/463, 93/93 campagnes, 4 364 contrôles réussis, aucun échec. `audit-blocs.py` : 9 blocs sous condition,
+  tous leurs contrôles ont tourné. Lint du backend et du web sans erreur.
+- Écran vérifié sur le banc : campagne d'établissements close et densité adoptée (directeur, en français), campagne de
+  ménages (en arabe, et sur téléphone), lecture par la FNCT.
+
 ## [0.15.97] — 2026-11-16 — Jalon G, lot G5a : les dessertes et les levées des établissements
 
 Le lot G5a du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 3.5 ; décision du 12 novembre 2026 :
