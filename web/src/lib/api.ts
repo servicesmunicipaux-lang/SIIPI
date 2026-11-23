@@ -57,6 +57,30 @@ function constaterSession(reponse: Response, jeton: string | null, chemin: strin
   window.dispatchEvent(new Event(EVENEMENT_SESSION_EXPIREE));
 }
 
+/**
+ * Le message d'un refus de l'API. « Requête invalide. » seul ne dit pas quoi corriger :
+ * le refus de zod nomme le champ et la règle (« Remplissage (%) : 1 décimale au plus. »)
+ * dans `details`, qu'aucun écran ne lisait. Chaque précision est reprise une fois, quel
+ * que soit le nombre de lignes d'un lot qui la portent.
+ */
+function messageDeRefus(corps: unknown, defaut: string): string {
+  const c = corps as { error?: unknown; details?: { formErrors?: unknown; fieldErrors?: unknown } } | null;
+  const message = typeof c?.error === 'string' && c.error !== '' ? c.error : defaut;
+  const d = c?.details;
+  const formes = Array.isArray(d?.formErrors) ? d.formErrors : [];
+  const champs = d?.fieldErrors && typeof d.fieldErrors === 'object' ? Object.values(d.fieldErrors as Record<string, unknown>).flat() : [];
+  const precisions = [
+    ...new Set([...formes, ...champs].filter((x): x is string => typeof x === 'string' && x.trim() !== '' && !MESSAGE_ZOD_PAR_DEFAUT.test(x))),
+  ];
+  return precisions.length > 0 ? `${message} ${precisions.join(' ')}` : message;
+}
+
+// Les messages par défaut de zod, en anglais (« Required », « Expected number, received
+// string »…) : ils ne disent rien à un directeur francophone ou arabophone. Seules les
+// précisions écrites par le projet, en français, s'ajoutent au refus.
+const MESSAGE_ZOD_PAR_DEFAUT =
+  /^(Required|Expected .*|Invalid\b.*|Unrecognized key\(s\) in object.*|(String|Number|Array|Set|BigInt|Date) must .*|Too (small|big).*|Unknown error.*)$/;
+
 async function requete<T>(chemin: string, options: RequestInit = {}): Promise<T> {
   const jeton = lireJeton();
   const entetes: Record<string, string> = {
@@ -76,8 +100,7 @@ async function requete<T>(chemin: string, options: RequestInit = {}): Promise<T>
     constaterSession(reponse, jeton, chemin);
     let message = `Erreur ${reponse.status}`;
     try {
-      const corps = await reponse.json();
-      if (corps?.error) message = corps.error;
+      message = messageDeRefus(await reponse.json(), message);
     } catch {
       /* réponse non JSON */
     }
@@ -327,6 +350,34 @@ export type ApercuImportLevees = Reponse<'/levees/import', 'post'>;
 export type LigneImportLevees = ApercuImportLevees['lignes'][number];
 export type ChampImportLevees = ColonnesImportLevees['champs'][number]['cle'];
 export type ImportLeveesJournal = Reponse<'/levees/imports', 'get'>[number];
+// --- Jalon G, lot G5b : les campagnes de pesée et les densités des assimilés ---
+export type CampagnePesee = Reponse<'/campagnes-pesee', 'get'>[number];
+export type CampagnePeseeDetail = Reponse<'/campagnes-pesee/{id}', 'get'>;
+export type StatutCampagnePesee = CampagnePesee['statut'];
+export type ObjetCampagnePesee = CampagnePesee['objet'];
+export type ResultatCampagne = CampagnePeseeDetail['resultats'][number];
+export type IndicateurCampagne = ResultatCampagne['indicateur'];
+export type EcarteCampagne = CampagnePeseeDetail['ecartes'][number];
+export type MesureCampagne = CampagnePeseeDetail['mesures'][number];
+export type SaisieCampagnePesee = Corps<'/campagnes-pesee', 'post'>;
+export type ModificationCampagnePesee = Corps<'/campagnes-pesee/{id}', 'put'>;
+export type PeseeCampagne = Reponse<'/campagnes-pesee/{id}/pesees', 'get'>[number];
+export type LotPeseesCampagne = Corps<'/campagnes-pesee/{id}/pesees', 'post'>;
+export type SaisiePeseeCampagne = LotPeseesCampagne['pesees'][number];
+export type PeseesCampagneEnregistrees = ReponseCreee<'/campagnes-pesee/{id}/pesees', 'post'>;
+export type MenageEchantillon = Reponse<'/campagnes-pesee/{id}/menages', 'get'>[number];
+export type SaisieMenage = Corps<'/campagnes-pesee/{id}/menages', 'post'>;
+export type TrancheRevenu = SaisieMenage['trancheRevenu'];
+export type ColonnesImportPesees = Reponse<'/campagnes-pesee/{id}/import/colonnes', 'post'>;
+export type FichierImportPesees = Corps<'/campagnes-pesee/{id}/import/colonnes', 'post'>;
+export type SaisieImportPesees = Corps<'/campagnes-pesee/{id}/import', 'post'>;
+export type ApercuImportPesees = Reponse<'/campagnes-pesee/{id}/import', 'post'>;
+export type LigneImportPesees = ApercuImportPesees['lignes'][number];
+export type ChampImportPesees = ColonnesImportPesees['champs'][number]['cle'];
+export type ImportPeseesJournal = Reponse<'/campagnes-pesee/{id}/imports', 'get'>[number];
+export type DensiteAssimiles = Reponse<'/densites-assimiles', 'get'>[number];
+export type SaisieDensiteAssimiles = Corps<'/densites-assimiles', 'post'>;
+export type TonnageEstimeConvention = Convention['tonnage_estime'][number];
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
 export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
@@ -636,8 +687,7 @@ async function telecharger(chemin: string, nomParDefaut: string): Promise<void> 
     constaterSession(reponse, jeton, chemin);
     let message = `Erreur ${reponse.status}`;
     try {
-      const corps = await reponse.json();
-      if (corps?.error) message = corps.error;
+      message = messageDeRefus(await reponse.json(), message);
     } catch {
       /* réponse non JSON */
     }
@@ -1549,6 +1599,46 @@ export const api = {
     }),
   importsLevees: (communeId: string) =>
     requete<ImportLeveesJournal[]>(`/levees/imports?communeId=${encodeURIComponent(communeId)}`),
+  // --- Jalon G, lot G5b : les campagnes de pesée (écriture : le directeur ; la FNCT lit) ---
+  campagnesPesee: (communeId: string) => requete<CampagnePesee[]>(`/campagnes-pesee?communeId=${encodeURIComponent(communeId)}`),
+  campagnePesee: (id: string) => requete<CampagnePeseeDetail>(`/campagnes-pesee/${id}`),
+  creerCampagnePesee: (communeId: string, saisie: SaisieCampagnePesee) =>
+    requete<CampagnePeseeDetail>(`/campagnes-pesee?communeId=${encodeURIComponent(communeId)}`, { method: 'POST', body: JSON.stringify(saisie) }),
+  modifierCampagnePesee: (id: string, corps: ModificationCampagnePesee) =>
+    requete<CampagnePeseeDetail>(`/campagnes-pesee/${id}`, { method: 'PUT', body: JSON.stringify(corps) }),
+  retirerCampagnePesee: (id: string, version: string) =>
+    requete<void>(`/campagnes-pesee/${id}?version=${encodeURIComponent(version)}`, { method: 'DELETE' }),
+  ouvrirCampagnePesee: (id: string, version: string) =>
+    requete<CampagnePeseeDetail>(`/campagnes-pesee/${id}/ouvrir`, { method: 'POST', body: JSON.stringify({ version }) }),
+  cloreCampagnePesee: (id: string, version: string) =>
+    requete<CampagnePeseeDetail>(`/campagnes-pesee/${id}/clore`, { method: 'POST', body: JSON.stringify({ version }) }),
+  peseesCampagne: (campagneId: string) => requete<PeseeCampagne[]>(`/campagnes-pesee/${campagneId}/pesees`),
+  enregistrerPeseesCampagne: (campagneId: string, lot: LotPeseesCampagne) =>
+    requete<PeseesCampagneEnregistrees>(`/campagnes-pesee/${campagneId}/pesees`, { method: 'POST', body: JSON.stringify(lot) }),
+  annulerPeseeCampagne: (id: string, motif: string) =>
+    requete<Reponse<'/campagnes-pesee/pesees/{id}/annuler', 'post'>>(`/campagnes-pesee/pesees/${id}/annuler`, {
+      method: 'POST',
+      body: JSON.stringify({ motif }),
+    }),
+  // Les ménages : le directeur seul. La FNCT reçoit 403 — l'écran ne les lui demande pas.
+  menagesCampagne: (campagneId: string) => requete<MenageEchantillon[]>(`/campagnes-pesee/${campagneId}/menages`),
+  ajouterMenage: (campagneId: string, saisie: SaisieMenage) =>
+    requete<ReponseCreee<'/campagnes-pesee/{id}/menages', 'post'>>(`/campagnes-pesee/${campagneId}/menages`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  colonnesImportPesees: (campagneId: string, fichier: FichierImportPesees) =>
+    requete<ColonnesImportPesees>(`/campagnes-pesee/${campagneId}/import/colonnes`, { method: 'POST', body: JSON.stringify(fichier) }),
+  importerPesees: (campagneId: string, saisie: SaisieImportPesees) =>
+    requete<ApercuImportPesees>(`/campagnes-pesee/${campagneId}/import`, { method: 'POST', body: JSON.stringify(saisie) }),
+  importsPesees: (campagneId: string) => requete<ImportPeseesJournal[]>(`/campagnes-pesee/${campagneId}/imports`),
+  adopterDensite: (campagneId: string, categorie: string) =>
+    requete<DensiteAssimiles>(`/campagnes-pesee/${campagneId}/adopter`, { method: 'POST', body: JSON.stringify({ categorie }) }),
+  densitesAssimiles: (communeId: string) => requete<DensiteAssimiles[]>(`/densites-assimiles?communeId=${encodeURIComponent(communeId)}`),
+  creerDensiteAssimiles: (communeId: string, saisie: SaisieDensiteAssimiles) =>
+    requete<DensiteAssimiles>(`/densites-assimiles?communeId=${encodeURIComponent(communeId)}`, { method: 'POST', body: JSON.stringify(saisie) }),
+  retirerDensiteAssimiles: (id: string, motif: string) =>
+    requete<DensiteAssimiles>(`/densites-assimiles/${id}/retirer`, { method: 'POST', body: JSON.stringify({ motif }) }),
   correspondancesActivites: (communeId: string) =>
     requete<CorrespondanceActivite[]>(`/etablissements/correspondances-activites?communeId=${encodeURIComponent(communeId)}`),
   enregistrerCorrespondanceActivite: (communeId: string, saisie: Corps<'/etablissements/correspondances-activites', 'put'>) =>
@@ -1940,8 +2030,7 @@ export async function imprimerDocument(id: string): Promise<void> {
     constaterSession(reponse, jeton, chemin);
     let message = `Erreur ${reponse.status}`;
     try {
-      const corps = await reponse.json();
-      if (corps?.error) message = corps.error;
+      message = messageDeRefus(await reponse.json(), message);
     } catch {
       /* réponse non JSON */
     }

@@ -22,10 +22,12 @@ import type { NomRegistreSaisi } from '../../lib/api';
 import appels from './appels-creation.json';
 import { FormulaireAgent } from './FormulaireAgent';
 import { FormulaireBoitierGps } from './FormulaireBoitierGps';
+import { FormulaireCampagnePesee } from './FormulaireCampagnePesee';
 import { FormulaireCaracterisation } from './FormulaireCaracterisation';
 import { FormulaireCircuit } from './FormulaireCircuit';
 import { FormulaireContact } from './FormulaireContact';
 import { FormulaireConvention } from './FormulaireConvention';
+import { FormulaireDensite } from './FormulaireDensite';
 import { FormulaireDesserte } from './FormulaireDesserte';
 import { FormulaireDocument, type TypeDocumentEmis } from './FormulaireDocument';
 import { FormulaireEngin } from './FormulaireEngin';
@@ -40,6 +42,7 @@ import { FormulaireRegistre } from './FormulaireRegistre';
 import { FormulaireSortieCarnet } from './FormulaireSortieCarnet';
 import { ImportEtablissements } from './ImportEtablissements';
 import { ImportLevees } from './ImportLevees';
+import { ImportPesees } from './ImportPesees';
 import { ImportContacts, ImportParc, ImportPersonnel } from './ImportsCsv';
 
 /** Les rubriques du catalogue, dans l'ordre où le directeur les cherche (SPEC § 2.2). */
@@ -50,8 +53,16 @@ export type Rubrique = (typeof RUBRIQUES)[number];
 export type TypeFormulaire = keyof typeof appels;
 
 /** Les écrans du portail communal vers lesquels une entrée peut conduire. */
-export type EcranAjout = 'pesees' | 'points' | 'registres' | 'decoupage' | 'comptes' | 'circuits' | 'levees';
-export type TypeEcran = 'pesee' | 'action-planifiee' | 'campagne-nettoyage' | 'secteur' | 'prestataire' | 'import-geographique' | 'levee';
+export type EcranAjout = 'pesees' | 'points' | 'registres' | 'decoupage' | 'comptes' | 'circuits' | 'levees' | 'campagnesPesee';
+export type TypeEcran =
+  | 'pesee'
+  | 'action-planifiee'
+  | 'campagne-nettoyage'
+  | 'secteur'
+  | 'prestataire'
+  | 'import-geographique'
+  | 'levee'
+  | 'pesee-campagne';
 
 export type TypeAjout = TypeFormulaire | TypeEcran;
 
@@ -127,6 +138,12 @@ const FORMULAIRES: Record<TypeFormulaire, Omit<EntreeFormulaire, 'type'>> = {
   'boitier-gps': { rubrique: 'moyens', roles: COMMUNE, Formulaire: FormulaireBoitierGps },
   // Les grilles tarifaires des conventions (jalon G, lot G1) : un acte de la commune ; la FNCT lit.
   'grille-tarifaire': { rubrique: 'references', roles: COMMUNE, Formulaire: FormulaireGrilleTarifaire },
+  // Une campagne de pesée des assimilés ou des ménages (jalon G, lot G5b) : la commune la mène, la FNCT lit ses résultats.
+  'campagne-pesee': { rubrique: 'actions', roles: COMMUNE, Formulaire: FormulaireCampagnePesee },
+  // Une densité saisie d'après le guide TADAEEM ou par défaut, avec sa pièce ; celle d'une campagne s'adopte depuis la campagne.
+  'densite-assimiles': { rubrique: 'references', roles: COMMUNE, Formulaire: FormulaireDensite },
+  // L'export Kobo des pesées d'une campagne d'établissements ouverte : le catalogue fait choisir la campagne.
+  'import-pesees': { rubrique: 'imports', roles: COMMUNE, Formulaire: ImportPesees },
 };
 
 const ECRANS: Record<TypeEcran, Omit<EntreeEcran, 'type'>> = {
@@ -136,6 +153,8 @@ const ECRANS: Record<TypeEcran, Omit<EntreeEcran, 'type'>> = {
   pesee: { rubrique: 'registres', roles: COMMUNE_ET_FNCT, ecran: 'pesees' },
   // Une levée se coche sur la feuille du jour d'un circuit : un formulaire isolé n'aurait ni le jour, ni le voyage.
   levee: { rubrique: 'registres', roles: COMMUNE, ecran: 'levees' },
+  // Une pesée de campagne vise un établissement ou un ménage de l'échantillon, dans la période d'une campagne ouverte.
+  'pesee-campagne': { rubrique: 'registres', roles: COMMUNE, ecran: 'campagnesPesee' },
   prestataire: { rubrique: 'partenaires', roles: COMMUNE_ET_FNCT, ecran: 'comptes' },
   'import-geographique': { rubrique: 'imports', roles: COMMUNE_ET_FNCT, ecran: 'circuits' },
 };

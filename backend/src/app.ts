@@ -69,6 +69,7 @@ import { importEtablissementsRouter } from './routes/importEtablissements.routes
 import { conventionsRouter } from './routes/conventions.routes.js';
 import { dessertesRouter } from './routes/dessertes.routes.js';
 import { leveesRouter } from './routes/levees.routes.js';
+import { campagnesPeseeRouter, densitesAssimilesRouter } from './routes/campagnesPesee.routes.js';
 // La couche WaPla : app.ts monte ses routes, et c'est tout ce que SIIPI en connaît.
 import { waplaRouter } from './wapla/routes.js';
 import { courrielRouter } from './routes/courriel.routes.js';
@@ -293,6 +294,9 @@ export const ROUTEURS: Array<[string, Router]> = [
   // Les dessertes et les levées des établissements (lot G5a).
   ['/dessertes', dessertesRouter],
   ['/levees', leveesRouter],
+  // Les campagnes de pesée et les densités des assimilés (lot G5b).
+  ['/campagnes-pesee', campagnesPeseeRouter],
+  ['/densites-assimiles', densitesAssimilesRouter],
   // La couche WaPla, à part : elle lit SIIPI, SIIPI ne la lit jamais (SPEC_wapla § 2).
   ['/wapla', waplaRouter],
   // Le serveur de courriel : son état et un essai, pour la FNCT (v0.15.47).

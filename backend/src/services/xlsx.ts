@@ -72,7 +72,7 @@ export const estXlsx = (octets: Buffer) => estZip(octets);
  * `autresFeuilles` dit combien ont été laissées, pour que l'écran le dise.
  */
 export function lireXlsx(octets: Buffer): {
-  rangees: Array<{ cellules: string[]; ligne: number }>;
+  rangees: Array<{ cellules: string[]; ligne: number; numeriques: boolean[] }>;
   feuille: string;
   autresFeuilles: number;
   calendrier1904: boolean;
@@ -126,12 +126,15 @@ export function lireXlsx(octets: Buffer): {
     | undefined) ?? [];
   if (lignesXml.length > MAX_LIGNES) throw new ErreurXlsx(`La feuille compte ${lignesXml.length} lignes : ${MAX_LIGNES} au plus.`);
 
-  const rangees: Array<{ cellules: string[]; ligne: number }> = [];
+  const rangees: Array<{ cellules: string[]; ligne: number; numeriques: boolean[] }> = [];
   let numero = 0;
   for (const ligne of lignesXml) {
     // Le numéro du tableur (« r »), qui compte les lignes vides qu'Excel n'écrit pas.
     numero = Number(ligne['@r']) > numero ? Number(ligne['@r']) : numero + 1;
     const valeurs: string[] = [];
+    // Une cellule numérique d'Excel n'a jamais de séparateur de milliers : « 2.375 »
+    // y vaut 2,375 sans ambiguïté, alors que le même texte, dans un CSV, ne se lit pas.
+    const numeriques: boolean[] = [];
     let suivante = 0;
     for (const c of (ligne.c as Noeud[] | undefined) ?? []) {
       const ref = String(c['@r'] ?? '');
@@ -147,8 +150,9 @@ export function lireXlsx(octets: Buffer): {
       else v = texte(c.v);
       while (valeurs.length < i) valeurs.push('');
       valeurs[i] = v;
+      numeriques[i] = type === 'n' && v.trim() !== '';
     }
-    if (valeurs.some((v) => v.trim() !== '')) rangees.push({ cellules: valeurs, ligne: numero });
+    if (valeurs.some((v) => v.trim() !== '')) rangees.push({ cellules: valeurs, ligne: numero, numeriques });
   }
   return { rangees, feuille: String(premiere['@name'] ?? ''), autresFeuilles: liste.length - 1, calendrier1904 };
 }

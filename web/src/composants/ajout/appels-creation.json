@@ -87,5 +87,15 @@
   ],
   "import-levees": [
     "importerLevees"
+  ],
+  "campagne-pesee": [
+    "creerCampagnePesee",
+    "modifierCampagnePesee"
+  ],
+  "densite-assimiles": [
+    "creerDensiteAssimiles"
+  ],
+  "import-pesees": [
+    "importerPesees"
   ]
 }

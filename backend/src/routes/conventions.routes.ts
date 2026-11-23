@@ -283,8 +283,20 @@ async function lireConvention(id: string) {
     lignes: await query(LIGNES('convention'), [id]),
     termes_en_vigueur: await query(TERMES, [id]),
     avenants: await Promise.all(avenants.map(async (a) => ({ ...a, lignes: await query(LIGNES('avenant'), [a.id]) }))),
+    tonnage_estime: await query(TONNAGE_ESTIME, [id]),
   };
 }
+
+// Le tonnage estimé des levées validées du mois en cours et du mois précédent (lot
+// G5b) : une fourchette, jamais additionnée à une pesée ni portée dans une assiette ;
+// pas de total s'il manque un volume ou une densité (app.tonnage_estime_convention).
+const TONNAGE_ESTIME = `
+  SELECT to_char(m.debut, 'YYYY-MM') AS mois, m.debut::text AS debut, m.fin::text AS fin,
+         t.levees, t.sans_volume, t.sans_densite, t.kg_min::float8 AS kg_min, t.kg_max::float8 AS kg_max, t.densites
+    FROM (SELECT d::date AS debut, LEAST((d + interval '1 month')::date - 1, app.jour_tunis()) AS fin
+            FROM generate_series(date_trunc('month', app.jour_tunis() - interval '1 month'), date_trunc('month', app.jour_tunis()::timestamp), interval '1 month') d) m
+    CROSS JOIN LATERAL app.tonnage_estime_convention($1, m.debut, m.fin) t
+   ORDER BY m.debut DESC`;
 
 // ---------------------------------------------------------------------------
 // Les refus de la base, en mots
