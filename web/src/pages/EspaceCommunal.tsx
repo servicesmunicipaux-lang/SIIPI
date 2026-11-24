@@ -53,9 +53,10 @@ import { Etablissements } from '../composants/communal/Etablissements';
 import { Conventions } from '../composants/communal/Conventions';
 import { Levees } from '../composants/communal/Levees';
 import { CampagnesPesee } from '../composants/communal/CampagnesPesee';
+import { ManquementsAssimiles } from '../composants/communal/ManquementsAssimiles';
 import type { EcranAjout } from '../composants/ajout/registre';
 
-type Onglet = 'accueil' | 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'coutCollecte' | 'grillesTarifaires' | 'etablissements' | 'conventions' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'gps' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'levees' | 'campagnesPesee' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
+type Onglet = 'accueil' | 'constat' | 'carte' | 'decoupage' | 'reclamations' | 'suggestions' | 'preuve' | 'indicateurs' | 'maCommune' | 'coutComplet' | 'coutCollecte' | 'grillesTarifaires' | 'etablissements' | 'conventions' | 'wapla' | 'circuits' | 'points' | 'registres' | 'parc' | 'gps' | 'carburant' | 'declassement' | 'documents' | 'personnel' | 'pesees' | 'levees' | 'campagnesPesee' | 'manquements' | 'acteursInformels' | 'communication' | 'rapports' | 'references' | 'contacts' | 'comptes';
 
 // LES CINQ PÔLES, ET CE QUI DÉCIDE DE L'AFFECTATION.
 //
@@ -82,6 +83,8 @@ const ENTREES: EntreeNavigation<Onglet>[] = [
   { cle: 'levees',        pole: 'terrain' },
   // Les campagnes de pesée (jalon G, lot G5b) : on pèse chez l'établissement ou au ménage, sur le terrain, jour après jour.
   { cle: 'campagnesPesee', pole: 'terrain' },
+  // Les manquements des établissements (jalon G, lot G7a) : constatés sur place, comme une levée ou une pesée.
+  { cle: 'manquements',   pole: 'terrain' },
   { cle: 'acteursInformels', pole: 'terrain' },
   { cle: 'preuve',        pole: 'terrain' },
 
@@ -133,6 +136,8 @@ export function EspaceCommunal({
   const [onglet, setOnglet] = useState<Onglet>('accueil');
   // L'indicateur que l'accueil a désigné : l'écran des indicateurs s'ouvre sur son panneau.
   const [indicateurCible, setIndicateurCible] = useState<string | null>(null);
+  // L'établissement qu'un constat « à revoir » fait ouvrir, sur ses périodes de fermeture.
+  const [etablissementCible, setEtablissementCible] = useState<string | null>(null);
   // Le catalogue « + Ajouter » (refonte, lot 2b). Après un enregistrement,
   // l'écran ouvert se remonte (`version`) : sa liste montre la ligne ajoutée
   // sans qu'on ait à le recharger.
@@ -144,6 +149,7 @@ export function EspaceCommunal({
     const cible: Onglet = ecran;
     setCatalogue(false);
     setAnnonce(null);
+    setEtablissementCible(null);
     setOnglet(cible);
   };
 
@@ -276,6 +282,7 @@ export function EspaceCommunal({
           onChoisir={(o) => {
             setAnnonce(null);
             setIndicateurCible(null);
+            setEtablissementCible(null);
             setOnglet(o);
           }}
           libelle={t('communal.navigation')}
@@ -314,7 +321,10 @@ export function EspaceCommunal({
             // Chaque ligne de l'accueil mène à un écran du menu : une clé inconnue est ignorée.
             onOuvrirEcran={(ecran) => {
               const cible = entrees.find((e) => e.cle === ecran);
-              if (cible) setOnglet(cible.cle);
+              if (!cible) return;
+              // La cible d'un établissement ne vaut que pour le lien qui l'a posée.
+              setEtablissementCible(null);
+              setOnglet(cible.cle);
             }}
             onOuvrirIndicateur={(code) => {
               setIndicateurCible(code);
@@ -337,7 +347,10 @@ export function EspaceCommunal({
             // une entrée du menu est acceptée.
             onOuvrirEcran={(ecran) => {
               const cible = entrees.find((e) => e.cle === ecran);
-              if (cible) setOnglet(cible.cle);
+              if (!cible) return;
+              // La cible d'un établissement ne vaut que pour le lien qui l'a posée.
+              setEtablissementCible(null);
+              setOnglet(cible.cle);
             }}
           />
         )}
@@ -347,7 +360,10 @@ export function EspaceCommunal({
             fnct={estFnct}
             onOuvrirEcran={(ecran) => {
               const cible = entrees.find((e) => e.cle === ecran);
-              if (cible) setOnglet(cible.cle);
+              if (!cible) return;
+              // La cible d'un établissement ne vaut que pour le lien qui l'a posée.
+              setEtablissementCible(null);
+              setOnglet(cible.cle);
             }}
           />
         )}
@@ -363,13 +379,22 @@ export function EspaceCommunal({
         {onglet === 'pesees' && <Pesees communeId={communeId} />}
         {onglet === 'levees' && <Levees communeId={communeId} />}
         {onglet === 'campagnesPesee' && <CampagnesPesee communeId={communeId} />}
+        {onglet === 'manquements' && (
+          <ManquementsAssimiles
+            communeId={communeId}
+            onOuvrirEtablissement={(id) => {
+              setEtablissementCible(id);
+              setOnglet('etablissements');
+            }}
+          />
+        )}
         {onglet === 'communication' && <Communication communeId={communeId} />}
         {onglet === 'rapports' && <RapportsEtudes communeId={communeId} />}
         {onglet === 'references' && <MesReferences communeId={communeId} fnct={estFnct} />}
         {onglet === 'coutComplet' && <CoutComplet communeId={communeId} />}
         {onglet === 'coutCollecte' && <CoutCollecte communeId={communeId} />}
         {onglet === 'grillesTarifaires' && <GrillesTarifaires communeId={communeId} />}
-        {onglet === 'etablissements' && <Etablissements communeId={communeId} />}
+        {onglet === 'etablissements' && <Etablissements communeId={communeId} cibleId={etablissementCible} onCibleMontree={() => setEtablissementCible(null)} />}
         {onglet === 'conventions' && <Conventions communeId={communeId} />}
         {onglet === 'wapla' && <EcranWapla communeId={communeId} fnct={estFnct} />}
         {onglet === 'acteursInformels' && cadreInformelActif && <ActeursInformels communeId={communeId} />}

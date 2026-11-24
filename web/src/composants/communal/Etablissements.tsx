@@ -33,6 +33,8 @@ import { Chargement, Erreur } from '../Elements';
 import { BoutonExport } from '../BoutonExport';
 import { aujourdhui as jourTunis, categoriesDuJour, FormulaireEtablissement } from '../ajout/FormulaireEtablissement';
 import { useAjoutEnLigne } from '../ajout/useAjoutEnLigne';
+import { FormulaireConstatAssimile } from '../ajout/FormulaireConstatAssimile';
+import { FermeturesEtablissement } from './FermeturesEtablissement';
 import { Pastille, type TonPastille } from '../ui/Pastille';
 
 const champ = 'mt-1 min-h-11 w-full rounded-lg border border-ardoise-300 bg-white px-3 text-base';
@@ -46,7 +48,17 @@ const TON_STATUT: Record<StatutEtablissement, TonPastille> = { actif: 'mesure', 
 
 type Geste = { id: string; statut: StatutEtablissement; date: string; motif: string };
 
-export function Etablissements({ communeId }: { communeId: string }) {
+export function Etablissements({
+  communeId,
+  cibleId,
+  onCibleMontree,
+}: {
+  communeId: string;
+  /** La cible a été montrée : le parent l'efface, et un remontage ne la réapplique pas. */
+  onCibleMontree?: () => void;
+  /** Un établissement à montrer d'emblée (un constat « à revoir » y renvoie) : sa fiche s'ouvre sur ses périodes de fermeture. */
+  cibleId?: string | null;
+}) {
   const { t, i18n } = useTranslation();
   const f = useFormats();
   const { utilisateur } = useAuth();
@@ -60,6 +72,10 @@ export function Etablissements({ communeId }: { communeId: string }) {
   const [modifie, setModifie] = useState<string | null>(null);
   const [geste, setGeste] = useState<Geste | null>(null);
   const [identiteOuverte, setIdentiteOuverte] = useState<string | null>(null);
+  // Le constat d'un manquement, ouvert depuis la fiche : le même formulaire que l'écran « Manquements », l'établissement déjà choisi.
+  const [constat, setConstat] = useState<string | null>(null);
+  // Les périodes de fermeture : lues par tous, retirées ou corrigées par le directeur.
+  const [fermeturesOuvertes, setFermeturesOuvertes] = useState<string | null>(cibleId ?? null);
   const [envoi, setEnvoi] = useState(false);
 
   // Seule la dernière lecture demandée s'affiche : une recherche plus ancienne,
@@ -77,6 +93,15 @@ export function Etablissements({ communeId }: { communeId: string }) {
       setErreur(err instanceof ErreurApi ? err.message : t('commun.erreur'));
     }
   }, [communeId, filtreStatut, recherche, t]);
+
+  // La fiche visée se montre une fois la liste lue : sans cela, elle resterait hors de la vue.
+  const cibleMontree = useRef(false);
+  useEffect(() => {
+    if (!cibleId || cibleMontree.current || !liste?.some((e) => e.id === cibleId)) return;
+    cibleMontree.current = true;
+    document.getElementById(`etablissement-${cibleId}`)?.scrollIntoView({ block: 'start' });
+    onCibleMontree?.();
+  }, [cibleId, liste, onCibleMontree]);
 
   // La liste reste affichée pendant qu'elle se relit : la vider démonterait un
   // formulaire ouvert, et un changement de langue effacerait la saisie.
@@ -216,7 +241,7 @@ export function Etablissements({ communeId }: { communeId: string }) {
       ) : (
         <ul className="space-y-3">
           {liste.map((e) => (
-            <li key={e.id} className="space-y-2 rounded-xl border border-ardoise-200 bg-white p-4">
+            <li key={e.id} id={`etablissement-${e.id}`} className="space-y-2 rounded-xl border border-ardoise-200 bg-white p-4">
               {modifie === e.id ? (
                 <FormulaireEtablissement
                   communeId={communeId}
@@ -292,6 +317,9 @@ export function Etablissements({ communeId }: { communeId: string }) {
                         >
                           {t('communal.etablissements.gestes.identite')}
                         </button>
+                        <button type="button" className={boutonDiscret} aria-expanded={constat === e.id} onClick={() => setConstat(constat === e.id ? null : e.id)}>
+                          {t('communal.etablissements.gestes.constater')}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -327,6 +355,26 @@ export function Etablissements({ communeId }: { communeId: string }) {
                   )}
 
                   {peutEcrire && identiteOuverte === e.id && <IdentiteResponsable communeId={communeId} etablissement={e} onChange={charger} />}
+                  <button
+                    type="button"
+                    className={boutonDiscret}
+                    aria-expanded={fermeturesOuvertes === e.id}
+                    onClick={() => setFermeturesOuvertes(fermeturesOuvertes === e.id ? null : e.id)}
+                  >
+                    {t('communal.etablissements.fermetures.voir')}
+                  </button>
+                  {fermeturesOuvertes === e.id && <FermeturesEtablissement commerceId={e.id} peutEcrire={peutEcrire} onEtablissementChange={charger} />}
+                  {peutEcrire && constat === e.id && (
+                    <FormulaireConstatAssimile
+                      communeId={communeId}
+                      commerceId={e.id}
+                      onAnnuler={() => setConstat(null)}
+                      onFait={() => {
+                        setConstat(null);
+                        setMessage(t('communal.etablissements.messages.constat', { nom: e.nom }));
+                      }}
+                    />
+                  )}
                 </>
               )}
             </li>

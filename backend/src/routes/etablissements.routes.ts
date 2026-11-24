@@ -7,6 +7,8 @@
 //   POST   /etablissements?communeId=…                 une inscription (saisie), avec ses doublons probables
 //   PUT    /etablissements/{id}                        la fiche, remplacée en entier
 //   POST   /etablissements/{id}/statut                 fermer (date, motif), signaler à vérifier, rouvrir
+//   GET    /etablissements/{id}/fermetures             ses périodes de fermeture (G7a), retirées comprises
+//   POST   /etablissements/{id}/fermetures/{fid}/retirer | /corriger   une période saisie à tort (motif, version lue)
 //   GET    /etablissements/{id}/identite               l'identité du responsable : le seul directeur, lecture journalisée
 //   PUT    /etablissements/{id}/identite               … écrite seulement quand la garde le permet
 //   DELETE /etablissements/{id}/identite               … retirée
@@ -381,6 +383,82 @@ etablissementsRouter.post(
     res.json(await lireEtablissement(e.id));
   })
 );
+
+// ---------------------------------------------------------------------------
+// Les périodes de fermeture (lot G7a, migration 107) : tenues par la base depuis
+// le geste de statut ; une période saisie à tort se retire ou se corrige, avec son
+// motif et la version lue — jamais effacée. Elles décident si un constat de
+// manquement peut viser l'établissement à une date.
+// ---------------------------------------------------------------------------
+const versionFermeture = z.string().regex(/^\d{1,20}$/, 'La version de la période lue est attendue : rouvrez la fiche, puis recommencez.');
+const motifFermeture = texte(300).refine(auMoinsCaracteres(5), 'Dites pourquoi (5 caractères au moins).');
+export const retraitFermetureSchema = z.object({ version: versionFermeture, motif: motifFermeture }).strict();
+export const correctionFermetureSchema = z
+  .object({ version: versionFermeture, fermeLe: dateIso, rouvertLe: dateIso.nullable().optional(), motif: motifFermeture })
+  .strict();
+
+const REFUS_FERMETURE: Record<string, number> = {
+  FERMETURE_VERSION: 409,
+  FERMETURE_RETIREE: 409,
+  FERMETURE_EN_COURS: 409,
+  FERMETURE_CHEVAUCHEMENT: 409,
+  FERMETURE_DATES: 400,
+  FERMETURE_MOTIF: 400,
+  FERMETURE_FUTURE: 400,
+  CONSTAT_IDENTIFIANT: 400,
+};
+function refusFermeture(err: unknown): never {
+  if (err instanceof ApiError) throw err;
+  const e = err as { message?: string; code?: string };
+  if (e.code === '42501' || e.code === 'P0002' || e.message === 'FERMETURE_INTROUVABLE') throw new ApiError(404, 'Période de fermeture introuvable.');
+  const code = e.message?.match(/^([A-Z_]+): /)?.[1];
+  if (code && REFUS_FERMETURE[code]) {
+    const t = (e.message as string).slice(code.length + 2);
+    throw new ApiError(REFUS_FERMETURE[code], t.charAt(0).toUpperCase() + t.slice(1));
+  }
+  throw err;
+}
+const COLONNES_FERMETURE = `f.id, f.xmin::text AS version, f.commerce_id, f.ferme_le, f.rouvert_le, f.origine,
+  f.retiree_le, f.motif_retrait, f.corrigee_le, f.motif_correction, f.created_at`;
+
+etablissementsRouter.get(
+  '/:id/fermetures',
+  requireAuth,
+  requireRole('admin_commune', 'super_admin_fnct'),
+  asyncHandler(async (req, res) => {
+    const e = await lireEtablissement(req.params.id);
+    res.json(await query(`SELECT ${COLONNES_FERMETURE} FROM fermetures_commerces f WHERE f.commerce_id = $1 ORDER BY f.ferme_le DESC, f.created_at DESC`, [e.id]));
+  })
+);
+
+for (const geste of ['retirer', 'corriger'] as const) {
+  etablissementsRouter.post(
+    `/:id/fermetures/:fid/${geste}`,
+    ...directeurSeul,
+    asyncHandler(async (req, res) => {
+      const e = await lireEtablissement(req.params.id);
+      if (!estUuid(req.params.fid)) throw new ApiError(404, 'Période de fermeture introuvable.');
+      if (!(await queryOne('SELECT 1 FROM fermetures_commerces WHERE id = $1 AND commerce_id = $2', [req.params.fid, e.id]))) {
+        throw new ApiError(404, 'Période de fermeture introuvable.');
+      }
+      try {
+        if (geste === 'retirer') {
+          const d = retraitFermetureSchema.parse(req.body);
+          await queryOne('SELECT id FROM app.retirer_fermeture($1, $2, $3)', [req.params.fid, d.version, d.motif]);
+        } else {
+          const d = correctionFermetureSchema.parse(req.body);
+          await queryOne('SELECT id FROM app.corriger_fermeture($1, $2, $3, $4, $5)', [req.params.fid, d.version, d.fermeLe, d.rouvertLe ?? null, d.motif]);
+        }
+      } catch (err) {
+        refusFermeture(err);
+      }
+      res.json({
+        etablissement: await lireEtablissement(e.id),
+        fermetures: await query(`SELECT ${COLONNES_FERMETURE} FROM fermetures_commerces f WHERE f.commerce_id = $1 ORDER BY f.ferme_le DESC, f.created_at DESC`, [e.id]),
+      });
+    })
+  );
+}
 
 // ---------------------------------------------------------------------------
 // L'identité du responsable : le seul directeur

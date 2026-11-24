@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ErreurApi, type Circuit, type Etablissement, type PointCollecte } from '../../lib/api';
 import { Chargement, Erreur } from '../Elements';
+import { isolerLtr } from '../../lib/formats';
 import { CadreAjout, champAjout } from './CadreAjout';
 import { aujourdhui } from './FormulaireEtablissement';
 import type { PropsFormulaireAjout } from './registre';
@@ -78,7 +79,7 @@ export function FormulaireDesserte({ communeId, onFait, onAnnuler }: PropsFormul
     return vus;
   }, [choisissables]);
   const departage = (e: Etablissement) =>
-    (homonymes.get(e.nom.trim().toLowerCase()) ?? 0) > 1 ? ` — ${e.matricule_fiscal ?? e.adresse ?? e.id.slice(0, 8)}` : '';
+    (homonymes.get(e.nom.trim().toLowerCase()) ?? 0) > 1 ? ` — ${isolerLtr(e.matricule_fiscal ?? e.adresse ?? e.id.slice(0, 8))}` : '';
   const circuitsActifs = useMemo(() => (circuits ?? []).filter((c) => c.actif), [circuits]);
 
   const problemes: string[] = [];

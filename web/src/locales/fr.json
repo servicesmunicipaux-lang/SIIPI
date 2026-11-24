@@ -1106,7 +1106,8 @@
       "etablissements": "Établissements",
       "conventions": "Conventions",
       "levees": "Levées",
-      "campagnesPesee": "Campagnes de pesée"
+      "campagnesPesee": "Campagnes de pesée",
+      "manquements": "Manquements"
     },
     "etats": {
       "fait": "Fait",
@@ -3201,7 +3202,8 @@
         "ferme": "Établissement fermé : il reste dans la liste, avec sa date de fermeture.",
         "a_verifier": "Établissement signalé à vérifier.",
         "actif": "Établissement actif.",
-        "importe": "Import enregistré : son bilan est au journal des imports, en bas de la liste. Les établissements « à vérifier » attendent votre décision."
+        "importe": "Import enregistré : son bilan est au journal des imports, en bas de la liste. Les établissements « à vérifier » attendent votre décision.",
+        "constat": "Le manquement de « {{nom}} » est enregistré : il se suit dans l’écran « Manquements »."
       },
       "filtres": {
         "statut": "Statut",
@@ -3240,7 +3242,8 @@
         "aVerifier": "Signaler à vérifier",
         "rouvrir": "Rouvrir",
         "confirmer": "Confirmer actif",
-        "identite": "Identité du responsable"
+        "identite": "Identité du responsable",
+        "constater": "Constater un manquement"
       },
       "aides": {
         "ferme": "La fermeture se constate : sa date n’est pas dans l’avenir. L’établissement reste dans la liste, fermé.",
@@ -3285,6 +3288,50 @@
         "nouvelle": "Nouvelle catégorie de « {{activite}} »",
         "corriger": "Corriger",
         "corrigee": "Correspondance de « {{activite}} » corrigée : elle vaut pour les prochains imports."
+      },
+      "fermetures": {
+        "voir": "Périodes de fermeture",
+        "titre": "Périodes de fermeture",
+        "aucune": "Aucune période de fermeture inscrite.",
+        "depuis": "Fermé depuis le {{debut}}",
+        "periode": "Fermé le {{debut}}, rouvert le {{fin}}",
+        "enCours": "En cours",
+        "retiree": "Retirée",
+        "origines": {
+          "geste": "Saisie par la commune",
+          "etat_initial": "Reprise de la fiche",
+          "journal_audit": "Retrouvée au journal"
+        },
+        "corrigeeLe": "Corrigée le {{date}} : {{motif}}",
+        "retireeLe": "Retirée le {{date}} : {{motif}} — elle ne couvre plus aucun jour.",
+        "corriger": "Corriger",
+        "retirer": "Retirer",
+        "aides": {
+          "retirer": "La période a été saisie à tort : elle reste lisible, avec son motif, et ne couvre plus aucun jour.",
+          "corriger": "Les dates justes de la période, avec le motif de la correction.",
+          "corrigerEnCours": "La date de début juste de la fermeture en cours, avec le motif de la correction. Pour rouvrir l’établissement, utilisez son geste « Rouvrir »."
+        },
+        "champs": {
+          "fermeLe": "Fermé le",
+          "rouvertLe": "Rouvert le",
+          "motif": "Motif"
+        },
+        "confirmer": {
+          "retirer": "Retirer la période",
+          "corriger": "Corriger la période"
+        },
+        "messages": {
+          "retirer": "La période est retirée ; elle reste lisible.",
+          "corriger": "La période est corrigée."
+        },
+        "problemes": {
+          "motif": "Le motif : de 5 à 300 caractères.",
+          "identifiant": "Le motif semble porter un numéro de CIN ou de téléphone (huit chiffres) : retirez-le.",
+          "fermeLe": "La date de fermeture est attendue, au plus tard aujourd’hui.",
+          "rouvertLe": "La réouverture se date entre la fermeture et aujourd’hui."
+        },
+        "memeJour": "Fermé et rouvert le {{debut}} : aucun jour fermé",
+        "memeJourAvis": "La réouverture le jour même de la fermeture ne couvre aucun jour fermé : la réouverture est un jour ouvert."
       }
     },
     "conventions": {
@@ -3693,6 +3740,105 @@
       "cloreLotEnAttente_one": "{{n}} pesée du lot n’est pas enregistrée : la clôture ne la compterait pas. Enregistrez-la, ou retirez-la du lot, avant de clore.",
       "cloreLotEnAttente_other": "{{n}} pesées du lot ne sont pas enregistrées : la clôture ne les compterait pas. Enregistrez-les, ou retirez-les du lot, avant de clore.",
       "envoiEnCours": "Envoi des pesées en cours : la carte reste ouverte et la partie reste affichée jusqu’à sa réponse."
+    },
+    "manquements": {
+      "titre": "Manquements des établissements",
+      "chapeau": "Ce qui a été constaté sur place chez les établissements assimilés : le fait, ses photos, ce qu’il est devenu (levé, classé sans suite, annulé) et les sanctions décidées. Rien ne s’efface : une sanction s’annule avec un motif, et une nouvelle peut être enregistrée.",
+      "lectureSeule": "La FNCT lit les manquements de la commune ; elle n’en constate, n’en lève et n’en sanctionne aucun.",
+      "nouveau": "Constater un manquement",
+      "filtres": {
+        "type": "Nature",
+        "statut": "Statut",
+        "mois": "Mois des faits",
+        "etablissement": "Établissement",
+        "tous": "Tous"
+      },
+      "aucun": "Aucun manquement constaté pour l’instant.",
+      "aucunFiltre": "Aucun manquement ne répond à ces critères.",
+      "constateLe": "Constaté le {{date}}",
+      "nbPhotos_one": "{{n}} photo",
+      "nbPhotos_other": "{{n}} photos",
+      "photos_one": "Photo ({{n}})",
+      "photos_other": "Photos ({{n}})",
+      "sanctionEnCours": "Sanction en vigueur",
+      "aRevoir": "À revoir",
+      "detail": "Voir le détail",
+      "masquer": "Masquer le détail",
+      "introuvable": "Ce constat est introuvable : il a peut-être été retiré de votre périmètre. La liste est à jour.",
+      "sanctions": {
+        "titre": "Sanctions (historique complet)",
+        "aucune": "Aucune sanction enregistrée.",
+        "ligne": "{{nature}} du {{date}}, référence",
+        "annuleeLe": "Annulée le {{date}} : {{motif}}"
+      },
+      "sanctionRetient": "Une sanction en vigueur retient ce constat : annulez-la d’abord, avec son motif, pour le classer ou l’annuler.",
+      "sansMontant": "Aucun montant n’est saisi ici : la sanction cite le document tel qu’il est numéroté.",
+      "gestes": {
+        "lever": "Lever le manquement",
+        "annulerLevee": "Annuler la levée",
+        "classer": "Classer sans suite",
+        "annuler": "Annuler le constat",
+        "sanction": "Enregistrer une sanction",
+        "annulerSanction": "Annuler la sanction",
+        "photos": "Joindre des photos"
+      },
+      "aides": {
+        "lever": "Le manquement a cessé : la date où cela a été vu, au plus tôt le jour des faits, au plus tard aujourd’hui.",
+        "annulerLevee": "La levée a été saisie à tort : le constat redevient « constaté », et la levée annulée reste dans l’historique avec son motif.",
+        "classer": "Le constat ne donnera pas de suite : il reste lisible, avec le motif du classement.",
+        "annuler": "Le constat a été saisi à tort : il reste lisible, annulé, avec son motif ; il ne se modifie plus.",
+        "sanction": "La décision prise sur ce manquement : sa nature, sa référence telle que le document la porte, et sa date.",
+        "annulerSanction": "La sanction reste dans l’historique, annulée, avec son motif ; une nouvelle peut ensuite être enregistrée.",
+        "photos": "Des photos se joignent à un constat « constaté », dans le délai de saisie."
+      },
+      "confirmer": {
+        "lever": "Lever",
+        "annulerLevee": "Annuler la levée",
+        "classer": "Classer sans suite",
+        "annuler": "Annuler le constat",
+        "sanction": "Enregistrer la sanction",
+        "annulerSanction": "Annuler la sanction",
+        "photos": "Joindre les photos"
+      },
+      "champs": {
+        "dateLevee": "Jour de la levée",
+        "observation": "Observation (facultative)",
+        "motif": "Motif",
+        "nature": "Nature de la décision",
+        "reference": "Référence du document",
+        "dateDecision": "Date de la décision"
+      },
+      "problemes": {
+        "motif": "Le motif : de 5 à 300 caractères.",
+        "identifiant": "Le texte semble porter un numéro de CIN ou de téléphone (huit chiffres) : retirez-le.",
+        "observation": "L’observation : 300 caractères au plus.",
+        "dateLevee": "La levée se date entre le {{debut}} et le {{fin}}.",
+        "dateDecision": "La décision se date entre le {{debut}} et le {{fin}}.",
+        "nature": "Choisissez la nature de la décision.",
+        "reference": "La référence : de 3 à 200 caractères, lettres, chiffres, espaces et « / - . ° ( ) _ », telle que le document la porte.",
+        "photos": "Déposez au moins une photo."
+      },
+      "messages": {
+        "cree": "Le manquement est enregistré.",
+        "leve": "Le manquement est levé.",
+        "leveeAnnulee": "La levée est annulée : le constat redevient « constaté ».",
+        "classe": "Le constat est classé sans suite.",
+        "annule": "Le constat est annulé.",
+        "sanction": "La sanction est enregistrée.",
+        "sanctionAnnulee": "La sanction est annulée ; elle reste dans l’historique.",
+        "photos": "Les photos sont jointes au constat."
+      },
+      "ouvrirEtablissement": "Ouvrir la fiche de l’établissement (périodes de fermeture)",
+      "horsFiltre": "Le constat ne répond plus au filtre : il n’est plus dans la liste.",
+      "delaiPhotos_one": "Les faits datent de {{n}} jour : une photo se joint au plus {{delai}} jours après les faits. La plateforme la refusera sans doute ; le délai exact est fixé par la FNCT.",
+      "delaiPhotos_other": "Les faits datent de {{n}} jours : une photo se joint au plus {{delai}} jours après les faits. La plateforme la refusera sans doute ; le délai exact est fixé par la FNCT.",
+      "historique": {
+        "constate": "Constaté le {{date}}",
+        "leve": "Levé le {{date}}",
+        "levee_annulee": "Levée annulée le {{date}}",
+        "classe": "Classé sans suite le {{date}}",
+        "annule": "Annulé le {{date}}"
+      }
     }
   },
   "ajout": {
@@ -3803,7 +3949,8 @@
       "campagne-pesee": "Une campagne de pesée",
       "densite-assimiles": "Une densité des assimilés",
       "import-pesees": "Des pesées de campagne (export Kobo, CSV ou Excel)",
-      "pesee-campagne": "Une pesée de campagne"
+      "pesee-campagne": "Une pesée de campagne",
+      "constat-assimile": "Un manquement d’établissement"
     },
     "precisions": {
       "circuit": "Avec son fichier GPX, KML ou GeoJSON",
@@ -3816,7 +3963,8 @@
       "levee": "Sur la feuille du jour d’un circuit",
       "campagne-pesee": "Établissements assimilés ou échantillon de ménages",
       "densite-assimiles": "kg/m³ d’une catégorie, d’après le guide TADAEEM ou par défaut",
-      "pesee-campagne": "Dans une campagne ouverte"
+      "pesee-campagne": "Dans une campagne ouverte",
+      "constat-assimile": "Constaté sur place, avec ses photos"
     },
     "position": {
       "aide": "Cliquez sur la carte pour poser la position.",
@@ -4319,6 +4467,33 @@
       "problemes": {
         "dureeDeux": "La durée couverte se lit en jours OU en heures : choisissez une seule des deux colonnes.",
         "dureeAucune": "« Durée couverte » : choisissez la colonne qui la porte, en jours ou en heures."
+      }
+    },
+    "constatAssimile": {
+      "titre": "Nouveau constat de manquement",
+      "aide": "Un fait vu sur place, daté, sur un établissement de la commune. Un constat se saisit au plus tard quelques jours après les faits (le délai est un paramètre national) ; un établissement ne se constate pas pour un jour où il était fermé.",
+      "etablissement": "Établissement",
+      "aucunEtablissement": "Aucun établissement inscrit : inscrivez-le d’abord (écran « Établissements »).",
+      "fermeLe": "fermé le {{date}}",
+      "date": "Jour des faits",
+      "delai_one": "Les faits datent de {{n}} jour : un constat se saisit au plus {{delai}} jours après les faits. La plateforme le refusera sans doute ; le délai exact est fixé par la FNCT.",
+      "delai_other": "Les faits datent de {{n}} jours : un constat se saisit au plus {{delai}} jours après les faits. La plateforme le refusera sans doute ; le délai exact est fixé par la FNCT.",
+      "type": "Nature du manquement",
+      "description": "Description (facultative)",
+      "descriptionObligatoire": "Description (obligatoire pour « Autre »)",
+      "photos": "Photos (facultatives)",
+      "listeIndisponible": "Les établissements n’ont pas pu être lus.",
+      "problemes": {
+        "etablissement": "Choisissez l’établissement.",
+        "date": "Le jour des faits est attendu.",
+        "dateFuture": "Un manquement se constate après les faits : choisissez aujourd’hui ou un jour passé.",
+        "ferme": "« {{nom}} » est fermé depuis le {{date}} : seuls des faits d’avant ce jour se constatent.",
+        "type": "Choisissez la nature du manquement.",
+        "description": "Un manquement « Autre » se décrit.",
+        "longueur": "La description : 500 caractères au plus.",
+        "identifiant": "La description semble porter un numéro de CIN ou de téléphone (huit chiffres) : retirez-le.",
+        "fermeDu": "« {{nom}} » était fermé du {{du}} (fermeture) au {{au}} (réouverture) : un jour de cette période ne se constate pas.",
+        "depotEnCours": "Des photos sont en cours de dépôt : attendez la fin du dépôt."
       }
     }
   },
@@ -5490,6 +5665,45 @@
     "duree": {
       "jours": "{{n}} j",
       "joursHeures": "{{n}} j ({{h}} h)"
+    }
+  },
+  "constats": {
+    "types": {
+      "depot_hors_conteneur": "Dépôt hors conteneur",
+      "conteneur_non_conforme": "Conteneur non conforme",
+      "debordement": "Débordement",
+      "tri_non_respecte": "Tri non respecté",
+      "absence_convention": "Absence de convention",
+      "autre": "Autre"
+    },
+    "statuts": {
+      "constate": "Constaté",
+      "leve": "Levé",
+      "classe": "Classé sans suite",
+      "annule": "Annulé"
+    },
+    "natures": {
+      "arrete": "Arrêté",
+      "proces_verbal": "Procès-verbal",
+      "autre": "Autre décision"
+    },
+    "statutsSanction": {
+      "valide": "Valide",
+      "annulee": "Annulée"
+    },
+    "sansPersonne": "Décrivez le fait, jamais la personne : ni nom, ni numéro de CIN, ni téléphone (une suite de huit chiffres est refusée).",
+    "photos": {
+      "ajouter": "Ajouter des photos ({{n}} au plus)",
+      "depot": "Dépôt des photos…",
+      "aide": "JPEG, PNG ou WebP. Une photo part dès qu’on la choisit (ses métadonnées sont retirées au dépôt) ; si elle n’est pas jointe au constat, elle est retirée.",
+      "plafond": "Un constat porte {{n}} photos au plus : les suivantes n’ont pas été déposées.",
+      "alt": "Photo du manquement",
+      "sansPosition": "La photo ne porte aucune position.",
+      "position": "La photo porte une position ({{lat}}, {{lng}}) ; elle n’est pas gardée.",
+      "positionDistance": "La photo a été prise à environ {{distance}} m de l’établissement ; sa position n’est pas gardée.",
+      "nePasJoindre": "Ne pas la joindre",
+      "imagesSeulement": "Une photo de constat est une image JPEG, PNG ou WebP : les autres fichiers (PDF, SVG…) n’ont pas été déposés.",
+      "retraitEnCours": "Retrait…"
     }
   }
 }

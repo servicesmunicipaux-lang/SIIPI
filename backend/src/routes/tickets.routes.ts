@@ -292,6 +292,20 @@ ticketsRouter.patch(
       throw new ApiError(400, `Ce ticket est déjà clôturé (statut actuel : "${ticket.status}").`);
     }
 
+    // La photo d'un constat de manquement (G7a) ne sert jamais de preuve : elle ne
+    // s'adresse à aucun citoyen. Refusée ICI, avant toute écriture — sinon la
+    // réclamation serait close, avec une preuve que son auteur ne pourra jamais lire.
+    const fichierCite = /^\/fichiers\/([0-9a-f-]{36})$/i.exec(data.resolvedPhotoUrl ?? '');
+    if (fichierCite) {
+      const constat = await queryOne<{ oui: boolean }>('SELECT app.est_photo_constat($1, $2) AS oui', [fichierCite[1], ticket.commune_id]);
+      if (constat?.oui) {
+        throw new ApiError(
+          409,
+          'Cette photo est la pièce d’un constat de manquement : elle reste au service de la commune. Déposez la preuve du traitement avec l’usage « preuve_traitement ».'
+        );
+      }
+    }
+
     const resolvedAt = data.status === 'resolu' ? new Date() : null;
     const updated = await queryOne(
       `UPDATE tickets

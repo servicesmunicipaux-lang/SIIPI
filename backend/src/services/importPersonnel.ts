@@ -46,6 +46,31 @@ export function ressembleAUnIdentifiant(valeur: string): boolean {
 }
 
 /**
+ * Un texte libre qui porte, quelque part, huit chiffres ou plus qui se suivent :
+ * un CIN ou un téléphone glissé dans une phrase. Distincte de
+ * ressembleAUnIdentifiant (une case entière d'un fichier du personnel), dont
+ * l'import garde la règle.
+ *
+ * MÊME RÈGLE, CARACTÈRE POUR CARACTÈRE, que app._texte_sans_identifiant (107) ;
+ * celle-ci ne sert qu'à répondre 400 en nommant le champ :
+ *   1. les chiffres arabes-indiens (٠-٩), persans (۰-۹) et pleine chasse (０-９)
+ *      deviennent des chiffres ASCII : un numéro tapé au clavier arabe est le même ;
+ *   2. seuls les ESPACES entre deux chiffres (espace insécable compris) sont
+ *      retirés : « 98 123 456 » redevient huit chiffres ;
+ *   3. points, tirets et barres obliques ne sont jamais joints : une date
+ *      (23.11.2026, 2026-11-23, 23/11/2026) ou un numéro d'arrêté (2026-1234)
+ *      reste permis.
+ */
+const CHIFFRES_NON_ASCII = /[٠-٩۰-۹０-９]/g;
+export function contientUnIdentifiant(texte: string): boolean {
+  const ascii = texte.replace(CHIFFRES_NON_ASCII, (c) => {
+    const p = c.codePointAt(0) as number;
+    return String(p >= 0xff10 ? p - 0xff10 : p >= 0x06f0 ? p - 0x06f0 : p - 0x0660);
+  });
+  return /[0-9]{8}/.test(ascii.replace(/(?<=[0-9])[\s   ]+(?=[0-9])/g, ''));
+}
+
+/**
  * Le refus d'un fichier, en mots, ou null s'il peut être lu. Les en-têtes d'abord,
  * puis chaque case : une seule suffit.
  */

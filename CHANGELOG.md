@@ -5,6 +5,56 @@ un lot de fonctionnalités groupées par dépendance réelle, pas par rubrique d
 cahier des charges. Chaque entrée renvoie aux identifiants du cahier des
 charges (`B5.5.2`, `C3.1`, …) tels que suivis dans la feuille de route.
 
+## [0.15.99] — 2026-11-24 — Jalon G, lot G7a : les manquements des établissements
+
+Le lot G7a du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 3.7 ; décision du 23 novembre 2026 :
+les dix propositions de G7, découpé en G7a — manquements — et G7b — tableau de bord, gisement, alertes —, et trois
+précisions de Nacer : saisie rétroactive bornée, sanction annulable puis remplaçable, journal d'audit).
+
+### Ajouté
+- **Le manquement constaté** (migration 107, table `constats_assimiles`, `/constats-assimiles`, écran *Manquements*
+  du pôle Terrain) : un établissement de la commune, une date, un type (dépôt hors conteneur, conteneur non conforme,
+  débordement, tri non respecté, absence de convention, autre — décrit). **Au nom de la commune** : aucune colonne
+  ne nomme un agent, et **l'auteur de chaque geste n'est que dans le journal d'audit**, jamais dans une réponse ni à
+  l'écran. Le directeur saisit, la FNCT lit (403 à l'écriture), un prestataire ne voit rien.
+- **La saisie rétroactive est bornée** : au plus **30 jours après les faits**, un **paramètre national daté**
+  (`delai_saisie_constat_assimile`, réglé par la FNCT) — au-delà, refus qui dit le nombre de jours ; sans valeur à la
+  date, refus qui le dit, jamais « sans limite ». Un établissement **fermé** ne reçoit un constat que **daté d'avant
+  sa fermeture** : les **périodes de fermeture sont gardées datées** (`fermetures_commerces`), toutes, pas seulement
+  la dernière ; une période saisie à tort **se corrige ou se retire avec un motif et la version lue**, jamais effacée
+  (`/etablissements/{id}/fermetures`, fiche de l'établissement). Un constat qu'une fermeture saisie ensuite contredit
+  est **« à revoir »**, jamais corrigé.
+- **La vie d'un constat** : constaté → levé (sa date, son observation ; une levée s'annule avec un motif) → classé
+  sans suite (motif) ; une erreur **s'annule avec un motif** ; rien ne s'efface. Chaque geste **sous verrou, avec la
+  version lue**, et **un historique daté de tous les gestes**, que rien ne réécrit.
+- **Les photos** : jusqu'à dix, images seulement, déposées par le directeur, **jamais publiques, jamais lisibles par
+  un prestataire, jamais supprimables une fois jointes**, nommées par la base ; la position GPS de la photo est
+  montrée, jamais gardée ; une photo déposée puis écartée est retirée du serveur. Le délai de saisie vaut aussi pour
+  une photo jointe après coup.
+- **La sanction** : une décision de la commune, enregistrée **par sa référence** (arrêté, procès-verbal) et sa date ;
+  **aucun montant, aucun calcul d'amende**. **Une seule sanction valide** par constat ; elle **s'annule avec un
+  motif**, puis une nouvelle peut être enregistrée ; **l'historique complet** se lit dans l'ordre. Un constat sous
+  sanction valide ne se classe ni ne s'annule.
+- **Les champs libres refusent ce qui ressemble à un CIN ou un téléphone** (huit chiffres ou plus, chiffres arabes
+  compris, espaces ignorés) ; une date ou un numéro d'arrêté passent.
+
+### Revues
+- Conception relue avant le code : 21 constats confirmés, tous intégrés (dont l'auteur qui ressortait par les routes
+  génériques des fichiers, et les fermetures passées invisibles).
+- Backend relu par quatre lecteurs : 14 constats confirmés sur 15, tous corrigés ; front relu par trois lecteurs :
+  11 confirmés, tous corrigés (dont une photo « non jointe » gardée sur le serveur à l'insu de tous).
+
+### Vérification
+- Campagne `constats-assimiles` (131 contrôles). Critère sur une base neuve (000 → 107, la 107 rejouée une
+  seconde fois) : contrat 476/476, 94/94 campagnes, 4495 contrôles réussis, aucun échec ;
+  `audit-blocs.py` : 9 blocs sous condition, tous leurs contrôles ont tourné. Lint du backend et du web sans erreur.
+- Écran vérifié sur le banc : liste, fiche d'un constat (historique des gestes et des sanctions), en français et en
+  arabe.
+
+### À trancher hors du code
+- La mise en production des constats (photos, champs libres) attend l'avis du juriste de la FNCT ou la déclaration
+  à l'INPDP (loi organique n° 2004-63).
+
 ## [0.15.98] — 2026-11-23 — Jalon G, lot G5b : les campagnes de pesée et les densités des assimilés
 
 Le lot G5b du jalon G (`docs/specs_metier/SPEC_G_assimiles_conventions.md`, § 3.5 ; décisions G5 n° 7 à 11 du 12 novembre

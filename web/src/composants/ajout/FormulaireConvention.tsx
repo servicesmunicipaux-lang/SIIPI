@@ -27,7 +27,7 @@ import {
   type ElementListeAssimiles,
   type Etablissement,
 } from '../../lib/api';
-import { useFormats } from '../../lib/formats';
+import { isolerLtr, useFormats } from '../../lib/formats';
 import { Chargement, Erreur } from '../Elements';
 import { CadreAjout, champAjout } from './CadreAjout';
 import { aujourdhui, categoriesDuJour } from './FormulaireEtablissement';
@@ -257,7 +257,7 @@ export function FormulaireConvention({
     return vus;
   }, [choisissables]);
   const departage = (e: Etablissement) =>
-    (homonymes.get(e.nom.trim().toLowerCase()) ?? 0) > 1 ? ` — ${e.matricule_fiscal ?? e.adresse ?? e.id.slice(0, 8)}` : '';
+    (homonymes.get(e.nom.trim().toLowerCase()) ?? 0) > 1 ? ` — ${isolerLtr(e.matricule_fiscal ?? e.adresse ?? e.id.slice(0, 8))}` : '';
 
   const problemes: string[] = [];
   const cle = (s: string) => `ajout.convention.problemes.${s}`;

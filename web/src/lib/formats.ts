@@ -140,3 +140,13 @@ export function useFormats(): Formats {
   const p = utilisateur?.preferences ?? PREFERENCES_DEFAUT;
   return useMemo(() => creerFormats(p, i18n.language, (cle) => t(cle)), [p, i18n.language, t]);
 }
+
+/**
+ * Un texte de gauche à droite (un matricule fiscal, un code) isolé dans une phrase qui
+ * peut être en arabe. Un `<option>` ne peut contenir aucun élément, donc pas de `<bdi>` :
+ * à côté d'un nom arabe, les chiffres et les segments du matricule (« 1234567A/M/A/000 »)
+ * s'afficheraient dans le désordre. Les marques d'isolement Unicode (LRI … PDI) font, en
+ * texte brut, ce que `<bdi dir="ltr">` fait dans le HTML. Jamais `dir="ltr"` sur
+ * l'option entière : un nom arabe s'y lirait à l'envers.
+ */
+export const isolerLtr = (texte: string) => `⁦${texte}⁩`;

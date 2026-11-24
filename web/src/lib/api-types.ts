@@ -1970,7 +1970,7 @@ export interface paths {
                         "application/json": components["schemas"]["Erreur"];
                     };
                 };
-                /** @description La réclamation a changé entre-temps (décision ou retrait) : la recharger. */
+                /** @description La réclamation a changé entre-temps (décision ou retrait) : la recharger ; ou la photo citée est la pièce d’un constat de manquement, qui ne sert jamais de preuve (refusé avant toute écriture). */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -16945,6 +16945,279 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/etablissements/{id}/fermetures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les périodes de fermeture d’un établissement (lot G7a)
+         * @description Tenues par la base depuis le geste de statut ; elles décident si un constat de manquement peut viser l’établissement à une date. Retirées comprises, de la plus récente à la plus ancienne.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les périodes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FermetureEtablissement"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/etablissements/{id}/fermetures/{fid}/retirer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retirer une période de fermeture saisie à tort, avec son motif
+         * @description Une période close seulement (rouvrez d’abord l’établissement) ; la version lue est exigée. Elle reste à l’historique et ne couvre plus aucun jour. Le directeur seul ; la FNCT reçoit 403.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    fid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Période retirée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            etablissement: components["schemas"]["Etablissement"];
+                            fermetures: components["schemas"]["FermetureEtablissement"][];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Période en cours, déjà retirée, ou changée entre-temps. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/etablissements/{id}/fermetures/{fid}/corriger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Corriger les dates d’une période de fermeture, avec son motif
+         * @description Dates passées, réouverture après la fermeture (aucune pour la fermeture en cours, dont la date est reportée sur l’établissement), sans chevaucher une autre période. La version lue est exigée. Le directeur seul.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    fid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        fermeLe: string;
+                        rouvertLe?: string | null;
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Période corrigée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            etablissement: components["schemas"]["Etablissement"];
+                            fermetures: components["schemas"]["FermetureEtablissement"][];
+                        };
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Chevauchement, période retirée, ou changée entre-temps. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/etablissements/{id}/identite": {
         parameters: {
             query?: never;
@@ -22186,6 +22459,971 @@ export interface paths {
                 };
                 /** @description Le geste n’est pas permis dans cet état, la version lue a changé, ou une condition manque (dite en mots). */
                 409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/constats-assimiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les manquements constatés de la commune (lot G7a)
+         * @description La commune et la FNCT lisent ; un prestataire ne voit rien. Aucun auteur : il est au journal d’audit seulement.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                    type?: "depot_hors_conteneur" | "conteneur_non_conforme" | "debordement" | "tri_non_respecte" | "absence_convention" | "autre";
+                    statut?: "constate" | "leve" | "classe" | "annule";
+                    commerceId?: string;
+                    mois?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Les constats. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConstatAssimile"][];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Constater un manquement
+         * @description Un établissement de la commune, une date passée au plus N jours (paramètre national daté « delai_saisie_constat_assimile ») ; jamais un établissement fermé le jour des faits. Les photos, déposées d’abord par POST /fichiers (usage « constat_assimile »), sont jointes dans la même transaction. Les champs libres décrivent le fait, jamais la personne : huit chiffres qui se suivent sont refusés. Le directeur seul ; la FNCT reçoit 403.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    communeId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        commerceId: string;
+                        dateConstat: string;
+                        /** @enum {string} */
+                        type: "depot_hors_conteneur" | "conteneur_non_conforme" | "debordement" | "tri_non_respecte" | "absence_convention" | "autre";
+                        description?: string | null;
+                        photos?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Constat enregistré. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConstatAssimileDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, une sanction valide l’empêche, ou l’établissement était fermé le jour des faits (dit en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le délai national de saisie des constats n’est pas fixé aujourd’hui : la FNCT le fixe dans les paramètres nationaux. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/constats-assimiles/sanctions/{id}/annuler": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Annuler une sanction, avec son motif
+         * @description Elle reste dans l’historique ; une nouvelle peut ensuite être enregistrée. Le directeur seul.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Sanction annulée ; le constat à jour. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConstatAssimileDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, une sanction valide l’empêche, ou l’établissement était fermé le jour des faits (dit en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le délai national de saisie des constats n’est pas fixé aujourd’hui : la FNCT le fixe dans les paramètres nationaux. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/constats-assimiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Un constat, ses photos et l’historique de ses sanctions */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Le constat. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConstatAssimileDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/constats-assimiles/{id}/photos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Joindre des photos à un constat
+         * @description Un constat « constaté », dans le délai de saisie, 10 photos au plus ; des fichiers d’usage « constat_assimile » de la commune. Une photo jointe ne se retire jamais.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        photos: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Photos jointes. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConstatAssimileDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, une sanction valide l’empêche, ou l’établissement était fermé le jour des faits (dit en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le délai national de saisie des constats n’est pas fixé aujourd’hui : la FNCT le fixe dans les paramètres nationaux. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/constats-assimiles/{id}/lever": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lever un constat (le manquement a cessé)
+         * @description Un constat « constaté » ; la levée se date entre le jour des faits et aujourd’hui.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        date: string;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Constat levé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConstatAssimileDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, une sanction valide l’empêche, ou l’établissement était fermé le jour des faits (dit en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le délai national de saisie des constats n’est pas fixé aujourd’hui : la FNCT le fixe dans les paramètres nationaux. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/constats-assimiles/{id}/annuler-levee": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Annuler une levée saisie à tort
+         * @description Le constat redevient « constaté » ; le motif est gardé, la levée annulée reste au journal d’audit.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Levée annulée. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConstatAssimileDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, une sanction valide l’empêche, ou l’établissement était fermé le jour des faits (dit en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le délai national de saisie des constats n’est pas fixé aujourd’hui : la FNCT le fixe dans les paramètres nationaux. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/constats-assimiles/{id}/classer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Classer un constat sans suite, avec son motif
+         * @description Un constat « constaté », sans sanction valide (annulez-la d’abord). Un constat classé ne peut plus que s’annuler.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Constat classé sans suite. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConstatAssimileDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, une sanction valide l’empêche, ou l’établissement était fermé le jour des faits (dit en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le délai national de saisie des constats n’est pas fixé aujourd’hui : la FNCT le fixe dans les paramètres nationaux. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/constats-assimiles/{id}/annuler": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Annuler un constat saisi à tort, avec son motif
+         * @description Sans sanction valide (annulez-la d’abord). Un constat annulé est figé ; il ne s’efface jamais.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        motif: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Constat annulé. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConstatAssimileDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, une sanction valide l’empêche, ou l’établissement était fermé le jour des faits (dit en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le délai national de saisie des constats n’est pas fixé aujourd’hui : la FNCT le fixe dans les paramètres nationaux. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/constats-assimiles/{id}/sanctions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enregistrer une sanction (arrêté, procès-verbal…), sans montant
+         * @description Sur un constat « constaté » ou levé ; une seule valide à la fois ; la décision se date entre le jour des faits et aujourd’hui ; la référence telle que le document la porte.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        version: string;
+                        /** @enum {string} */
+                        nature: "arrete" | "proces_verbal" | "autre";
+                        reference: string;
+                        dateDecision: string;
+                        observation?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Sanction enregistrée. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConstatAssimileDetail"];
+                    };
+                };
+                /** @description Requête invalide — le détail indique les champs en cause. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Authentification requise, ou jeton expiré. */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Rôle insuffisant, ou action hors du périmètre de votre commune. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le geste n’est pas permis dans cet état, la version lue a changé, une sanction valide l’empêche, ou l’établissement était fermé le jour des faits (dit en mots). */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description Le délai national de saisie des constats n’est pas fixé aujourd’hui : la FNCT le fixe dans les paramètres nationaux. */
+                422: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -31071,6 +32309,8 @@ export interface paths {
          *
          *     Le type est déterminé par les OCTETS, jamais par le nom ni par l'en-tête annoncé (415 sinon). Les métadonnées EXIF des photos — position GPS, modèle de l'appareil, nom du propriétaire — sont retirées avant écriture ; la position trouvée est rendue dans la réponse, à proposer à la personne plutôt qu'à enregistrer à son insu (loi organique n° 2004-63).
          *
+         *     Le nom d’une photo de constat de manquement (usage « constat_assimile ») est posé par le serveur (constat-<identifiant>.<type>) : celui que l’appareil envoie est ignoré. Ce dépôt est réservé au directeur de la commune ; ni PDF, ni destinataire citoyen.
+         *
          *     Plafond : 8 Mo une fois décodé (413 au-delà), 50 Mo pour un rapport ou une étude (usage « rapport_etude », seul à accepter aussi les documents Word, Excel et PowerPoint). Un citoyen dépose pour sa propre commune ; un agent, pour une commune où il écrit.
          */
         post: {
@@ -31088,7 +32328,7 @@ export interface paths {
                         nomFichier: string;
                         contenu: string;
                         /** @enum {string} */
-                        usage?: "reclamation" | "preuve_traitement" | "constat_terrain" | "passage" | "incident" | "suggestion_point" | "document_projet" | "enlevement" | "rapport_etude" | "declassement" | "autre";
+                        usage?: "reclamation" | "preuve_traitement" | "constat_terrain" | "passage" | "incident" | "suggestion_point" | "document_projet" | "enlevement" | "rapport_etude" | "declassement" | "constat_assimile" | "autre";
                         /** Format: uuid */
                         destinataireCitoyenId?: string;
                     };
@@ -33310,6 +34550,15 @@ export interface paths {
                         "application/json": components["schemas"]["Erreur"];
                     };
                 };
+                /** @description Le fichier est une pièce d’un dossier de déclassement, ou la photo d’un constat de manquement : il ne se retire pas. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
             };
         };
         options?: never;
@@ -33376,6 +34625,15 @@ export interface paths {
                 };
                 /** @description Ressource introuvable — ou hors de votre périmètre : le cloisonnement ne révèle pas son existence. */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Erreur"];
+                    };
+                };
+                /** @description La photo d’un constat de manquement reste au service de la commune : sa visibilité ne se règle pas. */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -38305,6 +39563,25 @@ export interface components {
             created_at: string;
             updated_at: string;
         };
+        FermetureEtablissement: {
+            /** Format: uuid */
+            id: string;
+            /** @description La version lue, à renvoyer avec le retrait ou la correction (409 si la période a changé). */
+            version: string;
+            /** Format: uuid */
+            commerce_id: string;
+            ferme_le: string;
+            /** @description Le jour où la commune a inscrit la réouverture ; null pour la fermeture en cours. */
+            rouvert_le: string | null;
+            /** @enum {string} */
+            origine: "geste" | "etat_initial" | "journal_audit";
+            /** @description Retirée (saisie à tort) : elle reste lisible et ne couvre plus aucun jour. */
+            retiree_le: string | null;
+            motif_retrait: string | null;
+            corrigee_le: string | null;
+            motif_correction: string | null;
+            created_at: string;
+        };
         AvenantConvention: {
             /** Format: uuid */
             id: string;
@@ -38782,6 +40059,82 @@ export interface components {
             /** Format: uuid */
             importId?: string;
             enregistrees?: number;
+        };
+        ConstatAssimile: {
+            /** Format: uuid */
+            id: string;
+            /** @description La version lue, à renvoyer avec chaque geste (409 si le constat a changé entre-temps). */
+            version: string;
+            commune_id: string;
+            /** Format: uuid */
+            commerce_id: string;
+            etablissement: string | null;
+            /** @enum {string|null} */
+            etablissement_statut: "actif" | "ferme" | "a_verifier" | null;
+            date_constat: string;
+            /** @enum {string} */
+            type: "depot_hors_conteneur" | "conteneur_non_conforme" | "debordement" | "tri_non_respecte" | "absence_convention" | "autre";
+            description: string | null;
+            /** @enum {string} */
+            statut: "constate" | "leve" | "classe" | "annule";
+            leve_le: string | null;
+            observation_levee: string | null;
+            levee_annulee_le: string | null;
+            motif_annulation_levee: string | null;
+            classe_le: string | null;
+            motif_classement: string | null;
+            annule_le: string | null;
+            motif_annulation: string | null;
+            created_at: string;
+            updated_at: string;
+            nb_photos: number;
+            sanction_valide: boolean;
+            /** @description Une période de fermeture, inscrite après le constat, couvre les faits : à vérifier par la commune. Rien n’est corrigé ni bloqué. */
+            a_revoir: {
+                /** @enum {string} */
+                code: "CONSTAT_ETABLISSEMENT_FERME_DEPUIS";
+                message: string;
+                message_ar: string;
+            } | null;
+        };
+        ConstatAssimileDetail: components["schemas"]["ConstatAssimile"] & {
+            /** @description Les photos : jamais la fiche du fichier, qui porte son déposant. */
+            photos: {
+                /** Format: uuid */
+                fichier_id: string;
+                url: string;
+                type_mime: string;
+                taille_octets: number;
+                created_at: string;
+            }[];
+            /** @description L’historique entier, dans l’ordre : une sanction annulée garde son motif et sa date. Aucun montant. */
+            sanctions: {
+                /** Format: uuid */
+                id: string;
+                /** @description La version lue de la sanction, à renvoyer pour l’annuler (409 si elle a changé). */
+                version: string;
+                /** @enum {string} */
+                nature: "arrete" | "proces_verbal" | "autre";
+                reference: string;
+                date_decision: string;
+                observation: string | null;
+                /** @enum {string} */
+                statut: "valide" | "annulee";
+                annulee_le: string | null;
+                motif_annulation: string | null;
+                created_at: string;
+            }[];
+            /** @description Chaque geste sur le constat, dans l’ordre où il a été fait, jamais réécrit : une levée annulée puis refaite y garde ses deux dates et ses deux motifs. Aucun auteur (il est au journal d’audit). */
+            historique: {
+                /** @enum {string} */
+                geste: "constate" | "leve" | "levee_annulee" | "classe" | "annule";
+                /** @description La date des faits (constaté) ou de la levée (levé) ; null pour les autres gestes. */
+                date_effet: string | null;
+                /** @description L’observation de la levée, ou le motif du geste ; null pour « constaté ». */
+                texte: string | null;
+                /** @description Le moment du geste. */
+                created_at: string;
+            }[];
         };
         ActeurInformel: {
             /** Format: uuid */
@@ -39632,8 +40985,11 @@ export interface components {
             /** Format: uuid */
             destinataire_citoyen_id: string | null;
             /** @enum {string|null} */
-            usage: "reclamation" | "preuve_traitement" | "constat_terrain" | "passage" | "incident" | "suggestion_point" | "document_projet" | "enlevement" | "rapport_etude" | "autre" | null;
-            /** Format: uuid */
+            usage: "reclamation" | "preuve_traitement" | "constat_terrain" | "passage" | "incident" | "suggestion_point" | "document_projet" | "enlevement" | "rapport_etude" | "declassement" | "logo_commune" | "constat_assimile" | "autre" | null;
+            /**
+             * Format: uuid
+             * @description Le compte qui a déposé le fichier ; toujours null pour la photo d’un constat de manquement (usage « constat_assimile ») : l’auteur d’un constat n’est qu’au journal d’audit.
+             */
             televerse_par: string | null;
             created_at: string;
             /** @description Date de la compression de conservation (D-FNCT-4) : à 36 mois, une photo est servie en JPEG qualité 70, 500 Ko au plus, et son original part dans l'archive froide. type_mime, taille_octets et sha256 restent ceux de l'ORIGINAL — la fiche du dépôt n'est jamais réécrite. */
