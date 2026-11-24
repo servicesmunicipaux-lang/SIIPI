@@ -109,6 +109,8 @@ import {
   SOURCES_ETABLISSEMENT,
   STATUTS_ETABLISSEMENT,
   statutEtablissementSchema,
+  retraitFermetureSchema,
+  correctionFermetureSchema,
 } from '../routes/etablissements.routes.js';
 import {
   correspondanceActiviteSchema,
@@ -164,6 +166,18 @@ import {
   versionCampagneSchema,
 } from '../routes/campagnesPesee.routes.js';
 import { CLES_CHAMPS_PESEES } from '../services/importPesees.js';
+import {
+  annulationSanctionSchema,
+  constatSchema,
+  leveeConstatSchema,
+  motifConstatSchema,
+  NATURES_SANCTION,
+  photosConstatSchema,
+  qConstats,
+  sanctionSchema,
+  STATUTS_CONSTAT,
+  TYPES_CONSTAT,
+} from '../routes/constatsAssimiles.routes.js';
 import {
   demandeCarteSchema,
   pieceCarteSchema,
@@ -1213,7 +1227,7 @@ registry.registerPath({
   responses: {
     200: json(Reclamation, 'Réclamation traitée.'),
     ...REPONSES_COMMUNES,
-    409: json(Erreur, 'La réclamation a changé entre-temps (décision ou retrait) : la recharger.'),
+    409: json(Erreur, 'La réclamation a changé entre-temps (décision ou retrait) : la recharger ; ou la photo citée est la pièce d’un constat de manquement, qui ne sert jamais de preuve (refusé avant toute écriture).'),
   },
 });
 
@@ -4906,6 +4920,48 @@ registry.registerPath({
   request: { params: pEtablissement, body: { content: { 'application/json': { schema: statutEtablissementSchema } } } },
   responses: { ...REPONSES_COMMUNES, 200: json(Etablissement, 'Statut changé.'), 409: json(Erreur, 'Déjà dans ce statut, ou changé entre-temps.') },
 });
+const FermetureEtablissement = registry.register(
+  'FermetureEtablissement',
+  z.object({
+    id: z.string().uuid(),
+    version: z.string().openapi({ description: 'La version lue, à renvoyer avec le retrait ou la correction (409 si la période a changé).' }),
+    commerce_id: z.string().uuid(),
+    ferme_le: z.string(),
+    rouvert_le: z.string().nullable().openapi({ description: 'Le jour où la commune a inscrit la réouverture ; null pour la fermeture en cours.' }),
+    origine: z.enum(['geste', 'etat_initial', 'journal_audit']),
+    retiree_le: z.string().nullable().openapi({ description: 'Retirée (saisie à tort) : elle reste lisible et ne couvre plus aucun jour.' }),
+    motif_retrait: z.string().nullable(),
+    corrigee_le: z.string().nullable(),
+    motif_correction: z.string().nullable(),
+    created_at: z.string(),
+  })
+);
+const pFermeture = z.object({ id: z.string().uuid(), fid: z.string().uuid() });
+const FermeturesApresGeste = z.object({ etablissement: Etablissement, fermetures: z.array(FermetureEtablissement) });
+registry.registerPath({
+  method: 'get', path: '/etablissements/{id}/fermetures', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Les périodes de fermeture d’un établissement (lot G7a)',
+  description: 'Tenues par la base depuis le geste de statut ; elles décident si un constat de manquement peut viser l’établissement à une date. Retirées comprises, de la plus récente à la plus ancienne.',
+  security: SECURISE,
+  request: { params: pEtablissement },
+  responses: { 200: json(z.array(FermetureEtablissement), 'Les périodes.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/etablissements/{id}/fermetures/{fid}/retirer', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Retirer une période de fermeture saisie à tort, avec son motif',
+  description: 'Une période close seulement (rouvrez d’abord l’établissement) ; la version lue est exigée. Elle reste à l’historique et ne couvre plus aucun jour. Le directeur seul ; la FNCT reçoit 403.',
+  security: SECURISE,
+  request: { params: pFermeture, body: { content: { 'application/json': { schema: retraitFermetureSchema } } } },
+  responses: { 200: json(FermeturesApresGeste, 'Période retirée.'), ...REPONSES_COMMUNES, 409: json(Erreur, 'Période en cours, déjà retirée, ou changée entre-temps.') },
+});
+registry.registerPath({
+  method: 'post', path: '/etablissements/{id}/fermetures/{fid}/corriger', tags: [TAG_ETABLISSEMENTS],
+  summary: 'Corriger les dates d’une période de fermeture, avec son motif',
+  description: 'Dates passées, réouverture après la fermeture (aucune pour la fermeture en cours, dont la date est reportée sur l’établissement), sans chevaucher une autre période. La version lue est exigée. Le directeur seul.',
+  security: SECURISE,
+  request: { params: pFermeture, body: { content: { 'application/json': { schema: correctionFermetureSchema } } } },
+  responses: { 200: json(FermeturesApresGeste, 'Période corrigée.'), ...REPONSES_COMMUNES, 409: json(Erreur, 'Chevauchement, période retirée, ou changée entre-temps.') },
+});
 registry.registerPath({
   method: 'get', path: '/etablissements/{id}/identite', tags: [TAG_ETABLISSEMENTS],
   summary: 'L’identité du responsable (le seul directeur, lecture journalisée)',
@@ -6050,6 +6106,172 @@ registry.registerPath({
   security: SECURISE,
   request: { params: pCampagne, body: { content: { 'application/json': { schema: retraitDensiteAssimilesSchema } } } },
   responses: { 200: json(DensiteAssimiles, 'Densité retirée.'), ...REPONSES_COMMUNES, ...REFUS_GESTE },
+});
+
+// ---------------------------------------------------------------------------
+// Les manquements des établissements (jalon G, lot G7a)
+// ---------------------------------------------------------------------------
+const TAG_CONSTATS = 'Manquements des établissements';
+// Aucun champ d'auteur, et le schéma est fermé : le contrat ne peut pas décrire
+// un auteur que la route rendrait (précision P3 du 23/11/2026).
+const ConstatAssimile = registry.register(
+  'ConstatAssimile',
+  z
+    .object({
+      id: z.string().uuid(),
+      version: z.string().openapi({ description: 'La version lue, à renvoyer avec chaque geste (409 si le constat a changé entre-temps).' }),
+      commune_id: z.string(),
+      commerce_id: z.string().uuid(),
+      etablissement: z.string().nullable(),
+      etablissement_statut: z.enum(['actif', 'ferme', 'a_verifier']).nullable(),
+      date_constat: z.string(),
+      type: z.enum(TYPES_CONSTAT),
+      description: z.string().nullable(),
+      statut: z.enum(STATUTS_CONSTAT),
+      leve_le: z.string().nullable(),
+      observation_levee: z.string().nullable(),
+      levee_annulee_le: z.string().nullable(),
+      motif_annulation_levee: z.string().nullable(),
+      classe_le: z.string().nullable(),
+      motif_classement: z.string().nullable(),
+      annule_le: z.string().nullable(),
+      motif_annulation: z.string().nullable(),
+      created_at: z.string(),
+      updated_at: z.string(),
+      nb_photos: z.number().int(),
+      sanction_valide: z.boolean(),
+      a_revoir: z
+        .object({ code: z.literal('CONSTAT_ETABLISSEMENT_FERME_DEPUIS'), message: z.string(), message_ar: z.string() })
+        .strict()
+        .nullable()
+        .openapi({ description: 'Une période de fermeture, inscrite après le constat, couvre les faits : à vérifier par la commune. Rien n’est corrigé ni bloqué.' }),
+    })
+    .strict()
+);
+const PhotoConstat = z
+  .object({ fichier_id: z.string().uuid(), url: z.string(), type_mime: z.string(), taille_octets: z.number().int(), created_at: z.string() })
+  .strict();
+const SanctionConstat = z
+  .object({
+    id: z.string().uuid(),
+    version: z.string().openapi({ description: 'La version lue de la sanction, à renvoyer pour l’annuler (409 si elle a changé).' }),
+    nature: z.enum(NATURES_SANCTION),
+    reference: z.string(),
+    date_decision: z.string(),
+    observation: z.string().nullable(),
+    statut: z.enum(['valide', 'annulee']),
+    annulee_le: z.string().nullable(),
+    motif_annulation: z.string().nullable(),
+    created_at: z.string(),
+  })
+  .strict();
+const ConstatAssimileDetail = registry.register(
+  'ConstatAssimileDetail',
+  ConstatAssimile.extend({
+    photos: z.array(PhotoConstat).openapi({ description: 'Les photos : jamais la fiche du fichier, qui porte son déposant.' }),
+    sanctions: z
+      .array(SanctionConstat)
+      .openapi({ description: 'L’historique entier, dans l’ordre : une sanction annulée garde son motif et sa date. Aucun montant.' }),
+    historique: z
+      .array(
+        z
+          .object({
+            geste: z.enum(['constate', 'leve', 'levee_annulee', 'classe', 'annule']),
+            date_effet: z.string().nullable().openapi({ description: 'La date des faits (constaté) ou de la levée (levé) ; null pour les autres gestes.' }),
+            texte: z.string().nullable().openapi({ description: 'L’observation de la levée, ou le motif du geste ; null pour « constaté ».' }),
+            created_at: z.string().openapi({ description: 'Le moment du geste.' }),
+          })
+          .strict()
+      )
+      .openapi({ description: 'Chaque geste sur le constat, dans l’ordre où il a été fait, jamais réécrit : une levée annulée puis refaite y garde ses deux dates et ses deux motifs. Aucun auteur (il est au journal d’audit).' }),
+  }).strict()
+);
+const pConstat = z.object({ id: z.string().uuid() });
+const REFUS_CONSTAT = {
+  409: json(Erreur, 'Le geste n’est pas permis dans cet état, la version lue a changé, une sanction valide l’empêche, ou l’établissement était fermé le jour des faits (dit en mots).'),
+  422: json(Erreur, 'Le délai national de saisie des constats n’est pas fixé aujourd’hui : la FNCT le fixe dans les paramètres nationaux.'),
+};
+
+registry.registerPath({
+  method: 'get', path: '/constats-assimiles', tags: [TAG_CONSTATS],
+  summary: 'Les manquements constatés de la commune (lot G7a)',
+  description: 'La commune et la FNCT lisent ; un prestataire ne voit rien. Aucun auteur : il est au journal d’audit seulement.',
+  security: SECURISE,
+  request: { query: qConstats },
+  responses: { 200: json(z.array(ConstatAssimile), 'Les constats.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/constats-assimiles', tags: [TAG_CONSTATS],
+  summary: 'Constater un manquement',
+  description:
+    'Un établissement de la commune, une date passée au plus N jours (paramètre national daté « delai_saisie_constat_assimile ») ; jamais un établissement fermé le jour des faits. ' +
+    'Les photos, déposées d’abord par POST /fichiers (usage « constat_assimile »), sont jointes dans la même transaction. Les champs libres décrivent le fait, jamais la personne : huit chiffres qui se suivent sont refusés. Le directeur seul ; la FNCT reçoit 403.',
+  security: SECURISE,
+  request: { query: z.object({ communeId: z.string().optional() }), body: { content: { 'application/json': { schema: constatSchema } } } },
+  responses: { 201: json(ConstatAssimileDetail, 'Constat enregistré.'), ...REPONSES_COMMUNES, ...REFUS_CONSTAT },
+});
+registry.registerPath({
+  method: 'post', path: '/constats-assimiles/sanctions/{id}/annuler', tags: [TAG_CONSTATS],
+  summary: 'Annuler une sanction, avec son motif',
+  description: 'Elle reste dans l’historique ; une nouvelle peut ensuite être enregistrée. Le directeur seul.',
+  security: SECURISE,
+  request: { params: pConstat, body: { content: { 'application/json': { schema: annulationSanctionSchema } } } },
+  responses: { 200: json(ConstatAssimileDetail, 'Sanction annulée ; le constat à jour.'), ...REPONSES_COMMUNES, ...REFUS_CONSTAT },
+});
+registry.registerPath({
+  method: 'get', path: '/constats-assimiles/{id}', tags: [TAG_CONSTATS],
+  summary: 'Un constat, ses photos et l’historique de ses sanctions',
+  security: SECURISE,
+  request: { params: pConstat },
+  responses: { 200: json(ConstatAssimileDetail, 'Le constat.'), ...REPONSES_COMMUNES },
+});
+registry.registerPath({
+  method: 'post', path: '/constats-assimiles/{id}/photos', tags: [TAG_CONSTATS],
+  summary: 'Joindre des photos à un constat',
+  description: 'Un constat « constaté », dans le délai de saisie, 10 photos au plus ; des fichiers d’usage « constat_assimile » de la commune. Une photo jointe ne se retire jamais.',
+  security: SECURISE,
+  request: { params: pConstat, body: { content: { 'application/json': { schema: photosConstatSchema } } } },
+  responses: { 201: json(ConstatAssimileDetail, 'Photos jointes.'), ...REPONSES_COMMUNES, ...REFUS_CONSTAT },
+});
+registry.registerPath({
+  method: 'post', path: '/constats-assimiles/{id}/lever', tags: [TAG_CONSTATS],
+  summary: 'Lever un constat (le manquement a cessé)',
+  description: 'Un constat « constaté » ; la levée se date entre le jour des faits et aujourd’hui.',
+  security: SECURISE,
+  request: { params: pConstat, body: { content: { 'application/json': { schema: leveeConstatSchema } } } },
+  responses: { 200: json(ConstatAssimileDetail, 'Constat levé.'), ...REPONSES_COMMUNES, ...REFUS_CONSTAT },
+});
+registry.registerPath({
+  method: 'post', path: '/constats-assimiles/{id}/annuler-levee', tags: [TAG_CONSTATS],
+  summary: 'Annuler une levée saisie à tort',
+  description: 'Le constat redevient « constaté » ; le motif est gardé, la levée annulée reste au journal d’audit.',
+  security: SECURISE,
+  request: { params: pConstat, body: { content: { 'application/json': { schema: motifConstatSchema } } } },
+  responses: { 200: json(ConstatAssimileDetail, 'Levée annulée.'), ...REPONSES_COMMUNES, ...REFUS_CONSTAT },
+});
+registry.registerPath({
+  method: 'post', path: '/constats-assimiles/{id}/classer', tags: [TAG_CONSTATS],
+  summary: 'Classer un constat sans suite, avec son motif',
+  description: 'Un constat « constaté », sans sanction valide (annulez-la d’abord). Un constat classé ne peut plus que s’annuler.',
+  security: SECURISE,
+  request: { params: pConstat, body: { content: { 'application/json': { schema: motifConstatSchema } } } },
+  responses: { 200: json(ConstatAssimileDetail, 'Constat classé sans suite.'), ...REPONSES_COMMUNES, ...REFUS_CONSTAT },
+});
+registry.registerPath({
+  method: 'post', path: '/constats-assimiles/{id}/annuler', tags: [TAG_CONSTATS],
+  summary: 'Annuler un constat saisi à tort, avec son motif',
+  description: 'Sans sanction valide (annulez-la d’abord). Un constat annulé est figé ; il ne s’efface jamais.',
+  security: SECURISE,
+  request: { params: pConstat, body: { content: { 'application/json': { schema: motifConstatSchema } } } },
+  responses: { 200: json(ConstatAssimileDetail, 'Constat annulé.'), ...REPONSES_COMMUNES, ...REFUS_CONSTAT },
+});
+registry.registerPath({
+  method: 'post', path: '/constats-assimiles/{id}/sanctions', tags: [TAG_CONSTATS],
+  summary: 'Enregistrer une sanction (arrêté, procès-verbal…), sans montant',
+  description: 'Sur un constat « constaté » ou levé ; une seule valide à la fois ; la décision se date entre le jour des faits et aujourd’hui ; la référence telle que le document la porte.',
+  security: SECURISE,
+  request: { params: pConstat, body: { content: { 'application/json': { schema: sanctionSchema } } } },
+  responses: { 201: json(ConstatAssimileDetail, 'Sanction enregistrée.'), ...REPONSES_COMMUNES, ...REFUS_CONSTAT },
 });
 
 const ActeurInformel = registry.register(
@@ -9090,7 +9312,7 @@ registry.registerPath({
 const USAGES_FICHIER = [
   'reclamation', 'preuve_traitement', 'constat_terrain', 'passage',
   'incident', 'suggestion_point', 'document_projet', 'enlevement',
-  'rapport_etude', 'autre',
+  'rapport_etude', 'declassement', 'logo_commune', 'constat_assimile', 'autre',
 ] as const;
 
 const TYPES_MIME_FICHIER = [
@@ -9123,7 +9345,9 @@ const Fichier = registry.register(
     }),
     destinataire_citoyen_id: z.string().uuid().nullable(),
     usage: z.enum(USAGES_FICHIER).nullable(),
-    televerse_par: z.string().uuid().nullable(),
+    televerse_par: z.string().uuid().nullable().openapi({
+      description: 'Le compte qui a déposé le fichier ; toujours null pour la photo d’un constat de manquement (usage « constat_assimile ») : l’auteur d’un constat n’est qu’au journal d’audit.',
+    }),
     created_at: z.string(),
     compressee_le: z.string().nullable().openapi({
       description:
@@ -9159,6 +9383,8 @@ registry.registerPath({
     "Le fichier voyage en base64, comme le relevé KML du module 2 : une seule façon de poster dans toute l'API, et un appel qui se rejoue à la main.",
     '',
     "Le type est déterminé par les OCTETS, jamais par le nom ni par l'en-tête annoncé (415 sinon). Les métadonnées EXIF des photos — position GPS, modèle de l'appareil, nom du propriétaire — sont retirées avant écriture ; la position trouvée est rendue dans la réponse, à proposer à la personne plutôt qu'à enregistrer à son insu (loi organique n° 2004-63).",
+    '',
+    'Le nom d’une photo de constat de manquement (usage « constat_assimile ») est posé par le serveur (constat-<identifiant>.<type>) : celui que l’appareil envoie est ignoré. Ce dépôt est réservé au directeur de la commune ; ni PDF, ni destinataire citoyen.',
     '',
     'Plafond : 8 Mo une fois décodé (413 au-delà), 50 Mo pour un rapport ou une étude (usage « rapport_etude », seul à accepter aussi les documents Word, Excel et PowerPoint). Un citoyen dépose pour sa propre commune ; un agent, pour une commune où il écrit.',
   ].join('\n'),
@@ -9843,7 +10069,11 @@ registry.registerPath({
       },
     },
   },
-  responses: { 200: json(Fichier, 'Visibilité modifiée.'), ...REPONSES_COMMUNES },
+  responses: {
+    200: json(Fichier, 'Visibilité modifiée.'),
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'La photo d’un constat de manquement reste au service de la commune : sa visibilité ne se règle pas.'),
+  },
 });
 
 registry.registerPath({
@@ -9855,7 +10085,11 @@ registry.registerPath({
     "Retrait LOGIQUE. Les octets restent sur le volume : aucun geste d'un utilisateur ne les efface. Seule la tâche de conservation (D-FNCT-4) change leur forme, à 36 mois : version compressée en ligne, original dans l'archive froide — jamais détruit.",
   security: SECURISE,
   request: { params: z.object({ id: z.string().uuid() }) },
-  responses: { 204: { description: 'Fichier retiré.' }, ...REPONSES_COMMUNES },
+  responses: {
+    204: { description: 'Fichier retiré.' },
+    ...REPONSES_COMMUNES,
+    409: json(Erreur, 'Le fichier est une pièce d’un dossier de déclassement, ou la photo d’un constat de manquement : il ne se retire pas.'),
+  },
 });
 
 // ---------------------------------------------------------------------------

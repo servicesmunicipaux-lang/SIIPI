@@ -49,7 +49,7 @@ import {
   type TrancheRevenu,
 } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-import { useFormats } from '../../lib/formats';
+import { isolerLtr, useFormats } from '../../lib/formats';
 import { formaterNombre } from '../../i18n';
 import {
   arrondiJours,
@@ -1309,7 +1309,7 @@ function SectionPesees({
                   : choisissables.map((e) => (
                       <option key={e.id} value={e.id}>
                         {e.nom}
-                        {e.matricule_fiscal ? ` — ${e.matricule_fiscal}` : ''}
+                        {e.matricule_fiscal ? ` — ${isolerLtr(e.matricule_fiscal)}` : ''}
                         {e.statut === 'ferme' && e.ferme_le ? ` — ${t('communal.campagnesPesee.pesees.fermeLe', { date: f.date(e.ferme_le) })}` : ''}
                       </option>
                     ))}

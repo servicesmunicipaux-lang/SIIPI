@@ -97,5 +97,8 @@
   ],
   "import-pesees": [
     "importerPesees"
+  ],
+  "constat-assimile": [
+    "creerConstatAssimile"
   ]
 }

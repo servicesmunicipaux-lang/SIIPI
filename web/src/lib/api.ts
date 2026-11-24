@@ -378,6 +378,20 @@ export type ImportPeseesJournal = Reponse<'/campagnes-pesee/{id}/imports', 'get'
 export type DensiteAssimiles = Reponse<'/densites-assimiles', 'get'>[number];
 export type SaisieDensiteAssimiles = Corps<'/densites-assimiles', 'post'>;
 export type TonnageEstimeConvention = Convention['tonnage_estime'][number];
+// --- Jalon G, lot G7a : les manquements des établissements ---
+export type ConstatAssimile = Reponse<'/constats-assimiles', 'get'>[number];
+export type ConstatAssimileDetail = Reponse<'/constats-assimiles/{id}', 'get'>;
+export type TypeConstat = ConstatAssimile['type'];
+export type StatutConstat = ConstatAssimile['statut'];
+export type SanctionConstat = ConstatAssimileDetail['sanctions'][number];
+export type NatureSanction = SanctionConstat['nature'];
+export type GesteHistoriqueConstat = ConstatAssimileDetail['historique'][number];
+export type SaisieConstat = Corps<'/constats-assimiles', 'post'>;
+export type SaisieSanction = Corps<'/constats-assimiles/{id}/sanctions', 'post'>;
+export type LeveeConstat = Corps<'/constats-assimiles/{id}/lever', 'post'>;
+export type MotifConstat = Corps<'/constats-assimiles/{id}/classer', 'post'>;
+export type FermetureEtablissement = Reponse<'/etablissements/{id}/fermetures', 'get'>[number];
+export type FermeturesApresGeste = Reponse<'/etablissements/{id}/fermetures/{fid}/retirer', 'post'>;
 export type CorrectionReferentiel = Reponse<'/observatoire/corrections-referentiel', 'get'>[number];
 export type EtatConservation = Reponse<'/fichiers/conservation', 'get'>;
 export type DemandeRestauration = ReponseCreee<'/fichiers/{id}/restauration', 'post'>;
@@ -1639,6 +1653,41 @@ export const api = {
     requete<DensiteAssimiles>(`/densites-assimiles?communeId=${encodeURIComponent(communeId)}`, { method: 'POST', body: JSON.stringify(saisie) }),
   retirerDensiteAssimiles: (id: string, motif: string) =>
     requete<DensiteAssimiles>(`/densites-assimiles/${id}/retirer`, { method: 'POST', body: JSON.stringify({ motif }) }),
+  // --- Jalon G, lot G7a : les manquements (écriture : le directeur ; la FNCT lit ; aucun auteur rendu) ---
+  constatsAssimiles: (
+    communeId: string,
+    filtres: { type?: TypeConstat; statut?: StatutConstat; commerceId?: string; mois?: string } = {}
+  ) => {
+    const p = new URLSearchParams({ communeId });
+    for (const [k, v] of Object.entries(filtres)) if (v) p.set(k, v);
+    return requete<ConstatAssimile[]>(`/constats-assimiles?${p.toString()}`);
+  },
+  // Les périodes de fermeture d'un établissement (G7a) : retirées ou corrigées, jamais effacées.
+  fermeturesEtablissement: (commerceId: string) => requete<FermetureEtablissement[]>(`/etablissements/${commerceId}/fermetures`),
+  retirerFermeture: (commerceId: string, fermetureId: string, corps: Corps<'/etablissements/{id}/fermetures/{fid}/retirer', 'post'>) =>
+    requete<FermeturesApresGeste>(`/etablissements/${commerceId}/fermetures/${fermetureId}/retirer`, { method: 'POST', body: JSON.stringify(corps) }),
+  corrigerFermeture: (commerceId: string, fermetureId: string, corps: Corps<'/etablissements/{id}/fermetures/{fid}/corriger', 'post'>) =>
+    requete<FermeturesApresGeste>(`/etablissements/${commerceId}/fermetures/${fermetureId}/corriger`, { method: 'POST', body: JSON.stringify(corps) }),
+  constatAssimile: (id: string) => requete<ConstatAssimileDetail>(`/constats-assimiles/${id}`),
+  creerConstatAssimile: (communeId: string, saisie: SaisieConstat) =>
+    requete<ConstatAssimileDetail>(`/constats-assimiles?communeId=${encodeURIComponent(communeId)}`, {
+      method: 'POST',
+      body: JSON.stringify(saisie),
+    }),
+  joindrePhotosConstat: (id: string, corps: Corps<'/constats-assimiles/{id}/photos', 'post'>) =>
+    requete<ConstatAssimileDetail>(`/constats-assimiles/${id}/photos`, { method: 'POST', body: JSON.stringify(corps) }),
+  leverConstat: (id: string, corps: LeveeConstat) =>
+    requete<ConstatAssimileDetail>(`/constats-assimiles/${id}/lever`, { method: 'POST', body: JSON.stringify(corps) }),
+  annulerLeveeConstat: (id: string, corps: MotifConstat) =>
+    requete<ConstatAssimileDetail>(`/constats-assimiles/${id}/annuler-levee`, { method: 'POST', body: JSON.stringify(corps) }),
+  classerConstat: (id: string, corps: MotifConstat) =>
+    requete<ConstatAssimileDetail>(`/constats-assimiles/${id}/classer`, { method: 'POST', body: JSON.stringify(corps) }),
+  annulerConstat: (id: string, corps: MotifConstat) =>
+    requete<ConstatAssimileDetail>(`/constats-assimiles/${id}/annuler`, { method: 'POST', body: JSON.stringify(corps) }),
+  enregistrerSanction: (constatId: string, saisie: SaisieSanction) =>
+    requete<ConstatAssimileDetail>(`/constats-assimiles/${constatId}/sanctions`, { method: 'POST', body: JSON.stringify(saisie) }),
+  annulerSanction: (id: string, corps: Corps<'/constats-assimiles/sanctions/{id}/annuler', 'post'>) =>
+    requete<ConstatAssimileDetail>(`/constats-assimiles/sanctions/${id}/annuler`, { method: 'POST', body: JSON.stringify(corps) }),
   correspondancesActivites: (communeId: string) =>
     requete<CorrespondanceActivite[]>(`/etablissements/correspondances-activites?communeId=${encodeURIComponent(communeId)}`),
   enregistrerCorrespondanceActivite: (communeId: string, saisie: Corps<'/etablissements/correspondances-activites', 'put'>) =>

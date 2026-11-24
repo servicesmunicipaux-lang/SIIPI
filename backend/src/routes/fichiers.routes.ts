@@ -36,16 +36,22 @@ import {
 
 export const fichiersRouter = Router();
 
+const capitale = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
 const USAGES = [
   'reclamation', 'preuve_traitement', 'constat_terrain', 'passage',
   'incident', 'suggestion_point', 'document_projet', 'enlevement',
-  'rapport_etude', 'declassement', 'autre',
+  'rapport_etude', 'declassement', 'constat_assimile', 'autre',
 ] as const;
 
 const FICHE = `
   SELECT f.id, f.commune_id, f.nom_original, f.type_mime, f.taille_octets,
          f.sha256, f.visibilite, f.destinataire_citoyen_id, f.usage,
-         f.televerse_par, f.created_at, f.compressee_le, f.taille_compressee_octets,
+         -- La photo d'un constat de manquement ne dit jamais qui l'a déposée : son
+         -- déposant est l'agent qui a constaté, et l'auteur d'un constat n'est
+         -- qu'au journal d'audit (G7a, précision P3 du 23/11/2026).
+         CASE WHEN f.usage = 'constat_assimile' THEN NULL ELSE f.televerse_par END AS televerse_par,
+         f.created_at, f.compressee_le, f.taille_compressee_octets,
          f.original_restaure_le
     FROM fichiers f
 `;
@@ -70,6 +76,14 @@ fichiersRouter.post(
     if (!communeId) throw new ApiError(400, 'Commune requise.');
 
     const d = depotSchema.parse(req.body);
+    // La commune constate ; la FNCT lit (G7a). La base le refuse aussi
+    // (app.controler_depot_photo_constat) : ceci le dit en mots.
+    if (d.usage === 'constat_assimile' && req.user?.role !== 'admin_commune') {
+      throw new ApiError(403, 'La photo d’un constat de manquement se dépose par la commune qui constate ; la FNCT les lit.');
+    }
+    if (d.usage === 'constat_assimile' && d.destinataireCitoyenId) {
+      throw new ApiError(400, 'La photo d’un constat de manquement reste au service de la commune : elle ne s’adresse à aucun citoyen.');
+    }
 
     // Le préfixe « data:image/jpeg;base64, » des navigateurs est toléré, et le
     // type qu'il annonce est ignoré : seuls les octets décident.
@@ -103,6 +117,9 @@ fichiersRouter.post(
     // Les documents Office ne sont ouverts que pour un rapport ou une étude :
     // une preuve de traitement de réclamation en .pptx n'aurait pas de sens,
     // et élargir l'acceptation à tout usage aurait ouvert cette porte partout.
+    if (d.usage === 'constat_assimile' && type !== 'image/jpeg' && type !== 'image/png' && type !== 'image/webp') {
+      throw new ApiError(415, 'La pièce d’un constat de manquement est une photo : JPEG, PNG ou WebP, jamais un PDF.');
+    }
     if (type !== 'image/jpeg' && type !== 'image/png' && type !== 'image/webp' &&
         type !== 'application/pdf' && d.usage !== 'rapport_etude') {
       throw new ApiError(
@@ -126,6 +143,12 @@ fichiersRouter.post(
     const tirage = await queryOne<{ id: string }>('SELECT gen_random_uuid() AS id');
     const id = tirage!.id;
     const chemin = cheminRelatif(communeId, id, type);
+    // Le nom d'une photo de constat est posé ici, jamais repris de l'appareil :
+    // « PV_CIN_0XXXXXXX.jpg » resterait sinon dans la fiche et au journal. Un nom
+    // d'appareil (IMG_20261123_…) porte une date de huit chiffres : le refuser
+    // aurait bloqué presque toutes les photos ; il est remplacé. La base le tient
+    // aussi (app.controler_depot_photo_constat).
+    const nomGarde = d.usage === 'constat_assimile' ? `constat-${id}.${chemin.split('.').pop()}` : d.nomFichier.slice(0, 255);
 
     await query(
       `INSERT INTO fichiers
@@ -135,7 +158,7 @@ fichiersRouter.post(
       [
         id,
         communeId,
-        d.nomFichier.slice(0, 255),
+        nomGarde,
         type,
         propre.octets.length,
         empreinte(propre.octets),
@@ -377,14 +400,22 @@ fichiersRouter.patch(
       );
     }
 
-    const modifie = await queryOne(
-      `UPDATE fichiers
-          SET visibilite = $1,
-              destinataire_citoyen_id = CASE WHEN $1 = 'citoyen' THEN $2::uuid ELSE NULL END
-        WHERE id = $3 AND deleted_at IS NULL
-        RETURNING id`,
-      [d.visibilite, d.destinataireCitoyenId ?? null, req.params.id]
-    );
+    let modifie: { id: string } | null;
+    try {
+      modifie = await queryOne<{ id: string }>(
+        `UPDATE fichiers
+            SET visibilite = $1,
+                destinataire_citoyen_id = CASE WHEN $1 = 'citoyen' THEN $2::uuid ELSE NULL END
+          WHERE id = $3 AND deleted_at IS NULL
+          RETURNING id`,
+        [d.visibilite, d.destinataireCitoyenId ?? null, req.params.id]
+      );
+    } catch (err) {
+      // La photo d'un constat de manquement ne se publie jamais (migration 107).
+      const m = (err as { message?: string }).message ?? '';
+      if (m.startsWith('PHOTO_CONSTAT_VISIBILITE: ')) throw new ApiError(409, capitale(m.slice('PHOTO_CONSTAT_VISIBILITE: '.length)));
+      throw err;
+    }
     if (!modifie) throw new ApiError(404, 'Fichier introuvable.');
     res.json(await queryOne(`${FICHE} WHERE f.id = $1`, [req.params.id]));
   })
@@ -409,7 +440,9 @@ fichiersRouter.delete(
       // La pièce d'un dossier de déclassement (migration 059) ne se retire
       // pas par ici : le dossier pointerait vers des octets illisibles.
       const m = (err as { message?: string }).message ?? '';
+      // Ni la photo d'un constat de manquement (migration 107).
       if (m.startsWith('FICHIER_PIECE_DECLASSEMENT: ')) throw new ApiError(409, m.slice('FICHIER_PIECE_DECLASSEMENT: '.length));
+      if (m.startsWith('FICHIER_PHOTO_CONSTAT: ')) throw new ApiError(409, capitale(m.slice('FICHIER_PHOTO_CONSTAT: '.length)));
       throw err;
     }
     if (!resultat?.supprimer) throw new ApiError(404, 'Fichier introuvable.');

@@ -25,6 +25,7 @@ import { FormulaireBoitierGps } from './FormulaireBoitierGps';
 import { FormulaireCampagnePesee } from './FormulaireCampagnePesee';
 import { FormulaireCaracterisation } from './FormulaireCaracterisation';
 import { FormulaireCircuit } from './FormulaireCircuit';
+import { FormulaireConstatAssimile } from './FormulaireConstatAssimile';
 import { FormulaireContact } from './FormulaireContact';
 import { FormulaireConvention } from './FormulaireConvention';
 import { FormulaireDensite } from './FormulaireDensite';
@@ -144,6 +145,8 @@ const FORMULAIRES: Record<TypeFormulaire, Omit<EntreeFormulaire, 'type'>> = {
   'densite-assimiles': { rubrique: 'references', roles: COMMUNE, Formulaire: FormulaireDensite },
   // L'export Kobo des pesées d'une campagne d'établissements ouverte : le catalogue fait choisir la campagne.
   'import-pesees': { rubrique: 'imports', roles: COMMUNE, Formulaire: ImportPesees },
+  // Un manquement d'un établissement (jalon G, lot G7a) : la commune constate un fait, la FNCT lit.
+  'constat-assimile': { rubrique: 'registres', roles: COMMUNE, Formulaire: FormulaireConstatAssimile },
 };
 
 const ECRANS: Record<TypeEcran, Omit<EntreeEcran, 'type'>> = {
